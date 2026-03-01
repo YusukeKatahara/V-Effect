@@ -80,19 +80,19 @@
 1. Antigravityのインストーラーを実行するか、案内されたURLからダウンロード
 2. インストール後、起動して初期設定を行う
 3. AIモデル（Gemini / Claude）のどちらかが使えることを確認
-4. 左のアイコン > 「Japanese Language Pack for Visual Studio Code」検索 > インストール > 再起動　で日本語化
+4. 拡張機能（左のアイコン） > Japanese Language Pack for Visual Studio Code」検索 > インストール > 再起動　で日本語化
     □◇
     □□
 
 #### ③ Flutter SDK（アプリ開発フレームワーク）
 
-1. [https://docs.flutter.dev/get-started/install](https://docs.flutter.dev/get-started/install) にアクセス
-2. 自分のOS（Windows / Mac）を選んでダウンロード＆インストール
+1. 拡張機能 > Flutter 検索 > DartとFlutterをインストール
+2. Ctrl＋Shift＋P > Flutter 入力 > Flutter: New Project 選択 > Download SDK > ダウンロード（c: を選んでそこにダウンロードするのがおすすめ）
 3. インストール完了後、ターミナルで以下を実行して確認：
    ```
    flutter doctor
    ```
-   → 各項目に ✓ マークが表示されれば成功！（一部 ✗ でも最初はOK）
+   → 各項目に ✓ マークが表示されれば成功！（✗ のところはチャットに投げて対応してもらう）
 4. **Android Studio もインストール推奨**（Androidエミュレーター＝仮想スマホが使えるようになる）
    - [https://developer.android.com/studio](https://developer.android.com/studio) からダウンロード
 
