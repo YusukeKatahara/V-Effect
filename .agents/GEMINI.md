@@ -36,12 +36,9 @@
 
 ### Firebase 関連の指示
 
-<!-- Firebase を使う場合のみ有効化してください -->
-<!--
-- Firebase プロジェクトID: [ここに記入]
-- 使用するサービス: Authentication, Firestore, Cloud Storage など
-- Firebaseの設定ファイル（google-services.json）は .gitignore に登録済みか確認すること
--->
+- **使用するサービス:** Authentication（ログイン）, Firestore（DB）, Cloud Storage（画像）, Cloud Messaging（即時通知: Effort Alert）
+- **セキュリティの注意:** Firebaseの設定ファイル（`google-services.json`, `GoogleService-Info.plist`）は必ず `.gitignore` に登録し、公開しないこと。
+- **実装上の注意:** Firestoreのデータアクセスには一貫性を持たせ、各ユーザーが他人の努力データ（フレンド機能など）を安全に閲覧できるように設計すること。
 
 ---
 
