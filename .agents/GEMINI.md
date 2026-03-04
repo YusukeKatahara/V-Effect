@@ -1,70 +1,22 @@
-# Gemini モデル設定（V-Effect プロジェクト用）
-
-> **このファイルは何？**
-> Antigravity で **Gemini（ジェミニ）モデル** を使うときに、
-> AIに「このプロジェクトではこう振る舞ってね」と伝えるための設定ファイルです。
-> Gemini は Google が開発したAIで、画像理解や Android 開発が特に得意です。
+# Gemini Model Settings (For V-Effect Project)
 
 ---
 
-## 🎯 Gemini が特に活躍する場面
+## 📝 Project-Specific Instructions
 
-| 場面 | 具体例 |
-|------|--------|
-| **画像を使った指示** | 手描きスケッチや参考画像を見せて「こんな画面を作って」と頼む |
-| **Flutter 開発** | Dart / Flutter でUIやロジックを書いてもらう。Google 公式サービスとの連携も得意 |
-| **UI（見た目）の作成** | Material Design（Google推奨のデザイン）に沿ったきれいな画面を作れる |
-| **素早い実装** | プロトタイプ（試作品）を素早く作りたいとき |
+### Common Rules When Using Gemini
 
----
+You are a development assistant for the V-Effect project. Please follow these rules:
 
-## 📝 プロジェクト固有の指示
+1. **Always add comments (explanatory notes) to the code.** renn is a beginner, and yusuke is a doctoral-level engineer. Try to provide especially polite and detailed explanations for renn.
+2. Write cross-platform (Android / iOS compatible) code using **Dart / Flutter**.
+3. Create UI that follows the **Material Design 3** guidelines.
+4. **Display easy-to-understand messages** to the user even if an error occurs.
+5. Briefly explain the changed files and the reasons in Japanese every time.
 
-<!-- ========================== -->
-<!-- 👇 プロジェクトの進行に合わせて編集してください -->
-<!-- ========================== -->
+### Firebase-Related Instructions
 
-### Gemini を使うときの共通ルール
-
-あなたは V-Effect プロジェクトの開発アシスタントです。以下のルールに従ってください：
-
-1. **コードにはコメント（説明メモ）を必ずつけてください。** renn は初心者、yusuke は博士課程レベルの技術者です。renn向けにはとくに丁寧な解説を心がけてください。
-2. **Dart / Flutter** を使ってクロスプラットフォーム（Android / iOS 両対応）のコードを書いてください。
-3. **Material Design 3** のガイドラインに沿ったUIを作成してください。
-4. **エラーが起きても分かりやすいメッセージ** をユーザーに表示するようにしてください。
-5. 変更したファイルと理由を、毎回簡潔に日本語で教えてください。
-6. **アプリの企画持ち込みは renn です。yusuke は技術的共同開発者です。** 機能の追加・変更判断は renn の意向を優先し、技術的実現可能性については yusuke と議論してください。
-
-### Firebase 関連の指示
-
-- **使用するサービス:** Authentication（ログイン）, Firestore（DB）, Cloud Storage（写真保存）, Cloud Messaging（Effort Alert 通知）
-- **写真投稿の設計方針:** 1日1回の投稿が翌日のみ友人に公開される仕組み。Firestore にタイムスタンプで管理し、閲覧権限（投稿済みユーザーのみ）をセキュリティルールで制御すること。
-- **セキュリティの注意:** Firebaseの設定ファイル（`google-services.json`, `GoogleService-Info.plist`）は必ず `.gitignore` に登録し、公開しないこと。
-- **実装上の注意:** Firestoreのデータアクセスには一貫性を持たせ、各ユーザーが他人の努力データ（友人の投稿・目標・進捗）を安全に閲覧できるように設計すること。
-
----
-
-## 💬 Gemini への話しかけ方の例
-
-```
-「この画像みたいなホーム画面を Flutter で作って」
-
-「写真投稿画面を Material Design で作って。
- カメラ起動ボタン・プレビュー・投稿ボタンを置いて」
-
-「Firebase Authentication でメールアドレスログイン機能を Flutter で実装して」
-
-「Firestore に『今日の投稿済みかどうか』を記録して、
- 投稿済みユーザーだけが友人の投稿一覧を見られるように実装して」
-
-「Effort Alert のプッシュ通知を Cloud Messaging で実装して。
- 1日1〜2回ランダムなタイミングで通知を送る」
-```
-
----
-
-## ⚠️ 注意点
-
-- Gemini は素早くコードを書いてくれますが、**セキュリティのチェック**は Claude の方が得意です
-- 重要な機能を実装した後は、Claude に切り替えて「このコードに問題がないかチェックして」と頼むのがおすすめです
-- 画像を見せて指示する際は、なるべく **はっきりとした画像** を使いましょう
+- **Services to Use:** Authentication (Login), Firestore (DB), Cloud Storage (Photo Save), Cloud Messaging (Effort Alert Notification)
+- **Design Policy for Photo Posting:** A system where a post made once a day is open to friends only on the following day. Manage with timestamps in Firestore, and control viewing authority (only for users who have already posted) with security rules.
+- **Security Note:** Make sure to register Firebase configuration files (`google-services.json`, `GoogleService-Info.plist`) in `.gitignore` and do not publish them.
+- **Implementation Note:** Keep data access in Firestore consistent, and design it so that each user can safely view other people's effort data (friends' posts, goals, progress).

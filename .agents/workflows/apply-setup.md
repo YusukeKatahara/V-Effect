@@ -1,71 +1,71 @@
 ---
-description: setup_guide.md の内容をもとに .agents/ の設定ファイルを自動で最適化する
+description: Automatically optimizes the configuration files in .agents/ based on the contents of setup_guide.md
 ---
 
-# セットアップガイド適用ワークフロー
+# Setup Guide Application Workflow
 
-> **このワークフローは何？**
-> `setup/setup_guide.md` に開発メンバーが記入した内容を読み取り、
-> `.agents/` フォルダ内の設定ファイル（SKILL.md、GEMINI.md、CLAUDE.md）を
-> 自動的に最適な内容に書き換えます。
+> **What is this workflow?**
+> It reads the content filled in by development members in `setup/setup_guide.md`,
+> and automatically rewrites the configuration files inside the `.agents/` folder (SKILL.md, GEMINI.md, CLAUDE.md)
+> to their optimal contents.
 
-## 手順
+## Steps
 
-### 1. setup_guide.md を読み取る
+### 1. Read setup_guide.md
 
-まず `setup/setup_guide.md` の内容を全て読み込み、以下の情報を抽出します：
+First, thoroughly read the contents of `setup/setup_guide.md` and extract the following information:
 
-- プロフィール（名前、プログラミング経験、得意なこと）
-- アプリの説明・ターゲットユーザー・主な機能
-- 開発方法（Flutter / React Native / Kotlin Multiplatform）
-- 使うサービス（Firebase 等）
-- 役割分担
-- スケジュール
-- AIへの個人的な指示
+- Profile (name, programming experience, strengths)
+- App description, target users, main features
+- Development method (Flutter / React Native / Kotlin Multiplatform)
+- Services to be used (Firebase, etc.)
+- Role allocation
+- Schedule
+- Personal instructions to the AI
 
-### 2. SKILL.md を更新する
+### 2. Update SKILL.md
 
-`setup/setup_guide.md` から抽出した情報をもとに、`.agents/SKILL.md` を以下のように更新します：
+Based on the information extracted from `setup/setup_guide.md`, update `.agents/SKILL.md` as follows:
 
-- **プロジェクト概要セクション:** アプリの説明、ターゲットユーザーを反映
-- **開発ルール > コーディング規約:** 選択された開発方法に合わせた言語・フレームワークのルールに書き換え
-  - Flutter → Dart のコーディング規約
-  - React Native → JavaScript/TypeScript のコーディング規約
-  - Kotlin Multiplatform → Kotlin のコーディング規約
-- **フォルダ構成:** 選択された開発方法に合わせたディレクトリ構造に書き換え
-- **Antigravity への基本指示:** メンバーのプログラミング経験レベルに合わせて説明の詳しさを調整
+- **Project Overview Section:** Reflect the app description and target users.
+- **Development Rules > Coding Conventions:** Rewrite to the language/framework rules tailored to the selected development method.
+  - Flutter → Dart coding conventions
+  - React Native → JavaScript/TypeScript coding conventions
+  - Kotlin Multiplatform → Kotlin coding conventions
+- **Folder Structure:** Rewrite to the directory structure tailored to the selected development method.
+- **Basic Instructions for Antigravity:** Adjust the level of detail in explanations according to the members' programming experience level.
 
-### 3. GEMINI.md を更新する
+### 3. Update GEMINI.md
 
-`.agents/GEMINI.md` を以下のように更新します：
+Update `.agents/GEMINI.md` as follows:
 
-- **プロジェクト固有の指示 > 共通ルール:** 選択された開発方法・言語に合わせて書き換え
-  - 例: Flutter なら「Dart / Flutter を使ってコードを書いてください」
-  - 例: React Native なら「JavaScript (TypeScript) / React Native を使ってコードを書いてください」
-- **Firebase 関連の指示:** Firebase を使う場合はコメントアウトを解除して有効化する。使わない場合はそのまま
-- **話しかけ方の例:** 選択された開発方法に合わせた具体例に差し替える
+- **Project-Specific Instructions > Common Rules:** Rewrite tailored to the selected development method and language.
+  - Example: If Flutter, "Write code using Dart / Flutter."
+  - Example: If React Native, "Write code using JavaScript (TypeScript) / React Native."
+- **Firebase-Related Instructions:** If Firebase is used, uncomment and enable it. If not, leave it as is.
+- **Examples of How to Talk:** Replace with specific examples tailored to the selected development method.
 
-### 4. CLAUDE.md を更新する
+### 4. Update CLAUDE.md
 
-`.agents/CLAUDE.md` を以下のように更新します：
+Update `.agents/CLAUDE.md` as follows:
 
-- **プロジェクト固有の指示 > 共通ルール:** レビュー対象の言語・フレームワークを明記
-- アプリの主要機能に合わせたレビュー観点の追加
-  - 例: ログイン機能がある → 認証セキュリティのチェック観点を追加
-  - 例: 決済機能がある → 決済関連のセキュリティチェック観点を追加
+- **Project-Specific Instructions > Common Rules:** Clearly state the language and framework to be reviewed.
+- Add review perspectives tailored to the app's main features.
+  - Example: Has a login feature → Add review perspectives for authentication security.
+  - Example: Has a payment feature → Add review perspectives for payment-related security checks.
 
-### 5. 更新結果を報告する
+### 5. Report the Update Results
 
-全ての更新が完了したら、以下を報告します：
+Once all updates are complete, report the following:
 
-- 変更したファイルの一覧
-- 各ファイルで何を変更したかの簡単な説明
-- 次にやるべきこと（まだ決まっていない項目がある場合のアドバイス）
+- List of modified files
+- Brief explanation of what was changed in each file
+- What to do next (advice in case there are unfinalized items)
 
 ---
 
-## ⚠️ 注意事項
+## ⚠️ Notes
 
-- `setup_guide.md` に未記入の項目（【ここに記入】のまま）がある場合は、**その項目に関連する設定は変更せず、デフォルトのまま残します**。
-- 未記入の項目がある場合は、報告時に「まだ〇〇が決まっていません。決まったらもう一度 `/apply-setup` を実行してください」と案内します。
-- このワークフローは**何度でも実行可能**です。setup_guide.md を更新したら、再度実行して設定を最新化できます。
+- If there are unpopulated items in `setup_guide.md` (left as [Fill in here]), **do not change the settings related to those items and leave them as defaults**.
+- If there are unpopulated items, guide during the report: "XXX is not decided yet. Please run `/apply-setup` again once it is decided."
+- This workflow can be executed **any number of times**. If you update setup_guide.md, you can execute it again to bring the settings up to date.

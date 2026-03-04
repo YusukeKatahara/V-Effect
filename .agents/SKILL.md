@@ -1,124 +1,110 @@
 ---
-name: V-Effect アプリ開発スキル
-description: V-Effect プロジェクトにおけるモバイルアプリ開発のための共通ルールとスキル定義
+name: V-Effect App Development Skills
+description: Common rules and skill definitions for mobile app development in the V-Effect project
 ---
 
-# V-Effect アプリ開発スキル
-
-> **このファイルは何？**
-> Antigravity（AI）に対して「このプロジェクトではこういうルールで開発してね」と教えるための設定ファイルです。
-> このファイルがあることで、AIが毎回プロジェクトの状況を理解し、適切なコードを書いてくれます。
-> 必要に応じて内容を追加・修正してください。
-
+# V-Effect App Development Skills
 ---
 
-## プロジェクト概要
+## Project Overview
 
-- **プロジェクト名:** V-Effect
-- **アプリの説明:** 日々の努力を写真で共有し、友人と称え合いながら成長モチベーションを保つオールポジティブなSNSアプリ。友人間などの狭いコミュニティで1日1回写真を投稿し、投稿した人のみ他の人の投稿を閲覧できる（BeReal型）。目標管理・ロードマップ作成・ゲーム要素（スキルツリー・XP・ストリーク）を組み合わせ、自己成長を可視化する。
-- **ターゲットユーザー:** 夢や目標に向かって頑張る人とその周囲の人たち。Yusuke・rennの友人関係から始め、Facebookのような口コミ拡大で段階的に拡張することを想定。
-- **プラットフォーム:** Android / iOS（Flutter によるクロスプラットフォーム開発）
-- **開発言語:** Dart（Flutter フレームワーク）
-- **開発メンバー:** 2名
-  - **renn**（企画者）: プログラミング未経験の初心者。アイデア・企画・デザインの方向性を担当。
-  - **yusuke**（技術的共同開発者）: 博士課程（工学）。Python/C/C++/Matlab経験あり。機械学習・AI生成・数学・英語に精通。rennからの相談を受けてアプリを技術的に実現する役割。
-- **ソースコード管理:** GitHub（リポジトリ: YusukeKatahara/V-Effect）
+- **Project Name:** V-Effect
+- **App Description:** An all-positive SNS app where users share their daily efforts with photos and praise each other to maintain motivation for growth. Users post photos once a day in a narrow community such as among friends, and only those who post can view others' posts (BeReal style). Combines goal management, roadmap creation, and game elements (skill tree, XP, streak) to visualize self-growth.
+- **Target Users:** People working hard towards dreams and goals, and those around them. Starting from the friend relationship of Yusuke and renn, assuming phased expansion through word-of-mouth like Facebook.
+- **Platform:** Android / iOS (Cross-platform development using Flutter)
+- **Development Language:** Dart (Flutter framework)
+- **Development Members:** 2 members
+  - **renn** (Planner): A beginner with no programming experience. In charge of ideas, planning, and design direction.
+  - **yusuke** (Technical Co-developer): Doctoral course (Engineering). Experienced in Python/C/C++/Matlab. Well-versed in machine learning, generative AI, mathematics, and English. Role is to technically realize the app upon consultation from renn.
+- **Source Code Management:** GitHub (Repository: YusukeKatahara/V-Effect)
 
 ---
 
-## 主要機能リスト
+## Main Feature List
 
-### ★ 必須機能（MVP: 最初のリリースに必要な最低限の機能）
-1. **日々の写真投稿** — 1日1回写真を投稿。投稿した翌日のみ友人の投稿を閲覧できる
-2. **リアクション機能** — 友人の投稿に対してポジティブな反応を送る
-3. **目標管理補助** — 個人の目標設定、ロードマップ作成、進捗管理のサポート
-4. **Effort Alert（rennより）** — 1日1〜2回のランダム通知で努力のリアルタイム写真投稿を促す
+### ★ Essential Features (MVP: Minimum viable features required for the first release)
+1. **Daily Photo Posting** — Post a photo once a day. You can only view friends' posts the day after posting.
+2. **Reaction Feature** — Send positive reactions to friends' posts.
+3. **Goal Management Assistance** — Support for setting personal goals, creating roadmaps, and tracking progress.
+4. **Effort Alert (From renn)** — Encourage real-time photo posting of efforts with random notifications 1-2 times a day.
 
-### ☆ 追加機能（余裕があれば実装）
-- スキルツリー（「体」「頭」「心」の分野別成長可視化）
-- デイリークエスト（AM/PM 2タスク制）
-- ゲーム要素（XP獲得・レベルアップ・ストリーク継続・ランク制）
-- 音楽共有（友人と今聴いている曲をリアルタイムで共有）
-- 友人検索（目標タグによる同じ目標の仲間を探す機能）
+### ☆ Additional Features (Implement if there's time)
+- Skill Tree (Visualize growth by category: "Body", "Mind", "Spirit")
+- Daily Quests (AM/PM 2-task system)
+- Game Elements (Earn XP, level up, maintain streaks, rank system)
+- Music Sharing (Share currently listening music with friends in real-time)
+- Friend Search (Feature to find peers with the same goals using goal tags)
 
 ---
 
-## 開発ルール
+## Development Rules
 
-### コーディング規約（プログラムの書き方のルール）
+### Coding Conventions (Rules for writing code)
 
-1. **変数名・関数名は英語で、意味が分かる名前をつける**
+1. **Use English for variable and function names, and give meaningful names**
    - ❌ `var a = 5;`
    - ✅ `var userAge = 5;`
 
-2. **コメント（プログラム中のメモ）は日本語でもOK**
+2. **Comments can be in Japanese**
    ```dart
    // ユーザーの年齢を取得する関数
    int getUserAge() { ... }
    ```
 
-3. **1つのファイルには1つのWidget（画面パーツ）だけを書く**
-   - ログイン画面 → `login_screen.dart`
-   - 設定画面 → `settings_screen.dart`
-   - ※ Dart のファイル名は **小文字＋アンダースコア区切り**（snake_case）が標準です
+3. **Write only one Widget (screen part) per file**
+   - Login Screen → `login_screen.dart`
+   - Settings Screen → `settings_screen.dart`
+   - *Note: Dart file names should be in **lowercase with underscores** (snake_case) as a standard.*
 
-4. **Flutter / Dart の公式スタイルに従う**
-   - クラス名は `UpperCamelCase`（例: `LoginScreen`）
-   - 関数名・変数名は `lowerCamelCase`（例: `getUserAge`）
+4. **Follow official Flutter / Dart styles**
+   - Class names use `UpperCamelCase` (e.g., `LoginScreen`)
+   - Function and variable names use `lowerCamelCase` (e.g., `getUserAge`)
 
-### Git の使い方のルール
-
-1. **作業前に必ず `git pull` で最新化する**
-2. **こまめに保存（commit）して共有（push）する**
-3. **コミットメッセージ（変更メモ）は日本語で、何を変えたか分かるように書く**
-   - ❌ `fix`
-   - ✅ `ログイン画面のボタンの色を青に変更`
-
-### フォルダ構成（Flutter プロジェクト）
+### Folder Structure (Flutter Project)
 
 ```
 V-Effect/
-├── .agents/          … AI設定ファイル（このフォルダ）
-├── docs/             … ドキュメント類
-├── setup/            … セットアップガイド
-├── lib/              … Dart ソースコード（メインの開発場所）
-│   ├── main.dart     … アプリのエントリーポイント（起動ファイル）
-│   ├── screens/      … 各画面の Widget
-│   ├── widgets/      … 再利用可能なUIパーツ
-│   ├── models/       … データモデル（データの形を定義）
-│   ├── services/     … API通信やデータベース処理
-│   └── utils/        … 共通の便利関数
-├── test/             … テストコード
-├── android/          … Android 固有の設定（自動生成、通常は触らない）
-├── ios/              … iOS 固有の設定（自動生成、通常は触らない）
-├── pubspec.yaml      … パッケージ（外部ライブラリ）の管理ファイル
+├── .agents/          ... AI configuration files (this folder)
+├── docs/             ... Documents
+├── setup/            ... Setup guides
+├── lib/              ... Dart source code (main development area)
+│   ├── main.dart     ... App entry point (startup file)
+│   ├── screens/      ... Widgets for each screen
+│   ├── widgets/      ... Reusable UI parts
+│   ├── models/       ... Data models (defines data shapes)
+│   ├── services/     ... API communication and database processing
+│   └── utils/        ... Common utility functions
+├── test/             ... Test code
+├── android/          ... Android-specific settings (auto-generated, usually don't touch)
+├── ios/              ... iOS-specific settings (auto-generated, usually don't touch)
+├── pubspec.yaml      ... Package (external library) management file
 └── README.md
 ```
 
 ---
 
-## セキュリティルール
+## Security Rules
 
-1. **APIキーやパスワードは絶対にコードに直接書かない**
-   - `.env` ファイルに書き、`.gitignore` に登録する
-2. **`.gitignore` を必ず設定する**（詳しくは `docs/release_risk_guide.md` を参照）
-3. **ユーザーの個人情報は暗号化して保存する**
+1. **Never write API keys or passwords directly in the code**
+   - Write them in the `.env` file and register it in `.gitignore`
+2. **Always configure `.gitignore`** (refer to `docs/release_risk_guide.md` for details)
+3. **Encrypt and save user's personal information**
 
 ---
 
-## Antigravity への基本指示
+## Basic Instructions for Antigravity
 
-このプロジェクトは **renn（企画者・初心者）** と **yusuke（技術的共同開発者・上級者）** の2名で開発しています。
+This project is developed by 2 people: **renn (Planner / Beginner)** and **yusuke (Technical Co-developer / Advanced)**.
 
-### renn に向けた対応ルール（プログラミング初心者）
-1. **専門用語には必ず簡単な解説**を添え、コードの変更箇所と理由を毎回日本語で分かりやすく説明すること。
-2. **コードの貼り付けを指示する際は、どのファイルの何行目に追記・修正するかを具体的に明記**すること。
-3. 初心者にも分かるように、コード中に丁寧な日本語のコメント（説明メモ）を書くこと。
-4. エラーハンドリング（予期しない状況への対処）を必ず入れること。
-5. セキュリティに関わるコードを書く時は、必ず注意点を説明すること。
+### Response Rules for renn
+1. **Always add simple explanations for technical terms**, and explain code changes and reasons clearly in Japanese every time.
+2. **When instructing to paste code, specifically state which file and which line to add/modify.**
+3. Write polite comments (explanatory notes) within the code so beginners can understand.
+4. Always include error handling (dealing with unexpected situations).
+5. When writing code related to security, always explain the points of caution.
 
-### yusuke に向けた対応ルール（技術的共同開発者）
-1. 専門用語はカッコ書きで意味を添えつつ、ある程度の技術的議論は歓迎。
-2. コードの変更点は、何をなぜ変えたか日本語で毎回説明すること。
-3. 選択肢がある場合は、メリット・デメリットを比較表で示すこと。
-4. **アプリの企画持ち込みは renn。yusuke は相談を受けた技術的共同開発者**であることを踏まえ、技術的実現可能性を中心にサポートすること。
+### Response Rules for yusuke
+1. A certain degree of technical discussion is welcome.
+2. Explain what was changed and why modifications every time.
+3. If there are choices, present the pros and cons in a comparison table.
+4. Talk in English.
