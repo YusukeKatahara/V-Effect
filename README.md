@@ -1,10 +1,36 @@
-# V-Effect
+# 🔥 V-Effect
 
-Welcome to the V-Effect project!
+**「自分に勝つ」体験を積み重ね、圧倒的な自信をつけるためのアプリ**
 
-This repository is set up for collaborative development.
+V-Effectの「V」は **Victory（勝利）** の連鎖、つまり **「勝ち癖」** を意味します。
+毎日の筋トレ、ランニング、読書など、自分自身との小さな約束を守り抜くことで自信を構築し、仲間とその泥臭い努力を共有し合うことでモチベーションの炎を燃やし続けるプラットフォームです。
 
-## Getting Started
+## 🎯 コアコンセプト (MVP)
 
-1. Clone the repository
-2. Ask Antigravity for help with your next task!
+V-Effect は以下の3つの強力なサイクルで、あなたの「勝ち癖」をサポートします。
+
+### 1. ⚡️ V-Quest (デイリークエスト)
+朝起きたら、今日絶対にやり遂げる**「1つの挑戦（自分への勝利条件）」**を宣言します。
+（例：「腕立て30回」「ランニング3km」「本を10ページ読む」）
+複雑なタスク管理はしません。今日、自分に勝ったか負けたか。白黒はっきりさせます。
+
+### 2. 📸 V-Alert (リアルタイム努力証明)
+毎日ランダムな時間に「V-Alert」の通知が鳴ります。
+通知が来たら、その瞬間の努力の証（パンプアップした体、走っている足元、開いている本など）を写真に撮って投稿し、「Vクエスト」の達成を証明します。
+
+### 3. 🤝 V-Feed (熱量の共有)
+今日「V」を達成した（自分に勝った）仲間の写真だけが見れる特別なタイムラインです。
+互いの努力に「🔥」などのリアクションを送り合い、共に高みを目指します。
+
+---
+
+## 🛠 開発環境・技術スタック
+
+- **フロントエンド**: Flutter (Dart)
+- **バックエンド**: Firebase (Authentication, Firestore, Cloud Storage, Cloud Messaging)
+- **アーキテクチャ**: MVP (Minimum Viable Product) を最速でリリースし、ユーザーの熱量をもとに改善を重ねます。
+
+## 🚀 参加メンバー
+
+- renn
+- Katahara
