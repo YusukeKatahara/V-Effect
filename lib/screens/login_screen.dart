@@ -34,9 +34,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } on FirebaseAuthException catch (e) {
       // 想定されるエラーごとに、わかりやすい日本語のメッセージを作ります。
       String msg = 'ログインに失敗しました。';
-      if (e.code == 'user-not-found')
+      if (e.code == 'user-not-found') {
         msg = 'ユーザーが見つかりません。登録してください。';
-      else if (e.code == 'wrong-password')
+      } else if (e.code == 'wrong-password')
         msg = 'パスワードが間違っています。';
       _showError(msg);
     } finally {
@@ -57,9 +57,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) Navigator.pushReplacementNamed(context, '/home');
     } on FirebaseAuthException catch (e) {
       String msg = '登録に失敗しました。';
-      if (e.code == 'email-already-in-use')
+      if (e.code == 'email-already-in-use') {
         msg = 'このメールアドレスは既に使われています。';
-      else if (e.code == 'weak-password')
+      } else if (e.code == 'weak-password')
         msg = 'パスワードは6文字以上にしてください。';
       _showError(msg);
     } finally {
