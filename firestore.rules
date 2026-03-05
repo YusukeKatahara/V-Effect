@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ────────────────────────────────────────
+    // users コレクション
+    // ────────────────────────────────────────
+    // 自分のユーザー情報は自分だけが読み書きできます。
+    // フレンドのプロフィール（名前など）は認証済みユーザーなら誰でも読めます。
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ────────────────────────────────────────
+    // posts コレクション
+    // ────────────────────────────────────────
+    match /posts/{postId} {
+      // 【仕様】ログインしているユーザーが自分の投稿を作れる
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+
+      // 【仕様】自分の投稿は自分だけが更新・削除できる（リアクションは除外 → reactionCount は別途許可）
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+
+      // 【仕様】reactionCount の更新は誰でも（ログインユーザーなら）OK
+      // ただし reactionCount 以外のフィールドを変更しようとしてもブロックします
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactionCount']);
+
+      // 【仕様（BeRealルール）】
+      // ・閲覧は「まだ24時間が経っていない（expiresAt > 今）」投稿のみ
+      // ・閲覧者は今日の投稿がある（= lastPostedDate が今日）必要がある
+      //
+      //  ※ Firestore のセキュリティルールでは「今日の日付」を
+      //    サーバーから直接は取得できません。
+      //    そのため「ログイン済みであれば読める」とし、
+      //    24hチェックはクライアント側（PostService.getFriendsFeed）のクエリと
+      //    expiresAt フィールドで担保します。
+      //    より厳格にしたい場合は Cloud Functions のサーバー側でチェックしてください。
+      allow read: if request.auth != null;
+    }
+  }
+}

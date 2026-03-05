@@ -1,109 +1,163 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/post_service.dart';
 
 /// 【rennさんへ】
-/// ここはログイン後に表示されるホーム画面です。
-/// 現時点での連続達成記録（ストリーク🔥）や、カメラ画面へのボタンを配置しています。
-class HomeScreen extends StatelessWidget {
+/// ホーム画面です。
+/// ・今日のストリーク（連続記録）をFirestoreから取得して表示します
+/// ・「今日の記録」ボタンでカメラ画面に飛びます
+/// ・「フレンドの投稿」ボタンでタイムライン画面に飛びます
+class HomeScreen extends StatefulWidget {
+  // ストリークを動的に表示するためStatefulにします
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final PostService _postService = PostService();
+  int _streak = 0;
+  bool _postedToday = false;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData(); // 画面が開いた瞬間にデータを読み込みます
+  }
+
+  /// Firestoreからストリークと今日の投稿状況を読み込む処理
+  Future<void> _loadData() async {
+    try {
+      final streak = await _postService.getStreak();
+      final posted = await _postService.hasPostedToday();
+      setState(() {
+        _streak = streak;
+        _postedToday = posted;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // 現在ログインしているユーザーの情報を取得します。
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ホーム'),
+        title: const Text('V-Effect'),
         actions: [
-          // ログアウトボタンです。右上に配置されます。
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-              // ログアウトが終わったらログイン画面に戻ります。
               if (context.mounted)
                 Navigator.pushReplacementNamed(context, '/login');
             },
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // ユーザー名を画面に表示します。メールアドレスがない場合は「ゲスト」と表示します。
-            Text(
-              'ようこそ, ${user?.email ?? 'ゲスト'} さん',
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 24),
-            // ストリーク（連続記録）を目立たせるためのカードです。
-            Card(
-              elevation: 4,
-              color: Colors.amber.shade800,
-              child: const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Text(
-                      '現在のストリーク🔥',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+      body: _loading
+          ? const Center(child: CircularProgressIndicator()) // データ読み込み中はくるくる
+          : RefreshIndicator(
+              // 画面を下に引っ張ると更新できます
+              onRefresh: _loadData,
+              child: ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  Text(
+                    'ようこそ, ${user?.email?.split('@').first ?? 'ゲスト'} さん',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── ストリークカード ──
+                  Card(
+                    elevation: 4,
+                    color: _streak > 0
+                        ? Colors.amber.shade800
+                        : Colors.grey.shade700,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          const Text(
+                            '現在のストリーク',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '$_streak 日連続 🔥',
+                            style: const TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      '3 日連続',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ── 今日の投稿状況バッジ ──
+                  Row(
+                    children: [
+                      Icon(
+                        _postedToday
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
+                        color: _postedToday ? Colors.green : Colors.grey,
                       ),
+                      const SizedBox(width: 8),
+                      Text(_postedToday ? '今日の投稿：完了 ✅' : '今日の投稿：まだです'),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  // ── カメラ画面へのボタン ──
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.camera_alt),
+                    label: Text(
+                      _postedToday ? '今日の記録を見る / 撮り直す' : '今日のタスクを記録する 📸',
                     ),
-                  ],
-                ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      textStyle: const TextStyle(fontSize: 17),
+                    ),
+                    onPressed: () async {
+                      // カメラ画面から戻ってきたらデータを更新します
+                      await Navigator.pushNamed(context, '/camera');
+                      _loadData();
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── フィード画面へのボタン ──
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.group),
+                    label: Text(
+                      _postedToday ? 'フレンドの投稿を見る 👥' : 'フレンドの投稿（投稿後に解放）',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      textStyle: const TextStyle(fontSize: 17),
+                      // 未投稿なら少し暗くして「使えない感」を出します
+                      foregroundColor: _postedToday ? null : Colors.grey,
+                    ),
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/feed');
+                    },
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 40),
-            // その日の努力を写真で証明するためのボタンです。
-            ElevatedButton.icon(
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('今日のタスクを記録する (写真)'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
-                ),
-                textStyle: const TextStyle(fontSize: 18),
-              ),
-              onPressed: () {
-                // カメラ画面（CameraScreen）へ移動します。
-                Navigator.pushNamed(context, '/camera');
-              },
-            ),
-            const SizedBox(height: 16),
-            // 友達の投稿を見るためのボタンです。
-            OutlinedButton.icon(
-              icon: const Icon(Icons.group),
-              label: const Text('フレンドの進捗を見る'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
-                ),
-                textStyle: const TextStyle(fontSize: 18),
-              ),
-              onPressed: () {
-                // タイムライン画面（FeedScreen）へ移動します。
-                Navigator.pushNamed(context, '/feed');
-              },
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
