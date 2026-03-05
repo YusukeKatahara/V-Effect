@@ -10,7 +10,7 @@ description: Common rules and skill definitions for mobile app development in th
 
 - **Project Name:** V-Effect
 - **App Description:** An all-positive SNS app where users share their daily efforts with photos and praise each other to maintain motivation for growth. Users post photos once a day in a narrow community such as among friends, and only those who post can view others' posts (BeReal style). Combines goal management, roadmap creation, and game elements (skill tree, XP, streak) to visualize self-growth.
-- **Target Users:** People working hard towards dreams and goals, and those around them. Starting from the friend relationship of Yusuke and renn, assuming phased expansion through word-of-mouth like Facebook.
+- **Target Users:** 学生や、日々の目標に向かって泥臭く頑張る人たち。
 - **Platform:** Android / iOS (Cross-platform development using Flutter)
 - **Development Language:** Dart (Flutter framework)
 - **Development Members:** 2 members
@@ -23,17 +23,13 @@ description: Common rules and skill definitions for mobile app development in th
 ## Main Feature List
 
 ### ★ Essential Features (MVP: Minimum viable features required for the first release)
-1. **Daily Photo Posting** — Post a photo once a day. You can only view friends' posts the day after posting.
-2. **Reaction Feature** — Send positive reactions to friends' posts.
-3. **Goal Management Assistance** — Support for setting personal goals, creating roadmaps, and tracking progress.
-4. **Effort Alert (From renn)** — Encourage real-time photo posting of efforts with random notifications 1-2 times a day.
+1. **V-Quest (デイリークエスト)** — 1日1つ、自分に勝つための挑戦（筋トレ、ランニングなど）を宣言する。
+2. **V-Alert (リアルタイム努力証明)** — ランダムな通知に合わせて、その瞬間の努力（パンプアップした体など）を写真に撮り、BeRealのように投稿する。
+3. **V-Feed (熱量の共有)** — 今日「V-Quest」を達成した仲間の写真だけが見れるタイムライン。🔥でリアクションできる。
 
 ### ☆ Additional Features (Implement if there's time)
-- Skill Tree (Visualize growth by category: "Body", "Mind", "Spirit")
-- Daily Quests (AM/PM 2-task system)
-- Game Elements (Earn XP, level up, maintain streaks, rank system)
-- Music Sharing (Share currently listening music with friends in real-time)
-- Friend Search (Feature to find peers with the same goals using goal tags)
+- スキルツリー機能（「体」「頭」「心」などの詳細な成長可視化）※リリース第2弾以降を想定
+- 詳細なXP（経験値）計算およびレベルアップシステム
 
 ---
 
@@ -97,11 +93,11 @@ V-Effect/
 This project is developed by 2 people: **renn (Planner / Beginner)** and **yusuke (Technical Co-developer / Advanced)**.
 
 ### Response Rules for renn
-1. **Always add simple explanations for technical terms**, and explain code changes and reasons clearly in Japanese every time.
-2. **When instructing to paste code, specifically state which file and which line to add/modify.**
-3. Write polite comments (explanatory notes) within the code so beginners can understand.
-4. Always include error handling (dealing with unexpected situations).
-5. When writing code related to security, always explain the points of caution.
+1. **Always add simple explanations for technical terms in parentheses** (e.g., "Let's do refactoring (organizing code without changing its behavior)").
+2. **Explain what changed and why in Japanese for every code change.**
+3. **If renn says "I don't understand", explain it more simply and break it down.**
+4. **If there are choices/options, present the pros and cons in a comparison table.**
+5. Write polite comments (explanatory notes) within the code so beginners can understand.
 
 ### Response Rules for yusuke
 1. A certain degree of technical discussion is welcome.

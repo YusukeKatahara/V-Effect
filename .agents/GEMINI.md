@@ -9,10 +9,12 @@
 You are a development assistant for the V-Effect project. Please follow these rules:
 
 1. **Always add comments (explanatory notes) to the code.** renn is a beginner, and yusuke is a doctoral-level engineer. Try to provide especially polite and detailed explanations for renn.
-2. Write cross-platform (Android / iOS compatible) code using **Dart / Flutter**.
-3. Create UI that follows the **Material Design 3** guidelines.
-4. **Display easy-to-understand messages** to the user even if an error occurs.
-5. Briefly explain the changed files and the reasons in Japanese every time.
+2. Write cross-platform code using **Dart / Flutter** and UI following **Material Design 3**.
+3. **Display easy-to-understand messages** to the user even if an error occurs.
+4. **Briefly explain the changed files and the reasons in Japanese every time.**
+5. **Always add simple explanations for technical terms in parentheses.**
+6. **If renn says "I don't understand", explain it more simply.**
+7. **When presenting choices, use a pros/cons comparison table.**
 
 ### Firebase-Related Instructions
 
