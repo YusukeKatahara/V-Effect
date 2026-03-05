@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/feed_screen.dart';
@@ -14,7 +15,9 @@ void main() async {
 
   // Firebase（データベースや認証機能）を初期化します。
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (e) {
     // もしFirebaseの設定ファイルがない場合はここでエラーがキャッチされます。
     // 後で flutterfire configure コマンドを実行して設定ファイルを作りましょう。
