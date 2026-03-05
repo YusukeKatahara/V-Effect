@@ -15,7 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // テキスト入力欄（メールアドレスとパスワード）の中身を管理するためのコントローラーです。
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  
+
   // ログイン処理中かどうかを判定する変数です。
   // これが true の時は、画面にくるくる回るアイコン（ローディング）を表示します。
   bool _isLoading = false;
@@ -34,8 +34,10 @@ class _LoginScreenState extends State<LoginScreen> {
     } on FirebaseAuthException catch (e) {
       // 想定されるエラーごとに、わかりやすい日本語のメッセージを作ります。
       String msg = 'ログインに失敗しました。';
-      if (e.code == 'user-not-found') msg = 'ユーザーが見つかりません。登録してください。';
-      else if (e.code == 'wrong-password') msg = 'パスワードが間違っています。';
+      if (e.code == 'user-not-found')
+        msg = 'ユーザーが見つかりません。登録してください。';
+      else if (e.code == 'wrong-password')
+        msg = 'パスワードが間違っています。';
       _showError(msg);
     } finally {
       // 成功しても失敗しても、最後に必ずローディング状態を解除します。
@@ -55,8 +57,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) Navigator.pushReplacementNamed(context, '/home');
     } on FirebaseAuthException catch (e) {
       String msg = '登録に失敗しました。';
-      if (e.code == 'email-already-in-use') msg = 'このメールアドレスは既に使われています。';
-      else if (e.code == 'weak-password') msg = 'パスワードは6文字以上にしてください。';
+      if (e.code == 'email-already-in-use')
+        msg = 'このメールアドレスは既に使われています。';
+      else if (e.code == 'weak-password')
+        msg = 'パスワードは6文字以上にしてください。';
       _showError(msg);
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -66,7 +70,9 @@ class _LoginScreenState extends State<LoginScreen> {
   /// エラーメッセージを画面の下からピョコッと表示する（SnackBar）ための機能です。
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -83,33 +89,40 @@ class _LoginScreenState extends State<LoginScreen> {
             // メールアドレス入力欄
             TextField(
               controller: _emailCtrl,
-              decoration: const InputDecoration(labelText: 'メールアドレス', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'メールアドレス',
+                border: OutlineInputBorder(),
+              ),
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
             // パスワード入力欄（文字が黒丸で隠れます）
             TextField(
               controller: _passCtrl,
-              decoration: const InputDecoration(labelText: 'パスワード', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'パスワード',
+                border: OutlineInputBorder(),
+              ),
               obscureText: true,
             ),
             const SizedBox(height: 24),
             // ロード中ならくるくるアイコン、そうでないならボタンを表示します
-            if (_isLoading) const CircularProgressIndicator()
-            else Column(
-              children: [
-                ElevatedButton(
-                  onPressed: _login,
-                  style: ElevatedButton.styleFrom(minimumSize: const Size.infinity, 50)),
-                  child: const Text('ログイン'),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: _register,
-                  child: const Text('新規登録'),
-                )
-              ],
-            )
+            if (_isLoading)
+              const CircularProgressIndicator()
+            else
+              Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: _login,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    child: const Text('ログイン'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(onPressed: _register, child: const Text('新規登録')),
+                ],
+              ),
           ],
         ),
       ),
