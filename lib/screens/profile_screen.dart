@@ -60,9 +60,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.all(24),
                     children: [
                       // Avatar
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 48,
-                        child: Icon(Icons.person, size: 48),
+                        backgroundImage: _user!.photoUrl != null
+                            ? NetworkImage(_user!.photoUrl!)
+                            : null,
+                        child: _user!.photoUrl == null
+                            ? const Icon(Icons.person, size: 48)
+                            : null,
                       ),
                       const SizedBox(height: 16),
 
@@ -84,6 +89,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 24),
 
                       // Info cards
+                      _infoTile(Icons.cake, '生年月日',
+                          _user!.birthDate ?? '未設定'),
+                      _infoTile(Icons.wc, '性別',
+                          _user!.gender ?? '未設定'),
                       _infoTile(Icons.email, 'メール', _user!.email ?? ''),
                       _infoTile(Icons.local_fire_department, 'ストリーク',
                           '${_user!.streak} 日連続'),

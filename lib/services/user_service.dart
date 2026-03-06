@@ -10,19 +10,24 @@ class UserService {
   Future<void> saveProfile({
     required String username,
     required String userId,
-    required String email,
+    required String birthDate,
+    required String gender,
   }) async {
     final uid = _auth.currentUser!.uid;
+    final email = _auth.currentUser!.email;
     await _db.collection('users').doc(uid).set({
       'username': username,
       'userId': userId,
       'email': email,
+      'birthDate': birthDate,
+      'gender': gender,
       'streak': 0,
       'lastPostedDate': null,
       'friends': [],
       'tasks': [],
       'wakeUpTime': null,
       'taskTime': null,
+      'photoUrl': null,
       'profileCompleted': true,
     }, SetOptions(merge: true));
   }
@@ -32,14 +37,19 @@ class UserService {
     required List<String> tasks,
     required String wakeUpTime,
     required String taskTime,
+    String? photoUrl,
   }) async {
     final uid = _auth.currentUser!.uid;
-    await _db.collection('users').doc(uid).update({
+    final data = <String, dynamic>{
       'tasks': tasks,
       'wakeUpTime': wakeUpTime,
       'taskTime': taskTime,
       'onboardingCompleted': true,
-    });
+    };
+    if (photoUrl != null) {
+      data['photoUrl'] = photoUrl;
+    }
+    await _db.collection('users').doc(uid).update(data);
   }
 
   /// ユーザーIDが既に使われていないかチェックします

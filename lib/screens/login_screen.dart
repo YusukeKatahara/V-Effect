@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// 新規登録ボタンが押された時の処理です
   void _goToRegister() {
-    Navigator.pushNamed(context, AppRoutes.profileSetup);
+    Navigator.pushNamed(context, AppRoutes.register);
   }
 
   /// エラーメッセージを画面の下からピョコッと表示する（SnackBar）ための機能です。

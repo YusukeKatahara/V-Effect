@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../config/routes.dart';
 import '../services/user_service.dart';
 
 /// 新規登録後のプロフィール設定画面（Step 1/2）
-/// ユーザー名、ユーザーID、メールアドレスを入力します
+/// ユーザー名、ユーザーID、生年月日、性別を入力します
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
 
@@ -16,24 +15,48 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameCtrl = TextEditingController();
   final _userIdCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  final _passConfirmCtrl = TextEditingController();
   final _userService = UserService();
   bool _isSaving = false;
+
+  // 生年月日
+  int? _birthYear;
+  int? _birthMonth;
+  int? _birthDay;
+
+  // 性別
+  String? _gender;
+  static const _genderOptions = ['男性', '女性', 'その他'];
 
   @override
   void dispose() {
     _usernameCtrl.dispose();
     _userIdCtrl.dispose();
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
-    _passConfirmCtrl.dispose();
     super.dispose();
+  }
+
+  /// 選択中の年月に応じた日数を返す
+  int _daysInMonth(int year, int month) {
+    return DateUtils.getDaysInMonth(year, month);
   }
 
   Future<void> _saveAndNext() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // 生年月日のバリデーション
+    if (_birthYear == null || _birthMonth == null || _birthDay == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('生年月日を選択してください')),
+      );
+      return;
+    }
+
+    // 性別のバリデーション
+    if (_gender == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('性別を選択してください')),
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
     try {
@@ -50,33 +73,18 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         return;
       }
 
-      // Firebase Auth でアカウントを作成
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text.trim(),
-      );
-
       // Firestore にプロフィール情報を保存
+      final birthDate =
+          '${_birthYear!}-${_birthMonth!.toString().padLeft(2, '0')}-${_birthDay!.toString().padLeft(2, '0')}';
       await _userService.saveProfile(
         username: _usernameCtrl.text.trim(),
         userId: _userIdCtrl.text.trim(),
-        email: _emailCtrl.text.trim(),
+        birthDate: birthDate,
+        gender: _gender!,
       );
 
       if (mounted) {
         Navigator.pushReplacementNamed(context, AppRoutes.taskSetup);
-      }
-    } on FirebaseAuthException catch (e) {
-      String msg = '登録に失敗しました。';
-      if (e.code == 'email-already-in-use') {
-        msg = 'このメールアドレスは既に使われています。';
-      } else if (e.code == 'weak-password') {
-        msg = 'パスワードは6文字以上にしてください。';
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
-        );
       }
     } catch (e) {
       if (mounted) {
@@ -91,6 +99,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentYear = DateTime.now().year;
+
     return Scaffold(
       appBar: AppBar(title: const Text('プロフィール設定')),
       body: SingleChildScrollView(
@@ -151,61 +161,119 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-              // メールアドレス
-              TextFormField(
-                controller: _emailCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'メールアドレス',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'メールアドレスを入力してください' : null,
+              // 生年月日
+              const Text(
+                '生年月日',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 16),
-
-              // パスワード
-              TextFormField(
-                controller: _passCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'パスワード',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
-                obscureText: true,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'パスワードを入力してください';
-                  }
-                  if (v.trim().length < 6) {
-                    return '6文字以上で入力してください';
-                  }
-                  return null;
-                },
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  // 年
+                  Expanded(
+                    flex: 3,
+                    child: DropdownButtonFormField<int>(
+                      initialValue: _birthYear,
+                      decoration: const InputDecoration(
+                        labelText: '年',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: List.generate(
+                        100,
+                        (i) => currentYear - i,
+                      )
+                          .map((y) => DropdownMenuItem(
+                                value: y,
+                                child: Text('$y'),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setState(() {
+                        _birthYear = v;
+                        // 日の上限を再計算
+                        if (_birthMonth != null && _birthDay != null) {
+                          final maxDay = _daysInMonth(_birthYear!, _birthMonth!);
+                          if (_birthDay! > maxDay) _birthDay = maxDay;
+                        }
+                      }),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 月
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<int>(
+                      initialValue: _birthMonth,
+                      decoration: const InputDecoration(
+                        labelText: '月',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: List.generate(12, (i) => i + 1)
+                          .map((m) => DropdownMenuItem(
+                                value: m,
+                                child: Text('$m'),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setState(() {
+                        _birthMonth = v;
+                        // 日の上限を再計算
+                        if (_birthYear != null && _birthDay != null) {
+                          final maxDay = _daysInMonth(_birthYear!, _birthMonth!);
+                          if (_birthDay! > maxDay) _birthDay = maxDay;
+                        }
+                      }),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 日
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<int>(
+                      initialValue: _birthDay,
+                      decoration: const InputDecoration(
+                        labelText: '日',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: List.generate(
+                        (_birthYear != null && _birthMonth != null)
+                            ? _daysInMonth(_birthYear!, _birthMonth!)
+                            : 31,
+                        (i) => i + 1,
+                      )
+                          .map((d) => DropdownMenuItem(
+                                value: d,
+                                child: Text('$d'),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setState(() => _birthDay = v),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-              // パスワード確認
-              TextFormField(
-                controller: _passConfirmCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'パスワード（確認）',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock_outline),
+              // 性別
+              const Text(
+                '性別',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              RadioGroup<String>(
+                groupValue: _gender ?? '',
+                onChanged: (v) => setState(() => _gender = v),
+                child: Column(
+                  children: _genderOptions.map((option) {
+                    return RadioListTile<String>(
+                      title: Text(option),
+                      value: option,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                    );
+                  }).toList(),
                 ),
-                obscureText: true,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'パスワードを再入力してください';
-                  }
-                  if (v.trim() != _passCtrl.text.trim()) {
-                    return 'パスワードが一致しません';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 32),
 

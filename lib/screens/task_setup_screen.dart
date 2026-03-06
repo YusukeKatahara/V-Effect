@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../config/routes.dart';
 import '../services/user_service.dart';
 
 /// 新規登録後のタスク設定画面（Step 2/2）
-/// タスク（1〜5個）、起床時間、タスク実行時間を入力します
+/// プロフィール写真、タスク（1〜5個）、タスク実行時間、起床時間を入力します
 class TaskSetupScreen extends StatefulWidget {
   const TaskSetupScreen({super.key});
 
@@ -16,12 +21,16 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
   final _userService = UserService();
   bool _isSaving = false;
 
+  // プロフィール写真
+  File? _profileImage;
+  final _picker = ImagePicker();
+
   // タスク入力欄（最初は1つ、最大5つまで追加可能）
   final List<TextEditingController> _taskCtrls = [TextEditingController()];
 
-  // 起床時間とタスク実行時間
-  TimeOfDay _wakeUpTime = const TimeOfDay(hour: 7, minute: 0);
+  // タスク実行時間と起床時間
   TimeOfDay _taskTime = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _wakeUpTime = const TimeOfDay(hour: 7, minute: 0);
 
   @override
   void dispose() {
@@ -29,6 +38,18 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
       ctrl.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _pickProfileImage() async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 80,
+    );
+    if (picked != null) {
+      setState(() => _profileImage = File(picked.path));
+    }
   }
 
   void _addTaskField() {
@@ -64,6 +85,18 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
     return '$h:$m';
   }
 
+  /// プロフィール画像を Firebase Storage にアップロードして URL を返す
+  Future<String?> _uploadProfileImage() async {
+    if (_profileImage == null) return null;
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('profile_images')
+        .child('$uid.jpg');
+    await ref.putFile(_profileImage!);
+    return await ref.getDownloadURL();
+  }
+
   Future<void> _saveAndFinish() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -81,10 +114,14 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
 
     setState(() => _isSaving = true);
     try {
+      // プロフィール画像をアップロード
+      final photoUrl = await _uploadProfileImage();
+
       await _userService.saveTaskSettings(
         tasks: tasks,
         wakeUpTime: _formatTime(_wakeUpTime),
         taskTime: _formatTime(_taskTime),
+        photoUrl: photoUrl,
       );
 
       if (mounted) {
@@ -127,9 +164,42 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
               ),
               const SizedBox(height: 32),
 
+              // ── プロフィール写真 ──
+              const Text(
+                'プロフィール写真',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: GestureDetector(
+                  onTap: _pickProfileImage,
+                  child: CircleAvatar(
+                    radius: 56,
+                    backgroundColor: Colors.grey.shade200,
+                    backgroundImage: _profileImage != null
+                        ? FileImage(_profileImage!)
+                        : null,
+                    child: _profileImage == null
+                        ? const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.camera_alt,
+                                  size: 32, color: Colors.grey),
+                              SizedBox(height: 4),
+                              Text('写真を選択',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey)),
+                            ],
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
               // ── タスク入力欄 ──
               const Text(
-                'タスク（1〜5個）',
+                'やりたいタスク（1〜5個）',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -169,31 +239,15 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                 ),
               const SizedBox(height: 24),
 
-              // ── 起床時間 ──
-              const Text(
-                'いつも何時に起きますか？',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () => _pickTime(isWakeUp: true),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.alarm),
-                  ),
-                  child: Text(
-                    _formatTime(_wakeUpTime),
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
               // ── タスク実行時間 ──
               const Text(
                 'タスクをいつやりたいですか？',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'この時間に通知を送ってタスクをリマインドします',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 8),
               InkWell(
@@ -205,6 +259,32 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                   ),
                   child: Text(
                     _formatTime(_taskTime),
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── 起床時間 ──
+              const Text(
+                'いつも何時に起きますか？',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'この時間に起床の通知をお届けします',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () => _pickTime(isWakeUp: true),
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.alarm),
+                  ),
+                  child: Text(
+                    _formatTime(_wakeUpTime),
                     style: const TextStyle(fontSize: 18),
                   ),
                 ),

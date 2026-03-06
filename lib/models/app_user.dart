@@ -7,6 +7,9 @@ class AppUser {
   final String? username;
   final String? userId;
   final String? displayName;
+  final String? birthDate;
+  final String? gender;
+  final String? photoUrl;
   final int streak;
   final String? lastPostedDate;
   final List<String> friends;
@@ -22,6 +25,9 @@ class AppUser {
     this.username,
     this.userId,
     this.displayName,
+    this.birthDate,
+    this.gender,
+    this.photoUrl,
     this.streak = 0,
     this.lastPostedDate,
     this.friends = const [],
@@ -40,6 +46,9 @@ class AppUser {
       username: data['username'],
       userId: data['userId'],
       displayName: data['displayName'],
+      birthDate: data['birthDate'],
+      gender: data['gender'],
+      photoUrl: data['photoUrl'],
       streak: (data['streak'] as num?)?.toInt() ?? 0,
       lastPostedDate: data['lastPostedDate'],
       friends: List<String>.from(data['friends'] ?? []),
