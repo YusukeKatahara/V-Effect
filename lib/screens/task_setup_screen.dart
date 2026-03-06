@@ -65,21 +65,168 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
     });
   }
 
+  /// 【rennさんへ】
+  /// iPhoneの設定画面みたいに、スクロールで時間を選べるピッカーを表示します。
+  /// 画面の下からスルッと出てきて、上下にクルクル回して選ぶやつです。
   Future<void> _pickTime({required bool isWakeUp}) async {
     final initial = isWakeUp ? _wakeUpTime : _taskTime;
-    final picked = await showTimePicker(context: context, initialTime: initial);
-    if (picked != null) {
-      setState(() {
-        if (isWakeUp) {
-          _wakeUpTime = picked;
-        } else {
-          _taskTime = picked;
-        }
-      });
-    }
+    // 一時的に選択中の時・分を保持する変数
+    int selectedHour = initial.hour;
+    int selectedMinute = initial.minute;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SizedBox(
+              height: 320,
+              child: Column(
+                children: [
+                  // ── ヘッダー部分：タイトルと「完了」ボタン ──
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('キャンセル'),
+                        ),
+                        Text(
+                          isWakeUp ? '起きる時間' : 'タスクの時間',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            // 「完了」を押したら、選んだ時間を確定して閉じる
+                            setState(() {
+                              final newTime = TimeOfDay(
+                                hour: selectedHour,
+                                minute: selectedMinute,
+                              );
+                              if (isWakeUp) {
+                                _wakeUpTime = newTime;
+                              } else {
+                                _taskTime = newTime;
+                              }
+                            });
+                            Navigator.pop(context);
+                          },
+                          child: const Text(
+                            '完了',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // ── スクロールホイール部分 ──
+                  Expanded(
+                    child: Row(
+                      children: [
+                        // 「時」のホイール（0〜23時）
+                        Expanded(
+                          child: ListWheelScrollView.useDelegate(
+                            itemExtent: 48,
+                            diameterRatio: 1.5,
+                            physics: const FixedExtentScrollPhysics(),
+                            controller: FixedExtentScrollController(
+                              initialItem: selectedHour,
+                            ),
+                            onSelectedItemChanged: (index) {
+                              setModalState(() => selectedHour = index);
+                            },
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: 24,
+                              builder: (context, index) {
+                                final isSelected = index == selectedHour;
+                                return Center(
+                                  child: Text(
+                                    '$index時',
+                                    style: TextStyle(
+                                      fontSize: isSelected ? 22 : 16,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: isSelected
+                                          ? Colors.amber
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        // 「分」のホイール（0〜59分、5分刻み）
+                        Expanded(
+                          child: ListWheelScrollView.useDelegate(
+                            itemExtent: 48,
+                            diameterRatio: 1.5,
+                            physics: const FixedExtentScrollPhysics(),
+                            controller: FixedExtentScrollController(
+                              initialItem: selectedMinute ~/ 5,
+                            ),
+                            onSelectedItemChanged: (index) {
+                              setModalState(() => selectedMinute = index * 5);
+                            },
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: 12, // 0, 5, 10, ... 55
+                              builder: (context, index) {
+                                final minute = index * 5;
+                                final isSelected = minute == selectedMinute;
+                                return Center(
+                                  child: Text(
+                                    '${minute.toString().padLeft(2, '0')}分',
+                                    style: TextStyle(
+                                      fontSize: isSelected ? 22 : 16,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: isSelected
+                                          ? Colors.amber
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
+  /// 時間を「午前 7:00」「午後 9:00」のような日本語形式で画面に表示します
   String _formatTime(TimeOfDay time) {
+    final period = time.hour < 12 ? '午前' : '午後';
+    final h = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final m = time.minute.toString().padLeft(2, '0');
+    return '$period $h:$m';
+  }
+
+  /// Firestoreに保存する用の24時間形式（例: "07:00"）
+  String _formatTimeForSave(TimeOfDay time) {
     final h = time.hour.toString().padLeft(2, '0');
     final m = time.minute.toString().padLeft(2, '0');
     return '$h:$m';
@@ -106,31 +253,47 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
         .toList();
 
     if (tasks.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('タスクを1つ以上入力してください')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('タスクを1つ以上入力してください')));
       return;
     }
 
     setState(() => _isSaving = true);
     try {
-      // プロフィール画像をアップロード
-      final photoUrl = await _uploadProfileImage();
+      // 【Web対応】プロフィール画像のアップロードはスキップ
+      // （Webでは dart:io の File が使えないため）
+      String? photoUrl;
+      // ネイティブ（スマホ）の場合のみ画像アップロード
+      // if (_profileImage != null) {
+      //   photoUrl = await _uploadProfileImage();
+      // }
+
+      debugPrint('タスク保存開始: tasks=$tasks');
+      debugPrint('wakeUpTime=${_formatTimeForSave(_wakeUpTime)}');
+      debugPrint('taskTime=${_formatTimeForSave(_taskTime)}');
 
       await _userService.saveTaskSettings(
         tasks: tasks,
-        wakeUpTime: _formatTime(_wakeUpTime),
-        taskTime: _formatTime(_taskTime),
+        wakeUpTime: _formatTimeForSave(_wakeUpTime),
+        taskTime: _formatTimeForSave(_taskTime),
         photoUrl: photoUrl,
       );
+
+      debugPrint('タスク保存成功！');
 
       if (mounted) {
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('タスク保存エラー: $e');
+      debugPrint('スタックトレース: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存に失敗しました: $e')),
+          SnackBar(
+            content: Text('保存に失敗しました: $e'),
+            duration: const Duration(seconds: 10),
+          ),
         );
       }
     } finally {
@@ -183,12 +346,19 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                         ? const Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.camera_alt,
-                                  size: 32, color: Colors.grey),
+                              Icon(
+                                Icons.camera_alt,
+                                size: 32,
+                                color: Colors.grey,
+                              ),
                               SizedBox(height: 4),
-                              Text('写真を選択',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey)),
+                              Text(
+                                '写真を選択',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ],
                           )
                         : null,
@@ -220,8 +390,10 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                       ),
                       if (_taskCtrls.length > 1)
                         IconButton(
-                          icon: const Icon(Icons.remove_circle_outline,
-                              color: Colors.redAccent),
+                          icon: const Icon(
+                            Icons.remove_circle_outline,
+                            color: Colors.redAccent,
+                          ),
                           onPressed: () => _removeTaskField(index),
                         ),
                     ],
@@ -237,6 +409,32 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                     onPressed: _addTaskField,
                   ),
                 ),
+              const SizedBox(height: 24),
+
+              // ── 起床時間（先に聞く：朝のスケジュール順） ──
+              const Text(
+                'いつも何時に起きますか？',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'この時間に起床の通知をお届けします',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () => _pickTime(isWakeUp: true),
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.alarm),
+                  ),
+                  child: Text(
+                    _formatTime(_wakeUpTime),
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ),
               const SizedBox(height: 24),
 
               // ── タスク実行時間 ──
@@ -259,32 +457,6 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                   ),
                   child: Text(
                     _formatTime(_taskTime),
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // ── 起床時間 ──
-              const Text(
-                'いつも何時に起きますか？',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'この時間に起床の通知をお届けします',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () => _pickTime(isWakeUp: true),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.alarm),
-                  ),
-                  child: Text(
-                    _formatTime(_wakeUpTime),
                     style: const TextStyle(fontSize: 18),
                   ),
                 ),

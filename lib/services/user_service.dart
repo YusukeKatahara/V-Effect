@@ -49,7 +49,9 @@ class UserService {
     if (photoUrl != null) {
       data['photoUrl'] = photoUrl;
     }
-    await _db.collection('users').doc(uid).update(data);
+    // update() だとドキュメントが存在しないとエラーになるため、
+    // set(merge: true) を使うことで「あれば更新・なければ新規作成」できます。
+    await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
   }
 
   /// ユーザーIDが既に使われていないかチェックします

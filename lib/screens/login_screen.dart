@@ -37,8 +37,9 @@ class _LoginScreenState extends State<LoginScreen> {
       String msg = 'ログインに失敗しました。';
       if (e.code == 'user-not-found') {
         msg = 'ユーザーが見つかりません。登録してください。';
-      } else if (e.code == 'wrong-password')
+      } else if (e.code == 'wrong-password') {
         msg = 'パスワードが間違っています。';
+      }
       _showError(msg);
     } finally {
       // 成功しても失敗しても、最後に必ずローディング状態を解除します。
@@ -46,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// 新規登録ボタンが押された時の処理です
+  /// 新規登録ボタンが押されたとき、新規登録画面へ移動します
   void _goToRegister() {
     Navigator.pushNamed(context, AppRoutes.register);
   }
@@ -104,7 +105,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('ログイン'),
                   ),
                   const SizedBox(height: 12),
-                  TextButton(onPressed: _goToRegister, child: const Text('新規登録')),
+                  TextButton(
+                    onPressed: _goToRegister,
+                    child: const Text('新規登録'),
+                  ),
                 ],
               ),
           ],
