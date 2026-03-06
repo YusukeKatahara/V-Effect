@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/routes.dart';
 
 /// 【rennさんへ】
 /// ここはユーザーがログインや新規登録をする画面です。
@@ -30,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passCtrl.text.trim(),
       );
       // ログイン成功時、ホーム画面へ移動します（今の画面は消してホームに置き換えます）。
-      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+      if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.home);
     } on FirebaseAuthException catch (e) {
       // 想定されるエラーごとに、わかりやすい日本語のメッセージを作ります。
       String msg = 'ログインに失敗しました。';
@@ -46,25 +47,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   /// 新規登録ボタンが押された時の処理です
-  Future<void> _register() async {
-    setState(() => _isLoading = true);
-    try {
-      // 新しいアカウントを作成します。
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text.trim(),
-      );
-      if (mounted) Navigator.pushReplacementNamed(context, '/home');
-    } on FirebaseAuthException catch (e) {
-      String msg = '登録に失敗しました。';
-      if (e.code == 'email-already-in-use') {
-        msg = 'このメールアドレスは既に使われています。';
-      } else if (e.code == 'weak-password')
-        msg = 'パスワードは6文字以上にしてください。';
-      _showError(msg);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  void _goToRegister() {
+    Navigator.pushNamed(context, AppRoutes.profileSetup);
   }
 
   /// エラーメッセージを画面の下からピョコッと表示する（SnackBar）ための機能です。
@@ -120,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('ログイン'),
                   ),
                   const SizedBox(height: 12),
-                  TextButton(onPressed: _register, child: const Text('新規登録')),
+                  TextButton(onPressed: _goToRegister, child: const Text('新規登録')),
                 ],
               ),
           ],
