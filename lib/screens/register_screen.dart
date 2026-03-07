@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/routes.dart';
+import '../services/auth_service.dart';
 
 /// 新規登録画面 — メールアドレスとパスワードでアカウントを作成します
 class RegisterScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _passConfirmCtrl = TextEditingController();
+  final _authService = AuthService();
   bool _isLoading = false;
 
   @override
@@ -54,6 +56,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('登録に失敗しました: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final credential = await _authService.signInWithGoogle();
+      if (credential != null && mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Googleでの登録に失敗しました。')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithApple() async {
+    setState(() => _isLoading = true);
+    try {
+      final credential = await _authService.signInWithApple();
+      if (credential != null && mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Appleでの登録に失敗しました。')),
         );
       }
     } finally {
@@ -133,13 +171,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: _register,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(fontSize: 17),
-                      ),
-                      child: const Text('アカウントを作成'),
+                  : Column(
+                      children: [
+                        ElevatedButton(
+                          onPressed: _register,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            textStyle: const TextStyle(fontSize: 17),
+                          ),
+                          child: const Text('アカウントを作成'),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: const [
+                            Expanded(child: Divider()),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('または'),
+                            ),
+                            Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: _signInWithGoogle,
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                          ),
+                          icon: Image.network(
+                            'https://developers.google.com/identity/images/g-logo.png',
+                            height: 24,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 24),
+                          ),
+                          label: const Text('Googleで作成'),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: _signInWithApple,
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.black,
+                          ),
+                          icon: const Icon(Icons.apple, size: 24),
+                          label: const Text('Appleで作成'),
+                        ),
+                      ],
                     ),
             ],
           ),

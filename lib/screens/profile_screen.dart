@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/routes.dart';
 import '../models/app_user.dart';
 import '../services/notification_service.dart';
+import 'edit_profile_screen.dart';
 
 /// プロフィール表示画面（ナビゲーションバーから遷移）
 class ProfileScreen extends StatefulWidget {
@@ -52,6 +53,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text('プロフィール'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () async {
+              if (_user == null) return;
+              final didUpdate = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditProfileScreen(
+                    user: _user!,
+                    privateData: _privateData,
+                  ),
+                ),
+              );
+              if (didUpdate == true) {
+                _loadProfile();
+              }
+            },
+          ),
           StreamBuilder<int>(
             stream: NotificationService().getNotificationCount(),
             builder: (context, snapshot) {

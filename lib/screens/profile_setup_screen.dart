@@ -152,8 +152,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   if (v == null || v.trim().isEmpty) {
                     return 'ユーザーIDを入力してください';
                   }
-                  if (v.trim().length < 3) {
-                    return '3文字以上で入力してください';
+                  if (v.trim().length < 5) {
+                    return '5文字以上で入力してください';
                   }
                   if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v.trim())) {
                     return '英数字とアンダースコアのみ使えます';
@@ -175,7 +175,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   Expanded(
                     flex: 3,
                     child: DropdownButtonFormField<int>(
-                      initialValue: _birthYear,
+                      value: _birthYear,
                       decoration: const InputDecoration(
                         labelText: '年',
                         border: OutlineInputBorder(),
@@ -204,7 +204,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   Expanded(
                     flex: 2,
                     child: DropdownButtonFormField<int>(
-                      initialValue: _birthMonth,
+                      value: _birthMonth,
                       decoration: const InputDecoration(
                         labelText: '月',
                         border: OutlineInputBorder(),
@@ -230,7 +230,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   Expanded(
                     flex: 2,
                     child: DropdownButtonFormField<int>(
-                      initialValue: _birthDay,
+                      value: _birthDay,
                       decoration: const InputDecoration(
                         labelText: '日',
                         border: OutlineInputBorder(),
@@ -259,21 +259,19 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              RadioGroup<String>(
-                groupValue: _gender ?? '',
-                onChanged: (v) => setState(() => _gender = v),
-                child: Column(
-                  children: _genderOptions.map((option) {
-                    return RadioListTile<String>(
-                      title: Text(option),
-                      value: option,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: EdgeInsets.zero,
-                    );
-                  }).toList(),
-                ),
+              Column(
+                children: _genderOptions.map((option) {
+                  return RadioListTile<String>(
+                    title: Text(option),
+                    value: option,
+                    groupValue: _gender,
+                    onChanged: (v) => setState(() => _gender = v),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 32),
 

@@ -18,6 +18,7 @@ class AppUser {
   final String? taskTime;
   final bool profileCompleted;
   final bool onboardingCompleted;
+  final int? lastProfileEditDate;
 
   const AppUser({
     required this.uid,
@@ -36,6 +37,7 @@ class AppUser {
     this.taskTime,
     this.profileCompleted = false,
     this.onboardingCompleted = false,
+    this.lastProfileEditDate,
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -57,6 +59,7 @@ class AppUser {
       taskTime: data['taskTime'],
       profileCompleted: data['profileCompleted'] ?? false,
       onboardingCompleted: data['onboardingCompleted'] ?? false,
+      lastProfileEditDate: data['lastProfileEditDate'],
     );
   }
 }

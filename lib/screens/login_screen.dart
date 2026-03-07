@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/routes.dart';
+import '../services/auth_service.dart';
 
 /// 【rennさんへ】
 /// ここはユーザーがログインや新規登録をする画面です。
@@ -16,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // テキスト入力欄（メールアドレスとパスワード）の中身を管理するためのコントローラーです。
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _authService = AuthService();
 
   // ログイン処理中かどうかを判定する変数です。
   // これが true の時は、画面にくるくる回るアイコン（ローディング）を表示します。
@@ -43,6 +45,34 @@ class _LoginScreenState extends State<LoginScreen> {
       _showError(msg);
     } finally {
       // 成功しても失敗しても、最後に必ずローディング状態を解除します。
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final credential = await _authService.signInWithGoogle();
+      if (credential != null && mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
+    } catch (e) {
+      _showError('Googleでのログインに失敗しました。');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithApple() async {
+    setState(() => _isLoading = true);
+    try {
+      final credential = await _authService.signInWithApple();
+      if (credential != null && mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
+    } catch (e) {
+      _showError('Appleでのログインに失敗しました。');
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -104,10 +134,45 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: const Text('ログイン'),
                   ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: const [
+                      Expanded(child: Divider()),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text('または'),
+                      ),
+                      Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: _signInWithGoogle,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    icon: Image.network(
+                      'https://developers.google.com/identity/images/g-logo.png',
+                      height: 24,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 24),
+                    ),
+                    label: const Text('Googleでログイン'),
+                  ),
                   const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _signInWithApple,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.black,
+                    ),
+                    icon: const Icon(Icons.apple, size: 24),
+                    label: const Text('Appleでログイン'),
+                  ),
+                  const SizedBox(height: 24),
                   TextButton(
                     onPressed: _goToRegister,
-                    child: const Text('新規登録'),
+                    child: const Text('新規登録はこちら'),
                   ),
                 ],
               ),

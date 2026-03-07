@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 /// ユーザープロフィール・タスク設定の読み書きを担当するサービス
 class UserService {
@@ -97,5 +99,63 @@ class UserService {
         .limit(1)
         .get();
     return query.docs.isEmpty;
+  }
+
+  /// プロフィール画像をStorageにアップロードし、URLを返します
+  Future<String> uploadProfileImage(File imageFile) async {
+    final uid = _auth.currentUser!.uid;
+    final fileExt = imageFile.path.split('.').last;
+    final path = 'profiles/$uid/avatar_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+    
+    final ref = FirebaseStorage.instance.ref().child(path);
+    final taskSnapshot = await ref.putFile(imageFile);
+    return await taskSnapshot.ref.getDownloadURL();
+  }
+
+  /// ログイン後のプロフィール編集を保存します
+  Future<void> updateProfile({
+    String? username,
+    String? userId,
+    String? birthDate,
+    String? wakeUpTime,
+    String? taskTime,
+    String? photoUrl,
+    bool updateEditDate = false,
+  }) async {
+    final uid = _auth.currentUser!.uid;
+    final batch = _db.batch();
+
+    // 公開情報の更新
+    final publicData = <String, dynamic>{};
+    if (username != null) publicData['username'] = username;
+    if (userId != null) publicData['userId'] = userId;
+    if (photoUrl != null) publicData['photoUrl'] = photoUrl;
+    if (updateEditDate) {
+      publicData['lastProfileEditDate'] = DateTime.now().millisecondsSinceEpoch;
+    }
+
+    if (publicData.isNotEmpty) {
+      batch.set(
+        _db.collection('users').doc(uid),
+        publicData,
+        SetOptions(merge: true),
+      );
+    }
+
+    // 非公開情報の更新
+    final privateData = <String, dynamic>{};
+    if (birthDate != null) privateData['birthDate'] = birthDate;
+    if (wakeUpTime != null) privateData['wakeUpTime'] = wakeUpTime;
+    if (taskTime != null) privateData['taskTime'] = taskTime;
+
+    if (privateData.isNotEmpty) {
+      batch.set(
+        _db.collection('users').doc(uid).collection('private').doc('data'),
+        privateData,
+        SetOptions(merge: true),
+      );
+    }
+
+    await batch.commit();
   }
 }
