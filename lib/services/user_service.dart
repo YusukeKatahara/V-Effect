@@ -7,6 +7,7 @@ class UserService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   /// プロフィール設定を保存します（新規登録フロー Step1）
+  /// 公開情報は users/{uid}、非公開情報は users/{uid}/private/data に分離
   Future<void> saveProfile({
     required String username,
     required String userId,
@@ -15,24 +16,43 @@ class UserService {
   }) async {
     final uid = _auth.currentUser!.uid;
     final email = _auth.currentUser!.email;
-    await _db.collection('users').doc(uid).set({
-      'username': username,
-      'userId': userId,
-      'email': email,
-      'birthDate': birthDate,
-      'gender': gender,
-      'streak': 0,
-      'lastPostedDate': null,
-      'friends': [],
-      'tasks': [],
-      'wakeUpTime': null,
-      'taskTime': null,
-      'photoUrl': null,
-      'profileCompleted': true,
-    }, SetOptions(merge: true));
+
+    final batch = _db.batch();
+
+    // 公開情報
+    batch.set(
+      _db.collection('users').doc(uid),
+      {
+        'username': username,
+        'userId': userId,
+        'streak': 0,
+        'lastPostedDate': null,
+        'friends': [],
+        'tasks': [],
+        'photoUrl': null,
+        'profileCompleted': true,
+      },
+      SetOptions(merge: true),
+    );
+
+    // 非公開情報
+    batch.set(
+      _db.collection('users').doc(uid).collection('private').doc('data'),
+      {
+        'email': email,
+        'birthDate': birthDate,
+        'gender': gender,
+        'wakeUpTime': null,
+        'taskTime': null,
+      },
+      SetOptions(merge: true),
+    );
+
+    await batch.commit();
   }
 
   /// タスク設定を保存します（新規登録フロー Step2）
+  /// tasks は公開、wakeUpTime/taskTime は非公開
   Future<void> saveTaskSettings({
     required List<String> tasks,
     required String wakeUpTime,
@@ -40,18 +60,33 @@ class UserService {
     String? photoUrl,
   }) async {
     final uid = _auth.currentUser!.uid;
-    final data = <String, dynamic>{
+    final batch = _db.batch();
+
+    // 公開情報
+    final publicData = <String, dynamic>{
       'tasks': tasks,
-      'wakeUpTime': wakeUpTime,
-      'taskTime': taskTime,
       'onboardingCompleted': true,
     };
     if (photoUrl != null) {
-      data['photoUrl'] = photoUrl;
+      publicData['photoUrl'] = photoUrl;
     }
-    // update() だとドキュメントが存在しないとエラーになるため、
-    // set(merge: true) を使うことで「あれば更新・なければ新規作成」できます。
-    await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
+    batch.set(
+      _db.collection('users').doc(uid),
+      publicData,
+      SetOptions(merge: true),
+    );
+
+    // 非公開情報
+    batch.set(
+      _db.collection('users').doc(uid).collection('private').doc('data'),
+      {
+        'wakeUpTime': wakeUpTime,
+        'taskTime': taskTime,
+      },
+      SetOptions(merge: true),
+    );
+
+    await batch.commit();
   }
 
   /// ユーザーIDが既に使われていないかチェックします

@@ -6,6 +6,8 @@ import '../screens/register_screen.dart';
 import '../screens/profile_setup_screen.dart';
 import '../screens/task_setup_screen.dart';
 import '../screens/profile_screen.dart';
+import '../screens/friends_screen.dart';
+import '../screens/notifications_screen.dart';
 
 /// アプリ全体のルート（画面の住所）定義
 class AppRoutes {
@@ -17,6 +19,7 @@ class AppRoutes {
   static const String taskSetup = '/task-setup';
   static const String friends = '/friends';
   static const String profile = '/profile';
+  static const String notifications = '/notifications';
 
   static Map<String, WidgetBuilder> get routes => {
         login: (context) => const LoginScreen(),
@@ -26,5 +29,7 @@ class AppRoutes {
         profileSetup: (context) => const ProfileSetupScreen(),
         taskSetup: (context) => const TaskSetupScreen(),
         profile: (context) => const ProfileScreen(),
+        friends: (context) => const FriendsScreen(),
+        notifications: (context) => const NotificationsScreen(),
       };
 }

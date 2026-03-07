@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../config/routes.dart';
+import '../services/notification_service.dart';
 import '../services/post_service.dart';
 import 'friend_feed_screen.dart';
 
@@ -11,6 +13,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final PostService _postService = PostService();
+  final NotificationService _notificationService = NotificationService();
 
   int _streak = 0;
   bool _postedToday = false;
@@ -23,6 +26,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadData();
+    // 起床時間・タスク時間のリマインダーをチェック
+    _notificationService.checkAndCreateTimeReminders();
   }
 
   Future<void> _loadData() async {
@@ -68,6 +73,24 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('V-Effect'),
+        actions: [
+          StreamBuilder<int>(
+            stream: _notificationService.getNotificationCount(),
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              return IconButton(
+                icon: Badge(
+                  isLabelVisible: count > 0,
+                  label: Text('$count'),
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.notifications);
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

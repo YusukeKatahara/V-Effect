@@ -7,9 +7,54 @@ service cloud.firestore {
     // ────────────────────────────────────────
     // 自分のユーザー情報は自分だけが読み書きできます。
     // フレンドのプロフィール（名前など）は認証済みユーザーなら誰でも読めます。
+    // friends 配列の更新は認証済みユーザーなら誰でもできます（フレンド承認・削除用）。
     match /users/{uid} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
+      // フレンド承認・削除時に相手の friends 配列を更新するため
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends']);
+
+      // プライベート情報（email, birthDate, gender, wakeUpTime, taskTime）
+      // 自分だけが読み書きできます
+      match /private/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // ────────────────────────────────────────
+    // friend_requests コレクション
+    // ────────────────────────────────────────
+    match /friend_requests/{requestId} {
+      // リクエスト作成: 認証済み & fromUid が自分であること
+      allow create: if request.auth != null
+        && request.resource.data.fromUid == request.auth.uid;
+
+      // リクエスト読み取り: 送信者 or 受信者のみ
+      allow read: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid
+            || resource.data.toUid == request.auth.uid);
+
+      // リクエスト更新（承認・拒否）: 受信者のみ & status のみ変更可
+      allow update: if request.auth != null
+        && resource.data.toUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+    }
+
+    // ────────────────────────────────────────
+    // notifications コレクション
+    // ────────────────────────────────────────
+    match /notifications/{notificationId} {
+      // 通知作成: 認証済みユーザー（自分宛て or 相手宛て）
+      allow create: if request.auth != null;
+
+      // 通知読み取り: 自分宛ての通知のみ
+      allow read: if request.auth != null
+        && resource.data.toUid == request.auth.uid;
+
+      // 通知削除: 自分宛ての通知のみ（ユーザーが通知を消す）
+      allow delete: if request.auth != null
+        && resource.data.toUid == request.auth.uid;
     }
 
     // ────────────────────────────────────────

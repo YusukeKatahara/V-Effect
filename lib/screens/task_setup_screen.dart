@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -261,13 +262,11 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
 
     setState(() => _isSaving = true);
     try {
-      // 【Web対応】プロフィール画像のアップロードはスキップ
-      // （Webでは dart:io の File が使えないため）
+      // プロフィール画像のアップロード
       String? photoUrl;
-      // ネイティブ（スマホ）の場合のみ画像アップロード
-      // if (_profileImage != null) {
-      //   photoUrl = await _uploadProfileImage();
-      // }
+      if (!kIsWeb && _profileImage != null) {
+        photoUrl = await _uploadProfileImage();
+      }
 
       debugPrint('タスク保存開始: tasks=$tasks');
       debugPrint('wakeUpTime=${_formatTimeForSave(_wakeUpTime)}');

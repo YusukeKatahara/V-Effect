@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_request.dart';
+import '../models/app_notification.dart';
 import '../models/app_user.dart';
+import 'notification_service.dart';
 
 /// フレンド検索・リクエスト送受信・フレンドリストを担当するサービス
 ///
@@ -18,6 +20,7 @@ import '../models/app_user.dart';
 class FriendService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final NotificationService _notificationService = NotificationService();
 
   /// ユーザーIDで検索します（部分一致ではなく完全一致）
   Future<AppUser?> searchByUserId(String userId) async {
@@ -67,6 +70,16 @@ class FriendService {
       'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    // 相手に通知を送る
+    final myUsername = myData['username'] ?? '';
+    await _notificationService.createNotification(
+      toUid: targetUid,
+      type: NotificationType.friendRequestReceived,
+      title: 'フレンドリクエスト',
+      body: '$myUsername さんからフレンドリクエストが届きました',
+      fromUid: myUid,
+    );
   }
 
   /// 受信したフレンドリクエスト一覧を取得します（リアルタイム）
@@ -103,6 +116,15 @@ class FriendService {
     );
 
     await batch.commit();
+
+    // リクエスト送信者に承認通知を送る
+    await _notificationService.createNotification(
+      toUid: request.fromUid,
+      type: NotificationType.friendRequestAccepted,
+      title: 'リクエスト承認',
+      body: '${request.toUsername} さんがフレンドリクエストを承認しました',
+      fromUid: request.toUid,
+    );
   }
 
   /// フレンドリクエストを拒否します

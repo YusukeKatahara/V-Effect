@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/routes.dart';
 import '../models/app_user.dart';
+import '../services/notification_service.dart';
 
 /// プロフィール表示画面（ナビゲーションバーから遷移）
 class ProfileScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   AppUser? _user;
+  Map<String, dynamic> _privateData = {};
 
   @override
   void initState() {
@@ -24,11 +26,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    final snap =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final db = FirebaseFirestore.instance;
+
+    final results = await Future.wait([
+      db.collection('users').doc(uid).get(),
+      db.collection('users').doc(uid).collection('private').doc('data').get(),
+    ]);
+
+    final userSnap = results[0];
+    final privateSnap = results[1];
+
     if (!mounted) return;
     setState(() {
-      _user = snap.exists ? AppUser.fromFirestore(snap) : null;
+      _user = userSnap.exists ? AppUser.fromFirestore(userSnap) : null;
+      _privateData = privateSnap.exists
+          ? privateSnap.data() as Map<String, dynamic>
+          : {};
       _loading = false;
     });
   }
@@ -39,13 +52,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text('プロフィール'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                Navigator.pushReplacementNamed(context, AppRoutes.login);
-              }
+          StreamBuilder<int>(
+            stream: NotificationService().getNotificationCount(),
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              return IconButton(
+                icon: Badge(
+                  isLabelVisible: count > 0,
+                  label: Text('$count'),
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.notifications);
+                },
+              );
             },
           ),
         ],
@@ -86,22 +106,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: const TextStyle(
                             fontSize: 14, color: Colors.grey),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
+
+                      // Friends button
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.people, size: 20),
+                          label: Text(
+                            'フレンド ${_user!.friends.length}人',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          onPressed: () {
+                            Navigator.pushNamed(context, AppRoutes.friends);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
 
                       // Info cards
                       _infoTile(Icons.cake, '生年月日',
-                          _user!.birthDate ?? '未設定'),
+                          _privateData['birthDate'] ?? '未設定'),
                       _infoTile(Icons.wc, '性別',
-                          _user!.gender ?? '未設定'),
-                      _infoTile(Icons.email, 'メール', _user!.email ?? ''),
+                          _privateData['gender'] ?? '未設定'),
+                      _infoTile(Icons.email, 'メール',
+                          _privateData['email'] ?? ''),
                       _infoTile(Icons.local_fire_department, 'ストリーク',
                           '${_user!.streak} 日連続'),
-                      _infoTile(Icons.people, 'フレンド',
-                          '${_user!.friends.length} 人'),
                       _infoTile(Icons.alarm, '起床時間',
-                          _user!.wakeUpTime ?? '未設定'),
+                          _privateData['wakeUpTime'] ?? '未設定'),
                       _infoTile(Icons.schedule, 'タスク時間',
-                          _user!.taskTime ?? '未設定'),
+                          _privateData['taskTime'] ?? '未設定'),
 
                       const SizedBox(height: 16),
                       const Text(
@@ -126,6 +161,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           );
                         }),
+
+                      // Logout
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.logout, color: Colors.redAccent),
+                          label: const Text(
+                            'ログアウト',
+                            style: TextStyle(color: Colors.redAccent),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.redAccent),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () async {
+                            await FirebaseAuth.instance.signOut();
+                            if (context.mounted) {
+                              Navigator.pushReplacementNamed(
+                                  context, AppRoutes.login);
+                            }
+                          },
+                        ),
+                      ),
                     ],
                   ),
                 ),

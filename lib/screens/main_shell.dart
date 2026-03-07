@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../config/routes.dart';
 import 'home_screen.dart';
-import 'friends_screen.dart';
 import 'profile_screen.dart';
 
-/// Home / Friends / Profile を共通の BottomNavigationBar で切り替えるシェル
+/// Home / Camera / Profile を共通の BottomNavigationBar で切り替えるシェル
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -17,20 +16,16 @@ class _MainShellState extends State<MainShell> {
 
   final List<Widget> _screens = const [
     HomeScreen(),
-    SizedBox.shrink(), // Placeholder (index 1)
-    SizedBox.shrink(), // Camera (index 2) — handled by onTap
-    FriendsScreen(),
+    SizedBox.shrink(), // Camera (index 1) — handled by onTap
     ProfileScreen(),
   ];
 
   void _onTap(int index) {
     // Camera icon — navigate to camera screen instead of switching tab
-    if (index == 2) {
+    if (index == 1) {
       Navigator.pushNamed(context, AppRoutes.camera);
       return;
     }
-    // Placeholder — do nothing
-    if (index == 1) return;
 
     setState(() => _currentIndex = index);
   }
@@ -55,20 +50,12 @@ class _MainShellState extends State<MainShell> {
             icon: Icon(Icons.home),
             label: 'ホーム',
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.circle, size: 8, color: Colors.transparent),
-            label: '',
-          ),
           BottomNavigationBarItem(
             icon: Transform.scale(
               scale: 1.2,
               child: const Icon(Icons.camera_alt),
             ),
             label: '投稿',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'フレンド',
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.person),

@@ -22,11 +22,10 @@ class _CameraScreenState extends State<CameraScreen> {
   // ── タスク名を入力するためのコントローラー ──
   final _taskCtrl = TextEditingController();
 
-  /// カメラで写真を撮る or ギャラリーから選ぶ処理
-  Future<void> _pickPhoto() async {
-    // エミュレーターでは ImageSource.camera が使えないことがあるので、galleryを優先します
+  /// カメラで写真を撮影する処理
+  Future<void> _takePhoto() async {
     final XFile? photo = await _picker.pickImage(
-      source: ImageSource.gallery, // 実機ではImageSource.cameraに変えてもOKです
+      source: ImageSource.camera,
       imageQuality: 80, // 画質を80%に圧縮してデータ量を減らします
     );
     if (photo != null) {
@@ -93,15 +92,15 @@ class _CameraScreenState extends State<CameraScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(
-                          Icons.add_a_photo,
+                          Icons.camera_alt,
                           size: 80,
                           color: Colors.grey,
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton.icon(
-                          icon: const Icon(Icons.photo_library),
-                          label: const Text('写真を選ぶ'),
-                          onPressed: _pickPhoto,
+                          icon: const Icon(Icons.camera_alt),
+                          label: const Text('写真を撮る'),
+                          onPressed: _takePhoto,
                         ),
                       ],
                     ),
@@ -119,7 +118,7 @@ class _CameraScreenState extends State<CameraScreen> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.refresh),
-                        onPressed: _pickPhoto,
+                        onPressed: _takePhoto,
                       ),
                       Expanded(
                         child: TextField(
