@@ -1,6 +1,9 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart'; // kIsWeb を使うため
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import '../services/post_service.dart';
 
 /// 【rennさんへ】
@@ -17,6 +20,7 @@ class _CameraScreenState extends State<CameraScreen> {
   final ImagePicker _picker = ImagePicker();
   final PostService _postService = PostService(); // サービスを呼び出す準備です
   XFile? _image;
+  DateTime? _captureTime;
   bool _isUploading = false;
 
   // ── タスク名を入力するためのコントローラー ──
@@ -26,10 +30,14 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<void> _takePhoto() async {
     final XFile? photo = await _picker.pickImage(
       source: ImageSource.camera,
-      imageQuality: 80, // 画質を80%に圧縮してデータ量を減らします
+      imageQuality: 80, // 画質を80%に戻してデータ量を節約
+      preferredCameraDevice: CameraDevice.rear,
     );
     if (photo != null) {
-      setState(() => _image = photo);
+      setState(() {
+        _image = photo;
+        _captureTime = DateTime.now();
+      });
     }
   }
 
@@ -42,12 +50,17 @@ class _CameraScreenState extends State<CameraScreen> {
         ? '今日のタスク'
         : _taskCtrl.text.trim();
 
+    // ドーパミン誘発：ボタンを押した瞬間の心地よい振動
+    HapticFeedback.mediumImpact();
+
     setState(() => _isUploading = true);
     try {
+      // Webとモバイルの両方でアップロードできるように、XFileのbytesを読み込みます
+      final bytes = await _image!.readAsBytes();
+
       // PostServiceの createPost を呼び出すだけでOKです！
-      // 中でStorageへのアップロードとFirestoreへの保存の両方をやってくれます。
       await _postService.createPost(
-        imageFile: File(_image!.path),
+        imageBytes: bytes,
         taskName: taskName,
       );
       if (mounted) {
@@ -56,7 +69,10 @@ class _CameraScreenState extends State<CameraScreen> {
         );
         Navigator.pop(context); // ホーム画面に戻ります
       }
-    } catch (e) {
+    } catch (e, st) {
+      print('=== POST UPLOAD ERROR ===');
+      print(e);
+      print(st);
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -80,10 +96,43 @@ class _CameraScreenState extends State<CameraScreen> {
                     padding: const EdgeInsets.all(16),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child: Image.file(
-                        File(_image!.path),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // 写真プレビュー（フィルターなし）
+                          kIsWeb
+                              ? Image.network(
+                                  _image!.path,
+                                  fit: BoxFit.cover,
+                                )
+                              : Image.file(
+                                  File(_image!.path),
+                                  fit: BoxFit.cover,
+                                ),
+                          
+                          // タイムスタンプ（シンプルな白色）
+                          if (_captureTime != null)
+                            Positioned(
+                              bottom: 16,
+                              right: 20,
+                              child: Text(
+                                DateFormat('yy/MM/dd\nHH:mm').format(_captureTime!),
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black54,
+                                      offset: Offset(1, 1),
+                                      blurRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   )

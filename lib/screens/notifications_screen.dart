@@ -23,6 +23,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.alarm;
       case NotificationType.taskReminder:
         return Icons.schedule;
+      case NotificationType.reactionReceived:
+        return Icons.whatshot; // 🔥アイコン
+      case NotificationType.friendTaskCompleted:
+        return Icons.emoji_events; // トロフィーアイコン
     }
   }
 
@@ -36,6 +40,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Colors.orange;
       case NotificationType.taskReminder:
         return Colors.amber;
+      case NotificationType.reactionReceived:
+        return Colors.redAccent;
+      case NotificationType.friendTaskCompleted:
+        return Colors.amberAccent;
     }
   }
 

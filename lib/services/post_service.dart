@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
+import 'dart:typed_data';
 import '../models/post.dart';
+import '../models/app_notification.dart';
 import 'streak_service.dart';
+import 'notification_service.dart';
 
 /// 投稿の作成・取得・リアクションを担当するサービス
 ///
@@ -20,6 +22,7 @@ class PostService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final StreakService _streakService = StreakService();
+  final NotificationService _notificationService = NotificationService();
 
   /// ストリークサービスへの委譲メソッド
   Future<int> getStreak() => _streakService.getStreak();
@@ -27,7 +30,7 @@ class PostService {
 
   /// 写真付き投稿をFirebaseにアップロードして保存します
   Future<void> createPost({
-    required File imageFile,
+    required Uint8List imageBytes,
     required String taskName,
   }) async {
     final uid = _auth.currentUser!.uid;
@@ -36,7 +39,11 @@ class PostService {
     final ref = _storage.ref().child(
       'posts/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg',
     );
-    await ref.putFile(imageFile);
+    // Web互換のため、putData(Uint8List) を使用
+    await ref.putData(
+      imageBytes,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
     final imageUrl = await ref.getDownloadURL();
 
     // Step2: Firestoreに投稿データを保存
@@ -54,6 +61,23 @@ class PostService {
 
     // Step3: ストリークを更新
     await _streakService.updateStreak(uid, now);
+
+    // Step4: フレンドに通知を送る（バックグラウンドで処理）
+    _db.collection('users').doc(uid).get().then((userSnap) {
+      if (!userSnap.exists) return;
+      final username = userSnap.data()?['username'] ?? 'フレンド';
+      final friends = List<String>.from(userSnap.data()?['friends'] ?? []);
+      
+      for (final friendUid in friends) {
+        _notificationService.createNotification(
+          toUid: friendUid,
+          type: NotificationType.friendTaskCompleted,
+          title: 'ストリーク継続🔥',
+          body: '$usernameさんが、今日も勝利を重ねました！',
+          fromUid: uid,
+        );
+      }
+    });
   }
 
   /// フレンドの24時間以内の投稿を取得します（リアルタイム更新）
@@ -90,6 +114,28 @@ class PostService {
   Future<void> addReaction(String postId) async {
     await _db.collection('posts').doc(postId).update({
       'reactionCount': FieldValue.increment(1),
+    });
+
+    // リアクション通知を送付（バックグラウンドで処理）
+    _db.collection('posts').doc(postId).get().then((postSnap) async {
+      if (!postSnap.exists) return;
+      final postData = postSnap.data()!;
+      final postOwnerId = postData['userId'] as String;
+      
+      final myUid = _auth.currentUser!.uid;
+      if (postOwnerId == myUid) return; // 自分への投稿には通知しない
+      
+      final myUserSnap = await _db.collection('users').doc(myUid).get();
+      final myUsername = myUserSnap.data()?['username'] ?? 'フレンド';
+      
+      await _notificationService.createNotification(
+        toUid: postOwnerId,
+        type: NotificationType.reactionReceived,
+        title: '🔥リアクション',
+        body: '$myUsernameさんがあなたの完了報告に🔥を送りました！',
+        fromUid: myUid,
+        relatedId: postId,
+      );
     });
   }
 

@@ -6,6 +6,8 @@ enum NotificationType {
   friendRequestAccepted, // フレンドリクエスト承認
   wakeUpReminder,        // 起床時間リマインダー
   taskReminder,          // タスク時間リマインダー
+  reactionReceived,      // リアクション受信 (🔥)
+  friendTaskCompleted,   // フレンドのタスク完了
 }
 
 /// Firestore の notifications コレクションに対応するデータモデル

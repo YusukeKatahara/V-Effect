@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
 
@@ -37,6 +40,10 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   int _currentPostIndex = 0;
   bool _loading = true;
   Timer? _autoTimer;
+
+  // ── リアクションアニメーション用 ──
+  int _flameCounter = 0;
+  final Map<int, Widget> _activeFlames = {};
 
   @override
   void initState() {
@@ -145,16 +152,46 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
 
   Future<void> _sendReaction() async {
     if (_posts.isEmpty) return;
+    
+    // ドーパミン誘発：軽いバイブレーションと炎アニメーション
+    HapticFeedback.lightImpact();
+    _showFloatingFlame();
+
     final post = _posts[_currentPostIndex];
+    // Optimistic UI update (immediately increase count locally)
+    setState(() {
+      _posts = List.from(_posts)..[_currentPostIndex] = Post(
+        id: post.id,
+        userId: post.userId,
+        imageUrl: post.imageUrl,
+        taskName: post.taskName,
+        createdAt: post.createdAt,
+        expiresAt: post.expiresAt,
+        reactionCount: post.reactionCount + 1,
+      );
+    });
+
     await _postService.addReaction(post.id);
-    // Reload to update reaction count
-    final friend = widget.allFriends[_currentFriendIndex];
-    final posts = await _postService.getFriendPostsList(
-      friend['uid'] as String,
-    );
-    if (mounted) {
-      setState(() => _posts = posts);
-    }
+  }
+
+  void _showFloatingFlame() {
+    final id = _flameCounter++;
+    final randomX = (Random().nextDouble() - 0.5) * 40; // 左右に少しバラけさせる
+    
+    setState(() {
+      _activeFlames[id] = Positioned(
+        bottom: 80,
+        right: 20 + randomX, // ボタンの少し上あたり
+        child: _FloatingFlameWidget(
+          key: ValueKey(id),
+          onComplete: () {
+            if (mounted) {
+              setState(() => _activeFlames.remove(id));
+            }
+          },
+        ),
+      );
+    });
   }
 
   @override
@@ -230,24 +267,51 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Photo
-              post.imageUrl != null
-                  ? Image.network(
-                      post.imageUrl!,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (ctx, child, progress) =>
-                          progress == null
-                              ? child
-                              : const Center(
-                                  child: CircularProgressIndicator()),
-                      errorBuilder: (ctx, e, st) => const Center(
-                        child:
-                            Icon(Icons.broken_image, size: 60, color: Colors.grey),
+              // Photo (フィルターなし)
+              Stack(
+                fit: StackFit.expand,
+                children: [
+                  post.imageUrl != null
+                      ? Image.network(
+                          post.imageUrl!,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (ctx, child, progress) =>
+                              progress == null
+                                  ? child
+                                  : const Center(
+                                      child: CircularProgressIndicator()),
+                          errorBuilder: (ctx, e, st) => const Center(
+                            child: Icon(Icons.broken_image,
+                                size: 60, color: Colors.grey),
+                          ),
+                        )
+                      : const Center(
+                          child: Icon(Icons.image, size: 80, color: Colors.grey),
+                        ),
+                ],
+              ),
+
+              // タイムスタンプ装飾（シンプルな白色）
+              Positioned(
+                bottom: 120, // 下のタスク名やリアクションボタンに被らないよう上に配置
+                right: 20,
+                child: Text(
+                  DateFormat('yy/MM/dd\nHH:mm').format(post.createdAt),
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black54,
+                        offset: Offset(1, 1),
+                        blurRadius: 2,
                       ),
-                    )
-                  : const Center(
-                      child: Icon(Icons.image, size: 80, color: Colors.grey),
-                    ),
+                    ],
+                  ),
+                ),
+              ),
 
               // Tap zones (left half = prev, right half = next)
               Row(
@@ -353,6 +417,9 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                   onPressed: _goHome,
                 ),
               ),
+
+              // ── Floating Flames Layer ──
+              ..._activeFlames.values,
             ],
           ),
         ),
@@ -426,3 +493,78 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
     );
   }
 }
+
+/// ── 連打で飛んでいく🔥アニメーションヴィジェット ──
+class _FloatingFlameWidget extends StatefulWidget {
+  final VoidCallback onComplete;
+
+  const _FloatingFlameWidget({super.key, required this.onComplete});
+
+  @override
+  State<_FloatingFlameWidget> createState() => _FloatingFlameWidgetState();
+}
+
+class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _dy;
+  late Animation<double> _opacity;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    // 上に昇っていく
+    _dy = Tween<double>(begin: 0, end: -250).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    );
+    // 途中から消えていく
+    _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: const Interval(0.5, 1.0)),
+    );
+    // 最初だけ少し大きくなる
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.5, end: 1.5), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 1.5, end: 1.0), weight: 80),
+    ]).animate(_ctrl);
+
+    _ctrl.forward().then((_) => widget.onComplete());
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, _dy.value),
+          child: Transform.scale(
+            scale: _scale.value,
+            child: Opacity(
+              opacity: _opacity.value,
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: const Icon(
+        Icons.whatshot,
+        color: Colors.amber,
+        size: 40,
+        shadows: [Shadow(color: Colors.redAccent, blurRadius: 12)],
+      ),
+    );
+  }
+}
+
