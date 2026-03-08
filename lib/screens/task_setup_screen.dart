@@ -282,7 +282,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
       debugPrint('タスク保存成功！');
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+        Navigator.pushReplacementNamed(context, AppRoutes.initialFriend);
       }
     } catch (e, stackTrace) {
       debugPrint('タスク保存エラー: $e');

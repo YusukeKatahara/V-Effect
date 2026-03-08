@@ -72,8 +72,7 @@ class PostService {
         _notificationService.createNotification(
           toUid: friendUid,
           type: NotificationType.friendTaskCompleted,
-          title: 'ストリーク継続🔥',
-          body: '$usernameさんが、今日も勝利を重ねました！',
+          params: {'username': username},
           fromUid: uid,
         );
       }
@@ -131,8 +130,7 @@ class PostService {
       await _notificationService.createNotification(
         toUid: postOwnerId,
         type: NotificationType.reactionReceived,
-        title: '🔥リアクション',
-        body: '$myUsernameさんがあなたの完了報告に🔥を送りました！',
+        params: {'username': myUsername},
         fromUid: myUid,
         relatedId: postId,
       );

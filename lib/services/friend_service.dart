@@ -72,12 +72,10 @@ class FriendService {
     });
 
     // 相手に通知を送る
-    final myUsername = myData['username'] ?? '';
     await _notificationService.createNotification(
       toUid: targetUid,
       type: NotificationType.friendRequestReceived,
-      title: 'フレンドリクエスト',
-      body: '$myUsername さんからフレンドリクエストが届きました',
+      params: {'username': myData['username'] ?? ''},
       fromUid: myUid,
     );
   }
@@ -121,8 +119,7 @@ class FriendService {
     await _notificationService.createNotification(
       toUid: request.fromUid,
       type: NotificationType.friendRequestAccepted,
-      title: 'リクエスト承認',
-      body: '${request.toUsername} さんがフレンドリクエストを承認しました',
+      params: {'username': request.toUsername},
       fromUid: request.toUid,
     );
   }

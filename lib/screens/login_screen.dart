@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/routes.dart';
 import '../services/auth_service.dart';
+import '../services/push_notification_service.dart';
 
 /// 【rennさんへ】
 /// ここはユーザーがログインや新規登録をする画面です。
@@ -32,7 +33,8 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailCtrl.text.trim(), // trim()は前後の余分な空白を消す処理です
         password: _passCtrl.text.trim(),
       );
-      // ログイン成功時、ホーム画面へ移動します（今の画面は消してホームに置き換えます）。
+      // ログイン成功時、FCMトークンを保存してホーム画面へ移動します。
+      await PushNotificationService().saveFcmToken();
       if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.home);
     } on FirebaseAuthException catch (e) {
       // 想定されるエラーごとに、わかりやすい日本語のメッセージを作ります。
@@ -53,8 +55,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final credential = await _authService.signInWithGoogle();
-      if (credential != null && mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      if (credential != null) {
+        await PushNotificationService().saveFcmToken();
+        if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } catch (e) {
       _showError('Googleでのログインに失敗しました。');
@@ -67,8 +70,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final credential = await _authService.signInWithApple();
-      if (credential != null && mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      if (credential != null) {
+        await PushNotificationService().saveFcmToken();
+        if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } catch (e) {
       _showError('Appleでのログインに失敗しました。');
@@ -173,6 +177,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextButton(
                     onPressed: _goToRegister,
                     child: const Text('新規登録はこちら'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, AppRoutes.forgotPassword);
+                    },
+                    child: const Text(
+                      'パスワードをお忘れですか？',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ),
                 ],
               ),

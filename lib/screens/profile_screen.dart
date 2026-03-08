@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/routes.dart';
 import '../models/app_user.dart';
 import '../services/notification_service.dart';
+import '../services/push_notification_service.dart';
 import 'edit_profile_screen.dart';
 
 /// プロフィール表示画面（ナビゲーションバーから遷移）
@@ -196,6 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           onPressed: () async {
+                            await PushNotificationService().removeFcmToken();
                             await FirebaseAuth.instance.signOut();
                             if (context.mounted) {
                               Navigator.pushReplacementNamed(

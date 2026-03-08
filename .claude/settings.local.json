@@ -5,7 +5,12 @@
       "Bash(firebase deploy:*)",
       "Bash(where:*)",
       "Bash(pip install:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(dart analyze:*)",
+      "Bash(cd:*)",
+      "Bash(wc:*)",
+      "Bash(flutter pub:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

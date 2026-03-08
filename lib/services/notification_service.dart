@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/app_notification.dart';
+import '../models/notification_messages.dart';
 
 /// 通知の作成・取得・削除を担当するサービス
 ///
@@ -17,20 +18,24 @@ class NotificationService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// 通知を作成します
+  /// 通知を作成します（テンプレートからメッセージを自動生成）
+  ///
+  /// [params] はプレースホルダーの置換に使用されます。
+  /// [context] は条件付きテンプレートの選択に使用されます。
   Future<void> createNotification({
     required String toUid,
     required NotificationType type,
-    required String title,
-    required String body,
+    Map<String, String> params = const {},
+    NotificationContext context = const NotificationContext(),
     String? fromUid,
     String? relatedId,
   }) async {
+    final content = NotificationMessages.build(type, params, context);
     await _db.collection('notifications').add({
       'toUid': toUid,
       'type': type.name,
-      'title': title,
-      'body': body,
+      'title': content.title,
+      'body': content.body,
       'fromUid': fromUid,
       'relatedId': relatedId,
       'createdAt': FieldValue.serverTimestamp(),
@@ -82,7 +87,11 @@ class NotificationService {
     final todayStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-    // プライベートデータから時間を取得
+    // ユーザーの公開データ（ストリーク）とプライベートデータ（時間設定）を取得
+    final userSnap = await _db.collection('users').doc(myUid).get();
+    final streakNum = ((userSnap.data()?['streak'] as num?) ?? 0).toInt();
+    final streakStr = streakNum.toString();
+
     final privateSnap = await _db
         .collection('users')
         .doc(myUid)
@@ -94,6 +103,25 @@ class NotificationService {
     final wakeUpTime = data['wakeUpTime'] as String?;
     final taskTime = data['taskTime'] as String?;
 
+    // 起床時間の1時間前までにアプリを開いているか判定
+    bool earlyWake = false;
+    if (wakeUpTime != null) {
+      final wParts = wakeUpTime.split(':');
+      if (wParts.length == 2) {
+        final wh = int.tryParse(wParts[0]);
+        final wm = int.tryParse(wParts[1]);
+        if (wh != null && wm != null) {
+          final wakeUpMinutes = wh * 60 + wm;
+          final nowMinutes = now.hour * 60 + now.minute;
+          // 現在時刻が「起床時間 - 60分」〜「起床時間」の範囲内
+          earlyWake = nowMinutes >= wakeUpMinutes - 60 &&
+              nowMinutes <= wakeUpMinutes;
+        }
+      }
+    }
+
+    final ctx = NotificationContext(streak: streakNum, earlyWake: earlyWake);
+
     if (wakeUpTime != null) {
       await _createTimeReminderIfNeeded(
         uid: myUid,
@@ -101,8 +129,8 @@ class NotificationService {
         todayStr: todayStr,
         now: now,
         type: NotificationType.wakeUpReminder,
-        title: '起床時間です',
-        body: '$wakeUpTime になりました。今日も頑張りましょう！',
+        params: {'time': wakeUpTime, 'streak': streakStr},
+        context: ctx,
       );
     }
 
@@ -113,8 +141,8 @@ class NotificationService {
         todayStr: todayStr,
         now: now,
         type: NotificationType.taskReminder,
-        title: 'タスクの時間です',
-        body: '$taskTime になりました。タスクに取り組みましょう！',
+        params: {'time': taskTime, 'streak': streakStr},
+        context: ctx,
       );
     }
   }
@@ -125,8 +153,8 @@ class NotificationService {
     required String todayStr,
     required DateTime now,
     required NotificationType type,
-    required String title,
-    required String body,
+    required Map<String, String> params,
+    NotificationContext context = const NotificationContext(),
   }) async {
     // timeStr は "HH:MM" 形式を想定
     final parts = timeStr.split(':');
@@ -152,8 +180,8 @@ class NotificationService {
     await createNotification(
       toUid: uid,
       type: type,
-      title: title,
-      body: body,
+      params: params,
+      context: context,
     );
   }
 }
