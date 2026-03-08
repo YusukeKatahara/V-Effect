@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(flutter analyze:*)",
-      "Bash(firebase deploy:*)"
+      "Bash(firebase deploy:*)",
+      "Bash(where:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)"
     ]
   }
 }
