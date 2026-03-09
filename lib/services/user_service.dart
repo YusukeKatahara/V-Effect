@@ -120,6 +120,7 @@ class UserService {
     String? wakeUpTime,
     String? taskTime,
     String? photoUrl,
+    List<String>? tasks,
     bool updateEditDate = false,
   }) async {
     final uid = _auth.currentUser!.uid;
@@ -130,6 +131,7 @@ class UserService {
     if (username != null) publicData['username'] = username;
     if (userId != null) publicData['userId'] = userId;
     if (photoUrl != null) publicData['photoUrl'] = photoUrl;
+    if (tasks != null) publicData['tasks'] = tasks;
     if (updateEditDate) {
       publicData['lastProfileEditDate'] = DateTime.now().millisecondsSinceEpoch;
     }

@@ -22,6 +22,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _usernameCtrl;
   late TextEditingController _userIdCtrl;
+  final List<TextEditingController> _taskCtrls = [];
   final _userService = UserService();
   
   bool _isSaving = false;
@@ -44,6 +45,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _usernameCtrl = TextEditingController(text: widget.user.username);
     _userIdCtrl = TextEditingController(text: widget.user.userId);
     _currentPhotoUrl = widget.user.photoUrl;
+
+    if (widget.user.tasks.isEmpty) {
+      _taskCtrls.add(TextEditingController());
+    } else {
+      for (final task in widget.user.tasks) {
+        _taskCtrls.add(TextEditingController(text: task));
+      }
+    }
 
     // Parse BirthDate: YYYY-MM-DD
     final birthDateStr = widget.privateData['birthDate'] as String?;
@@ -82,7 +91,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     _usernameCtrl.dispose();
     _userIdCtrl.dispose();
+    for (final ctrl in _taskCtrls) {
+      ctrl.dispose();
+    }
     super.dispose();
+  }
+
+  void _addTaskField() {
+    if (_taskCtrls.length >= 5) return;
+    setState(() => _taskCtrls.add(TextEditingController()));
+  }
+
+  void _removeTaskField(int index) {
+    if (_taskCtrls.length <= 1) return;
+    setState(() {
+      _taskCtrls[index].dispose();
+      _taskCtrls.removeAt(index);
+    });
   }
 
   TimeOfDay? _parseTimeOfDay(String? timeStr) {
@@ -160,6 +185,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
+    final newTasks = _taskCtrls
+        .map((c) => c.text.trim())
+        .where((t) => t.isNotEmpty)
+        .toList();
+
+    if (newTasks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('タスクを1つ以上入力してください')),
+      );
+      return;
+    }
+
     final newUserId = _userIdCtrl.text.trim();
     final newUsername = _usernameCtrl.text.trim();
     final birthDateStr = '${_birthYear!}-${_birthMonth!.toString().padLeft(2, '0')}-${_birthDay!.toString().padLeft(2, '0')}';
@@ -174,6 +211,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         wakeUpTimeStr != widget.privateData['wakeUpTime'] ||
         taskTimeStr != widget.privateData['taskTime']) {
       isRestrictedFieldsChanged = true;
+    }
+    
+    bool isTaskChanged = false;
+    if (newTasks.length != widget.user.tasks.length ||
+        !newTasks.asMap().entries.every((e) => widget.user.tasks[e.key] == e.value)) {
+      isTaskChanged = true;
     }
 
     if (isRestrictedFieldsChanged && _isRestricted) {
@@ -237,6 +280,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         birthDate: birthDate,
         wakeUpTime: wakeUpTimeStr,
         taskTime: taskTimeStr,
+        tasks: newTasks,
         updateEditDate: isRestrictedFieldsChanged,
       );
 
@@ -443,6 +487,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 32),
+
+              // Tasks
+              const Text('やりたいタスク（1〜5個）', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              ...List.generate(_taskCtrls.length, (index) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _taskCtrls[index],
+                          decoration: InputDecoration(
+                            labelText: 'タスク ${index + 1}',
+                            hintText: '例: ランニング3km',
+                            border: const OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      if (_taskCtrls.length > 1)
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                          onPressed: () => _removeTaskField(index),
+                        ),
+                    ],
+                  ),
+                );
+              }),
+              if (_taskCtrls.length < 5)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('タスクを追加'),
+                    onPressed: _addTaskField,
+                  ),
+                ),
 
               const SizedBox(height: 48),
 
