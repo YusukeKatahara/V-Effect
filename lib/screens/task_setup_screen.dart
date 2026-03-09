@@ -240,13 +240,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
   /// プロフィール画像を Firebase Storage にアップロードして URL を返す
   Future<String?> _uploadProfileImage() async {
     if (_profileImage == null) return null;
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('profile_images')
-        .child('$uid.jpg');
-    await ref.putFile(_profileImage!);
-    return await ref.getDownloadURL();
+    return await _userService.uploadProfileImage(_profileImage!);
   }
 
   Future<void> _saveAndFinish() async {
