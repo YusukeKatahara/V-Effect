@@ -207,9 +207,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     
     if (newUserId != widget.user.userId ||
         _newProfileImage != null ||
-        birthDateStr != widget.privateData['birthDate'] ||
-        wakeUpTimeStr != widget.privateData['wakeUpTime'] ||
-        taskTimeStr != widget.privateData['taskTime']) {
+        birthDateStr != widget.privateData['birthDate']) {
       isRestrictedFieldsChanged = true;
     }
     
