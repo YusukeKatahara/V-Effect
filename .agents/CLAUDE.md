@@ -4,7 +4,7 @@
 
 ## 📊 Progress Status
 
-### Current Phase: Phase 3（本開発）— 主要機能の実装中
+### Current Phase: Phase 3（本開発）
 
 | Category | Status | Details |
 |----------|--------|---------|
@@ -31,7 +31,7 @@ CameraScreen, FriendsScreen, NotificationsScreen, FriendFeedScreen
 
 ### Plan vs Implementation Deviations
 
-#### Direction Changes (計画から方向転換した要素)
+#### Direction Changes
 
 1. **V-Alert: Random → Scheduled notifications**
    - Plan: BeReal-style random simultaneous notifications to all users
@@ -49,7 +49,7 @@ CameraScreen, FriendsScreen, NotificationsScreen, FriendFeedScreen
    - Actual: Single `NotificationService` handling 6 notification types
    - Types: wakeUpReminder, taskReminder, friendRequestReceived, friendRequestAccepted, reactionReceived, newPostFromFriend
 
-#### Added Beyond Original Plan (計画外の追加機能)
+#### Added Beyond Original Plan
 
 | Feature | Notes |
 |---------|-------|
@@ -61,7 +61,7 @@ CameraScreen, FriendsScreen, NotificationsScreen, FriendFeedScreen
 | Friend request workflow | 3-step: send → accept → become friends |
 | Profile image upload | Required for SNS but not in original spec |
 
-#### Deferred as Planned (予定通り未実装)
+#### Deferred as Planned
 
 - Skill Tree ("体" / "頭" / "心" growth visualization) — Phase 2+
 - XP / Level-up system — Phase 2+
@@ -187,4 +187,7 @@ You are a Senior Reviewer (Advanced Check Lead) for the V-Effect project. Please
    - **Personal Information Protection**: Protection of user photos and profiles in Authentication and Storage.
    - **Performance**: Load of image upload/retrieval processing, excessive notifications of Cloud Messaging (V-Alert notifications).
 
+## Basic Approach for Claude
+- **When requesting code generation or modification**: Implement according to the above technical stack and naming conventions
+- **When requesting code review**: Review based on the rules in Project-Specific Instructions
 ---
