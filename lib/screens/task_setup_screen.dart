@@ -158,12 +158,14 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                                     '$index時',
                                     style: TextStyle(
                                       fontSize: isSelected ? 22 : 16,
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                      color: isSelected
-                                          ? Colors.amber
-                                          : Colors.grey,
+                                      fontWeight:
+                                          isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                      color:
+                                          isSelected
+                                              ? Colors.amber
+                                              : Colors.grey,
                                     ),
                                   ),
                                 );
@@ -193,12 +195,14 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                                     '${minute.toString().padLeft(2, '0')}分',
                                     style: TextStyle(
                                       fontSize: isSelected ? 22 : 16,
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                      color: isSelected
-                                          ? Colors.amber
-                                          : Colors.grey,
+                                      fontWeight:
+                                          isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                      color:
+                                          isSelected
+                                              ? Colors.amber
+                                              : Colors.grey,
                                     ),
                                   ),
                                 );
@@ -248,10 +252,11 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
   Future<void> _saveAndFinish() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final tasks = _taskCtrls
-        .map((c) => c.text.trim())
-        .where((t) => t.isNotEmpty)
-        .toList();
+    final tasks =
+        _taskCtrls
+            .map((c) => c.text.trim())
+            .where((t) => t.isNotEmpty)
+            .toList();
 
     if (tasks.isEmpty) {
       ScaffoldMessenger.of(
@@ -338,29 +343,31 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                   child: CircleAvatar(
                     radius: 56,
                     backgroundColor: Colors.grey.shade200,
-                    backgroundImage: _profileImage != null
-                        ? FileImage(_profileImage!)
-                        : null,
-                    child: _profileImage == null
-                        ? const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.camera_alt,
-                                size: 32,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                '写真を選択',
-                                style: TextStyle(
-                                  fontSize: 12,
+                    backgroundImage:
+                        _profileImage != null
+                            ? FileImage(_profileImage!)
+                            : null,
+                    child:
+                        _profileImage == null
+                            ? const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.camera_alt,
+                                  size: 32,
                                   color: Colors.grey,
                                 ),
-                              ),
-                            ],
-                          )
-                        : null,
+                                SizedBox(height: 4),
+                                Text(
+                                  '写真を選択',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            )
+                            : null,
                   ),
                 ),
               ),
@@ -466,14 +473,14 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
               _isSaving
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton(
-                      onPressed: _saveAndFinish,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.amber.shade700,
-                        textStyle: const TextStyle(fontSize: 17),
-                      ),
-                      child: const Text('設定を完了してはじめる'),
+                    onPressed: _saveAndFinish,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.amber.shade700,
+                      textStyle: const TextStyle(fontSize: 17),
                     ),
+                    child: const Text('設定を完了してはじめる'),
+                  ),
             ],
           ),
         ),

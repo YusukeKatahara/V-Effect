@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:typed_data';
 import '../models/post.dart';
 import '../models/app_notification.dart';
+import '../utils/date_helper.dart';
 import 'streak_service.dart';
 import 'notification_service.dart';
 
@@ -151,12 +152,14 @@ class PostService {
         .where(FieldPath.documentId, whereIn: limitedUids)
         .get();
 
+    final today = DateHelper.toDateString(DateTime.now());
     return friendsSnap.docs.map((doc) {
       final data = doc.data();
       return {
         'uid': doc.id,
         'username': data['username'] ?? '',
         'userId': data['userId'] ?? '',
+        'hasPostedToday': data['lastPostedDate'] == today,
       };
     }).toList();
   }

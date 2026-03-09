@@ -10,7 +10,8 @@
       "Bash(cd:*)",
       "Bash(wc:*)",
       "Bash(flutter pub:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "WebSearch"
     ]
   }
 }

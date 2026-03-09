@@ -142,70 +142,118 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    return SizedBox(
-      height: 100,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        itemCount: _friendStatuses.length,
-        itemBuilder: (context, index) {
-          final friend = _friendStatuses[index];
-          final username = friend['username'] as String;
-
-          return GestureDetector(
-            onTap: _postedToday ? () => _openFriendFeed(index) : null,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Column(
-                children: [
-                  // Avatar with ring
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _postedToday
-                            ? Colors.amber
-                            : Colors.grey.shade700,
-                        width: 3,
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 26,
-                      backgroundColor: _postedToday
-                          ? Colors.deepPurple.shade300
-                          : Colors.grey.shade800,
-                      child: Icon(
-                        Icons.person,
-                        size: 28,
-                        color: _postedToday
-                            ? Colors.white
-                            : Colors.grey.shade600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Username label
-                  SizedBox(
-                    width: 64,
-                    child: Text(
-                      username,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: _postedToday ? Colors.white : Colors.grey,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 未投稿時のロック表示
+        if (!_postedToday)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Colors.white.withValues(alpha: 0.05),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('🔒', style: TextStyle(fontSize: 14)),
+                SizedBox(width: 6),
+                Text(
+                  '投稿するとフレンドの写真が見られます',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            itemCount: _friendStatuses.length,
+            itemBuilder: (context, index) {
+              final friend = _friendStatuses[index];
+              final username = friend['username'] as String;
+              final friendPostedToday =
+                  friend['hasPostedToday'] as bool? ?? false;
+
+              // フレンドごとのリングカラー判定
+              // 自分が未投稿 → 全員灰色（ロック中）
+              // 自分が投稿済み → フレンドの投稿状態で色分け
+              final Color ringColor;
+              final Color avatarBg;
+              final Color iconColor;
+              if (!_postedToday) {
+                ringColor = Colors.grey.shade700;
+                avatarBg = Colors.grey.shade800;
+                iconColor = Colors.grey.shade600;
+              } else if (friendPostedToday) {
+                ringColor = Colors.amber;
+                avatarBg = Colors.deepPurple.shade300;
+                iconColor = Colors.white;
+              } else {
+                ringColor = Colors.grey.shade600;
+                avatarBg = Colors.grey.shade800;
+                iconColor = Colors.grey.shade500;
+              }
+
+              return GestureDetector(
+                onTap: (_postedToday && friendPostedToday)
+                    ? () => _openFriendFeed(index)
+                    : null,
+                child: Opacity(
+                  opacity: _postedToday ? 1.0 : 0.4,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Column(
+                      children: [
+                        // Avatar with ring
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: ringColor,
+                              width: 3,
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: 26,
+                            backgroundColor: avatarBg,
+                            child: Icon(
+                              Icons.person,
+                              size: 28,
+                              color: iconColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Username label
+                        SizedBox(
+                          width: 64,
+                          child: Text(
+                            username,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: _postedToday
+                                  ? (friendPostedToday
+                                      ? Colors.white
+                                      : Colors.grey)
+                                  : Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
