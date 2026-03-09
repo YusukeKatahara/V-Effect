@@ -84,7 +84,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       );
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.taskSetup);
+        Navigator.popUntil(context, (route) => route.isFirst);
       }
     } catch (e) {
       if (mounted) {

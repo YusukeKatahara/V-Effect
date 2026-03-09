@@ -12,9 +12,11 @@ import '../screens/edit_profile_screen.dart';
 import '../screens/initial_friend_screen.dart';
 import '../screens/forgot_password_screen.dart';
 import '../screens/reset_password_screen.dart';
+import '../screens/auth_wrapper.dart';
 
 /// アプリ全体のルート（画面の住所）定義
 class AppRoutes {
+  static const String wrapper = '/';
   static const String login = '/login';
   static const String register = '/register';
   static const String home = '/home';
@@ -30,6 +32,7 @@ class AppRoutes {
   static const String resetPassword = '/reset-password';
 
   static Map<String, WidgetBuilder> get routes => {
+        wrapper: (context) => const AuthWrapper(),
         login: (context) => const LoginScreen(),
         register: (context) => const RegisterScreen(),
         home: (context) => const MainShell(),

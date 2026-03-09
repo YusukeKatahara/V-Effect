@@ -61,7 +61,7 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
         Locale('ja', 'JP'), // 日本語
       ],
       locale: const Locale('ja', 'JP'), // デフォルトを日本語に固定
-      initialRoute: AppRoutes.login,
+      initialRoute: AppRoutes.wrapper,
       routes: AppRoutes.routes,
     );
   }

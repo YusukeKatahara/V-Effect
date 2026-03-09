@@ -33,9 +33,10 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailCtrl.text.trim(), // trim()は前後の余分な空白を消す処理です
         password: _passCtrl.text.trim(),
       );
-      // ログイン成功時、FCMトークンを保存してホーム画面へ移動します。
+      // ログイン成功時、FCMトークンを保存します
       await PushNotificationService().saveFcmToken();
-      if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.home);
+      // AuthWrapperが自動的に画面を切り替えるため、ここでは元のルートに戻るだけです
+      if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
     } on FirebaseAuthException catch (e) {
       // 想定されるエラーごとに、わかりやすい日本語のメッセージを作ります。
       String msg = 'ログインに失敗しました。';
@@ -57,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final credential = await _authService.signInWithGoogle();
       if (credential != null) {
         await PushNotificationService().saveFcmToken();
-        if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.home);
+        if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
       }
     } catch (e) {
       _showError('Googleでのログインに失敗しました。');
@@ -72,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final credential = await _authService.signInWithApple();
       if (credential != null) {
         await PushNotificationService().saveFcmToken();
-        if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.home);
+        if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
       }
     } catch (e) {
       _showError('Appleでのログインに失敗しました。');

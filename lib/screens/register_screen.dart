@@ -38,7 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
+        Navigator.popUntil(context, (route) => route.isFirst);
       }
     } on FirebaseAuthException catch (e) {
       String msg = '登録に失敗しました。';
@@ -68,7 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final credential = await _authService.signInWithGoogle();
       if (credential != null && mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
+        Navigator.popUntil(context, (route) => route.isFirst);
       }
     } catch (e) {
       if (mounted) {
@@ -86,7 +86,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final credential = await _authService.signInWithApple();
       if (credential != null && mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
+        Navigator.popUntil(context, (route) => route.isFirst);
       }
     } catch (e) {
       if (mounted) {
