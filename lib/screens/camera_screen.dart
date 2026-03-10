@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart'; // kIsWeb を使うため
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../services/post_service.dart';
+import '../widgets/post_success_dialog.dart';
 
 /// 【rennさんへ】
 /// カメラ画面です。写真を撮影して「投稿する」ボタンを押すと、
@@ -26,6 +28,12 @@ class _CameraScreenState extends State<CameraScreen> {
   // ── タスク名を入力するためのコントローラー ──
   final _taskCtrl = TextEditingController();
 
+  @override
+  void dispose() {
+    _taskCtrl.dispose();
+    super.dispose();
+  }
+
   /// カメラで写真を撮影する処理
   Future<void> _takePhoto() async {
     final XFile? photo = await _picker.pickImage(
@@ -46,9 +54,8 @@ class _CameraScreenState extends State<CameraScreen> {
     if (_image == null) return;
 
     // タスク名が空なら汎用メッセージを使います
-    final taskName = _taskCtrl.text.trim().isEmpty
-        ? '今日のタスク'
-        : _taskCtrl.text.trim();
+    final taskName =
+        _taskCtrl.text.trim().isEmpty ? '今日のタスク' : _taskCtrl.text.trim();
 
     // ドーパミン誘発：ボタンを押した瞬間の心地よい振動
     HapticFeedback.mediumImpact();
@@ -59,15 +66,23 @@ class _CameraScreenState extends State<CameraScreen> {
       final bytes = await _image!.readAsBytes();
 
       // PostServiceの createPost を呼び出すだけでOKです！
-      await _postService.createPost(
+      final result = await _postService.createPost(
         imageBytes: bytes,
         taskName: taskName,
       );
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('投稿が完了しました！ストリークが継続しました🔥')),
+        // お祝いダイアログを表示
+        await PostSuccessDialog.show(
+          context,
+          streakDays: result['newStreak'] as int,
+          isRecordUpdating: result['isRecordUpdating'] as bool,
         );
-        Navigator.pop(context); // ホーム画面に戻ります
+
+        // ダイアログが閉じられたら、ホーム画面に戻る
+        if (mounted) {
+          Navigator.pop(context); // カメラ画面を閉じる
+        }
       }
     } catch (e, st) {
       print('=== POST UPLOAD ERROR ===');
@@ -91,69 +106,69 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           // ── 写真エリア ──
           Expanded(
-            child: _image != null
-                ? Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          // 写真プレビュー（フィルターなし）
-                          kIsWeb
-                              ? Image.network(
-                                  _image!.path,
-                                  fit: BoxFit.cover,
-                                )
-                              : Image.file(
+            child:
+                _image != null
+                    ? Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            // 写真プレビュー（フィルターなし）
+                            kIsWeb
+                                ? Image.network(_image!.path, fit: BoxFit.cover)
+                                : Image.file(
                                   File(_image!.path),
                                   fit: BoxFit.cover,
                                 ),
-                          
-                          // タイムスタンプ（シンプルな白色）
-                          if (_captureTime != null)
-                            Positioned(
-                              bottom: 16,
-                              right: 20,
-                              child: Text(
-                                DateFormat('yy/MM/dd\nHH:mm').format(_captureTime!),
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black54,
-                                      offset: Offset(1, 1),
-                                      blurRadius: 2,
-                                    ),
-                                  ],
+
+                            // タイムスタンプ（シンプルな白色）
+                            if (_captureTime != null)
+                              Positioned(
+                                bottom: 16,
+                                right: 20,
+                                child: Text(
+                                  DateFormat(
+                                    'yy/MM/dd\nHH:mm',
+                                  ).format(_captureTime!),
+                                  textAlign: TextAlign.right,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black54,
+                                        offset: Offset(1, 1),
+                                        blurRadius: 2,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    : Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.camera_alt,
+                            size: 80,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.camera_alt),
+                            label: const Text('写真を撮る'),
+                            onPressed: _takePhoto,
+                          ),
                         ],
                       ),
                     ),
-                  )
-                : Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.camera_alt,
-                          size: 80,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.camera_alt),
-                          label: const Text('写真を撮る'),
-                          onPressed: _takePhoto,
-                        ),
-                      ],
-                    ),
-                  ),
           ),
 
           // ── タスク名入力と投稿ボタンエリア ──
@@ -183,20 +198,23 @@ class _CameraScreenState extends State<CameraScreen> {
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
-                    child: _isUploading
-                        ? const Center(child: CircularProgressIndicator())
-                        : ElevatedButton.icon(
-                            icon: const Icon(Icons.send),
-                            label: const Text(
-                              '投稿する',
-                              style: TextStyle(fontSize: 18),
+                    child:
+                        _isUploading
+                            ? const Center(child: CircularProgressIndicator())
+                            : ElevatedButton.icon(
+                              icon: const Icon(Icons.send),
+                              label: const Text(
+                                '投稿する',
+                                style: TextStyle(fontSize: 18),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                backgroundColor: Colors.amber.shade700,
+                              ),
+                              onPressed: _uploadPost,
                             ),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: Colors.amber.shade700,
-                            ),
-                            onPressed: _uploadPost,
-                          ),
                   ),
                 ],
               ),

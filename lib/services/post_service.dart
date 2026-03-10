@@ -30,7 +30,8 @@ class PostService {
   Future<bool> hasPostedToday() => _streakService.hasPostedToday();
 
   /// 写真付き投稿をFirebaseにアップロードして保存します
-  Future<void> createPost({
+  /// 戻り値: {'newStreak': int, 'isRecordUpdating': bool}
+  Future<Map<String, dynamic>> createPost({
     required Uint8List imageBytes,
     required String taskName,
   }) async {
@@ -41,10 +42,7 @@ class PostService {
       'posts/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg',
     );
     // Web互換のため、putData(Uint8List) を使用
-    await ref.putData(
-      imageBytes,
-      SettableMetadata(contentType: 'image/jpeg'),
-    );
+    await ref.putData(imageBytes, SettableMetadata(contentType: 'image/jpeg'));
     final imageUrl = await ref.getDownloadURL();
 
     // Step2: Firestoreに投稿データを保存
@@ -61,14 +59,15 @@ class PostService {
     });
 
     // Step3: ストリークを更新
-    await _streakService.updateStreak(uid, now);
+    final streakResult = await _streakService.updateStreak(uid, now);
 
     // Step4: フレンドに通知を送る（バックグラウンドで処理）
+    // ... (通知処理はそのまま)
     _db.collection('users').doc(uid).get().then((userSnap) {
       if (!userSnap.exists) return;
       final username = userSnap.data()?['username'] ?? 'フレンド';
       final friends = List<String>.from(userSnap.data()?['friends'] ?? []);
-      
+
       for (final friendUid in friends) {
         _notificationService.createNotification(
           toUid: friendUid,
@@ -78,6 +77,8 @@ class PostService {
         );
       }
     });
+
+    return streakResult;
   }
 
   /// フレンドの24時間以内の投稿を取得します（リアルタイム更新）
@@ -121,13 +122,13 @@ class PostService {
       if (!postSnap.exists) return;
       final postData = postSnap.data()!;
       final postOwnerId = postData['userId'] as String;
-      
+
       final myUid = _auth.currentUser!.uid;
       if (postOwnerId == myUid) return; // 自分への投稿には通知しない
-      
+
       final myUserSnap = await _db.collection('users').doc(myUid).get();
       final myUsername = myUserSnap.data()?['username'] ?? 'フレンド';
-      
+
       await _notificationService.createNotification(
         toUid: postOwnerId,
         type: NotificationType.reactionReceived,
@@ -147,10 +148,11 @@ class PostService {
     if (friendUids.isEmpty) return [];
 
     final limitedUids = friendUids.take(30).toList();
-    final friendsSnap = await _db
-        .collection('users')
-        .where(FieldPath.documentId, whereIn: limitedUids)
-        .get();
+    final friendsSnap =
+        await _db
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: limitedUids)
+            .get();
 
     final today = DateHelper.toDateString(DateTime.now());
     return friendsSnap.docs.map((doc) {
@@ -178,12 +180,13 @@ class PostService {
   /// 特定フレンドの24h以内の投稿を一括取得します（ストーリー表示用）
   Future<List<Post>> getFriendPostsList(String friendUid) async {
     final now = Timestamp.now();
-    final snap = await _db
-        .collection('posts')
-        .where('userId', isEqualTo: friendUid)
-        .where('expiresAt', isGreaterThan: now)
-        .orderBy('expiresAt', descending: true)
-        .get();
+    final snap =
+        await _db
+            .collection('posts')
+            .where('userId', isEqualTo: friendUid)
+            .where('expiresAt', isGreaterThan: now)
+            .orderBy('expiresAt', descending: true)
+            .get();
     return snap.docs.map((doc) => Post.fromFirestore(doc)).toList();
   }
 
