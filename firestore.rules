@@ -5,13 +5,13 @@ service cloud.firestore {
     // ────────────────────────────────────────
     // users コレクション
     // ────────────────────────────────────────
-    // ユーザー一覧の検索（userIdの重複チェック、フレンド検索）を許可
-    allow read: if request.auth != null;
-
     // 自分のユーザー情報は自分だけが読み書きできます。
     // フレンドのプロフィール（名前など）は認証済みユーザーなら誰でも読めます。
     // friends 配列の更新は認証済みユーザーなら誰でもできます（フレンド承認・削除用）。
     match /users/{uid} {
+      // ユーザー一覧の検索（userIdの重複チェック、フレンド検索）を許可
+      allow read: if request.auth != null;
+      
       allow write: if request.auth != null && request.auth.uid == uid;
       // フレンド承認・削除時に相手の friends 配列を更新するため
       allow update: if request.auth != null
