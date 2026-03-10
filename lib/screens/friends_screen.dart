@@ -21,6 +21,16 @@ class _FriendsScreenState extends State<FriendsScreen> {
   String? _searchError;
   bool _requestSent = false;
 
+  late final Stream<List<FriendRequest>> _requestsStream;
+  late final Stream<List<AppUser>> _friendsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestsStream = _friendService.getReceivedRequests();
+    _friendsStream = _friendService.getFriends();
+  }
+
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -213,7 +223,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
           ),
           const SizedBox(height: 8),
           StreamBuilder<List<FriendRequest>>(
-            stream: _friendService.getReceivedRequests(),
+            stream: _requestsStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Padding(
@@ -272,7 +282,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
           ),
           const SizedBox(height: 8),
           StreamBuilder<List<AppUser>>(
-            stream: _friendService.getFriends(),
+            stream: _friendsStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Padding(

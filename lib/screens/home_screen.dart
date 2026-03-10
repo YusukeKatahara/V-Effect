@@ -21,10 +21,12 @@ class _HomeScreenState extends State<HomeScreen> {
   String _username = '';
   List<String> _tasks = [];
   List<Map<String, dynamic>> _friendStatuses = [];
+  late final Stream<int> _notificationStream;
 
   @override
   void initState() {
     super.initState();
+    _notificationStream = _notificationService.getNotificationCount();
     _loadData();
     // 起床時間・タスク時間のリマインダーをチェック
     _notificationService.checkAndCreateTimeReminders();
@@ -75,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('V-Effect'),
         actions: [
           StreamBuilder<int>(
-            stream: _notificationService.getNotificationCount(),
+            stream: _notificationStream,
             builder: (context, snapshot) {
               final count = snapshot.data ?? 0;
               return IconButton(

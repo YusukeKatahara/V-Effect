@@ -12,6 +12,13 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final NotificationService _notificationService = NotificationService();
+  late final Stream<List<AppNotification>> _notificationsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationsStream = _notificationService.getMyNotifications();
+  }
 
   IconData _iconForType(NotificationType type) {
     switch (type) {
@@ -104,7 +111,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
       ),
       body: StreamBuilder<List<AppNotification>>(
-        stream: _notificationService.getMyNotifications(),
+        stream: _notificationsStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

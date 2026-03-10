@@ -19,10 +19,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   AppUser? _user;
   Map<String, dynamic> _privateData = {};
+  late final Stream<int> _notificationStream;
 
   @override
   void initState() {
     super.initState();
+    _notificationStream = NotificationService().getNotificationCount();
     _loadProfile();
   }
 
@@ -73,7 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
           ),
           StreamBuilder<int>(
-            stream: NotificationService().getNotificationCount(),
+            stream: _notificationStream,
             builder: (context, snapshot) {
               final count = snapshot.data ?? 0;
               return IconButton(
