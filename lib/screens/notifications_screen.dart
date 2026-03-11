@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_colors.dart';
 import '../models/app_notification.dart';
 import '../services/notification_service.dart';
 
@@ -40,17 +41,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Color _colorForType(NotificationType type) {
     switch (type) {
       case NotificationType.friendRequestReceived:
-        return Colors.blue;
+        return const Color(0xFF5B9BD5);
       case NotificationType.friendRequestAccepted:
-        return Colors.green;
+        return AppColors.success;
       case NotificationType.wakeUpReminder:
-        return Colors.orange;
+        return AppColors.primaryDark;
       case NotificationType.taskReminder:
-        return Colors.amber;
+        return AppColors.primary;
       case NotificationType.reactionReceived:
-        return Colors.redAccent;
+        return AppColors.error;
       case NotificationType.friendTaskCompleted:
-        return Colors.amberAccent;
+        return AppColors.primaryLight;
     }
   }
 
@@ -79,7 +80,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('削除する', style: TextStyle(color: Colors.red)),
+            child: const Text('削除する', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -122,7 +123,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             return const Center(
               child: Text(
                 '通知はありません',
-                style: TextStyle(color: Colors.grey, fontSize: 16),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 16),
               ),
             );
           }
@@ -138,7 +139,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 background: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
-                  color: Colors.red,
+                  color: AppColors.error,
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
                 onDismissed: (_) => _deleteNotification(notif.id),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/friend_service.dart';
 
@@ -96,13 +97,14 @@ class _InitialFriendScreenState extends State<InitialFriendScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.bgBase,
       appBar: AppBar(title: const Text('フレンド登録')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.people, size: 80, color: Colors.amber),
+            const Icon(Icons.people, size: 80, color: AppColors.primary),
             const SizedBox(height: 16),
             const Text(
               '一緒に頑張る仲間を登録しよう！',
@@ -123,7 +125,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen> {
               value: _rennSelected,
               onChanged: (v) => setState(() => _rennSelected = v ?? false),
               title: const Text('Renn'),
-              activeColor: Colors.amber.shade700,
+              activeColor: AppColors.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -135,7 +137,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen> {
               value: _yusukeSelected,
               onChanged: (v) => setState(() => _yusukeSelected = v ?? false),
               title: const Text('Yusuke'),
-              activeColor: Colors.amber.shade700,
+              activeColor: AppColors.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -147,7 +149,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen> {
               value: _otherSelected,
               onChanged: (v) => setState(() => _otherSelected = v ?? false),
               title: const Text('その他のユーザー：ユーザーIDを入力'),
-              activeColor: Colors.amber.shade700,
+              activeColor: AppColors.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -176,7 +178,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen> {
               const SizedBox(height: 12),
               Text(
                 _error!,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                style: const TextStyle(color: AppColors.error, fontSize: 13),
               ),
             ],
 
@@ -189,7 +191,8 @@ class _InitialFriendScreenState extends State<InitialFriendScreen> {
                     onPressed: _hasSelection ? _register : null,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.amber.shade700,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: const Color(0xFF1A1000),
                       textStyle: const TextStyle(fontSize: 17),
                     ),
                     child: const Text('登録する'),
@@ -206,7 +209,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen> {
                     },
               child: const Text(
                 'あとで登録する',
-                style: TextStyle(color: Colors.grey, fontSize: 15),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 15),
               ),
             ),
           ],

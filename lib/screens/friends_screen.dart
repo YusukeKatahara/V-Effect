@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../models/friend_request.dart';
 import '../services/friend_service.dart';
@@ -123,7 +124,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('解除する', style: TextStyle(color: Colors.red)),
+            child: const Text('解除する', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -195,7 +196,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 _searchError!,
-                style: const TextStyle(color: Colors.grey),
+                style: const TextStyle(color: AppColors.textMuted),
               ),
             ),
           if (_searchResult != null)
@@ -205,7 +206,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 title: Text(_searchResult!.username ?? ''),
                 subtitle: Text('@${_searchResult!.userId ?? ''}'),
                 trailing: _requestSent
-                    ? const Icon(Icons.check, color: Colors.green)
+                    ? const Icon(Icons.check, color: AppColors.success)
                     : IconButton(
                         icon: const Icon(Icons.person_add),
                         onPressed: () => _sendRequest(_searchResult!),
@@ -238,7 +239,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     'リクエストはありません',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: AppColors.textMuted),
                   ),
                 );
               }
@@ -255,12 +256,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.check_circle,
-                                color: Colors.green),
+                                color: AppColors.success),
                             onPressed: () => _acceptRequest(req),
                           ),
                           IconButton(
                             icon: const Icon(Icons.cancel,
-                                color: Colors.redAccent),
+                                color: AppColors.error),
                             onPressed: () => _rejectRequest(req),
                           ),
                         ],
@@ -297,7 +298,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     'まだフレンドがいません\nユーザーIDで検索して追加しましょう',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: AppColors.textMuted),
                   ),
                 );
               }
@@ -311,7 +312,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       subtitle: Text('@${friend.userId ?? ''}'),
                       trailing: IconButton(
                         icon: const Icon(Icons.person_remove,
-                            color: Colors.grey),
+                            color: AppColors.textMuted),
                         onPressed: () => _removeFriend(friend),
                       ),
                     ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import '../config/app_colors.dart';
 import '../config/routes.dart';
 
 /// パスワードリセット画面
@@ -65,6 +66,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.bgBase,
       appBar: AppBar(title: const Text('パスワードをリセット')),
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -78,7 +80,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.lock_reset, size: 80, color: Colors.amber),
+        const Icon(Icons.lock_reset, size: 80, color: AppColors.primary),
         const SizedBox(height: 24),
         const Text(
           'パスワードをお忘れですか？',
@@ -89,7 +91,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const Text(
           'ユーザーIDと登録したメールアドレスを入力してください。',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
         TextField(
@@ -117,7 +119,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 onPressed: _sendResetEmail,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.amber.shade700,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: const Color(0xFF1A1000),
                   textStyle: const TextStyle(fontSize: 16),
                 ),
                 child: const Text('リセットメールを送信'),
@@ -131,7 +134,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.mark_email_read, size: 80, color: Colors.green),
+        const Icon(Icons.mark_email_read, size: 80, color: AppColors.success),
         const SizedBox(height: 24),
         const Text(
           'メールを送信しました',
@@ -142,7 +145,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Text(
           '${_emailCtrl.text.trim()} 宛に\nパスワードリセット用のメールを送信しました。',
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: Colors.grey),
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
         ElevatedButton(
@@ -151,7 +154,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           },
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            backgroundColor: Colors.amber.shade700,
+            backgroundColor: AppColors.primary,
+            foregroundColor: const Color(0xFF1A1000),
             textStyle: const TextStyle(fontSize: 16),
           ),
           child: const Text('メールのリンクで再設定する'),
@@ -169,7 +173,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           onPressed: () => setState(() => _sent = false),
           child: const Text(
             'メールが届かない場合はもう一度送信',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: AppColors.textMuted),
           ),
         ),
       ],

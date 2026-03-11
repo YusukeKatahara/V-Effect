@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/user_service.dart';
 
@@ -24,7 +25,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _userIdCtrl;
   final List<TextEditingController> _taskCtrls = [];
   final _userService = UserService();
-  
+
   bool _isSaving = false;
   File? _newProfileImage;
   String? _currentPhotoUrl;
@@ -162,7 +163,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     // 生年月日のバリデーション
     if (_birthYear == null || _birthMonth == null || _birthDay == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -204,13 +205,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final taskTimeStr = _formatTimeOfDay(_taskTime!);
 
     bool isRestrictedFieldsChanged = false;
-    
+
     if (newUserId != widget.user.userId ||
         _newProfileImage != null ||
         birthDateStr != widget.privateData['birthDate']) {
       isRestrictedFieldsChanged = true;
     }
-    
+
     bool isTaskChanged = false;
     if (newTasks.length != widget.user.tasks.length ||
         !newTasks.asMap().entries.every((e) => widget.user.tasks[e.key] == e.value)) {
@@ -228,16 +229,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('確認'),
-          content: const Text('この変更を保存すると、名前以外のプロフィール項目は今後90日間変更できなくなります。\n\n本当によろしいですか？'),
+          backgroundColor: AppColors.bgElevated,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('確認', style: TextStyle(color: AppColors.textPrimary)),
+          content: const Text(
+            'この変更を保存すると、名前以外のプロフィール項目は今後90日間変更できなくなります。\n\n本当によろしいですか？',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('キャンセル'),
+              child: const Text('キャンセル', style: TextStyle(color: AppColors.textMuted)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: const Color(0xFF1A1000),
+              ),
               child: const Text('変更する'),
             ),
           ],
@@ -270,7 +279,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       final birthDate = '${_birthYear!}-${_birthMonth!.toString().padLeft(2, '0')}-${_birthDay!.toString().padLeft(2, '0')}';
-      
+
       await _userService.updateProfile(
         username: newUsername,
         userId: newUserId,
@@ -304,7 +313,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final currentYear = DateTime.now().year;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('プロフィールを編集')),
+      backgroundColor: AppColors.bgBase,
+      appBar: AppBar(
+        title: const Text('プロフィールを編集'),
+        backgroundColor: AppColors.bgSurface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
@@ -317,18 +332,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 24),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.withOpacity(0.5)),
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: Colors.red),
+                      const Icon(Icons.info_outline, color: AppColors.error),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           '名前以外の項目は、あと $_daysRemaining 日経過するまで変更できません。\n(次回変更可能目安: ${DateTime.now().add(Duration(days: _daysRemaining)).toString().split(' ')[0]})',
-                          style: const TextStyle(color: Colors.red, fontSize: 13),
+                          style: const TextStyle(color: AppColors.error, fontSize: 13),
                         ),
                       ),
                     ],
@@ -343,12 +358,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     children: [
                       CircleAvatar(
                         radius: 50,
-                        backgroundColor: Colors.grey.shade800,
+                        backgroundColor: AppColors.bgElevated,
                         backgroundImage: _newProfileImage != null
                             ? FileImage(_newProfileImage!) as ImageProvider
                             : (_currentPhotoUrl != null ? NetworkImage(_currentPhotoUrl!) : null),
                         child: (_newProfileImage == null && _currentPhotoUrl == null)
-                            ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                            ? const Icon(Icons.person, size: 50, color: AppColors.textMuted)
                             : null,
                       ),
                       if (!_isRestricted)
@@ -358,10 +373,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
-                              color: Colors.amber,
+                              color: AppColors.primary,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.camera_alt, color: Colors.black, size: 20),
+                            child: const Icon(Icons.camera_alt, color: Color(0xFF1A1000), size: 20),
                           ),
                         ),
                     ],
@@ -370,13 +385,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 32),
 
+              // Section: Basic Info
+              _buildSectionHeader('基本情報'),
+              const SizedBox(height: 12),
+
               // Username
               TextFormField(
                 controller: _usernameCtrl,
+                style: const TextStyle(color: AppColors.textPrimary),
                 decoration: const InputDecoration(
                   labelText: '名前',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.badge),
+                  prefixIcon: Icon(Icons.badge, color: AppColors.textMuted),
                 ),
                 validator: (v) => (v == null || v.trim().isEmpty) ? '名前を入力してください' : null,
               ),
@@ -386,10 +405,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextFormField(
                 controller: _userIdCtrl,
                 enabled: !_isRestricted,
+                style: const TextStyle(color: AppColors.textPrimary),
                 decoration: const InputDecoration(
                   labelText: 'ユーザーID',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.alternate_email),
+                  prefixIcon: Icon(Icons.alternate_email, color: AppColors.textMuted),
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'ユーザーIDを入力してください';
@@ -401,15 +420,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 24),
 
               // Birth Date
-              const Text('生年月日', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
+              _buildSectionHeader('生年月日'),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     flex: 3,
                     child: DropdownButtonFormField<int>(
                       value: _birthYear,
-                      decoration: const InputDecoration(labelText: '年', border: OutlineInputBorder()),
+                      dropdownColor: AppColors.bgElevated,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: const InputDecoration(labelText: '年'),
                       items: List.generate(100, (i) => currentYear - i)
                           .map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
                       onChanged: _isRestricted ? null : (v) => setState(() {
@@ -426,7 +447,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     flex: 2,
                     child: DropdownButtonFormField<int>(
                       value: _birthMonth,
-                      decoration: const InputDecoration(labelText: '月', border: OutlineInputBorder()),
+                      dropdownColor: AppColors.bgElevated,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: const InputDecoration(labelText: '月'),
                       items: List.generate(12, (i) => i + 1)
                           .map((m) => DropdownMenuItem(value: m, child: Text('$m'))).toList(),
                       onChanged: _isRestricted ? null : (v) => setState(() {
@@ -443,7 +466,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     flex: 2,
                     child: DropdownButtonFormField<int>(
                       value: _birthDay,
-                      decoration: const InputDecoration(labelText: '日', border: OutlineInputBorder()),
+                      dropdownColor: AppColors.bgElevated,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: const InputDecoration(labelText: '日'),
                       items: List.generate(
                         (_birthYear != null && _birthMonth != null) ? _daysInMonth(_birthYear!, _birthMonth!) : 31,
                         (i) => i + 1,
@@ -456,17 +481,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 24),
 
               // Wake up and Task Time
-              const Text('毎日のルーティン', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
+              _buildSectionHeader('毎日のルーティン'),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.alarm),
-                      label: Text(_wakeUpTime != null ? _formatTimeOfDay(_wakeUpTime!) : '起床時間'),
+                      label: Text(
+                        _wakeUpTime != null ? _formatTimeOfDay(_wakeUpTime!) : '起床時間',
+                        style: TextStyle(
+                          color: _wakeUpTime != null ? AppColors.textPrimary : AppColors.textMuted,
+                        ),
+                      ),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         alignment: Alignment.centerLeft,
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.border),
                       ),
                       onPressed: _isRestricted ? null : () => _pickTime(true),
                     ),
@@ -475,10 +507,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.schedule),
-                      label: Text(_taskTime != null ? _formatTimeOfDay(_taskTime!) : 'タスク時間'),
+                      label: Text(
+                        _taskTime != null ? _formatTimeOfDay(_taskTime!) : 'タスク時間',
+                        style: TextStyle(
+                          color: _taskTime != null ? AppColors.textPrimary : AppColors.textMuted,
+                        ),
+                      ),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         alignment: Alignment.centerLeft,
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.border),
                       ),
                       onPressed: _isRestricted ? null : () => _pickTime(false),
                     ),
@@ -488,8 +527,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 32),
 
               // Tasks
-              const Text('やりたいタスク（1〜5個）', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
+              _buildSectionHeader('やりたいタスク（1〜5個）'),
+              const SizedBox(height: 12),
               ...List.generate(_taskCtrls.length, (index) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -498,16 +537,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       Expanded(
                         child: TextFormField(
                           controller: _taskCtrls[index],
+                          style: const TextStyle(color: AppColors.textPrimary),
                           decoration: InputDecoration(
                             labelText: 'タスク ${index + 1}',
                             hintText: '例: ランニング3km',
-                            border: const OutlineInputBorder(),
+                            hintStyle: const TextStyle(color: AppColors.textMuted),
                           ),
                         ),
                       ),
                       if (_taskCtrls.length > 1)
                         IconButton(
-                          icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                          icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
                           onPressed: () => _removeTaskField(index),
                         ),
                     ],
@@ -518,8 +558,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text('タスクを追加'),
+                    icon: const Icon(Icons.add, color: AppColors.primary),
+                    label: const Text('タスクを追加', style: TextStyle(color: AppColors.primary)),
                     onPressed: _addTaskField,
                   ),
                 ),
@@ -528,20 +568,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
               // Save button
               _isSaving
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
                   : ElevatedButton(
                       onPressed: _saveProfile,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(fontSize: 17),
-                        backgroundColor: Colors.amber,
-                        foregroundColor: Colors.black,
+                        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: const Color(0xFF1A1000),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: const Text('保存する'),
                     ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
       ),
     );
   }

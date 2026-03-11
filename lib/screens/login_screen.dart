@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 
-/// 【rennさんへ】
-/// ここはユーザーがログインや新規登録をする画面です。
-/// StatefulWidget は「入力された文字」や「ロード中の状態」など、変化するデータを持つ画面で使います。
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -14,40 +12,48 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  // テキスト入力欄（メールアドレスとパスワード）の中身を管理するためのコントローラーです。
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
+  final _passCtrl  = TextEditingController();
   final _authService = AuthService();
-
-  // ログイン処理中かどうかを判定する変数です。
-  // これが true の時は、画面にくるくる回るアイコン（ローディング）を表示します。
   bool _isLoading = false;
+  bool _obscurePass = true;
 
-  /// ログインボタンが押された時の処理です
+  late final AnimationController _fadeCtrl;
+  late final Animation<double>   _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _fadeAnim  = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+    _fadeCtrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    _fadeCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _login() async {
     setState(() => _isLoading = true);
     try {
-      // Firebaseにメールアドレスとパスワードを送ってログインを試みます。
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailCtrl.text.trim(), // trim()は前後の余分な空白を消す処理です
+        email: _emailCtrl.text.trim(),
         password: _passCtrl.text.trim(),
       );
-      // ログイン成功時、FCMトークンを保存します
       await PushNotificationService().saveFcmToken();
-      // AuthWrapperが自動的に画面を切り替えるため、ここでは元のルートに戻るだけです
       if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
     } on FirebaseAuthException catch (e) {
-      // 想定されるエラーごとに、わかりやすい日本語のメッセージを作ります。
       String msg = 'ログインに失敗しました。';
-      if (e.code == 'user-not-found') {
-        msg = 'ユーザーが見つかりません。登録してください。';
-      } else if (e.code == 'wrong-password') {
-        msg = 'パスワードが間違っています。';
-      }
+      if (e.code == 'user-not-found') msg = 'ユーザーが見つかりません。';
+      if (e.code == 'wrong-password')  msg = 'パスワードが間違っています。';
       _showError(msg);
     } finally {
-      // 成功しても失敗しても、最後に必ずローディング状態を解除します。
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -55,12 +61,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      final credential = await _authService.signInWithGoogle();
-      if (credential != null) {
+      final cred = await _authService.signInWithGoogle();
+      if (cred != null) {
         await PushNotificationService().saveFcmToken();
         if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
       }
-    } catch (e) {
+    } catch (_) {
       _showError('Googleでのログインに失敗しました。');
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -70,127 +76,365 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signInWithApple() async {
     setState(() => _isLoading = true);
     try {
-      final credential = await _authService.signInWithApple();
-      if (credential != null) {
+      final cred = await _authService.signInWithApple();
+      if (cred != null) {
         await PushNotificationService().saveFcmToken();
         if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
       }
-    } catch (e) {
+    } catch (_) {
       _showError('Appleでのログインに失敗しました。');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  /// 新規登録ボタンが押されたとき、新規登録画面へ移動します
-  void _goToRegister() {
-    Navigator.pushNamed(context, AppRoutes.register);
-  }
-
-  /// エラーメッセージを画面の下からピョコッと表示する（SnackBar）ための機能です。
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('V-Effect ログイン')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.bolt, size: 80, color: Colors.amber),
-            const SizedBox(height: 24),
-            // メールアドレス入力欄
-            TextField(
-              controller: _emailCtrl,
-              decoration: const InputDecoration(
-                labelText: 'メールアドレス',
-                border: OutlineInputBorder(),
+      backgroundColor: AppColors.bgBase,
+      body: Stack(
+        children: [
+          // ── 背景グラデーション＋装飾円 ──────────────────
+          _buildBackground(),
+
+          // ── コンテンツ ───────────────────────────────
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 60),
+                    _buildLogo(),
+                    const SizedBox(height: 48),
+                    _buildForm(),
+                    const SizedBox(height: 32),
+                    _buildSocialSection(),
+                    const SizedBox(height: 32),
+                    _buildFooter(),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
-              keyboardType: TextInputType.emailAddress,
             ),
-            const SizedBox(height: 16),
-            // パスワード入力欄（文字が黒丸で隠れます）
-            TextField(
-              controller: _passCtrl,
-              decoration: const InputDecoration(
-                labelText: 'パスワード',
-                border: OutlineInputBorder(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // 背景装飾
+  // ════════════════════════════════════════════
+  Widget _buildBackground() {
+    return RepaintBoundary(
+      child: Stack(
+        children: [
+          // 上部グロー
+          Positioned(
+            top: -120,
+            left: -80,
+            child: Container(
+              width: 350,
+              height: 350,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.15),
+                    Colors.transparent,
+                  ],
+                ),
               ),
-              obscureText: true,
             ),
-            const SizedBox(height: 24),
-            // ロード中ならくるくるアイコン、そうでないならボタンを表示します
-            if (_isLoading)
-              const CircularProgressIndicator()
-            else
-              Column(
-                children: [
-                  ElevatedButton(
-                    onPressed: _login,
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    child: const Text('ログイン'),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: const [
-                      Expanded(child: Divider()),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('または'),
+          ),
+          // 右下グロー
+          Positioned(
+            bottom: -80,
+            right: -60,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.08),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // ロゴ
+  // ════════════════════════════════════════════
+  Widget _buildLogo() {
+    return Column(
+      children: [
+        // グロー付きアイコン
+        Container(
+          width: 88,
+          height: 88,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: AppColors.primaryGradient,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.4),
+                blurRadius: 32,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          child: const Icon(Icons.bolt_rounded, size: 52, color: Color(0xFF1A1000)),
+        ),
+        const SizedBox(height: 20),
+        ShaderMask(
+          shaderCallback: (bounds) =>
+              AppColors.primaryGradient.createShader(bounds),
+          child: const Text(
+            'V-Effect',
+            style: TextStyle(
+              fontSize: 38,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '日々の努力を、仲間と共に。',
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // フォーム
+  // ════════════════════════════════════════════
+  Widget _buildForm() {
+    return Column(
+      children: [
+        // メール
+        TextField(
+          controller: _emailCtrl,
+          keyboardType: TextInputType.emailAddress,
+          style: const TextStyle(color: AppColors.textPrimary),
+          decoration: const InputDecoration(
+            labelText: 'メールアドレス',
+            prefixIcon: Icon(Icons.mail_outline_rounded),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // パスワード
+        TextField(
+          controller: _passCtrl,
+          obscureText: _obscurePass,
+          style: const TextStyle(color: AppColors.textPrimary),
+          decoration: InputDecoration(
+            labelText: 'パスワード',
+            prefixIcon: const Icon(Icons.lock_outline_rounded),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePass ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                color: AppColors.textMuted,
+              ),
+              onPressed: () => setState(() => _obscurePass = !_obscurePass),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // パスワード忘れ
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.forgotPassword),
+            child: const Text('パスワードをお忘れですか？'),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // ログインボタン
+        _isLoading
+            ? const _LoadingButton()
+            : SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
                       ),
-                      Expanded(child: Divider()),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: _signInWithGoogle,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
+                  child: ElevatedButton(
+                    onPressed: _login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: const Color(0xFF1A1000),
+                      minimumSize: const Size(double.infinity, 54),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    icon: Image.network(
-                      'https://developers.google.com/identity/images/g-logo.png',
-                      height: 24,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 24),
-                    ),
-                    label: const Text('Googleでログイン'),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: _signInWithApple,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.black,
-                    ),
-                    icon: const Icon(Icons.apple, size: 24),
-                    label: const Text('Appleでログイン'),
-                  ),
-                  const SizedBox(height: 24),
-                  TextButton(
-                    onPressed: _goToRegister,
-                    child: const Text('新規登録はこちら'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, AppRoutes.forgotPassword);
-                    },
                     child: const Text(
-                      'パスワードをお忘れですか？',
-                      style: TextStyle(color: Colors.grey),
+                      'ログイン',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
+                      ),
                     ),
                   ),
-                ],
+                ),
               ),
+      ],
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // ソーシャルログイン
+  // ════════════════════════════════════════════
+  Widget _buildSocialSection() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            const Expanded(child: Divider()),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text('または', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            ),
+            const Expanded(child: Divider()),
           ],
+        ),
+        const SizedBox(height: 20),
+
+        // Google
+        _SocialButton(
+          onPressed: _signInWithGoogle,
+          icon: Image.network(
+            'https://developers.google.com/identity/images/g-logo.png',
+            height: 22,
+            errorBuilder: (_, __, ___) =>
+                const Icon(Icons.g_mobiledata, size: 24, color: AppColors.textPrimary),
+          ),
+          label: 'Googleでログイン',
+        ),
+        const SizedBox(height: 12),
+
+        // Apple
+        _SocialButton(
+          onPressed: _signInWithApple,
+          icon: const Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
+          label: 'Appleでログイン',
+        ),
+      ],
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // フッター
+  // ════════════════════════════════════════════
+  Widget _buildFooter() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text('アカウントをお持ちでないですか？',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        TextButton(
+          onPressed: () => Navigator.pushNamed(context, AppRoutes.register),
+          child: const Text('新規登録'),
+        ),
+      ],
+    );
+  }
+}
+
+// ────────────────────────────────────────────
+// ソーシャルボタン（共通）
+// ────────────────────────────────────────────
+class _SocialButton extends StatelessWidget {
+  const _SocialButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+  });
+
+  final VoidCallback onPressed;
+  final Widget icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            icon,
+            const SizedBox(width: 10),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────
+// ローディング付きボタン
+// ────────────────────────────────────────────
+class _LoadingButton extends StatelessWidget {
+  const _LoadingButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.bgElevated,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
         ),
       ),
     );

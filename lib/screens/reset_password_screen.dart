@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/app_colors.dart';
 import '../config/routes.dart';
 
 /// パスワード再設定画面
@@ -140,6 +141,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.bgBase,
       appBar: AppBar(title: const Text('パスワード再設定')),
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -158,7 +160,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.link, size: 80, color: Colors.amber),
+        const Icon(Icons.link, size: 80, color: AppColors.primary),
         const SizedBox(height: 24),
         const Text(
           'メールのリンクを貼り付け',
@@ -169,7 +171,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         const Text(
           'パスワードリセットのメールに記載されている\nリンクをコピーして、下の欄に貼り付けてください。',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
         TextField(
@@ -190,7 +192,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 onPressed: _submitLink,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.amber.shade700,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: const Color(0xFF1A1000),
                   textStyle: const TextStyle(fontSize: 16),
                 ),
                 child: const Text('次へ'),
@@ -205,7 +208,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.lock_open, size: 80, color: Colors.amber),
+        const Icon(Icons.lock_open, size: 80, color: AppColors.primary),
         const SizedBox(height: 24),
         const Text(
           '新しいパスワードを設定',
@@ -217,7 +220,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           Text(
             _email!,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: Colors.grey),
+            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
         ],
         const SizedBox(height: 32),
@@ -247,7 +250,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 onPressed: _resetPassword,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.amber.shade700,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: const Color(0xFF1A1000),
                   textStyle: const TextStyle(fontSize: 16),
                 ),
                 child: const Text('パスワードを再設定'),
@@ -262,7 +266,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.check_circle, size: 80, color: Colors.green),
+        const Icon(Icons.check_circle, size: 80, color: AppColors.success),
         const SizedBox(height: 24),
         const Text(
           'パスワードを再設定しました',
@@ -273,7 +277,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         const Text(
           '新しいパスワードでログインしてください。',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
         ElevatedButton(
@@ -286,7 +290,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           },
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            backgroundColor: Colors.amber.shade700,
+            backgroundColor: AppColors.primary,
+            foregroundColor: const Color(0xFF1A1000),
             textStyle: const TextStyle(fontSize: 16),
           ),
           child: const Text('ログイン画面へ'),

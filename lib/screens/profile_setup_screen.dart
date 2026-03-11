@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/user_service.dart';
 
@@ -110,12 +111,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.person_outline, size: 80, color: Colors.amber),
+              const Icon(Icons.person_outline, size: 80, color: AppColors.primary),
               const SizedBox(height: 8),
               const Text(
                 'Step 1 / 2',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 4),
               const Text(

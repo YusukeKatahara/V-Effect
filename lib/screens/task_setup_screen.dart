@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/user_service.dart';
 
@@ -164,8 +165,8 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                                               : FontWeight.normal,
                                       color:
                                           isSelected
-                                              ? Colors.amber
-                                              : Colors.grey,
+                                              ? AppColors.primary
+                                              : AppColors.textMuted,
                                     ),
                                   ),
                                 );
@@ -201,8 +202,8 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                                               : FontWeight.normal,
                                       color:
                                           isSelected
-                                              ? Colors.amber
-                                              : Colors.grey,
+                                              ? AppColors.primary
+                                              : AppColors.textMuted,
                                     ),
                                   ),
                                 );
@@ -310,12 +311,12 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.task_alt, size: 80, color: Colors.amber),
+              const Icon(Icons.task_alt, size: 80, color: AppColors.primary),
               const SizedBox(height: 8),
               const Text(
                 'Step 2 / 2',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 4),
               const Text(
@@ -336,7 +337,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                   onTap: _pickProfileImage,
                   child: CircleAvatar(
                     radius: 56,
-                    backgroundColor: Colors.grey.shade200,
+                    backgroundColor: AppColors.bgElevated,
                     backgroundImage:
                         _profileImage != null
                             ? FileImage(_profileImage!)
@@ -349,14 +350,14 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                                 Icon(
                                   Icons.camera_alt,
                                   size: 32,
-                                  color: Colors.grey,
+                                  color: AppColors.textMuted,
                                 ),
                                 SizedBox(height: 4),
                                 Text(
                                   '写真を選択',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey,
+                                    color: AppColors.textMuted,
                                   ),
                                 ),
                               ],
@@ -392,7 +393,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                         IconButton(
                           icon: const Icon(
                             Icons.remove_circle_outline,
-                            color: Colors.redAccent,
+                            color: AppColors.error,
                           ),
                           onPressed: () => _removeTaskField(index),
                         ),
@@ -419,7 +420,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
               const SizedBox(height: 4),
               const Text(
                 'この時間に起床の通知をお届けします',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 8),
               InkWell(
@@ -445,7 +446,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
               const SizedBox(height: 4),
               const Text(
                 'この時間に通知を送ってタスクをリマインドします',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 8),
               InkWell(
@@ -470,7 +471,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                     onPressed: _saveAndFinish,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.amber.shade700,
+                      backgroundColor: AppColors.primary,
                       textStyle: const TextStyle(fontSize: 17),
                     ),
                     child: const Text('設定を完了してはじめる'),

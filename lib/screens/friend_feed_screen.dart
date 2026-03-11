@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import '../config/app_colors.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
 
@@ -200,7 +201,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
     final currentUsername = currentFriend['username'] as String;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.bgBase,
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -217,11 +218,11 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.photo_library_outlined,
-              size: 64, color: Colors.grey),
+              size: 64, color: AppColors.textMuted),
           const SizedBox(height: 16),
           Text(
             '$username の投稿はありません',
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
+            style: const TextStyle(fontSize: 16, color: AppColors.textMuted),
           ),
           const SizedBox(height: 24),
           TextButton(
@@ -250,8 +251,8 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(2),
                     color: i <= _currentPostIndex
-                        ? Colors.white
-                        : Colors.white24,
+                        ? AppColors.textPrimary
+                        : AppColors.textPrimary.withValues(alpha: 0.24),
                   ),
                 ),
               );
@@ -282,11 +283,11 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                                       child: CircularProgressIndicator()),
                           errorBuilder: (ctx, e, st) => const Center(
                             child: Icon(Icons.broken_image,
-                                size: 60, color: Colors.grey),
+                                size: 60, color: AppColors.textMuted),
                           ),
                         )
                       : const Center(
-                          child: Icon(Icons.image, size: 80, color: Colors.grey),
+                          child: Icon(Icons.image, size: 80, color: AppColors.textMuted),
                         ),
                 ],
               ),
@@ -298,14 +299,14 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                 child: Text(
                   DateFormat('yy/MM/dd\nHH:mm').format(post.createdAt),
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     shadows: [
                       Shadow(
-                        color: Colors.black54,
-                        offset: Offset(1, 1),
+                        color: AppColors.bgBase.withValues(alpha: 0.54),
+                        offset: const Offset(1, 1),
                         blurRadius: 2,
                       ),
                     ],
@@ -339,11 +340,11 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                 right: 0,
                 bottom: 0,
                 child: Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
-                      colors: [Colors.black87, Colors.transparent],
+                      colors: [AppColors.bgBase.withValues(alpha: 0.87), Colors.transparent],
                     ),
                   ),
                   padding:
@@ -361,15 +362,15 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               post.remainingText,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.white60,
+                                color: AppColors.textPrimary.withValues(alpha: 0.6),
                               ),
                             ),
                           ],
@@ -385,12 +386,12 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                               width: 52,
                               height: 52,
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
+                                color: AppColors.textPrimary.withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
                                 Icons.local_fire_department,
-                                color: Colors.amber,
+                                color: AppColors.primary,
                                 size: 32,
                               ),
                             ),
@@ -398,8 +399,8 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                           const SizedBox(height: 4),
                           Text(
                             '${post.reactionCount}',
-                            style: const TextStyle(
-                                fontSize: 13, color: Colors.white70),
+                            style: TextStyle(
+                                fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.7)),
                           ),
                         ],
                       ),
@@ -413,7 +414,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                 top: 4,
                 right: 8,
                 child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                  icon: const Icon(Icons.close, color: AppColors.textPrimary, size: 28),
                   onPressed: _goHome,
                 ),
               ),
@@ -452,19 +453,19 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isActive ? Colors.amber : Colors.grey.shade700,
+                        color: isActive ? AppColors.primary : AppColors.border,
                         width: 2,
                       ),
                     ),
                     child: CircleAvatar(
                       radius: 19,
                       backgroundColor: isActive
-                          ? Colors.deepPurple.shade300
-                          : Colors.grey.shade800,
+                          ? AppColors.primary
+                          : AppColors.bgElevated,
                       child: Icon(
                         Icons.person,
                         size: 20,
-                        color: isActive ? Colors.white : Colors.grey.shade600,
+                        color: isActive ? AppColors.textPrimary : AppColors.textMuted,
                       ),
                     ),
                   ),
@@ -480,7 +481,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                         fontSize: 10,
                         fontWeight:
                             isActive ? FontWeight.bold : FontWeight.normal,
-                        color: isActive ? Colors.white : Colors.grey,
+                        color: isActive ? AppColors.textPrimary : AppColors.textMuted,
                       ),
                     ),
                   ),
@@ -560,7 +561,7 @@ class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
       },
       child: const Icon(
         Icons.whatshot,
-        color: Colors.amber,
+        color: AppColors.primary,
         size: 40,
         shadows: [Shadow(color: Colors.redAccent, blurRadius: 12)],
       ),

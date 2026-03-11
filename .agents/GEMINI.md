@@ -65,7 +65,7 @@ CameraScreen, FriendsScreen, NotificationsScreen, FriendFeedScreen
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Frontend
 | Technology | Version | Purpose |
@@ -108,7 +108,7 @@ CameraScreen, FriendsScreen, NotificationsScreen, FriendFeedScreen
 
 ---
 
-## 📏 Naming Conventions
+## Naming Conventions
 
 ### Dart / Flutter
 
@@ -152,7 +152,7 @@ CameraScreen, FriendsScreen, NotificationsScreen, FriendFeedScreen
 
 ---
 
-## 📝 Project-Specific Instructions
+## Project-Specific Instructions
 
 ### Common Rules When Using Gemini
 
@@ -165,6 +165,7 @@ You are a development assistant for the V-Effect project. Please follow these ru
 5. **Always add simple explanations for technical terms in parentheses.**
 6. **If renn says "I don't understand", explain it more simply.**
 7. **When presenting choices, use a pros/cons comparison table.**
+8. **Always response with Japanese.**
 
 ### Firebase-Related Instructions
 

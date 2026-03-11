@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import '../config/app_colors.dart';
 import '../services/post_service.dart';
 import '../widgets/post_success_dialog.dart';
 
@@ -158,7 +159,7 @@ class _CameraScreenState extends State<CameraScreen> {
                           const Icon(
                             Icons.camera_alt,
                             size: 80,
-                            color: Colors.grey,
+                            color: AppColors.textMuted,
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
@@ -211,7 +212,7 @@ class _CameraScreenState extends State<CameraScreen> {
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
                                 ),
-                                backgroundColor: Colors.amber.shade700,
+                                backgroundColor: AppColors.primary,
                               ),
                               onPressed: _uploadPost,
                             ),
