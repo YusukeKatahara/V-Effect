@@ -3,6 +3,7 @@ import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../models/friend_request.dart';
 import '../services/friend_service.dart';
+import '../widgets/section_title.dart';
 
 /// フレンドリスト + フレンド検索・リクエスト画面
 /// 上部にフレンド検索、中部に受信リクエスト、下部にフレンドリストを表示します
@@ -115,12 +116,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('フレンド解除'),
-        content: Text('${friend.username} をフレンドから外しますか？'),
+        backgroundColor: AppColors.bgElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('フレンド解除', style: TextStyle(color: AppColors.textPrimary)),
+        content: Text('${friend.username} をフレンドから外しますか？',
+            style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('キャンセル'),
+            child: const Text('キャンセル', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -150,41 +154,61 @@ class _FriendsScreenState extends State<FriendsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('フレンド')),
+      backgroundColor: AppColors.bgBase,
+      appBar: AppBar(
+        title: const Text('フレンド'),
+        backgroundColor: AppColors.bgBase,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: AppColors.textPrimary,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // ══════════════════════════════
           // フレンド検索セクション
           // ══════════════════════════════
-          const Text(
-            'フレンドを追加',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
+          const SectionTitle(title: 'フレンドを追加'),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _searchCtrl,
+                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: const InputDecoration(
                     hintText: 'ユーザーIDで検索',
-                    border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.search),
                   ),
                   onSubmitted: (_) => _searchUser(),
                 ),
               ),
               const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: _isSearching ? null : _searchUser,
-                child: _isSearching
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('検索'),
+              SizedBox(
+                height: 50,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _isSearching ? null : _searchUser,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: const Color(0xFF1A1000),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: _isSearching
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('検索',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
               ),
             ],
           ),
@@ -200,17 +224,42 @@ class _FriendsScreenState extends State<FriendsScreen> {
               ),
             ),
           if (_searchResult != null)
-            Card(
-              child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.person)),
-                title: Text(_searchResult!.username ?? ''),
-                subtitle: Text('@${_searchResult!.userId ?? ''}'),
-                trailing: _requestSent
-                    ? const Icon(Icons.check, color: AppColors.success)
-                    : IconButton(
-                        icon: const Icon(Icons.person_add),
-                        onPressed: () => _sendRequest(_searchResult!),
-                      ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.bgSurface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    backgroundColor: AppColors.bgElevated,
+                    child: Icon(Icons.person, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_searchResult!.username ?? '',
+                            style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600)),
+                        Text('@${_searchResult!.userId ?? ''}',
+                            style: const TextStyle(
+                                color: AppColors.textSecondary, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                  _requestSent
+                      ? const Icon(Icons.check, color: AppColors.success)
+                      : IconButton(
+                          icon: const Icon(Icons.person_add,
+                              color: AppColors.primary),
+                          onPressed: () => _sendRequest(_searchResult!),
+                        ),
+                ],
               ),
             ),
           const SizedBox(height: 24),
@@ -218,11 +267,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
           // ══════════════════════════════
           // 受信リクエストセクション
           // ══════════════════════════════
-          const Text(
-            '受信リクエスト',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
+          const SectionTitle(title: '受信リクエスト'),
+          const SizedBox(height: 12),
           StreamBuilder<List<FriendRequest>>(
             stream: _requestsStream,
             builder: (context, snapshot) {
@@ -246,26 +292,63 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
               return Column(
                 children: requests.map((req) {
-                  return Card(
-                    child: ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.mail)),
-                      title: Text(req.fromUsername),
-                      subtitle: Text('@${req.fromUserId}'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.check_circle,
-                                color: AppColors.success),
-                            onPressed: () => _acceptRequest(req),
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgSurface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          backgroundColor: AppColors.bgElevated,
+                          child:
+                              Icon(Icons.mail, color: AppColors.primary),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(req.fromUsername,
+                                  style: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w600)),
+                              Text('@${req.fromUserId}',
+                                  style: const TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 13)),
+                            ],
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.cancel,
-                                color: AppColors.error),
-                            onPressed: () => _rejectRequest(req),
+                        ),
+                        // Gold accept button
+                        SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: DecoratedBox(
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: AppColors.primaryGradient,
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.check,
+                                  color: Color(0xFF1A1000), size: 20),
+                              onPressed: () => _acceptRequest(req),
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Muted reject button
+                        IconButton(
+                          icon: const Icon(Icons.close,
+                              color: AppColors.textMuted, size: 20),
+                          onPressed: () => _rejectRequest(req),
+                        ),
+                      ],
                     ),
                   );
                 }).toList(),
@@ -277,11 +360,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
           // ══════════════════════════════
           // フレンドリストセクション
           // ══════════════════════════════
-          const Text(
-            'フレンドリスト',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
+          const SectionTitle(title: 'フレンドリスト'),
+          const SizedBox(height: 12),
           StreamBuilder<List<AppUser>>(
             stream: _friendsStream,
             builder: (context, snapshot) {
@@ -305,16 +385,44 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
               return Column(
                 children: friends.map((friend) {
-                  return Card(
-                    child: ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.person)),
-                      title: Text(friend.username ?? ''),
-                      subtitle: Text('@${friend.userId ?? ''}'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.person_remove,
-                            color: AppColors.textMuted),
-                        onPressed: () => _removeFriend(friend),
-                      ),
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgSurface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          backgroundColor: AppColors.bgElevated,
+                          child: Icon(Icons.person,
+                              color: AppColors.textMuted),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(friend.username ?? '',
+                                  style: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w600)),
+                              Text('@${friend.userId ?? ''}',
+                                  style: const TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.person_remove,
+                              color: AppColors.textMuted),
+                          onPressed: () => _removeFriend(friend),
+                        ),
+                      ],
                     ),
                   );
                 }).toList(),

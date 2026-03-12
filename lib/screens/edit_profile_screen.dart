@@ -4,6 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/user_service.dart';
+import '../widgets/premium_background.dart';
+import '../widgets/gradient_button.dart';
+import '../widgets/section_title.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final AppUser user;
@@ -308,287 +311,304 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bgBase,
-      appBar: AppBar(
-        title: const Text('プロフィールを編集'),
-        backgroundColor: AppColors.bgSurface,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (_isRestricted)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 24),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
-                  ),
+      body: Stack(
+        children: [
+          PremiumBackground(),
+          SafeArea(
+            child: Column(
+              children: [
+                // Custom header row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: AppColors.error),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          '名前以外の項目は、あと $_daysRemaining 日経過するまで変更できません。\n(次回変更可能目安: ${DateTime.now().add(Duration(days: _daysRemaining)).toString().split(' ')[0]})',
-                          style: const TextStyle(color: AppColors.error, fontSize: 13),
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Text(
+                        'プロフィールを編集',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                       ),
                     ],
                   ),
                 ),
-
-              // Photo upload
-              Center(
-                child: GestureDetector(
-                  onTap: _isRestricted ? null : _pickImage,
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: AppColors.bgElevated,
-                        backgroundImage: _newProfileImage != null
-                            ? FileImage(_newProfileImage!) as ImageProvider
-                            : (_currentPhotoUrl != null ? NetworkImage(_currentPhotoUrl!) : null),
-                        child: (_newProfileImage == null && _currentPhotoUrl == null)
-                            ? const Icon(Icons.person, size: 50, color: AppColors.textMuted)
-                            : null,
-                      ),
-                      if (!_isRestricted)
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (_isRestricted)
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              margin: const EdgeInsets.only(bottom: 24),
+                              decoration: BoxDecoration(
+                                color: AppColors.error.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.info_outline, color: AppColors.error),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      '名前以外の項目は、あと $_daysRemaining 日経過するまで変更できません。\n(次回変更可能目安: ${DateTime.now().add(Duration(days: _daysRemaining)).toString().split(' ')[0]})',
+                                      style: const TextStyle(color: AppColors.error, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            child: const Icon(Icons.camera_alt, color: Color(0xFF1A1000), size: 20),
+
+                          // Photo upload
+                          Center(
+                            child: GestureDetector(
+                              onTap: _isRestricted ? null : _pickImage,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.6), width: 3),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary.withValues(alpha: 0.2),
+                                      blurRadius: 16,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: Stack(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 50,
+                                      backgroundColor: AppColors.bgElevated,
+                                      backgroundImage: _newProfileImage != null
+                                          ? FileImage(_newProfileImage!) as ImageProvider
+                                          : (_currentPhotoUrl != null ? NetworkImage(_currentPhotoUrl!) : null),
+                                      child: (_newProfileImage == null && _currentPhotoUrl == null)
+                                          ? const Icon(Icons.person, size: 50, color: AppColors.textMuted)
+                                          : null,
+                                    ),
+                                    if (!_isRestricted)
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: const BoxDecoration(
+                                            color: AppColors.primary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.camera_alt, color: Color(0xFF1A1000), size: 20),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
+                          const SizedBox(height: 32),
 
-              // Section: Basic Info
-              _buildSectionHeader('基本情報'),
-              const SizedBox(height: 12),
+                          // Section: Basic Info
+                          const SectionTitle(title: '基本情報'),
+                          const SizedBox(height: 12),
 
-              // Username
-              TextFormField(
-                controller: _usernameCtrl,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  labelText: '名前',
-                  prefixIcon: Icon(Icons.badge, color: AppColors.textMuted),
-                ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? '名前を入力してください' : null,
-              ),
-              const SizedBox(height: 16),
-
-              // User ID
-              TextFormField(
-                controller: _userIdCtrl,
-                enabled: !_isRestricted,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  labelText: 'ユーザーID',
-                  prefixIcon: Icon(Icons.alternate_email, color: AppColors.textMuted),
-                ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'ユーザーIDを入力してください';
-                  if (v.trim().length < 5) return '5文字以上で入力してください';
-                  if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v.trim())) return '英数字とアンダースコアのみ使えます';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Birth Date
-              _buildSectionHeader('生年月日'),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: DropdownButtonFormField<int>(
-                      initialValue: _birthYear,
-                      dropdownColor: AppColors.bgElevated,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: const InputDecoration(labelText: '年'),
-                      items: List.generate(100, (i) => currentYear - i)
-                          .map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
-                      onChanged: _isRestricted ? null : (v) => setState(() {
-                        _birthYear = v;
-                        if (_birthMonth != null && _birthDay != null) {
-                          final maxDay = _daysInMonth(_birthYear!, _birthMonth!);
-                          if (_birthDay! > maxDay) _birthDay = maxDay;
-                        }
-                      }),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<int>(
-                      initialValue: _birthMonth,
-                      dropdownColor: AppColors.bgElevated,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: const InputDecoration(labelText: '月'),
-                      items: List.generate(12, (i) => i + 1)
-                          .map((m) => DropdownMenuItem(value: m, child: Text('$m'))).toList(),
-                      onChanged: _isRestricted ? null : (v) => setState(() {
-                        _birthMonth = v;
-                        if (_birthYear != null && _birthDay != null) {
-                          final maxDay = _daysInMonth(_birthYear!, _birthMonth!);
-                          if (_birthDay! > maxDay) _birthDay = maxDay;
-                        }
-                      }),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<int>(
-                      initialValue: _birthDay,
-                      dropdownColor: AppColors.bgElevated,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: const InputDecoration(labelText: '日'),
-                      items: List.generate(
-                        (_birthYear != null && _birthMonth != null) ? _daysInMonth(_birthYear!, _birthMonth!) : 31,
-                        (i) => i + 1,
-                      ).map((d) => DropdownMenuItem(value: d, child: Text('$d'))).toList(),
-                      onChanged: _isRestricted ? null : (v) => setState(() => _birthDay = v),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Wake up and Task Time
-              _buildSectionHeader('毎日のルーティン'),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.alarm),
-                      label: Text(
-                        _wakeUpTime != null ? _formatTimeOfDay(_wakeUpTime!) : '起床時間',
-                        style: TextStyle(
-                          color: _wakeUpTime != null ? AppColors.textPrimary : AppColors.textMuted,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        alignment: Alignment.centerLeft,
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.border),
-                      ),
-                      onPressed: _isRestricted ? null : () => _pickTime(true),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.schedule),
-                      label: Text(
-                        _taskTime != null ? _formatTimeOfDay(_taskTime!) : 'タスク時間',
-                        style: TextStyle(
-                          color: _taskTime != null ? AppColors.textPrimary : AppColors.textMuted,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        alignment: Alignment.centerLeft,
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.border),
-                      ),
-                      onPressed: _isRestricted ? null : () => _pickTime(false),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-
-              // Tasks
-              _buildSectionHeader('やりたいタスク（1〜5個）'),
-              const SizedBox(height: 12),
-              ...List.generate(_taskCtrls.length, (index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _taskCtrls[index],
-                          style: const TextStyle(color: AppColors.textPrimary),
-                          decoration: InputDecoration(
-                            labelText: 'タスク ${index + 1}',
-                            hintText: '例: ランニング3km',
-                            hintStyle: const TextStyle(color: AppColors.textMuted),
+                          // Username
+                          TextFormField(
+                            controller: _usernameCtrl,
+                            style: const TextStyle(color: AppColors.textPrimary),
+                            decoration: const InputDecoration(
+                              labelText: '名前',
+                              prefixIcon: Icon(Icons.badge, color: AppColors.textMuted),
+                            ),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? '名前を入力してください' : null,
                           ),
-                        ),
+                          const SizedBox(height: 16),
+
+                          // User ID
+                          TextFormField(
+                            controller: _userIdCtrl,
+                            enabled: !_isRestricted,
+                            style: const TextStyle(color: AppColors.textPrimary),
+                            decoration: const InputDecoration(
+                              labelText: 'ユーザーID',
+                              prefixIcon: Icon(Icons.alternate_email, color: AppColors.textMuted),
+                            ),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return 'ユーザーIDを入力してください';
+                              if (v.trim().length < 5) return '5文字以上で入力してください';
+                              if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v.trim())) return '英数字とアンダースコアのみ使えます';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Birth Date
+                          const SectionTitle(title: '生年月日'),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: DropdownButtonFormField<int>(
+                                  value: _birthYear, // ignore: deprecated_member_use
+                                  dropdownColor: AppColors.bgElevated,
+                                  style: const TextStyle(color: AppColors.textPrimary),
+                                  decoration: const InputDecoration(labelText: '年'),
+                                  items: List.generate(100, (i) => currentYear - i)
+                                      .map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
+                                  onChanged: _isRestricted ? null : (v) => setState(() {
+                                    _birthYear = v;
+                                    if (_birthMonth != null && _birthDay != null) {
+                                      final maxDay = _daysInMonth(_birthYear!, _birthMonth!);
+                                      if (_birthDay! > maxDay) _birthDay = maxDay;
+                                    }
+                                  }),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 2,
+                                child: DropdownButtonFormField<int>(
+                                  value: _birthMonth, // ignore: deprecated_member_use
+                                  dropdownColor: AppColors.bgElevated,
+                                  style: const TextStyle(color: AppColors.textPrimary),
+                                  decoration: const InputDecoration(labelText: '月'),
+                                  items: List.generate(12, (i) => i + 1)
+                                      .map((m) => DropdownMenuItem(value: m, child: Text('$m'))).toList(),
+                                  onChanged: _isRestricted ? null : (v) => setState(() {
+                                    _birthMonth = v;
+                                    if (_birthYear != null && _birthDay != null) {
+                                      final maxDay = _daysInMonth(_birthYear!, _birthMonth!);
+                                      if (_birthDay! > maxDay) _birthDay = maxDay;
+                                    }
+                                  }),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 2,
+                                child: DropdownButtonFormField<int>(
+                                  value: _birthDay, // ignore: deprecated_member_use
+                                  dropdownColor: AppColors.bgElevated,
+                                  style: const TextStyle(color: AppColors.textPrimary),
+                                  decoration: const InputDecoration(labelText: '日'),
+                                  items: List.generate(
+                                    (_birthYear != null && _birthMonth != null) ? _daysInMonth(_birthYear!, _birthMonth!) : 31,
+                                    (i) => i + 1,
+                                  ).map((d) => DropdownMenuItem(value: d, child: Text('$d'))).toList(),
+                                  onChanged: _isRestricted ? null : (v) => setState(() => _birthDay = v),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Wake up and Task Time
+                          const SectionTitle(title: '毎日のルーティン'),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.alarm),
+                                  label: Text(
+                                    _wakeUpTime != null ? _formatTimeOfDay(_wakeUpTime!) : '起床時間',
+                                    style: TextStyle(
+                                      color: _wakeUpTime != null ? AppColors.textPrimary : AppColors.textMuted,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    alignment: Alignment.centerLeft,
+                                    foregroundColor: AppColors.primary,
+                                    side: const BorderSide(color: AppColors.border),
+                                  ),
+                                  onPressed: _isRestricted ? null : () => _pickTime(true),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.schedule),
+                                  label: Text(
+                                    _taskTime != null ? _formatTimeOfDay(_taskTime!) : 'タスク時間',
+                                    style: TextStyle(
+                                      color: _taskTime != null ? AppColors.textPrimary : AppColors.textMuted,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    alignment: Alignment.centerLeft,
+                                    foregroundColor: AppColors.primary,
+                                    side: const BorderSide(color: AppColors.border),
+                                  ),
+                                  onPressed: _isRestricted ? null : () => _pickTime(false),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Tasks
+                          const SectionTitle(title: 'やりたいタスク（1〜5個）'),
+                          const SizedBox(height: 12),
+                          ...List.generate(_taskCtrls.length, (index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _taskCtrls[index],
+                                      style: const TextStyle(color: AppColors.textPrimary),
+                                      decoration: InputDecoration(
+                                        labelText: 'タスク ${index + 1}',
+                                        hintText: '例: ランニング3km',
+                                        hintStyle: const TextStyle(color: AppColors.textMuted),
+                                      ),
+                                    ),
+                                  ),
+                                  if (_taskCtrls.length > 1)
+                                    IconButton(
+                                      icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
+                                      onPressed: () => _removeTaskField(index),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }),
+                          if (_taskCtrls.length < 5)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                icon: const Icon(Icons.add, color: AppColors.primary),
+                                label: const Text('タスクを追加', style: TextStyle(color: AppColors.primary)),
+                                onPressed: _addTaskField,
+                              ),
+                            ),
+
+                          const SizedBox(height: 48),
+
+                          // Save button
+                          GradientButton(
+                            onPressed: _saveProfile,
+                            isLoading: _isSaving,
+                            child: const Text('保存する'),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
                       ),
-                      if (_taskCtrls.length > 1)
-                        IconButton(
-                          icon: const Icon(Icons.remove_circle_outline, color: AppColors.error),
-                          onPressed: () => _removeTaskField(index),
-                        ),
-                    ],
-                  ),
-                );
-              }),
-              if (_taskCtrls.length < 5)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.add, color: AppColors.primary),
-                    label: const Text('タスクを追加', style: TextStyle(color: AppColors.primary)),
-                    onPressed: _addTaskField,
+                    ),
                   ),
                 ),
-
-              const SizedBox(height: 48),
-
-              // Save button
-              _isSaving
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                  : ElevatedButton(
-                      onPressed: _saveProfile,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: const Color(0xFF1A1000),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text('保存する'),
-                    ),
-              const SizedBox(height: 24),
-            ],
+              ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
+        ],
       ),
     );
   }

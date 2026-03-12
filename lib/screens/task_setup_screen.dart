@@ -7,6 +7,10 @@ import 'package:image_picker/image_picker.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/user_service.dart';
+import '../widgets/premium_background.dart';
+import '../widgets/gradient_button.dart';
+import '../widgets/premium_icon_header.dart';
+import '../widgets/section_title.dart';
 
 /// 新規登録後のタスク設定画面（Step 2/2）
 /// プロフィール写真、タスク（1〜5個）、タスク実行時間、起床時間を入力します
@@ -17,10 +21,15 @@ class TaskSetupScreen extends StatefulWidget {
   State<TaskSetupScreen> createState() => _TaskSetupScreenState();
 }
 
-class _TaskSetupScreenState extends State<TaskSetupScreen> {
+class _TaskSetupScreenState extends State<TaskSetupScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _userService = UserService();
   bool _isSaving = false;
+
+  // フェードアニメーション
+  late final AnimationController _fadeController;
+  late final Animation<double> _fadeAnimation;
 
   // プロフィール写真
   File? _profileImage;
@@ -34,7 +43,22 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
   TimeOfDay _wakeUpTime = const TimeOfDay(hour: 7, minute: 0);
 
   @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
+    _fadeController.forward();
+  }
+
+  @override
   void dispose() {
+    _fadeController.dispose();
     for (final ctrl in _taskCtrls) {
       ctrl.dispose();
     }
@@ -77,7 +101,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
 
     await showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.bgSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -99,6 +123,9 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                          ),
                           child: const Text('キャンセル'),
                         ),
                         Text(
@@ -106,6 +133,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         TextButton(
@@ -124,6 +152,9 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                             });
                             Navigator.pop(context);
                           },
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                          ),
                           child: const Text(
                             '完了',
                             style: TextStyle(fontWeight: FontWeight.bold),
@@ -132,7 +163,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
                       ],
                     ),
                   ),
-                  const Divider(height: 1),
+                  const Divider(height: 1, color: AppColors.border),
                   // ── スクロールホイール部分 ──
                   Expanded(
                     child: Row(
@@ -302,182 +333,271 @@ class _TaskSetupScreenState extends State<TaskSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('タスク設定')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(Icons.task_alt, size: 80, color: AppColors.primary),
-              const SizedBox(height: 8),
-              const Text(
-                'Step 2 / 2',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                '日々のタスクとスケジュールを設定しましょう',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 32),
-
-              // ── プロフィール写真 ──
-              const Text(
-                'プロフィール写真',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: GestureDetector(
-                  onTap: _pickProfileImage,
-                  child: CircleAvatar(
-                    radius: 56,
-                    backgroundColor: AppColors.bgElevated,
-                    backgroundImage:
-                        _profileImage != null
-                            ? FileImage(_profileImage!)
-                            : null,
-                    child:
-                        _profileImage == null
-                            ? const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.camera_alt,
-                                  size: 32,
-                                  color: AppColors.textMuted,
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  '写真を選択',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textMuted,
-                                  ),
-                                ),
-                              ],
-                            )
-                            : null,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // ── タスク入力欄 ──
-              const Text(
-                'やりたいタスク（1〜5個）',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              ...List.generate(_taskCtrls.length, (index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _taskCtrls[index],
-                          decoration: InputDecoration(
-                            labelText: 'タスク ${index + 1}',
-                            hintText: '例: ランニング3km',
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      if (_taskCtrls.length > 1)
+      backgroundColor: AppColors.bgBase,
+      body: Stack(
+        children: [
+          const PremiumBackground(),
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Column(
+                children: [
+                  // ── Custom header ──
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      children: [
                         IconButton(
                           icon: const Icon(
-                            Icons.remove_circle_outline,
-                            color: AppColors.error,
+                            Icons.arrow_back,
+                            color: AppColors.textPrimary,
                           ),
-                          onPressed: () => _removeTaskField(index),
+                          onPressed: () => Navigator.pop(context),
                         ),
-                    ],
-                  ),
-                );
-              }),
-              if (_taskCtrls.length < 5)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text('タスクを追加'),
-                    onPressed: _addTaskField,
-                  ),
-                ),
-              const SizedBox(height: 24),
-
-              // ── 起床時間（先に聞く：朝のスケジュール順） ──
-              const Text(
-                'いつも何時に起きますか？',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'この時間に起床の通知をお届けします',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () => _pickTime(isWakeUp: true),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.alarm),
-                  ),
-                  child: Text(
-                    _formatTime(_wakeUpTime),
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // ── タスク実行時間 ──
-              const Text(
-                'タスクをいつやりたいですか？',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'この時間に通知を送ってタスクをリマインドします',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () => _pickTime(isWakeUp: false),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.schedule),
-                  ),
-                  child: Text(
-                    _formatTime(_taskTime),
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // ── 完了ボタン ──
-              _isSaving
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                    onPressed: _saveAndFinish,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: AppColors.primary,
-                      textStyle: const TextStyle(fontSize: 17),
+                        const Text(
+                          'タスク設定',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
-                    child: const Text('設定を完了してはじめる'),
                   ),
-            ],
+                  // ── Content ──
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 8),
+                            const PremiumIconHeader(
+                              icon: Icons.task_alt,
+                              size: 72,
+                              iconSize: 40,
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Step 2 / 2',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              '日々のタスクとスケジュールを設定しましょう',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+
+                            // ── プロフィール写真 ──
+                            const SectionTitle(title: 'プロフィール写真'),
+                            const SizedBox(height: 12),
+                            Center(
+                              child: GestureDetector(
+                                onTap: _pickProfileImage,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.6),
+                                      width: 3,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primary
+                                            .withValues(alpha: 0.2),
+                                        blurRadius: 16,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 56,
+                                    backgroundColor: AppColors.bgElevated,
+                                    backgroundImage:
+                                        _profileImage != null
+                                            ? FileImage(_profileImage!)
+                                            : null,
+                                    child:
+                                        _profileImage == null
+                                            ? const Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.camera_alt,
+                                                  size: 32,
+                                                  color: AppColors.textMuted,
+                                                ),
+                                                SizedBox(height: 4),
+                                                Text(
+                                                  '写真を選択',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: AppColors.textMuted,
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                            : null,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // ── タスク入力欄 ──
+                            const SectionTitle(title: 'やりたいタスク（1〜5個）'),
+                            const SizedBox(height: 8),
+                            ...List.generate(_taskCtrls.length, (index) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      margin: const EdgeInsets.only(right: 8),
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: AppColors.primaryGradient,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF1A1000),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: _taskCtrls[index],
+                                        style: const TextStyle(
+                                          color: AppColors.textPrimary,
+                                        ),
+                                        decoration: InputDecoration(
+                                          labelText: 'タスク ${index + 1}',
+                                          hintText: '例: ランニング3km',
+                                        ),
+                                      ),
+                                    ),
+                                    if (_taskCtrls.length > 1)
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.remove_circle_outline,
+                                          color: AppColors.error,
+                                        ),
+                                        onPressed: () =>
+                                            _removeTaskField(index),
+                                      ),
+                                  ],
+                                ),
+                              );
+                            }),
+                            if (_taskCtrls.length < 5)
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: TextButton.icon(
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('タスクを追加'),
+                                  onPressed: _addTaskField,
+                                ),
+                              ),
+                            const SizedBox(height: 24),
+
+                            // ── 起床時間（先に聞く：朝のスケジュール順） ──
+                            const SectionTitle(title: 'いつも何時に起きますか？'),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'この時間に起床の通知をお届けします',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () => _pickTime(isWakeUp: true),
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  prefixIcon: Icon(Icons.alarm),
+                                ),
+                                child: Text(
+                                  _formatTime(_wakeUpTime),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // ── タスク実行時間 ──
+                            const SectionTitle(title: 'タスクをいつやりたいですか？'),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'この時間に通知を送ってタスクをリマインドします',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () => _pickTime(isWakeUp: false),
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  prefixIcon: Icon(Icons.schedule),
+                                ),
+                                child: Text(
+                                  _formatTime(_taskTime),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+
+                            // ── 完了ボタン ──
+                            GradientButton(
+                              onPressed: _saveAndFinish,
+                              isLoading: _isSaving,
+                              child: const Text('設定を完了してはじめる'),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -55,16 +55,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _openFriendFeed(int friendIndex) {
-    final friend = _friendStatuses[friendIndex];
+  /// 投稿済みフレンドだけのリスト
+  List<Map<String, dynamic>> get _postedFriends =>
+      _friendStatuses.where((f) => f['hasPostedToday'] == true).toList();
+
+  void _openFriendFeed(Map<String, dynamic> friend) {
+    final postedFriends = _postedFriends;
+    final indexInPosted = postedFriends.indexWhere((f) => f['uid'] == friend['uid']);
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => FriendFeedScreen(
           friendUid:         friend['uid'] as String,
           friendUsername:    friend['username'] as String,
-          allFriends:        _friendStatuses,
-          initialFriendIndex: friendIndex,
+          allFriends:        postedFriends,
+          initialFriendIndex: indexInPosted >= 0 ? indexInPosted : 0,
         ),
       ),
     );
@@ -194,14 +199,17 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ロックバナー
-        if (!_postedToday)
+    // 投稿済みフレンドだけ表示
+    final postedFriends = _postedFriends;
+
+    // 自分が未投稿 → ロックバナーのみ表示
+    if (!_postedToday) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Container(
             width: double.infinity,
-            margin: const EdgeInsets.only(top: 8, left: 16, right: 16),
+            margin: const EdgeInsets.only(top: 8, left: 16, right: 16, bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: BoxDecoration(
               color: AppColors.bgElevated,
@@ -222,92 +230,94 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+          const Divider(height: 1),
+        ],
+      );
+    }
 
-        // アバターリスト
+    // 投稿済みフレンドがいない場合
+    if (postedFriends.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 110,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.photo_library_outlined, color: AppColors.textMuted, size: 28),
+                const SizedBox(height: 6),
+                Text('今日はまだ誰も投稿していません',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+        ],
+      );
+    }
+
+    // 投稿済みフレンドのアバターリスト
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         SizedBox(
           height: 110,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            itemCount: _friendStatuses.length,
+            itemCount: postedFriends.length,
             itemBuilder: (context, index) {
-              final friend           = _friendStatuses[index];
-              final username         = friend['username'] as String;
-              final friendPostedToday = friend['hasPostedToday'] as bool? ?? false;
-
-              // リングカラー
-              final Color ringColor;
-              if (!_postedToday) {
-                ringColor = AppColors.border;
-              } else if (friendPostedToday) {
-                ringColor = AppColors.primary;
-              } else {
-                ringColor = AppColors.border;
-              }
-
-              final canTap = _postedToday && friendPostedToday;
+              final friend   = postedFriends[index];
+              final username = friend['username'] as String;
 
               return GestureDetector(
-                onTap: canTap ? () => _openFriendFeed(index) : null,
-                child: Opacity(
-                  opacity: _postedToday ? 1.0 : 0.45,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 7),
-                    child: Column(
-                      children: [
-                        // アバター
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: friendPostedToday && _postedToday
-                                ? AppColors.primaryGradient
-                                : null,
-                            color: friendPostedToday && _postedToday
-                                ? null
-                                : AppColors.bgElevated,
-                            border: Border.all(color: ringColor, width: 2.5),
-                            boxShadow: canTap
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.3),
-                                      blurRadius: 10,
-                                    ),
-                                  ]
-                                : [],
-                          ),
-                          child: CircleAvatar(
-                            radius: 27,
-                            backgroundColor: Colors.transparent,
-                            child: Icon(
-                              Icons.person_rounded,
-                              size: 30,
-                              color: friendPostedToday && _postedToday
-                                  ? const Color(0xFF1A1000)
-                                  : AppColors.textMuted,
+                onTap: () => _openFriendFeed(friend),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: AppColors.primaryGradient,
+                          border: Border.all(color: AppColors.primary, width: 2.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 10,
                             ),
+                          ],
+                        ),
+                        child: const CircleAvatar(
+                          radius: 27,
+                          backgroundColor: Colors.transparent,
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 30,
+                            color: Color(0xFF1A1000),
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        SizedBox(
-                          width: 68,
-                          child: Text(
-                            username,
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: canTap
-                                  ? AppColors.textPrimary
-                                  : AppColors.textSecondary,
-                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        width: 68,
+                        child: Text(
+                          username,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               );

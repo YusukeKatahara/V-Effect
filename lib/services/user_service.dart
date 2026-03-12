@@ -92,13 +92,18 @@ class UserService {
   }
 
   /// ユーザーIDが既に使われていないかチェックします
+  /// 自分自身のドキュメントは除外します（プロフィール再編集時の対応）
   Future<bool> isUserIdAvailable(String userId) async {
+    final uid = _auth.currentUser!.uid;
     final query = await _db
         .collection('users')
         .where('userId', isEqualTo: userId)
-        .limit(1)
+        .limit(2)
         .get();
-    return query.docs.isEmpty;
+    // 結果が空なら利用可能
+    // 結果が自分自身のドキュメントだけなら利用可能（再保存のケース）
+    return query.docs.isEmpty ||
+        (query.docs.length == 1 && query.docs.first.id == uid);
   }
 
   /// プロフィール画像をStorageにアップロードし、URLを返します

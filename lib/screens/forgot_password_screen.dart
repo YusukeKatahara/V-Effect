@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../widgets/premium_background.dart';
+import '../widgets/gradient_button.dart';
+import '../widgets/premium_icon_header.dart';
 
 /// パスワードリセット画面
 ///
@@ -15,16 +18,30 @@ class ForgotPasswordScreen extends StatefulWidget {
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
+    with SingleTickerProviderStateMixin {
   final _userIdCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   bool _isSending = false;
   bool _sent = false;
 
+  late final AnimationController _fadeCtrl;
+  late final Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800));
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+    _fadeCtrl.forward();
+  }
+
   @override
   void dispose() {
     _userIdCtrl.dispose();
     _emailCtrl.dispose();
+    _fadeCtrl.dispose();
     super.dispose();
   }
 
@@ -67,10 +84,45 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgBase,
-      appBar: AppBar(title: const Text('パスワードをリセット')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: _sent ? _buildSentView() : _buildFormView(),
+      body: Stack(
+        children: [
+          const PremiumBackground(),
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: Column(
+                children: [
+                  // ── カスタムAppBar ──
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                              color: AppColors.textPrimary),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const Text('パスワードをリセット',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            )),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: _sent ? _buildSentView() : _buildFormView(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -80,12 +132,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.lock_reset, size: 80, color: AppColors.primary),
+        const PremiumIconHeader(
+            icon: Icons.lock_reset, size: 72, iconSize: 40),
         const SizedBox(height: 24),
         const Text(
           'パスワードをお忘れですか？',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary),
         ),
         const SizedBox(height: 12),
         const Text(
@@ -96,35 +152,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 32),
         TextField(
           controller: _userIdCtrl,
+          style: const TextStyle(color: AppColors.textPrimary),
           decoration: const InputDecoration(
             labelText: 'ユーザーID',
-            border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.person_outline),
           ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _emailCtrl,
+          style: const TextStyle(color: AppColors.textPrimary),
           decoration: const InputDecoration(
             labelText: 'メールアドレス',
-            border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.email_outlined),
           ),
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 24),
-        _isSending
-            ? const Center(child: CircularProgressIndicator())
-            : ElevatedButton(
-                onPressed: _sendResetEmail,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: const Color(0xFF1A1000),
-                  textStyle: const TextStyle(fontSize: 16),
-                ),
-                child: const Text('リセットメールを送信'),
-              ),
+        GradientButton(
+          onPressed: _sendResetEmail,
+          isLoading: _isSending,
+          child: const Text('リセットメールを送信'),
+        ),
       ],
     );
   }
@@ -134,12 +183,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.mark_email_read, size: 80, color: AppColors.success),
+        Container(
+          width: 72,
+          height: 72,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.success,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.success.withValues(alpha: 0.4),
+                blurRadius: 32,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          child: const Icon(Icons.mark_email_read,
+              size: 40, color: Color(0xFF1A1000)),
+        ),
         const SizedBox(height: 24),
         const Text(
           'メールを送信しました',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary),
         ),
         const SizedBox(height: 12),
         Text(
@@ -148,16 +217,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
-        ElevatedButton(
+        GradientButton(
           onPressed: () {
             Navigator.pushNamed(context, AppRoutes.resetPassword);
           },
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            backgroundColor: AppColors.primary,
-            foregroundColor: const Color(0xFF1A1000),
-            textStyle: const TextStyle(fontSize: 16),
-          ),
           child: const Text('メールのリンクで再設定する'),
         ),
         const SizedBox(height: 16),

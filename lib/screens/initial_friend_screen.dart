@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/friend_service.dart';
+import '../widgets/premium_background.dart';
+import '../widgets/gradient_button.dart';
+import '../widgets/premium_icon_header.dart';
+import '../widgets/section_title.dart';
 
 /// タスク設定完了後に表示される初期フレンド登録画面
 class InitialFriendScreen extends StatefulWidget {
@@ -11,7 +15,8 @@ class InitialFriendScreen extends StatefulWidget {
   State<InitialFriendScreen> createState() => _InitialFriendScreenState();
 }
 
-class _InitialFriendScreenState extends State<InitialFriendScreen> {
+class _InitialFriendScreenState extends State<InitialFriendScreen>
+    with SingleTickerProviderStateMixin {
   final FriendService _friendService = FriendService();
   final TextEditingController _userIdCtrl = TextEditingController();
 
@@ -27,8 +32,26 @@ class _InitialFriendScreenState extends State<InitialFriendScreen> {
   static const String _rennUserId = 'renn';
   static const String _yusukeUserId = 'yusuke';
 
+  late final AnimationController _fadeController;
+  late final Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
+    _fadeController.forward();
+  }
+
   @override
   void dispose() {
+    _fadeController.dispose();
     _userIdCtrl.dispose();
     super.dispose();
   }
@@ -94,126 +117,202 @@ class _InitialFriendScreenState extends State<InitialFriendScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgBase,
-      appBar: AppBar(title: const Text('フレンド登録')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget _buildSelectableCard({
+    required bool selected,
+    required VoidCallback onTap,
+    required String label,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.border,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
           children: [
-            const Icon(Icons.people, size: 80, color: AppColors.primary),
-            const SizedBox(height: 16),
-            const Text(
-              '一緒に頑張る仲間を登録しよう！',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 32),
-
-            // ── 誰に誘われましたか？ ──
-            const Text(
-              '誰に誘われましたか？',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-
-            // Renn
-            CheckboxListTile(
-              value: _rennSelected,
-              onChanged: (v) => setState(() => _rennSelected = v ?? false),
-              title: const Text('Renn'),
-              activeColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            ),
-
-            // Yusuke
-            CheckboxListTile(
-              value: _yusukeSelected,
-              onChanged: (v) => setState(() => _yusukeSelected = v ?? false),
-              title: const Text('Yusuke'),
-              activeColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            ),
-
-            // Other user
-            CheckboxListTile(
-              value: _otherSelected,
-              onChanged: (v) => setState(() => _otherSelected = v ?? false),
-              title: const Text('その他のユーザー：ユーザーIDを入力'),
-              activeColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            ),
-
-            // ユーザーID入力欄（「その他」選択時のみ表示）
-            if (_otherSelected) ...[
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: TextField(
-                  controller: _userIdCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'ユーザーID',
-                    hintText: '例: user_123',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person_search),
-                  ),
-                  onChanged: (_) => setState(() {}),
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected ? AppColors.primary : Colors.transparent,
+                border: Border.all(
+                  color: selected ? AppColors.primary : AppColors.textMuted,
+                  width: 2,
                 ),
               ),
-            ],
-
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _error!,
-                style: const TextStyle(color: AppColors.error, fontSize: 13),
-              ),
-            ],
-
-            const SizedBox(height: 32),
-
-            // ── 登録ボタン ──
-            _isSending
-                ? const Center(child: CircularProgressIndicator())
-                : ElevatedButton(
-                    onPressed: _hasSelection ? _register : null,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: const Color(0xFF1A1000),
-                      textStyle: const TextStyle(fontSize: 17),
-                    ),
-                    child: const Text('登録する'),
-                  ),
-
-            const SizedBox(height: 16),
-
-            // ── あとで登録する ──
-            TextButton(
-              onPressed: _isSending
-                  ? null
-                  : () {
-                      Navigator.pushReplacementNamed(context, AppRoutes.home);
-                    },
-              child: const Text(
-                'あとで登録する',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 15),
+              child: selected
+                  ? const Icon(Icons.check, size: 14, color: Color(0xFF1A1000))
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bgBase,
+      body: Stack(
+        children: [
+          const PremiumBackground(),
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Column(
+                children: [
+                  // Custom header row
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back,
+                              color: AppColors.textPrimary),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        const Text(
+                          'フレンド登録',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const PremiumIconHeader(
+                              icon: Icons.people, size: 72, iconSize: 40),
+                          const SizedBox(height: 16),
+                          const Text(
+                            '一緒に頑張る仲間を登録しよう！',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // ── 誰に誘われましたか？ ──
+                          const SectionTitle(title: '誰に誘われましたか？'),
+                          const SizedBox(height: 12),
+
+                          // Renn
+                          _buildSelectableCard(
+                            selected: _rennSelected,
+                            onTap: () => setState(
+                                () => _rennSelected = !_rennSelected),
+                            label: 'Renn',
+                          ),
+
+                          // Yusuke
+                          _buildSelectableCard(
+                            selected: _yusukeSelected,
+                            onTap: () => setState(
+                                () => _yusukeSelected = !_yusukeSelected),
+                            label: 'Yusuke',
+                          ),
+
+                          // Other user
+                          _buildSelectableCard(
+                            selected: _otherSelected,
+                            onTap: () => setState(
+                                () => _otherSelected = !_otherSelected),
+                            label: 'その他のユーザー：ユーザーIDを入力',
+                          ),
+
+                          // ユーザーID入力欄（「その他」選択時のみ表示）
+                          if (_otherSelected) ...[
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
+                              child: TextField(
+                                controller: _userIdCtrl,
+                                style: const TextStyle(
+                                    color: AppColors.textPrimary),
+                                decoration: const InputDecoration(
+                                  labelText: 'ユーザーID',
+                                  hintText: '例: user_123',
+                                  prefixIcon: Icon(Icons.person_search),
+                                ),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ),
+                          ],
+
+                          if (_error != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              _error!,
+                              style: const TextStyle(
+                                  color: AppColors.error, fontSize: 13),
+                            ),
+                          ],
+
+                          const SizedBox(height: 32),
+
+                          // ── 登録ボタン ──
+                          GradientButton(
+                            onPressed: _hasSelection ? _register : null,
+                            isLoading: _isSending,
+                            child: const Text('登録する'),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // ── あとで登録する ──
+                          TextButton(
+                            onPressed: _isSending
+                                ? null
+                                : () {
+                                    Navigator.pushReplacementNamed(
+                                        context, AppRoutes.home);
+                                  },
+                            child: const Text(
+                              'あとで登録する',
+                              style: TextStyle(
+                                  color: AppColors.textMuted, fontSize: 15),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

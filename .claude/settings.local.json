@@ -12,7 +12,10 @@
       "Bash(flutter pub:*)",
       "Bash(npm install:*)",
       "WebSearch",
-      "Bash(cd \"C:/Users/katahara yusuke/V-Effect\" && flutter --version 2>&1 | head -3)"
+      "Bash(cd \"C:/Users/katahara yusuke/V-Effect\" && flutter --version 2>&1 | head -3)",
+      "Bash(cd \"C:/Users/katahara yusuke/V-Effect\" && flutter run -d chrome 2>&1)",
+      "Bash(cd \"/c/Users/katahara yusuke/V-Effect\" && flutter run -d chrome 2>&1 | head -50)",
+      "Bash(cd \"/c/Users/katahara yusuke/V-Effect\" && flutter run -d chrome 2>&1)"
     ]
   }
 }

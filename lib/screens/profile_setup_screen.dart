@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
-
 import '../services/user_service.dart';
+import '../widgets/premium_background.dart';
+import '../widgets/gradient_button.dart';
+import '../widgets/premium_icon_header.dart';
+import '../widgets/section_title.dart';
 
 /// 新規登録後のプロフィール設定画面（Step 1/2）
 /// ユーザー名、ユーザーID、生年月日、性別を入力します
@@ -12,7 +15,8 @@ class ProfileSetupScreen extends StatefulWidget {
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
 }
 
-class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+class _ProfileSetupScreenState extends State<ProfileSetupScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _usernameCtrl = TextEditingController();
   final _userIdCtrl = TextEditingController();
@@ -28,10 +32,23 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   String? _gender;
   static const _genderOptions = ['男性', '女性', 'その他'];
 
+  late final AnimationController _fadeCtrl;
+  late final Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800));
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+    _fadeCtrl.forward();
+  }
+
   @override
   void dispose() {
     _usernameCtrl.dispose();
     _userIdCtrl.dispose();
+    _fadeCtrl.dispose();
     super.dispose();
   }
 
@@ -103,195 +120,253 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     final currentYear = DateTime.now().year;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('プロフィール設定')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(Icons.person_outline, size: 80, color: AppColors.primary),
-              const SizedBox(height: 8),
-              const Text(
-                'Step 1 / 2',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'あなたのプロフィールを設定しましょう',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 32),
-
-              // ユーザー名
-              TextFormField(
-                controller: _usernameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'ユーザー名',
-                  hintText: '例: れん',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.badge),
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'ユーザー名を入力してください' : null,
-              ),
-              const SizedBox(height: 16),
-
-              // ユーザーID
-              TextFormField(
-                controller: _userIdCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'ユーザーID',
-                  hintText: '例: renn_123',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.alternate_email),
-                ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'ユーザーIDを入力してください';
-                  }
-                  if (v.trim().length < 5) {
-                    return '5文字以上で入力してください';
-                  }
-                  if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v.trim())) {
-                    return '英数字とアンダースコアのみ使えます';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // 生年月日
-              const Text(
-                '生年月日',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Row(
+      backgroundColor: AppColors.bgBase,
+      body: Stack(
+        children: [
+          const PremiumBackground(),
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: Column(
                 children: [
-                  // 年
-                  Expanded(
-                    flex: 3,
-                    child: DropdownButtonFormField<int>(
-                      initialValue: _birthYear,
-                      decoration: const InputDecoration(
-                        labelText: '年',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: List.generate(
-                        100,
-                        (i) => currentYear - i,
-                      )
-                          .map((y) => DropdownMenuItem(
-                                value: y,
-                                child: Text('$y'),
-                              ))
-                          .toList(),
-                      onChanged: (v) => setState(() {
-                        _birthYear = v;
-                        // 日の上限を再計算
-                        if (_birthMonth != null && _birthDay != null) {
-                          final maxDay = _daysInMonth(_birthYear!, _birthMonth!);
-                          if (_birthDay! > maxDay) _birthDay = maxDay;
-                        }
-                      }),
+                  // ── カスタムAppBar ──
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                              color: AppColors.textPrimary),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const Text('プロフィール設定',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            )),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  // 月
+
                   Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<int>(
-                      initialValue: _birthMonth,
-                      decoration: const InputDecoration(
-                        labelText: '月',
-                        border: OutlineInputBorder(),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 8),
+                            const PremiumIconHeader(
+                                icon: Icons.person_outline,
+                                size: 72,
+                                iconSize: 40),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Step 1 / 2',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'あなたのプロフィールを設定しましょう',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary),
+                            ),
+                            const SizedBox(height: 32),
+
+                            // ユーザー名
+                            TextFormField(
+                              controller: _usernameCtrl,
+                              style: const TextStyle(
+                                  color: AppColors.textPrimary),
+                              decoration: const InputDecoration(
+                                labelText: 'ユーザー名',
+                                hintText: '例: れん',
+                                prefixIcon: Icon(Icons.badge),
+                              ),
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'ユーザー名を入力してください'
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // ユーザーID
+                            TextFormField(
+                              controller: _userIdCtrl,
+                              style: const TextStyle(
+                                  color: AppColors.textPrimary),
+                              decoration: const InputDecoration(
+                                labelText: 'ユーザーID',
+                                hintText: '例: renn_123',
+                                prefixIcon: Icon(Icons.alternate_email),
+                              ),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'ユーザーIDを入力してください';
+                                }
+                                if (v.trim().length < 5) {
+                                  return '5文字以上で入力してください';
+                                }
+                                if (!RegExp(r'^[a-zA-Z0-9_]+$')
+                                    .hasMatch(v.trim())) {
+                                  return '英数字とアンダースコアのみ使えます';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 24),
+
+                            // 生年月日
+                            const SectionTitle(title: '生年月日'),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                // 年
+                                Expanded(
+                                  flex: 3,
+                                  child: DropdownButtonFormField<int>(
+                                    value: _birthYear,
+                                    dropdownColor: AppColors.bgElevated,
+                                    style: const TextStyle(
+                                        color: AppColors.textPrimary),
+                                    decoration: const InputDecoration(
+                                      labelText: '年',
+                                    ),
+                                    items: List.generate(
+                                      100,
+                                      (i) => currentYear - i,
+                                    )
+                                        .map((y) => DropdownMenuItem(
+                                              value: y,
+                                              child: Text('$y'),
+                                            ))
+                                        .toList(),
+                                    onChanged: (v) => setState(() {
+                                      _birthYear = v;
+                                      // 日の上限を再計算
+                                      if (_birthMonth != null &&
+                                          _birthDay != null) {
+                                        final maxDay = _daysInMonth(
+                                            _birthYear!, _birthMonth!);
+                                        if (_birthDay! > maxDay)
+                                          _birthDay = maxDay;
+                                      }
+                                    }),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // 月
+                                Expanded(
+                                  flex: 2,
+                                  child: DropdownButtonFormField<int>(
+                                    value: _birthMonth,
+                                    dropdownColor: AppColors.bgElevated,
+                                    style: const TextStyle(
+                                        color: AppColors.textPrimary),
+                                    decoration: const InputDecoration(
+                                      labelText: '月',
+                                    ),
+                                    items: List.generate(12, (i) => i + 1)
+                                        .map((m) => DropdownMenuItem(
+                                              value: m,
+                                              child: Text('$m'),
+                                            ))
+                                        .toList(),
+                                    onChanged: (v) => setState(() {
+                                      _birthMonth = v;
+                                      // 日の上限を再計算
+                                      if (_birthYear != null &&
+                                          _birthDay != null) {
+                                        final maxDay = _daysInMonth(
+                                            _birthYear!, _birthMonth!);
+                                        if (_birthDay! > maxDay)
+                                          _birthDay = maxDay;
+                                      }
+                                    }),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // 日
+                                Expanded(
+                                  flex: 2,
+                                  child: DropdownButtonFormField<int>(
+                                    value: _birthDay,
+                                    dropdownColor: AppColors.bgElevated,
+                                    style: const TextStyle(
+                                        color: AppColors.textPrimary),
+                                    decoration: const InputDecoration(
+                                      labelText: '日',
+                                    ),
+                                    items: List.generate(
+                                      (_birthYear != null &&
+                                              _birthMonth != null)
+                                          ? _daysInMonth(
+                                              _birthYear!, _birthMonth!)
+                                          : 31,
+                                      (i) => i + 1,
+                                    )
+                                        .map((d) => DropdownMenuItem(
+                                              value: d,
+                                              child: Text('$d'),
+                                            ))
+                                        .toList(),
+                                    onChanged: (v) =>
+                                        setState(() => _birthDay = v),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // 性別
+                            const SectionTitle(title: '性別'),
+                            const SizedBox(height: 8),
+                            Column(
+                              children: _genderOptions.map((option) {
+                                return RadioListTile<String>(
+                                  title: Text(option,
+                                      style: const TextStyle(
+                                          color: AppColors.textPrimary)),
+                                  value: option,
+                                  groupValue: _gender,
+                                  activeColor: AppColors.primary,
+                                  tileColor: AppColors.bgSurface,
+                                  onChanged: (v) =>
+                                      setState(() => _gender = v),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: EdgeInsets.zero,
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 32),
+
+                            // 次へボタン
+                            GradientButton(
+                              onPressed: _saveAndNext,
+                              isLoading: _isSaving,
+                              child: const Text('次へ'),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
                       ),
-                      items: List.generate(12, (i) => i + 1)
-                          .map((m) => DropdownMenuItem(
-                                value: m,
-                                child: Text('$m'),
-                              ))
-                          .toList(),
-                      onChanged: (v) => setState(() {
-                        _birthMonth = v;
-                        // 日の上限を再計算
-                        if (_birthYear != null && _birthDay != null) {
-                          final maxDay = _daysInMonth(_birthYear!, _birthMonth!);
-                          if (_birthDay! > maxDay) _birthDay = maxDay;
-                        }
-                      }),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // 日
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<int>(
-                      initialValue: _birthDay,
-                      decoration: const InputDecoration(
-                        labelText: '日',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: List.generate(
-                        (_birthYear != null && _birthMonth != null)
-                            ? _daysInMonth(_birthYear!, _birthMonth!)
-                            : 31,
-                        (i) => i + 1,
-                      )
-                          .map((d) => DropdownMenuItem(
-                                value: d,
-                                child: Text('$d'),
-                              ))
-                          .toList(),
-                      onChanged: (v) => setState(() => _birthDay = v),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-
-              // 性別
-              const Text(
-                '性別',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              RadioGroup<String>(
-                groupValue: _gender,
-                onChanged: (v) => setState(() => _gender = v),
-                child: Column(
-                  children: _genderOptions.map((option) {
-                    return RadioListTile<String>(
-                      title: Text(option),
-                      value: option,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: EdgeInsets.zero,
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // 次へボタン
-              _isSaving
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: _saveAndNext,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(fontSize: 17),
-                      ),
-                      child: const Text('次へ'),
-                    ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

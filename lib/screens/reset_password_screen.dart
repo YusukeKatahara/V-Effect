@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../widgets/premium_background.dart';
+import '../widgets/gradient_button.dart';
+import '../widgets/premium_icon_header.dart';
 
 /// パスワード再設定画面
 ///
@@ -15,7 +18,8 @@ class ResetPasswordScreen extends StatefulWidget {
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _ResetPasswordScreenState extends State<ResetPasswordScreen>
+    with SingleTickerProviderStateMixin {
   final _linkCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
@@ -27,6 +31,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   // oobCode が確認済みかどうか
   String? _oobCode;
   String? _email;
+
+  late final AnimationController _fadeCtrl;
+  late final Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800));
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+    _fadeCtrl.forward();
+  }
 
   @override
   void didChangeDependencies() {
@@ -44,6 +60,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     _linkCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmCtrl.dispose();
+    _fadeCtrl.dispose();
     super.dispose();
   }
 
@@ -142,14 +159,49 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgBase,
-      appBar: AppBar(title: const Text('パスワード再設定')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: _resetDone
-            ? _buildDoneView()
-            : _oobCode != null
-                ? _buildNewPasswordView()
-                : _buildLinkInputView(),
+      body: Stack(
+        children: [
+          const PremiumBackground(),
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: Column(
+                children: [
+                  // ── カスタムAppBar ──
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                              color: AppColors.textPrimary),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const Text('パスワード再設定',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            )),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: _resetDone
+                          ? _buildDoneView()
+                          : _oobCode != null
+                              ? _buildNewPasswordView()
+                              : _buildLinkInputView(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -160,12 +212,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.link, size: 80, color: AppColors.primary),
+        const PremiumIconHeader(icon: Icons.link, size: 72, iconSize: 40),
         const SizedBox(height: 24),
         const Text(
           'メールのリンクを貼り付け',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary),
         ),
         const SizedBox(height: 12),
         const Text(
@@ -176,28 +231,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         const SizedBox(height: 32),
         TextField(
           controller: _linkCtrl,
+          style: const TextStyle(color: AppColors.textPrimary),
           decoration: const InputDecoration(
             labelText: 'リンクを貼り付け',
             hintText: 'https://...',
-            border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.content_paste),
           ),
           maxLines: 2,
           keyboardType: TextInputType.url,
         ),
         const SizedBox(height: 24),
-        _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : ElevatedButton(
-                onPressed: _submitLink,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: const Color(0xFF1A1000),
-                  textStyle: const TextStyle(fontSize: 16),
-                ),
-                child: const Text('次へ'),
-              ),
+        GradientButton(
+          onPressed: _submitLink,
+          isLoading: _isLoading,
+          child: const Text('次へ'),
+        ),
       ],
     );
   }
@@ -208,12 +256,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.lock_open, size: 80, color: AppColors.primary),
+        const PremiumIconHeader(
+            icon: Icons.lock_open, size: 72, iconSize: 40),
         const SizedBox(height: 24),
         const Text(
           '新しいパスワードを設定',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary),
         ),
         if (_email != null) ...[
           const SizedBox(height: 8),
@@ -226,9 +278,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         const SizedBox(height: 32),
         TextField(
           controller: _passwordCtrl,
+          style: const TextStyle(color: AppColors.textPrimary),
           decoration: const InputDecoration(
             labelText: '新しいパスワード',
-            border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.lock_outline),
           ),
           obscureText: true,
@@ -236,26 +288,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         const SizedBox(height: 16),
         TextField(
           controller: _confirmCtrl,
+          style: const TextStyle(color: AppColors.textPrimary),
           decoration: const InputDecoration(
             labelText: 'パスワードを確認',
-            border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.lock_outline),
           ),
           obscureText: true,
         ),
         const SizedBox(height: 24),
-        _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : ElevatedButton(
-                onPressed: _resetPassword,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: const Color(0xFF1A1000),
-                  textStyle: const TextStyle(fontSize: 16),
-                ),
-                child: const Text('パスワードを再設定'),
-              ),
+        GradientButton(
+          onPressed: _resetPassword,
+          isLoading: _isLoading,
+          child: const Text('パスワードを再設定'),
+        ),
       ],
     );
   }
@@ -266,12 +311,33 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.check_circle, size: 80, color: AppColors.success),
+        Center(
+          child: Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.success,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.success.withValues(alpha: 0.4),
+                  blurRadius: 32,
+                  spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: const Icon(Icons.check_circle,
+                size: 40, color: Color(0xFF1A1000)),
+          ),
+        ),
         const SizedBox(height: 24),
         const Text(
           'パスワードを再設定しました',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary),
         ),
         const SizedBox(height: 12),
         const Text(
@@ -280,7 +346,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
-        ElevatedButton(
+        GradientButton(
           onPressed: () {
             Navigator.pushNamedAndRemoveUntil(
               context,
@@ -288,12 +354,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               (route) => false,
             );
           },
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            backgroundColor: AppColors.primary,
-            foregroundColor: const Color(0xFF1A1000),
-            textStyle: const TextStyle(fontSize: 16),
-          ),
           child: const Text('ログイン画面へ'),
         ),
       ],

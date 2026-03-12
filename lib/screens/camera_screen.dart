@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../config/app_colors.dart';
 import '../services/post_service.dart';
 import '../widgets/post_success_dialog.dart';
+import '../widgets/gradient_button.dart';
 
 /// 【rennさんへ】
 /// カメラ画面です。写真を撮影して「投稿する」ボタンを押すと、
@@ -102,17 +103,30 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('タスクの証明')),
+      backgroundColor: AppColors.bgBase,
+      appBar: AppBar(
+        title: const Text('タスクの証明'),
+        backgroundColor: AppColors.bgBase,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: AppColors.textPrimary,
+      ),
       body: Column(
         children: [
           // ── 写真エリア ──
           Expanded(
             child:
                 _image != null
-                    ? Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: ClipRRect(
+                    ? Container(
+                      margin: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.4),
+                          width: 1,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
@@ -156,16 +170,29 @@ class _CameraScreenState extends State<CameraScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
-                            Icons.camera_alt,
-                            size: 80,
-                            color: AppColors.textMuted,
+                          Container(
+                            width: 88,
+                            height: 88,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: AppColors.primaryGradient,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.4),
+                                  blurRadius: 32,
+                                  spreadRadius: 4,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.camera_alt, size: 44, color: Color(0xFF1A1000)),
                           ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.camera_alt),
-                            label: const Text('写真を撮る'),
-                            onPressed: _takePhoto,
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: 200,
+                            child: GradientButton(
+                              onPressed: _takePhoto,
+                              child: const Text('写真を撮る'),
+                            ),
                           ),
                         ],
                       ),
@@ -182,41 +209,34 @@ class _CameraScreenState extends State<CameraScreen> {
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.refresh),
+                        icon: const Icon(Icons.refresh, color: AppColors.textPrimary),
                         onPressed: _takePhoto,
                       ),
                       Expanded(
                         child: TextField(
                           controller: _taskCtrl,
+                          style: const TextStyle(color: AppColors.textPrimary),
                           decoration: const InputDecoration(
                             labelText: '今日のタスク（例：ランニング3km）',
-                            border: OutlineInputBorder(),
                           ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child:
-                        _isUploading
-                            ? const Center(child: CircularProgressIndicator())
-                            : ElevatedButton.icon(
-                              icon: const Icon(Icons.send),
-                              label: const Text(
-                                '投稿する',
-                                style: TextStyle(fontSize: 18),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                backgroundColor: AppColors.primary,
-                              ),
-                              onPressed: _uploadPost,
-                            ),
-                  ),
+                  _isUploading
+                      ? const Center(child: CircularProgressIndicator())
+                      : GradientButton(
+                          onPressed: _uploadPost,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.send, color: Color(0xFF1A1000)),
+                              SizedBox(width: 8),
+                              Text('投稿する', style: TextStyle(fontSize: 18)),
+                            ],
+                          ),
+                        ),
                 ],
               ),
             ),

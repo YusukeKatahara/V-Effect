@@ -32,9 +32,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NotificationType.taskReminder:
         return Icons.schedule;
       case NotificationType.reactionReceived:
-        return Icons.whatshot; // 🔥アイコン
+        return Icons.whatshot;
       case NotificationType.friendTaskCompleted:
-        return Icons.emoji_events; // トロフィーアイコン
+        return Icons.emoji_events;
     }
   }
 
@@ -71,16 +71,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('通知を全て削除'),
-        content: const Text('全ての通知を削除しますか？'),
+        backgroundColor: AppColors.bgElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('通知を全て削除',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: const Text('全ての通知を削除しますか？',
+            style: TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('キャンセル'),
+            child: const Text('キャンセル',
+                style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('削除する', style: TextStyle(color: AppColors.error)),
+            child: const Text('削除する',
+                style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -101,8 +107,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         title: const Text('通知'),
+        backgroundColor: AppColors.bgBase,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: AppColors.textPrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_sweep),
@@ -120,10 +130,33 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           final notifications = snapshot.data ?? [];
           if (notifications.isEmpty) {
-            return const Center(
-              child: Text(
-                '通知はありません',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 16),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.bgSurface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          blurRadius: 24,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.notifications_off_outlined,
+                        size: 32, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '通知はありません',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 16),
+                  ),
+                ],
               ),
             );
           }
@@ -139,27 +172,56 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 background: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
-                  color: AppColors.error,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
                 onDismissed: (_) => _deleteNotification(notif.id),
-                child: Card(
+                child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor:
-                          _colorForType(notif.type).withValues(alpha: 0.2),
-                      child: Icon(
-                        _iconForType(notif.type),
-                        color: _colorForType(notif.type),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgSurface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor:
+                            _colorForType(notif.type).withValues(alpha: 0.2),
+                        child: Icon(
+                          _iconForType(notif.type),
+                          color: _colorForType(notif.type),
+                        ),
                       ),
-                    ),
-                    title: Text(notif.title),
-                    subtitle: Text(notif.body),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.close, size: 18),
-                      onPressed: () => _deleteNotification(notif.id),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(notif.title,
+                                style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 2),
+                            Text(notif.body,
+                                style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close,
+                            size: 18, color: AppColors.textMuted),
+                        onPressed: () => _deleteNotification(notif.id),
+                      ),
+                    ],
                   ),
                 ),
               );

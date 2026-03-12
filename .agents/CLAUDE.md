@@ -2,9 +2,9 @@
 
 ---
 
-## 📊 Progress Status
+## Progress Status
 
-### Current Phase: Phase 3（本開発）
+### Current Phase: Phase 3
 
 | Category | Status | Details |
 |----------|--------|---------|
@@ -15,8 +15,8 @@
 | Friends Feature | ✅ Done | Friend requests, friend list, initial friend screen |
 | Notifications | ✅ Done | In-app notifications, push notification foundation (FCM + Cloud Functions) |
 | Dopamine UX | ✅ Done | Haptic feedback, flame animation, social notification cues |
-| V-Quest (Daily Quest) | 🔧 ~40% | Static task management only; no dynamic quest cycle or difficulty system |
-| V-Alert (Notification + Photo) | 🔧 ~35% | Schedule-based reminders only; random timing not implemented |
+| V-Quest (Daily Quest) | ~40% | Static task management only; no dynamic quest cycle or difficulty system |
+| V-Alert (Notification + Photo) | ~35% | Schedule-based reminders only; random timing not implemented |
 | V-Feed (Reaction Timeline) | ✅ ~85% | Stories viewer, 🔥 reaction, post-to-view gating implemented |
 | Skill Tree / XP System | ⬜ Not Started | Post-MVP feature (Phase 2+) |
 | Testing & QA | ⬜ Not Started | Phase 4 |
@@ -69,7 +69,7 @@ CameraScreen, FriendsScreen, NotificationsScreen, FriendFeedScreen
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Frontend
 | Technology | Version | Purpose |
@@ -114,7 +114,7 @@ CameraScreen, FriendsScreen, NotificationsScreen, FriendFeedScreen
 
 ---
 
-## 📏 Naming Conventions
+## Naming Conventions
 
 ### Dart / Flutter
 
@@ -158,7 +158,7 @@ CameraScreen, FriendsScreen, NotificationsScreen, FriendFeedScreen
 
 ---
 
-## 📝 Project-Specific Instructions
+## Project-Specific Instructions
 
 ### Common Rules When Using Claude
 
