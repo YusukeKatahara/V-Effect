@@ -9,18 +9,18 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   try {
-    print('Testing query...');
+    debugPrint('Testing query...');
     final query = await FirebaseFirestore.instance
         .collection('users')
         .where('userId', isEqualTo: 'test_user_id_12345')
         .limit(1)
         .get();
-    print('Query succeeded! isEmpty: \${query.docs.isEmpty}');
+    debugPrint('Query succeeded! isEmpty: ${query.docs.isEmpty}');
     for (var doc in query.docs) {
-      print('Doc ID: \${doc.id}, Data: \${doc.data()}');
+      debugPrint('Doc ID: ${doc.id}, Data: ${doc.data()}');
     }
   } catch (e, st) {
-    print('Query failed with error: $e');
-    print('StackTrace: $st');
+    debugPrint('Query failed with error: $e');
+    debugPrint('StackTrace: $st');
   }
 }

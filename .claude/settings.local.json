@@ -11,7 +11,8 @@
       "Bash(wc:*)",
       "Bash(flutter pub:*)",
       "Bash(npm install:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(cd \"C:/Users/katahara yusuke/V-Effect\" && flutter --version 2>&1 | head -3)"
     ]
   }
 }

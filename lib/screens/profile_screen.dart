@@ -446,7 +446,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onPressed: () async {
           await PushNotificationService().removeFcmToken();
           await FirebaseAuth.instance.signOut();
-          if (context.mounted) {
+          if (mounted) {
             Navigator.pushReplacementNamed(context, AppRoutes.login);
           }
         },

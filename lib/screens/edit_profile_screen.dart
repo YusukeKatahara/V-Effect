@@ -212,12 +212,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       isRestrictedFieldsChanged = true;
     }
 
-    bool isTaskChanged = false;
-    if (newTasks.length != widget.user.tasks.length ||
-        !newTasks.asMap().entries.every((e) => widget.user.tasks[e.key] == e.value)) {
-      isTaskChanged = true;
-    }
-
     if (isRestrictedFieldsChanged && _isRestricted) {
        ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('名前以外の変更はあと $_daysRemaining 日経過するまでできません。')),
@@ -427,7 +421,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Expanded(
                     flex: 3,
                     child: DropdownButtonFormField<int>(
-                      value: _birthYear,
+                      initialValue: _birthYear,
                       dropdownColor: AppColors.bgElevated,
                       style: const TextStyle(color: AppColors.textPrimary),
                       decoration: const InputDecoration(labelText: '年'),
@@ -446,7 +440,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Expanded(
                     flex: 2,
                     child: DropdownButtonFormField<int>(
-                      value: _birthMonth,
+                      initialValue: _birthMonth,
                       dropdownColor: AppColors.bgElevated,
                       style: const TextStyle(color: AppColors.textPrimary),
                       decoration: const InputDecoration(labelText: '月'),
@@ -465,7 +459,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Expanded(
                     flex: 2,
                     child: DropdownButtonFormField<int>(
-                      value: _birthDay,
+                      initialValue: _birthDay,
                       dropdownColor: AppColors.bgElevated,
                       style: const TextStyle(color: AppColors.textPrimary),
                       decoration: const InputDecoration(labelText: '日'),

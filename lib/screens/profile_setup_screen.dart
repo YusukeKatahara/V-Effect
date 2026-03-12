@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
-import '../config/routes.dart';
+
 import '../services/user_service.dart';
 
 /// 新規登録後のプロフィール設定画面（Step 1/2）
@@ -176,7 +176,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   Expanded(
                     flex: 3,
                     child: DropdownButtonFormField<int>(
-                      value: _birthYear,
+                      initialValue: _birthYear,
                       decoration: const InputDecoration(
                         labelText: '年',
                         border: OutlineInputBorder(),
@@ -205,7 +205,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   Expanded(
                     flex: 2,
                     child: DropdownButtonFormField<int>(
-                      value: _birthMonth,
+                      initialValue: _birthMonth,
                       decoration: const InputDecoration(
                         labelText: '月',
                         border: OutlineInputBorder(),
@@ -231,7 +231,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   Expanded(
                     flex: 2,
                     child: DropdownButtonFormField<int>(
-                      value: _birthDay,
+                      initialValue: _birthDay,
                       decoration: const InputDecoration(
                         labelText: '日',
                         border: OutlineInputBorder(),
@@ -260,19 +260,21 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              Column(
-                children: _genderOptions.map((option) {
-                  return RadioListTile<String>(
-                    title: Text(option),
-                    value: option,
-                    groupValue: _gender,
-                    onChanged: (v) => setState(() => _gender = v),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: EdgeInsets.zero,
-                  );
-                }).toList(),
+              RadioGroup<String>(
+                groupValue: _gender,
+                onChanged: (v) => setState(() => _gender = v),
+                child: Column(
+                  children: _genderOptions.map((option) {
+                    return RadioListTile<String>(
+                      title: Text(option),
+                      value: option,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                    );
+                  }).toList(),
+                ),
               ),
               const SizedBox(height: 32),
 

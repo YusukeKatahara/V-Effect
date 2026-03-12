@@ -86,9 +86,9 @@ class _CameraScreenState extends State<CameraScreen> {
         }
       }
     } catch (e, st) {
-      print('=== POST UPLOAD ERROR ===');
-      print(e);
-      print(st);
+      debugPrint('=== POST UPLOAD ERROR ===');
+      debugPrint('$e');
+      debugPrint('$st');
       if (mounted) {
         ScaffoldMessenger.of(
           context,

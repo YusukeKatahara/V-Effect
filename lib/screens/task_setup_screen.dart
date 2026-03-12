@@ -3,8 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/user_service.dart';

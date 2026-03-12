@@ -8,7 +8,7 @@ import '../screens/task_setup_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/friends_screen.dart';
 import '../screens/notifications_screen.dart';
-import '../screens/edit_profile_screen.dart';
+
 import '../screens/initial_friend_screen.dart';
 import '../screens/forgot_password_screen.dart';
 import '../screens/reset_password_screen.dart';

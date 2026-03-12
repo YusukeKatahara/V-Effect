@@ -28,8 +28,8 @@ class Post {
       userId: data['userId'] ?? '',
       imageUrl: data['imageUrl'],
       taskName: data['taskName'] ?? '今日のタスク',
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      expiresAt: (data['expiresAt'] as Timestamp).toDate(),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      expiresAt: (data['expiresAt'] as Timestamp?)?.toDate() ?? DateTime.now().add(const Duration(hours: 24)),
       reactionCount: (data['reactionCount'] as num?)?.toInt() ?? 0,
     );
   }
