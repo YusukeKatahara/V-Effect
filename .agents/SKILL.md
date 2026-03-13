@@ -20,19 +20,6 @@ description: Common rules and skill definitions for mobile app development in th
 
 ---
 
-## Main Feature List
-
-### ★ Essential Features (MVP: Minimum viable features required for the first release)
-1. **V-Quest (デイリークエスト)** — 1日1つ、自分に勝つための挑戦（筋トレ、ランニングなど）を宣言する。
-2. **V-Alert (リアルタイム努力証明)** — ランダムな通知に合わせて、その瞬間の努力（パンプアップした体など）を写真に撮り、BeRealのように投稿する。
-3. **V-Feed (熱量の共有)** — 今日「V-Quest」を達成した仲間の写真だけが見れるタイムライン。🔥でリアクションできる。
-
-### ☆ Additional Features (Implement if there's time)
-- スキルツリー機能（「体」「頭」「心」などの詳細な成長可視化）※リリース第2弾以降を想定
-- 詳細なXP（経験値）計算およびレベルアップシステム
-
----
-
 ## Development Rules
 
 ### Coding Conventions (Rules for writing code)
@@ -103,4 +90,7 @@ This project is developed by 2 people: **renn (Planner / Beginner)** and **yusuk
 1. A certain degree of technical discussion is welcome.
 2. Explain what was changed and why modifications every time.
 3. If there are choices, present the pros and cons in a comparison table.
-4. Talk in English.
+
+## command
+1. **pull** : git pull
+2. **push** : git push && git commit

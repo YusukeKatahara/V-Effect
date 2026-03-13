@@ -2,69 +2,6 @@
 
 ---
 
-## 📊 Progress Status
-
-### Current Phase: Phase 3（本開発）— 主要機能の実装中
-
-| Category | Status | Details |
-|----------|--------|---------|
-| Authentication | ✅ Done | Email/Password, Google Sign-In, Apple Sign-In, Password Reset |
-| Profile Setup | ✅ Done | ProfileSetupScreen, TaskSetupScreen, 90-day edit restriction |
-| Home Screen | ✅ Done | Streak display, task status, friend feed (Stories-style viewer) |
-| Camera / Photo Posting | ✅ Done | Camera capture, timestamp sticker, Web photo upload |
-| Friends Feature | ✅ Done | Friend requests, friend list, initial friend screen |
-| Notifications | ✅ Done | In-app notifications, push notification foundation (FCM + Cloud Functions) |
-| Dopamine UX | ✅ Done | Haptic feedback, flame animation, social notification cues |
-| V-Quest (Daily Quest) | 🔧 ~40% | Static task management only; no dynamic quest cycle or difficulty system |
-| V-Alert (Notification + Photo) | 🔧 ~35% | Schedule-based reminders only; random timing not implemented |
-| V-Feed (Reaction Timeline) | ✅ ~85% | Stories viewer, 🔥 reaction, post-to-view gating implemented |
-| Skill Tree / XP System | ⬜ Not Started | Post-MVP feature (Phase 2+) |
-| Testing & QA | ⬜ Not Started | Phase 4 |
-| Release Prep | ⬜ Not Started | Phase 5 |
-
-### Implemented Screens (15 screens)
-
-LoginScreen, RegisterScreen, ForgotPasswordScreen, ResetPasswordScreen,
-ProfileSetupScreen, TaskSetupScreen, InitialFriendScreen,
-MainShell (BottomNavigationBar), HomeScreen, ProfileScreen, EditProfileScreen,
-CameraScreen, FriendsScreen, NotificationsScreen, FriendFeedScreen
-
-### Plan vs Implementation Deviations
-
-#### Direction Changes (計画から方向転換した要素)
-
-1. **V-Alert: Random → Scheduled notifications**
-   - Plan: BeReal-style random simultaneous notifications to all users
-   - Actual: User-configured fixed-time reminders (wakeUpTime / taskTime)
-   - Impact: Lost "spontaneity" element; gained predictable habit-building UX
-
-2. **V-Quest: Dynamic quests → Static task list**
-   - Plan: Daily "accept a new quest" with game-like ceremony
-   - Actual: Fixed tasks registered at setup; no daily renewal or difficulty system
-
-3. **Notification system: Separated → Unified**
-   - Plan: V-Alert (random) and V-Feed (reactions) as independent systems
-   - Actual: Single `NotificationService` handling 6 notification types
-
-#### Added Beyond Original Plan (計画外の追加機能)
-
-| Feature | Notes |
-|---------|-------|
-| Streak system | Not in original plan; drives daily engagement |
-| Google / Apple Sign-In | Plan assumed Email only |
-| Dopamine-driven UX | Flame animations, haptic feedback, varied notification messages |
-| 90-day profile edit lock | Anti-abuse measure |
-| Password reset flow | ForgotPassword → Cloud Functions → ResetPassword |
-| Friend request workflow | 3-step: send → accept → become friends |
-| Profile image upload | Required for SNS but not in original spec |
-
-#### Deferred as Planned (予定通り未実装)
-
-- Skill Tree ("体" / "頭" / "心" growth visualization) — Phase 2+
-- XP / Level-up system — Phase 2+
-
----
-
 ## Tech Stack
 
 ### Frontend
@@ -147,8 +84,8 @@ CameraScreen, FriendsScreen, NotificationsScreen, FriendFeedScreen
 | `chore:` | Maintenance / config | `chore: apply setup_guide configurations` |
 
 ### Comments
-- Code comments may be written in **Japanese**
-- Variable and function names must be in **English**
+- Code comments MUST be written in **Japanese**
+- Variable and function names MUST be in **English**
 
 ---
 
@@ -165,7 +102,7 @@ You are a development assistant for the V-Effect project. Please follow these ru
 5. **Always add simple explanations for technical terms in parentheses.**
 6. **If renn says "I don't understand", explain it more simply.**
 7. **When presenting choices, use a pros/cons comparison table.**
-8. **Always response with Japanese.**
+8. **Absolutely respond in Japanese.**
 
 ### Firebase-Related Instructions
 
