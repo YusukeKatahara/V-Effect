@@ -327,7 +327,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
               ],
             ),
             child: const Icon(Icons.check_circle,
-                size: 40, color: Color(0xFF1A1000)),
+                size: 40, color: AppColors.black),
           ),
         ),
         const SizedBox(height: 24),

@@ -42,17 +42,19 @@ class NotificationService {
     });
   }
 
-  /// 自分の通知一覧を取得します（リアルタイム）
   Stream<List<AppNotification>> getMyNotifications() {
     final myUid = _auth.currentUser!.uid;
     return _db
         .collection('notifications')
         .where('toUid', isEqualTo: myUid)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => AppNotification.fromFirestore(doc))
-            .toList());
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => AppNotification.fromFirestore(doc))
+              .toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   /// 通知の件数をリアルタイムで取得します
@@ -81,15 +83,24 @@ class NotificationService {
 
   /// 起床時間・タスク時間のリマインダー通知を生成します
   /// アプリ起動時やホーム画面表示時に呼び出してください
-  Future<void> checkAndCreateTimeReminders() async {
+  ///
+  /// [streak] を渡すとユーザードキュメントの再読み込みをスキップします。
+  /// HomeScreenでは既にgetHomeData()でストリークを取得済みなので、
+  /// ここで再度読む必要はありません。
+  Future<void> checkAndCreateTimeReminders({int? streak}) async {
     final myUid = _auth.currentUser!.uid;
     final now = DateTime.now();
     final todayStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-    // ユーザーの公開データ（ストリーク）とプライベートデータ（時間設定）を取得
-    final userSnap = await _db.collection('users').doc(myUid).get();
-    final streakNum = ((userSnap.data()?['streak'] as num?) ?? 0).toInt();
+    // streakが未提供の場合のみユーザードキュメントを読む
+    int streakNum;
+    if (streak != null) {
+      streakNum = streak;
+    } else {
+      final userSnap = await _db.collection('users').doc(myUid).get();
+      streakNum = ((userSnap.data()?['streak'] as num?) ?? 0).toInt();
+    }
     final streakStr = streakNum.toString();
 
     final privateSnap = await _db

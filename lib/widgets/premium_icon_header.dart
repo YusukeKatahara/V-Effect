@@ -28,13 +28,13 @@ class PremiumIconHeader extends StatelessWidget {
             gradient: AppColors.primaryGradient,
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.4),
+                color: Colors.white.withValues(alpha: 0.3),
                 blurRadius: 32,
                 spreadRadius: 4,
               ),
             ],
           ),
-          child: Icon(icon, size: iconSize, color: const Color(0xFF1A1000)),
+          child: Icon(icon, size: iconSize, color: AppColors.black),
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 12),

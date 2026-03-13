@@ -1,20 +1,23 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart'; // kIsWeb を使うため
-import 'dart:async';
+import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../config/app_colors.dart';
 import '../services/post_service.dart';
 import '../widgets/post_success_dialog.dart';
-import '../widgets/gradient_button.dart';
 
-/// 【rennさんへ】
-/// カメラ画面です。写真を撮影して「投稿する」ボタンを押すと、
-/// PostServiceを通じてFirebaseへ写真とデータが送られます。
+/// Hero Task 撮影画面
+///
+/// [heroTaskName] が渡された場合、タスク名は固定表示されます。
+/// 投稿成功時は `Navigator.pop(context, true)` で結果を返します。
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  const CameraScreen({super.key, this.heroTaskName});
+
+  final String? heroTaskName;
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
@@ -22,78 +25,70 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   final ImagePicker _picker = ImagePicker();
-  final PostService _postService = PostService(); // サービスを呼び出す準備です
+  final PostService _postService = PostService();
   XFile? _image;
   DateTime? _captureTime;
   bool _isUploading = false;
 
-  // ── タスク名を入力するためのコントローラー ──
-  final _taskCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _taskCtrl.dispose();
-    super.dispose();
+  String? get _taskName {
+    // ルート引数 or コンストラクタ引数
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (widget.heroTaskName != null) return widget.heroTaskName;
+    if (args is String) return args;
+    return null;
   }
 
-  /// カメラで写真を撮影する処理
+  @override
+  void initState() {
+    super.initState();
+    // 画面を開いたら即カメラ起動
+    WidgetsBinding.instance.addPostFrameCallback((_) => _takePhoto());
+  }
+
   Future<void> _takePhoto() async {
     final XFile? photo = await _picker.pickImage(
       source: ImageSource.camera,
-      imageQuality: 80, // 画質を80%に戻してデータ量を節約
+      imageQuality: 80,
       preferredCameraDevice: CameraDevice.rear,
     );
-    if (photo != null) {
+    if (photo != null && mounted) {
       setState(() {
         _image = photo;
         _captureTime = DateTime.now();
       });
+    } else if (_image == null && mounted) {
+      // カメラをキャンセルした場合、写真がなければ戻る
+      Navigator.pop(context, false);
     }
   }
 
-  /// Firebase に写真を投稿する処理
   Future<void> _uploadPost() async {
     if (_image == null) return;
+    final taskName = _taskName ?? '今日のタスク';
 
-    // タスク名が空なら汎用メッセージを使います
-    final taskName =
-        _taskCtrl.text.trim().isEmpty ? '今日のタスク' : _taskCtrl.text.trim();
-
-    // ドーパミン誘発：ボタンを押した瞬間の心地よい振動
     HapticFeedback.mediumImpact();
-
     setState(() => _isUploading = true);
-    try {
-      // Webとモバイルの両方でアップロードできるように、XFileのbytesを読み込みます
-      final bytes = await _image!.readAsBytes();
 
-      // PostServiceの createPost を呼び出すだけでOKです！
+    try {
+      final bytes = await _image!.readAsBytes();
       final result = await _postService.createPost(
         imageBytes: bytes,
         taskName: taskName,
       );
 
       if (mounted) {
-        // お祝いダイアログを表示
         await PostSuccessDialog.show(
           context,
           streakDays: result['newStreak'] as int,
           isRecordUpdating: result['isRecordUpdating'] as bool,
         );
-
-        // ダイアログが閉じられたら、ホーム画面に戻る
-        if (mounted) {
-          Navigator.pop(context); // カメラ画面を閉じる
-        }
+        if (mounted) Navigator.pop(context, true);
       }
     } catch (e, st) {
-      debugPrint('=== POST UPLOAD ERROR ===');
-      debugPrint('$e');
-      debugPrint('$st');
+      debugPrint('POST UPLOAD ERROR: $e\n$st');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('投稿に失敗しました: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('投稿に失敗しました。もう一度お試しください。')));
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -102,145 +97,213 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgBase,
-      appBar: AppBar(
-        title: const Text('タスクの証明'),
-        backgroundColor: AppColors.bgBase,
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: AppColors.textPrimary,
-      ),
-      body: Column(
-        children: [
-          // ── 写真エリア ──
-          Expanded(
-            child:
-                _image != null
-                    ? Container(
-                      margin: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.4),
-                          width: 1,
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            // 写真プレビュー（フィルターなし）
-                            kIsWeb
-                                ? Image.network(_image!.path, fit: BoxFit.cover)
-                                : Image.file(
-                                  File(_image!.path),
-                                  fit: BoxFit.cover,
-                                ),
+    final taskName = _taskName;
 
-                            // タイムスタンプ（シンプルな白色）
-                            if (_captureTime != null)
-                              Positioned(
-                                bottom: 16,
-                                right: 20,
-                                child: Text(
-                                  DateFormat(
-                                    'yy/MM/dd\nHH:mm',
-                                  ).format(_captureTime!),
-                                  textAlign: TextAlign.right,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black54,
-                                        offset: Offset(1, 1),
-                                        blurRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
+    return Scaffold(
+      backgroundColor: AppColors.black,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Header ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppColors.white),
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                  const Spacer(),
+                  if (taskName != null)
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        taskName,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.notoSansJp(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.white,
                         ),
-                      ),
-                    )
-                    : Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 88,
-                            height: 88,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: AppColors.primaryGradient,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.4),
-                                  blurRadius: 32,
-                                  spreadRadius: 4,
-                                ),
-                              ],
-                            ),
-                            child: const Icon(Icons.camera_alt, size: 44, color: Color(0xFF1A1000)),
-                          ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: 200,
-                            child: GradientButton(
-                              onPressed: _takePhoto,
-                              child: const Text('写真を撮る'),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
-          ),
-
-          // ── タスク名入力と投稿ボタンエリア ──
-          if (_image != null)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // 写真の撮り直し or タスク名の入力ができます
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: AppColors.textPrimary),
-                        onPressed: _takePhoto,
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _taskCtrl,
-                          style: const TextStyle(color: AppColors.textPrimary),
-                          decoration: const InputDecoration(
-                            labelText: '今日のタスク（例：ランニング3km）',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _isUploading
-                      ? const Center(child: CircularProgressIndicator())
-                      : GradientButton(
-                          onPressed: _uploadPost,
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.send, color: Color(0xFF1A1000)),
-                              SizedBox(width: 8),
-                              Text('投稿する', style: TextStyle(fontSize: 18)),
-                            ],
-                          ),
-                        ),
+                  const Spacer(),
+                  const SizedBox(width: 48), // balance close button
                 ],
               ),
             ),
+
+            // ── Photo area ──
+            Expanded(
+              child: _image != null
+                  ? _buildPreview()
+                  : _buildPlaceholder(),
+            ),
+
+            // ── Bottom actions ──
+            if (_image != null)
+              _buildBottomBar(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreview() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: AppColors.white.withValues(alpha: 0.08),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.white.withValues(alpha: 0.03),
+            blurRadius: 40,
+          ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            kIsWeb
+                ? Image.network(_image!.path, fit: BoxFit.cover)
+                : Image.file(File(_image!.path), fit: BoxFit.cover),
+
+            // Timestamp
+            if (_captureTime != null)
+              Positioned(
+                bottom: 20,
+                right: 20,
+                child: Text(
+                  DateFormat('yy/MM/dd\nHH:mm').format(_captureTime!),
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    shadows: [
+                      Shadow(
+                        color: AppColors.black.withValues(alpha: 0.6),
+                        offset: const Offset(1, 1),
+                        blurRadius: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.grey15,
+              border: Border.all(color: AppColors.grey20),
+            ),
+            child: const Icon(Icons.camera_alt,
+                size: 40, color: AppColors.grey50),
+          ),
+          const SizedBox(height: 20),
+          Text('カメラを起動中...',
+              style: TextStyle(color: AppColors.grey30, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.black.withValues(alpha: 0.0),
+                AppColors.black.withValues(alpha: 0.8),
+              ],
+            ),
+          ),
+          child: Row(
+            children: [
+              // Retake
+              GestureDetector(
+                onTap: _isUploading ? null : _takePhoto,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.grey15,
+                    border: Border.all(color: AppColors.grey20),
+                  ),
+                  child: const Icon(Icons.refresh_rounded,
+                      color: AppColors.grey70, size: 22),
+                ),
+              ),
+              const Spacer(),
+
+              // Post button
+              GestureDetector(
+                onTap: _isUploading ? null : _uploadPost,
+                child: Container(
+                  height: 52,
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  decoration: BoxDecoration(
+                    color: _isUploading ? AppColors.grey15 : AppColors.white,
+                    borderRadius: BorderRadius.circular(26),
+                    boxShadow: _isUploading
+                        ? []
+                        : [
+                            BoxShadow(
+                              color: AppColors.white.withValues(alpha: 0.15),
+                              blurRadius: 24,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                  ),
+                  child: Center(
+                    child: _isUploading
+                        ? const SizedBox(
+                            width: 22, height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.grey50))
+                        : Text(
+                            '投稿する',
+                            style: GoogleFonts.notoSansJp(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.black,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              const SizedBox(width: 48), // balance retake button
+            ],
+          ),
+        ),
       ),
     );
   }

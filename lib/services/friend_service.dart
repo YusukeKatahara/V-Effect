@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_request.dart';
@@ -87,10 +88,12 @@ class FriendService {
         .collection('friend_requests')
         .where('toUid', isEqualTo: myUid)
         .where('status', isEqualTo: 'pending')
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((doc) => FriendRequest.fromFirestore(doc)).toList());
+        .map((snap) {
+          final list = snap.docs.map((doc) => FriendRequest.fromFirestore(doc)).toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   /// フレンドリクエストを承認します（双方の friends リストに追加）
@@ -132,15 +135,35 @@ class FriendService {
   }
 
   /// フレンドリストを取得します（リアルタイム）
+  ///
+  /// ユーザードキュメントの変更を監視し、friends配列が実際に変化した時のみ
+  /// フレンドドキュメントを再取得します。ストリーク更新など無関係な変更では
+  /// 不要なクエリを発行しません。
   Stream<List<AppUser>> getFriends() {
     final myUid = _auth.currentUser!.uid;
+    List<String>? prevFriendUids;
+    List<AppUser>? cachedFriends;
+
     return _db
         .collection('users')
         .doc(myUid)
         .snapshots()
         .asyncMap((mySnap) async {
       final friendUids = List<String>.from(mySnap.data()?['friends'] ?? []);
-      if (friendUids.isEmpty) return <AppUser>[];
+
+      // friends配列が前回と同じならキャッシュを返す
+      if (cachedFriends != null &&
+          prevFriendUids != null &&
+          listEquals(friendUids, prevFriendUids)) {
+        return cachedFriends!;
+      }
+
+      prevFriendUids = List.unmodifiable(friendUids);
+
+      if (friendUids.isEmpty) {
+        cachedFriends = <AppUser>[];
+        return cachedFriends!;
+      }
 
       // Firestore の in クエリは最大30件
       final limitedUids = friendUids.take(30).toList();
@@ -149,9 +172,10 @@ class FriendService {
           .where(FieldPath.documentId, whereIn: limitedUids)
           .get();
 
-      return friendsSnap.docs
+      cachedFriends = friendsSnap.docs
           .map((doc) => AppUser.fromFirestore(doc))
           .toList();
+      return cachedFriends!;
     });
   }
 

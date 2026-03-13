@@ -559,11 +559,11 @@ class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
           ),
         );
       },
-      child: const Icon(
+      child: Icon(
         Icons.whatshot,
         color: AppColors.primary,
         size: 40,
-        shadows: [Shadow(color: Colors.redAccent, blurRadius: 12)],
+        shadows: [Shadow(color: AppColors.white.withValues(alpha: 0.5), blurRadius: 12)],
       ),
     );
   }

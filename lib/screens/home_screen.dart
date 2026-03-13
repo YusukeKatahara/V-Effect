@@ -1,8 +1,17 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:sensors_plus/sensors_plus.dart';
+
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/notification_service.dart';
 import '../services/post_service.dart';
+import '../widgets/fluid_blob.dart';
+import 'camera_screen.dart';
 import 'friend_feed_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -12,622 +21,797 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final PostService _postService           = PostService();
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  final PostService _postService = PostService();
   final NotificationService _notificationService = NotificationService();
 
   int _streak = 0;
-  bool _postedToday         = false;
-  bool _loading             = true;
-  String _username          = '';
-  List<String> _tasks       = [];
+  bool _postedToday = false;
+  bool _loading = true;
+  String _username = '';
+  List<String> _tasks = [];
   List<Map<String, dynamic>> _friendStatuses = [];
   late final Stream<int> _notificationStream;
+
+  // ── Gyro Parallax ──
+  double _gyroX = 0;
+  double _gyroY = 0;
+  StreamSubscription? _gyroSub;
+
+  // ── Zen Mode ──
+  late final AnimationController _zenController;
+  late final Animation<double> _zenGlow;
+
+  // ── Sublimation ──
+  late final AnimationController _sublimationController;
+  late final Animation<double> _sublimation;
+  int? _heroIndex; // 選ばれたHero Taskのインデックス
+  bool _isSublimating = false;
 
   @override
   void initState() {
     super.initState();
     _notificationStream = _notificationService.getNotificationCount();
     _loadData();
-    _notificationService.checkAndCreateTimeReminders();
+
+    _zenController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    );
+    _zenGlow = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _zenController, curve: Curves.easeInOut),
+    );
+
+    _sublimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _sublimation = CurvedAnimation(
+      parent: _sublimationController,
+      curve: Curves.easeInOutCubic,
+    );
+
+    _initGyro();
+  }
+
+  void _initGyro() {
+    try {
+      _gyroSub = accelerometerEventStream(
+        samplingPeriod: const Duration(milliseconds: 60),
+      ).listen((event) {
+        if (!mounted) return;
+        final newX = _gyroX * 0.85 + event.x * 0.15;
+        final newY = _gyroY * 0.85 + event.y * 0.15;
+        if ((newX - _gyroX).abs() < 0.05 && (newY - _gyroY).abs() < 0.05) {
+          return;
+        }
+        setState(() {
+          _gyroX = newX;
+          _gyroY = newY;
+        });
+      });
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _gyroSub?.cancel();
+    _zenController.dispose();
+    _sublimationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
     try {
-      final results = await Future.wait([
-        _postService.getStreak(),
-        _postService.hasPostedToday(),
-        _postService.getMyUsername(),
-        _postService.getMyTasks(),
-        _postService.getFriendsList(),
-      ]);
+      final homeData = await _postService.getHomeData();
+      final friendUids = homeData['friends'] as List<String>;
+      final friendStatuses = friendUids.isNotEmpty
+          ? await _postService.getFriendsListFromUids(friendUids)
+          : <Map<String, dynamic>>[];
+
       if (!mounted) return;
       setState(() {
-        _streak         = results[0] as int;
-        _postedToday    = results[1] as bool;
-        _username       = results[2] as String;
-        _tasks          = results[3] as List<String>;
-        _friendStatuses = results[4] as List<Map<String, dynamic>>;
-        _loading        = false;
+        _streak = homeData['streak'] as int;
+        _postedToday = homeData['postedToday'] as bool;
+        _username = homeData['username'] as String;
+        _tasks = homeData['tasks'] as List<String>;
+        _friendStatuses = friendStatuses;
+        _loading = false;
       });
+      if (_postedToday && _tasks.isNotEmpty) {
+        _zenController.repeat(reverse: true);
+      }
+
+      _notificationService
+          .checkAndCreateTimeReminders(streak: _streak)
+          .catchError((_) {});
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  /// 投稿済みフレンドだけのリスト
   List<Map<String, dynamic>> get _postedFriends =>
       _friendStatuses.where((f) => f['hasPostedToday'] == true).toList();
 
   void _openFriendFeed(Map<String, dynamic> friend) {
     final postedFriends = _postedFriends;
-    final indexInPosted = postedFriends.indexWhere((f) => f['uid'] == friend['uid']);
+    final idx = postedFriends.indexWhere((f) => f['uid'] == friend['uid']);
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => FriendFeedScreen(
-          friendUid:         friend['uid'] as String,
-          friendUsername:    friend['username'] as String,
-          allFriends:        postedFriends,
-          initialFriendIndex: indexInPosted >= 0 ? indexInPosted : 0,
+          friendUid: friend['uid'] as String,
+          friendUsername: friend['username'] as String,
+          allFriends: postedFriends,
+          initialFriendIndex: idx >= 0 ? idx : 0,
         ),
       ),
     );
+  }
+
+  /// Hero Task をタップ → カメラ起動 → 投稿成功で昇華アニメーション
+  Future<void> _selectHeroTask(int index) async {
+    HapticFeedback.lightImpact();
+
+    final posted = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CameraScreen(heroTaskName: _tasks[index]),
+      ),
+    );
+
+    if (posted == true && mounted) {
+      // 投稿成功 → 昇華アニメーション開始
+      setState(() {
+        _heroIndex = index;
+        _isSublimating = true;
+        _postedToday = true;
+      });
+
+      HapticFeedback.heavyImpact();
+      await _sublimationController.forward();
+
+      if (mounted) {
+        // 昇華完了 → Zen Mode へ遷移
+        _loadData(); // streak等を再取得
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgBase,
+      backgroundColor: AppColors.black,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              color: AppColors.primary,
-              backgroundColor: AppColors.bgSurface,
-              child: CustomScrollView(
-                slivers: [
-                  // ── カスタム SliverAppBar ──────────────────
-                  _buildSliverAppBar(),
-
-                  // ── Stories Row ────────────────────────────
-                  SliverToBoxAdapter(child: _buildStoriesRow()),
-
-                  // ── Streak Card ────────────────────────────
-                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    sliver: SliverToBoxAdapter(child: _buildStreakCard()),
-                  ),
-
-                  // ── Tasks Section ──────────────────────────
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    sliver: SliverToBoxAdapter(child: _buildTaskSection()),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                ],
-              ),
-            ),
-    );
-  }
-
-  // ════════════════════════════════════════════
-  // SliverAppBar
-  // ════════════════════════════════════════════
-  Widget _buildSliverAppBar() {
-    return SliverAppBar(
-      backgroundColor: AppColors.bgBase,
-      surfaceTintColor: Colors.transparent,
-      pinned: true,
-      expandedHeight: 0,
-      title: Row(
-        children: [
-          // ロゴ
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: AppColors.primaryGradient,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.4),
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-            child: const Icon(Icons.bolt_rounded, size: 18, color: Color(0xFF1A1000)),
-          ),
-          const SizedBox(width: 10),
-          ShaderMask(
-            shaderCallback: (bounds) =>
-                AppColors.primaryGradient.createShader(bounds),
-            child: const Text(
-              'V-Effect',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        StreamBuilder<int>(
-          stream: _notificationStream,
-          builder: (context, snapshot) {
-            final count = snapshot.data ?? 0;
-            return IconButton(
-              icon: Badge(
-                isLabelVisible: count > 0,
-                label: Text('$count'),
-                child: const Icon(Icons.notifications_outlined,
-                    color: AppColors.textPrimary),
-              ),
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.notifications),
-            );
-          },
-        ),
-        const SizedBox(width: 4),
-      ],
-    );
-  }
-
-  // ════════════════════════════════════════════
-  // Stories Row
-  // ════════════════════════════════════════════
-  Widget _buildStoriesRow() {
-    if (_friendStatuses.isEmpty) {
-      return Container(
-        height: 110,
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.group_add_outlined, color: AppColors.textMuted, size: 28),
-            const SizedBox(height: 6),
-            Text('フレンドを追加しましょう',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-          ],
-        ),
-      );
-    }
-
-    // 投稿済みフレンドだけ表示
-    final postedFriends = _postedFriends;
-
-    // 自分が未投稿 → ロックバナーのみ表示
-    if (!_postedToday) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(top: 8, left: 16, right: 16, bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
-              color: AppColors.bgElevated,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.white))
+          : Stack(
               children: [
-                Text('🔒', style: TextStyle(fontSize: 13)),
-                SizedBox(width: 8),
-                Text(
-                  '投稿するとフレンドの写真が見られます',
-                  style: TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-        ],
-      );
-    }
-
-    // 投稿済みフレンドがいない場合
-    if (postedFriends.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 110,
-            alignment: Alignment.center,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.photo_library_outlined, color: AppColors.textMuted, size: 28),
-                const SizedBox(height: 6),
-                Text('今日はまだ誰も投稿していません',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-        ],
-      );
-    }
-
-    // 投稿済みフレンドのアバターリスト
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 110,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            itemCount: postedFriends.length,
-            itemBuilder: (context, index) {
-              final friend   = postedFriends[index];
-              final username = friend['username'] as String;
-
-              return GestureDetector(
-                onTap: () => _openFriendFeed(friend),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                _buildDeepBackground(),
+                SafeArea(
                   child: Column(
                     children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: AppColors.primaryGradient,
-                          border: Border.all(color: AppColors.primary, width: 2.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: const CircleAvatar(
-                          radius: 27,
-                          backgroundColor: Colors.transparent,
-                          child: Icon(
-                            Icons.person_rounded,
-                            size: 30,
-                            color: Color(0xFF1A1000),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      SizedBox(
-                        width: 68,
-                        child: Text(
-                          username,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
+                      _buildTitleBar(),
+                      _buildBlobRow(),
+                      Expanded(
+                        child: _postedToday && !_isSublimating
+                            ? _buildZenMode()
+                            : _buildCardStack(),
                       ),
                     ],
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // Deep Background
+  // ════════════════════════════════════════════
+  Widget _buildDeepBackground() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: RepaintBoundary(
+          child: Stack(
+            children: [
+              Positioned(
+                top: -200 + _gyroY * 8,
+                left: -100 + _gyroX * 6,
+                child: Container(
+                  width: 500,
+                  height: 500,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(colors: [
+                      AppColors.white.withValues(alpha: 0.03),
+                      Colors.transparent,
+                    ]),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -150 + _gyroY * -5,
+                right: -80 + _gyroX * -4,
+                child: Container(
+                  width: 400,
+                  height: 400,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(colors: [
+                      AppColors.white.withValues(alpha: 0.02),
+                      Colors.transparent,
+                    ]),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // Title Bar
+  // ════════════════════════════════════════════
+  Widget _buildTitleBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        children: [
+          const Spacer(),
+          Text(
+            'V EFFECT',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.white,
+              letterSpacing: 6.0,
+            ),
+          ),
+          const Spacer(),
+          StreamBuilder<int>(
+            stream: _notificationStream,
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              return GestureDetector(
+                onTap: () =>
+                    Navigator.pushNamed(context, AppRoutes.notifications),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.grey10,
+                    border: Border.all(
+                        color: AppColors.grey20.withValues(alpha: 0.5)),
+                  ),
+                  child: Badge(
+                    isLabelVisible: count > 0,
+                    label:
+                        Text('$count', style: const TextStyle(fontSize: 9)),
+                    child: const Icon(Icons.notifications_none_rounded,
+                        color: AppColors.grey50, size: 18),
                   ),
                 ),
               );
             },
           ),
-        ),
-        const Divider(height: 1),
-      ],
-    );
-  }
-
-  // ════════════════════════════════════════════
-  // Streak Card
-  // ════════════════════════════════════════════
-  Widget _buildStreakCard() {
-    final hasStreak = _streak > 0;
-    return Container(
-      decoration: BoxDecoration(
-        gradient: hasStreak
-            ? AppColors.streakActiveGradient
-            : AppColors.streakInactiveGradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: hasStreak
-            ? [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.3),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-      ),
-      padding: const EdgeInsets.all(22),
-      child: Row(
-        children: [
-          // 炎アイコン
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.15),
-            ),
-            child: Icon(
-              Icons.local_fire_department_rounded,
-              size: 36,
-              color: hasStreak ? Colors.white : AppColors.textMuted,
-            ),
-          ),
-          const SizedBox(width: 16),
-
-          // テキスト部
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _username.isNotEmpty ? _username : 'あなた',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: hasStreak
-                        ? Colors.white.withValues(alpha: 0.8)
-                        : AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '$_streak',
-                        style: TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.w900,
-                          color: hasStreak ? Colors.white : AppColors.textMuted,
-                          height: 1,
-                        ),
-                      ),
-                      TextSpan(
-                        text: '  日連続',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: hasStreak
-                              ? Colors.white.withValues(alpha: 0.85)
-                              : AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ステータスバッジ
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: _postedToday
-                  ? Colors.white.withValues(alpha: 0.2)
-                  : Colors.black.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _postedToday
-                      ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked_rounded,
-                  size: 15,
-                  color: _postedToday ? Colors.white : AppColors.textMuted,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  _postedToday ? '完了' : '未投稿',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: _postedToday ? Colors.white : AppColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
   // ════════════════════════════════════════════
-  // Task Section
+  // Friend Blob Row
   // ════════════════════════════════════════════
-  Widget _buildTaskSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Text(
-              '今日のタスク',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+  Widget _buildBlobRow() {
+    if (_friendStatuses.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text('フレンドを追加しましょう',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.grey30, fontSize: 12)),
+      );
+    }
+
+    if (!_postedToday) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.grey10.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.grey20.withValues(alpha: 0.3)),
+        ),
+        child: Text('投稿するとフレンドの写真が見られます',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: AppColors.grey50)),
+      );
+    }
+
+    final postedFriends = _postedFriends;
+    if (postedFriends.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text('今日はまだ誰も投稿していません',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.grey30, fontSize: 12)),
+      );
+    }
+
+    return SizedBox(
+      height: 100,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        itemCount: postedFriends.length,
+        itemBuilder: (context, index) {
+          final friend = postedFriends[index];
+          final username = friend['username'] as String;
+          final depthFactor = 1.0 + index * 0.3;
+          final dx = _gyroX * depthFactor * 0.5;
+          final dy = _gyroY * depthFactor * 0.3;
+
+          return GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              _openFriendFeed(friend);
+            },
+            child: Transform.translate(
+              offset: Offset(dx, dy),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FluidBlobAvatar(
+                      size: 56,
+                      isAnimating: true,
+                      glowColor: AppColors.white,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.grey85, AppColors.grey50],
+                      ),
+                      borderWidth: 1.5,
+                      child: const Icon(Icons.person_rounded,
+                          size: 24, color: AppColors.grey10),
+                    ),
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      width: 60,
+                      child: Text(username,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.grey50)),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const Spacer(),
-            if (_tasks.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _postedToday
-                      ? AppColors.success.withValues(alpha: 0.15)
-                      : AppColors.bgElevated,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: _postedToday ? AppColors.success : AppColors.border,
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  _postedToday ? '完了 ✓' : '${_tasks.length}件',
-                  style: TextStyle(
-                    fontSize: 12,
+          );
+        },
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // Card Stack — Z軸に奥へ重なるカードスタック
+  // ════════════════════════════════════════════
+  Widget _buildCardStack() {
+    if (_tasks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.layers_outlined, size: 48, color: AppColors.grey20),
+            const SizedBox(height: 16),
+            Text('タスクが設定されていません',
+                style: TextStyle(
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: _postedToday ? AppColors.success : AppColors.textSecondary,
-                  ),
-                ),
-              ),
+                    color: AppColors.grey50)),
+            const SizedBox(height: 4),
+            Text('プロフィールからタスクを設定',
+                style: TextStyle(fontSize: 12, color: AppColors.grey30)),
           ],
         ),
-        const SizedBox(height: 14),
+      );
+    }
 
-        if (_tasks.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // カードの最大高さを計算（9:16比率で利用可能幅の65%をカード幅に）
+        final cardWidth = constraints.maxWidth * 0.72;
+        final cardHeight = cardWidth * (16 / 9);
+        // 高さが利用可能領域を超えないようクランプ
+        final maxCardHeight = (constraints.maxHeight - 60).clamp(0.0, cardHeight);
+        final finalCardWidth = maxCardHeight * (9 / 16);
+
+        return Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            // 後ろのカードから描画（index 0 が一番後ろ）
+            for (int i = 0; i < _tasks.length; i++)
+              _buildStackedCard(
+                index: i,
+                total: _tasks.length,
+                cardWidth: finalCardWidth,
+                cardHeight: maxCardHeight,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStackedCard({
+    required int index,
+    required int total,
+    required double cardWidth,
+    required double cardHeight,
+  }) {
+    // 一番手前のカード = index (total - 1)
+    // Z深度: 0 = 最前面, (total-1) = 最奥
+    final depth = total - 1 - index;
+
+    // 各カードの奥行き表現
+    final scale = 1.0 - depth * 0.06;
+    final yOffset = depth * 14.0; // 後ろほど下にずれる
+    final dimAlpha = depth * 0.12; // 後ろほど暗くなる
+    final blurSigma = depth * 1.5; // 後ろほどぼける
+
+    // ジャイロパララックス（奥のカードほど動きが小さい = 視差効果）
+    final parallaxFactor = 1.0 - depth * 0.25;
+    final px = _gyroX * 3.0 * parallaxFactor;
+    final py = _gyroY * 2.0 * parallaxFactor;
+
+    return AnimatedBuilder(
+      animation: _sublimation,
+      builder: (context, child) {
+        // 昇華中の値を再計算
+        double currentSublimateY = 0;
+        double currentOpacity = 1.0;
+        double currentScale = scale;
+
+        if (_isSublimating && _heroIndex != null) {
+          final t = _sublimation.value;
+          if (index == _heroIndex) {
+            currentScale = scale + t * 0.05;
+            currentOpacity = 1.0 - t * 0.3;
+          } else {
+            currentSublimateY = -t * 300 - depth * 40 * t;
+            currentOpacity = (1.0 - t * 1.2).clamp(0.0, 1.0);
+            currentScale = scale * (1.0 + t * 0.15);
+          }
+        }
+
+        if (currentOpacity <= 0) return const SizedBox.shrink();
+
+        return Transform.translate(
+          offset: Offset(px, yOffset + py + currentSublimateY),
+          child: Transform.scale(
+            scale: currentScale,
+            child: Opacity(
+              opacity: currentOpacity,
+              child: child,
             ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline_rounded,
-                    color: AppColors.textMuted, size: 22),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('タスクが設定されていません',
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary)),
-                      const SizedBox(height: 2),
-                      Text('プロフィールからタスクを設定しましょう',
-                          style: TextStyle(
-                              fontSize: 12, color: AppColors.textSecondary)),
-                    ],
+          ),
+        );
+      },
+      child: GestureDetector(
+        onTap: (!_postedToday && !_isSublimating)
+            ? () => _selectHeroTask(index)
+            : null,
+        child: SizedBox(
+          width: cardWidth,
+          height: cardHeight,
+          child: _TaskCard(
+            title: _tasks[index],
+            index: index + 1,
+            total: total,
+            depth: depth,
+            dimAlpha: dimAlpha,
+            blurSigma: blurSigma,
+            showCamera: !_postedToday && !_isSublimating,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // Zen Mode — 投稿完了後の静寂
+  // ════════════════════════════════════════════
+  Widget _buildZenMode() {
+    return AnimatedBuilder(
+      animation: _zenGlow,
+      builder: (context, _) {
+        final glow = _zenGlow.value;
+        final glowSize = 180 + glow * 60;
+        final glowAlpha = 0.06 + glow * 0.08;
+
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: glowSize,
+                height: glowSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.white.withValues(alpha: glowAlpha),
+                      blurRadius: 100 + glow * 40,
+                      spreadRadius: 20 + glow * 20,
+                    ),
+                  ],
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        AppColors.white
+                            .withValues(alpha: 0.12 + glow * 0.06),
+                        AppColors.white.withValues(alpha: 0.03),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
                   ),
                 ),
-              ],
-            ),
-          )
-        else
-          ...List.generate(_tasks.length, (index) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _TaskTile(
-                title: _tasks[index],
-                isDone: _postedToday,
-                index: index + 1,
               ),
-            );
-          }),
-      ],
+              const SizedBox(height: 32),
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [AppColors.white, AppColors.grey70],
+                ).createShader(bounds),
+                child: Text(
+                  '$_streak',
+                  style: GoogleFonts.outfit(
+                    fontSize: 96,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.white,
+                    height: 1,
+                    letterSpacing: -4,
+                  ),
+                ),
+              ),
+              Text('Days Streak',
+                  style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.grey50,
+                      letterSpacing: 4)),
+              const SizedBox(height: 8),
+              Text(_username.isNotEmpty ? _username : '',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.grey30,
+                      letterSpacing: 1)),
+              const SizedBox(height: 40),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppColors.grey20, width: 1),
+                ),
+                child: Text('ALL CLEAR',
+                    style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.grey50,
+                        letterSpacing: 3)),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
 // ────────────────────────────────────────────
-// 個別タスクタイル
+// Task Card — 9:16 ガラスモーフィズムカード
 // ────────────────────────────────────────────
-class _TaskTile extends StatelessWidget {
-  const _TaskTile({
+class _TaskCard extends StatelessWidget {
+  const _TaskCard({
     required this.title,
-    required this.isDone,
     required this.index,
+    required this.total,
+    required this.depth,
+    required this.dimAlpha,
+    required this.blurSigma,
+    required this.showCamera,
   });
 
   final String title;
-  final bool isDone;
   final int index;
+  final int total;
+  final int depth;
+  final double dimAlpha;
+  final double blurSigma;
+  final bool showCamera;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    final isTop = depth == 0;
+
+    return Container(
       decoration: BoxDecoration(
-        color: isDone
-            ? AppColors.success.withValues(alpha: 0.06)
-            : AppColors.bgSurface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.grey15.withValues(alpha: isTop ? 0.95 : 0.6),
+            AppColors.grey10.withValues(alpha: isTop ? 0.85 : 0.4),
+          ],
+        ),
         border: Border.all(
-          color: isDone ? AppColors.success.withValues(alpha: 0.3) : AppColors.border,
+          color: AppColors.white.withValues(alpha: isTop ? 0.1 : 0.04),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.6),
+            blurRadius: 32,
+            offset: const Offset(0, 12),
+            spreadRadius: -8,
+          ),
+          if (isTop)
+            BoxShadow(
+              color: AppColors.white.withValues(alpha: 0.04),
+              blurRadius: 40,
+            ),
+        ],
       ),
-      child: Row(
-        children: [
-          // チェックアイコン
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            child: Icon(
-              isDone
-                  ? Icons.check_circle_rounded
-                  : Icons.circle_outlined,
-              key: ValueKey(isDone),
-              color: isDone ? AppColors.success : AppColors.textMuted,
-              size: 24,
-            ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: isTop ? 0 : blurSigma,
+            sigmaY: isTop ? 0 : blurSigma,
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: isDone ? AppColors.textSecondary : AppColors.textPrimary,
-                decoration:
-                    isDone ? TextDecoration.lineThrough : TextDecoration.none,
-                decorationColor: AppColors.textMuted,
-              ),
-            ),
-          ),
-          // インデックスバッジ
-          Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isDone
-                  ? AppColors.success.withValues(alpha: 0.15)
-                  : AppColors.bgElevated,
-            ),
-            child: Center(
-              child: Text(
-                '$index',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: isDone ? AppColors.success : AppColors.textMuted,
+          child: Stack(
+            children: [
+              // 暗幕レイヤー（奥のカードほど暗い）
+              if (dimAlpha > 0)
+                Positioned.fill(
+                  child: ColoredBox(
+                    color: AppColors.black.withValues(alpha: dimAlpha),
+                  ),
+                ),
+
+              // カードコンテンツ
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Header ──
+                    Row(
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.white.withValues(alpha: 0.08),
+                            border: Border.all(
+                                color: AppColors.white
+                                    .withValues(alpha: 0.1)),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$index',
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.grey70,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'TASK $index / $total',
+                          style: GoogleFonts.outfit(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.grey30,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const Spacer(),
+
+                    // ── Camera icon (pre-post, top card only) ──
+                    if (showCamera && isTop) ...[
+                      Center(
+                        child: Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.white.withValues(alpha: 0.06),
+                            border: Border.all(
+                              color: AppColors.white.withValues(alpha: 0.12),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    AppColors.white.withValues(alpha: 0.04),
+                                blurRadius: 24,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_rounded,
+                            color: AppColors.grey50,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Center(
+                        child: Text(
+                          'タップして Hero Task に選ぶ',
+                          style: GoogleFonts.outfit(
+                            fontSize: 11,
+                            color: AppColors.grey30,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ] else if (showCamera && !isTop) ...[
+                      // 奥のカードにもカメラアイコン（小さめ）
+                      Center(
+                        child: Icon(
+                          Icons.camera_alt_outlined,
+                          color: AppColors.grey30.withValues(alpha: 0.6),
+                          size: 24,
+                        ),
+                      ),
+                    ],
+
+                    const Spacer(),
+
+                    // ── Task title ──
+                    Text(
+                      title,
+                      style: GoogleFonts.notoSansJp(
+                        fontSize: isTop ? 18 : 15,
+                        fontWeight: FontWeight.w600,
+                        color: isTop ? AppColors.white : AppColors.grey50,
+                        height: 1.3,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: 8),
+                  ],
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -320,7 +320,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('保存に失敗しました: $e'),
+            content: Text('保存に失敗しました。もう一度お試しください。'),
             duration: const Duration(seconds: 10),
           ),
         );
@@ -484,7 +484,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                           style: const TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF1A1000),
+                                            color: AppColors.black,
                                           ),
                                         ),
                                       ),

@@ -75,7 +75,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e')),
+          const SnackBar(content: Text('リクエストの送信に失敗しました')),
         );
       }
     }
@@ -94,7 +94,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('承認に失敗しました: $e')),
+          const SnackBar(content: Text('承認に失敗しました。もう一度お試しください。')),
         );
       }
     }
@@ -106,7 +106,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('拒否に失敗しました: $e')),
+          const SnackBar(content: Text('拒否に失敗しました。もう一度お試しください。')),
         );
       }
     }
@@ -145,7 +145,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('解除に失敗しました: $e')),
+          const SnackBar(content: Text('解除に失敗しました。もう一度お試しください。')),
         );
       }
     }
@@ -195,7 +195,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
-                      foregroundColor: const Color(0xFF1A1000),
+                      foregroundColor: AppColors.black,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14)),
                     ),
@@ -336,7 +336,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             child: IconButton(
                               padding: EdgeInsets.zero,
                               icon: const Icon(Icons.check,
-                                  color: Color(0xFF1A1000), size: 20),
+                                  color: AppColors.black, size: 20),
                               onPressed: () => _acceptRequest(req),
                             ),
                           ),

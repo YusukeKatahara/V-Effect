@@ -149,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.primary.withValues(alpha: 0.15),
+                    Colors.white.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -167,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.primary.withValues(alpha: 0.08),
+                    Colors.white.withValues(alpha: 0.05),
                     Colors.transparent,
                   ],
                 ),
@@ -194,25 +194,27 @@ class _LoginScreenState extends State<LoginScreen>
             gradient: AppColors.primaryGradient,
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.4),
+                color: Colors.white.withValues(alpha: 0.3),
                 blurRadius: 32,
                 spreadRadius: 4,
               ),
             ],
           ),
-          child: const Icon(Icons.bolt_rounded, size: 52, color: Color(0xFF1A1000)),
+          child: const Icon(Icons.bolt_rounded, size: 52, color: AppColors.black),
         ),
         const SizedBox(height: 20),
         ShaderMask(
           shaderCallback: (bounds) =>
-              AppColors.primaryGradient.createShader(bounds),
+              const LinearGradient(
+                colors: [Color(0xFFFFFFFF), Color(0xFFCCCCCC)],
+              ).createShader(bounds),
           child: const Text(
-            'V-Effect',
+            'V EFFECT',
             style: TextStyle(
               fontSize: 38,
               fontWeight: FontWeight.w800,
               color: Colors.white,
-              letterSpacing: 1.0,
+              letterSpacing: 3.0,
             ),
           ),
         ),
@@ -288,7 +290,7 @@ class _LoginScreenState extends State<LoginScreen>
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.35),
+                        color: Colors.white.withValues(alpha: 0.2),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -299,7 +301,7 @@ class _LoginScreenState extends State<LoginScreen>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
-                      foregroundColor: const Color(0xFF1A1000),
+                      foregroundColor: AppColors.black,
                       minimumSize: const Size(double.infinity, 54),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),

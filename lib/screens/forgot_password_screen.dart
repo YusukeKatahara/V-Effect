@@ -199,7 +199,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
             ],
           ),
           child: const Icon(Icons.mark_email_read,
-              size: 40, color: Color(0xFF1A1000)),
+              size: 40, color: AppColors.black),
         ),
         const SizedBox(height: 24),
         const Text(

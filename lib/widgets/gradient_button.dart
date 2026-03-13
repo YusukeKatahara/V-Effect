@@ -49,7 +49,7 @@ class GradientButton extends StatelessWidget {
           boxShadow: onPressed != null
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.35),
+                    color: Colors.white.withValues(alpha: 0.2),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -61,7 +61,7 @@ class GradientButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
-            foregroundColor: const Color(0xFF1A1000),
+            foregroundColor: AppColors.black,
             minimumSize: Size(double.infinity, height),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),

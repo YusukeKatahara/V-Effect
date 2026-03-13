@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../config/app_colors.dart';
 
 /// Stack-based radial gradient glow overlay for premium dark theme screens.
 class PremiumBackground extends StatelessWidget {
@@ -14,7 +13,8 @@ class PremiumBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
+    return IgnorePointer(
+      child: RepaintBoundary(
       child: Stack(
         children: [
           Positioned(
@@ -27,7 +27,7 @@ class PremiumBackground extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.primary.withValues(alpha: topGlowAlpha),
+                    Colors.white.withValues(alpha: topGlowAlpha),
                     Colors.transparent,
                   ],
                 ),
@@ -44,7 +44,7 @@ class PremiumBackground extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.primary.withValues(alpha: bottomGlowAlpha),
+                    Colors.white.withValues(alpha: bottomGlowAlpha),
                     Colors.transparent,
                   ],
                 ),
@@ -52,6 +52,7 @@ class PremiumBackground extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

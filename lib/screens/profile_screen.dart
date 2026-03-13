@@ -175,7 +175,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               gradient: _user!.photoUrl == null ? AppColors.primaryGradient : null,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.25),
+                  color: Colors.white.withValues(alpha: 0.15),
                   blurRadius: 20,
                   spreadRadius: 2,
                 ),
@@ -189,7 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 : const CircleAvatar(
                     radius: 40,
                     backgroundColor: Colors.transparent,
-                    child: Icon(Icons.person_rounded, size: 40, color: Color(0xFF1A1000)),
+                    child: Icon(Icons.person_rounded, size: 40, color: AppColors.black),
                   ),
           ),
           const SizedBox(width: 20),
@@ -257,19 +257,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
         gradient: (_user!.streak) > 0
-            ? AppColors.streakActiveGradient
+            ? AppColors.cardGradient
             : const LinearGradient(
                 colors: [AppColors.bgSurface, AppColors.bgElevated]),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _user!.streak > 0
-              ? AppColors.primary.withValues(alpha: 0.3)
+              ? Colors.white.withValues(alpha: 0.15)
               : AppColors.border,
         ),
         boxShadow: _user!.streak > 0
             ? [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.2),
+                  color: Colors.white.withValues(alpha: 0.1),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -397,7 +397,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1A1000),
+                                  color: AppColors.black,
                                 ),
                               ),
                             ),

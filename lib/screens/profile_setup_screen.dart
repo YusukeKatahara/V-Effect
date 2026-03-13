@@ -107,7 +107,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存に失敗しました: $e')),
+          const SnackBar(content: Text('保存に失敗しました。もう一度お試しください。')),
         );
       }
     } finally {
@@ -233,7 +233,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                 Expanded(
                                   flex: 3,
                                   child: DropdownButtonFormField<int>(
-                                    value: _birthYear,
+                                    initialValue: _birthYear,
                                     dropdownColor: AppColors.bgElevated,
                                     style: const TextStyle(
                                         color: AppColors.textPrimary),
@@ -256,8 +256,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                           _birthDay != null) {
                                         final maxDay = _daysInMonth(
                                             _birthYear!, _birthMonth!);
-                                        if (_birthDay! > maxDay)
+                                        if (_birthDay! > maxDay) {
                                           _birthDay = maxDay;
+                                        }
                                       }
                                     }),
                                   ),
@@ -267,7 +268,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                 Expanded(
                                   flex: 2,
                                   child: DropdownButtonFormField<int>(
-                                    value: _birthMonth,
+                                    initialValue: _birthMonth,
                                     dropdownColor: AppColors.bgElevated,
                                     style: const TextStyle(
                                         color: AppColors.textPrimary),
@@ -287,8 +288,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                           _birthDay != null) {
                                         final maxDay = _daysInMonth(
                                             _birthYear!, _birthMonth!);
-                                        if (_birthDay! > maxDay)
+                                        if (_birthDay! > maxDay) {
                                           _birthDay = maxDay;
+                                        }
                                       }
                                     }),
                                   ),
@@ -298,7 +300,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                 Expanded(
                                   flex: 2,
                                   child: DropdownButtonFormField<int>(
-                                    value: _birthDay,
+                                    initialValue: _birthDay,
                                     dropdownColor: AppColors.bgElevated,
                                     style: const TextStyle(
                                         color: AppColors.textPrimary),
@@ -329,24 +331,26 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             // 性別
                             const SectionTitle(title: '性別'),
                             const SizedBox(height: 8),
-                            Column(
-                              children: _genderOptions.map((option) {
-                                return RadioListTile<String>(
-                                  title: Text(option,
-                                      style: const TextStyle(
-                                          color: AppColors.textPrimary)),
-                                  value: option,
-                                  groupValue: _gender,
-                                  activeColor: AppColors.primary,
-                                  tileColor: AppColors.bgSurface,
-                                  onChanged: (v) =>
-                                      setState(() => _gender = v),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  contentPadding: EdgeInsets.zero,
-                                );
-                              }).toList(),
+                            RadioGroup<String>(
+                              groupValue: _gender ?? '',
+                              onChanged: (v) =>
+                                  setState(() => _gender = v),
+                              child: Column(
+                                children: _genderOptions.map((option) {
+                                  return RadioListTile<String>(
+                                    title: Text(option,
+                                        style: const TextStyle(
+                                            color: AppColors.textPrimary)),
+                                    value: option,
+                                    activeColor: AppColors.primary,
+                                    tileColor: AppColors.bgSurface,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    contentPadding: EdgeInsets.zero,
+                                  );
+                                }).toList(),
+                              ),
                             ),
                             const SizedBox(height: 32),
 

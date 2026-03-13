@@ -57,7 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       if (e.code == 'weak-password') msg = 'パスワードは6文字以上にしてください。';
       _showError(msg);
     } catch (e) {
-      _showError('登録に失敗しました: $e');
+      _showError('登録に失敗しました。しばらくしてからお試しください。');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -166,7 +166,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.primary.withValues(alpha: 0.12),
+                    Colors.white.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -183,7 +183,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.primary.withValues(alpha: 0.07),
+                    Colors.white.withValues(alpha: 0.04),
                     Colors.transparent,
                   ],
                 ),
@@ -206,13 +206,13 @@ class _RegisterScreenState extends State<RegisterScreen>
             gradient: AppColors.primaryGradient,
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.35),
+                color: Colors.white.withValues(alpha: 0.2),
                 blurRadius: 24,
                 spreadRadius: 2,
               ),
             ],
           ),
-          child: const Icon(Icons.bolt_rounded, size: 40, color: Color(0xFF1A1000)),
+          child: const Icon(Icons.bolt_rounded, size: 40, color: AppColors.black),
         ),
         const SizedBox(height: 14),
         const Text(
@@ -308,7 +308,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.35),
+                        color: Colors.white.withValues(alpha: 0.2),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -319,7 +319,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
-                      foregroundColor: const Color(0xFF1A1000),
+                      foregroundColor: AppColors.black,
                       minimumSize: const Size(double.infinity, 54),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),

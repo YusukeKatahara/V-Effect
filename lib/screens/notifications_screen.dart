@@ -41,17 +41,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Color _colorForType(NotificationType type) {
     switch (type) {
       case NotificationType.friendRequestReceived:
-        return const Color(0xFF5B9BD5);
+        return AppColors.grey70;
       case NotificationType.friendRequestAccepted:
-        return AppColors.success;
+        return AppColors.white;
       case NotificationType.wakeUpReminder:
-        return AppColors.primaryDark;
+        return AppColors.grey85;
       case NotificationType.taskReminder:
-        return AppColors.primary;
+        return AppColors.white;
       case NotificationType.reactionReceived:
-        return AppColors.error;
+        return AppColors.grey95;
       case NotificationType.friendTaskCompleted:
-        return AppColors.primaryLight;
+        return AppColors.grey85;
     }
   }
 
@@ -61,7 +61,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('削除に失敗しました: $e')),
+          const SnackBar(content: Text('削除に失敗しました。もう一度お試しください。')),
         );
       }
     }
@@ -98,7 +98,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('削除に失敗しました: $e')),
+          const SnackBar(content: Text('削除に失敗しました。もう一度お試しください。')),
         );
       }
     }
@@ -142,7 +142,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       color: AppColors.bgSurface,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.15),
+                          color: Colors.white.withValues(alpha: 0.08),
                           blurRadius: 24,
                           spreadRadius: 2,
                         ),

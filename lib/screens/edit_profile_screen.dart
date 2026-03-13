@@ -242,7 +242,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: const Color(0xFF1A1000),
+                foregroundColor: AppColors.black,
               ),
               child: const Text('変更する'),
             ),
@@ -297,7 +297,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存に失敗しました: $e')),
+          const SnackBar(content: Text('保存に失敗しました。もう一度お試しください。')),
         );
       }
     } finally {
@@ -371,10 +371,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               child: Container(
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.6), width: 3),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 3),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.2),
+                                      color: Colors.white.withValues(alpha: 0.12),
                                       blurRadius: 16,
                                       spreadRadius: 2,
                                     ),
@@ -402,7 +402,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                             color: AppColors.primary,
                                             shape: BoxShape.circle,
                                           ),
-                                          child: const Icon(Icons.camera_alt, color: Color(0xFF1A1000), size: 20),
+                                          child: const Icon(Icons.camera_alt, color: AppColors.black, size: 20),
                                         ),
                                       ),
                                   ],

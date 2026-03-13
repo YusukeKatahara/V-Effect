@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 
-/// 投稿完了時のお祝いダイアログ
-/// 【設計コンセプト】
-/// - 高級感: ダークトーンとガラスモーフィズム、ゴールドのアクセント
-/// - スマート: シンプルな幾何学構成と滑らかなアニメーション
-/// - 達成感: 独自描画のダイナミックな炎と記録更新時のエフェクト
+/// 投稿完了時のお祝いダイアログ — Absolute Monochrome
 class PostSuccessDialog extends StatefulWidget {
   final int streakDays;
   final bool isRecordUpdating;
@@ -16,7 +14,6 @@ class PostSuccessDialog extends StatefulWidget {
     this.isRecordUpdating = false,
   });
 
-  /// ダイアログを表示する静的メソッド
   static Future<void> show(
     BuildContext context, {
     required int streakDays,
@@ -25,12 +22,11 @@ class PostSuccessDialog extends StatefulWidget {
     return showDialog(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
-      builder:
-          (_) => PostSuccessDialog(
-            streakDays: streakDays,
-            isRecordUpdating: isRecordUpdating,
-          ),
+      barrierColor: AppColors.black.withValues(alpha: 0.85),
+      builder: (_) => PostSuccessDialog(
+        streakDays: streakDays,
+        isRecordUpdating: isRecordUpdating,
+      ),
     );
   }
 
@@ -40,45 +36,35 @@ class PostSuccessDialog extends StatefulWidget {
 
 class _PostSuccessDialogState extends State<PostSuccessDialog>
     with TickerProviderStateMixin {
-  late AnimationController _flameController;
+  late AnimationController _pulseController;
   late AnimationController _shimmerController;
   Timer? _autoCloseTimer;
 
   @override
   void initState() {
     super.initState();
-
-    // 炎のアニメーション
-    _flameController = AnimationController(
+    _pulseController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: widget.isRecordUpdating ? 400 : 800),
+      duration: Duration(milliseconds: widget.isRecordUpdating ? 600 : 1000),
     )..repeat(reverse: true);
 
-    // 光沢感（シマー）のアニメーション（記録更新時のみ）
     _shimmerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     );
-    if (widget.isRecordUpdating) {
-      _shimmerController.repeat();
-    }
+    if (widget.isRecordUpdating) _shimmerController.repeat();
 
-    // 5秒後に自動で閉じる
     _autoCloseTimer = Timer(const Duration(seconds: 5), () {
-      if (mounted) _close();
+      if (mounted) Navigator.of(context).pop();
     });
   }
 
   @override
   void dispose() {
-    _flameController.dispose();
+    _pulseController.dispose();
     _shimmerController.dispose();
     _autoCloseTimer?.cancel();
     super.dispose();
-  }
-
-  void _close() {
-    Navigator.of(context).pop();
   }
 
   @override
@@ -90,115 +76,104 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
           width: 280,
           height: 400,
           decoration: BoxDecoration(
-            color: const Color(0xFF1A2637), // 高級感のあるダークネイビー
+            color: AppColors.grey08,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color:
-                  widget.isRecordUpdating
-                      ? Colors.amber.withValues(alpha: 0.5)
-                      : Colors.white.withValues(alpha: 0.1),
+              color: widget.isRecordUpdating
+                  ? AppColors.white.withValues(alpha: 0.2)
+                  : AppColors.white.withValues(alpha: 0.08),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: (widget.isRecordUpdating ? Colors.amber : Colors.black)
-                    .withValues(alpha: 0.3),
-                blurRadius: 30,
-                spreadRadius: 5,
+                color: AppColors.white.withValues(
+                    alpha: widget.isRecordUpdating ? 0.08 : 0.03),
+                blurRadius: 40,
+                spreadRadius: 4,
               ),
             ],
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
             children: [
-              // 背景の光沢エフェクト
               if (widget.isRecordUpdating) _buildShimmerEffect(),
-
-              // メインコンテンツ
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 40),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // カスタム炎
-                    _buildFlameIcon(),
+                    _buildStreakIcon(),
                     const SizedBox(height: 40),
-
-                    // ストリーク日数
+                    // Streak number
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: [
-                        Text(
-                          '${widget.streakDays}',
-                          style: TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: -1,
-                            shadows: [
-                              Shadow(
-                                color: Colors.amber.withValues(alpha: 0.5),
-                                blurRadius: widget.isRecordUpdating ? 15 : 0,
-                              ),
-                            ],
+                        ShaderMask(
+                          shaderCallback: (bounds) => const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [AppColors.white, AppColors.grey70],
+                          ).createShader(bounds),
+                          child: Text(
+                            '${widget.streakDays}',
+                            style: GoogleFonts.outfit(
+                              fontSize: 56,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.white,
+                              letterSpacing: -2,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           '日',
-                          style: TextStyle(
+                          style: GoogleFonts.notoSansJp(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white70,
+                            color: AppColors.grey50,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-
-                    // ステータステキスト
+                    // Status badge
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 6,
-                      ),
+                          horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
-                        color:
-                            widget.isRecordUpdating
-                                ? Colors.amber.withValues(alpha: 0.2)
-                                : Colors.white.withValues(alpha: 0.05),
+                        color: widget.isRecordUpdating
+                            ? AppColors.white.withValues(alpha: 0.1)
+                            : AppColors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.white.withValues(
+                              alpha: widget.isRecordUpdating ? 0.15 : 0.08),
+                        ),
                       ),
                       child: Text(
-                        widget.isRecordUpdating ? '記録更新中' : '継続中',
-                        style: TextStyle(
-                          fontSize: 16,
+                        widget.isRecordUpdating ? '記録更新' : '継続中',
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color:
-                              widget.isRecordUpdating
-                                  ? Colors.amberAccent
-                                  : Colors.white70,
-                          letterSpacing: 1.2,
+                          color: widget.isRecordUpdating
+                              ? AppColors.white
+                              : AppColors.grey50,
+                          letterSpacing: 2,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-
-              // 閉じるボタン
               Positioned(
                 top: 12,
                 right: 12,
                 child: IconButton(
-                  icon: const Icon(
-                    Icons.close,
-                    color: Colors.white54,
-                    size: 28,
-                  ),
-                  onPressed: _close,
+                  icon: const Icon(Icons.close,
+                      color: AppColors.grey30, size: 24),
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
             ],
@@ -208,15 +183,39 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
     );
   }
 
-  Widget _buildFlameIcon() {
+  Widget _buildStreakIcon() {
     return AnimatedBuilder(
-      animation: _flameController,
+      animation: _pulseController,
       builder: (context, child) {
-        return CustomPaint(
-          size: const Size(80, 100),
-          painter: FlamePainter(
-            animationValue: _flameController.value,
-            isIntense: widget.isRecordUpdating,
+        final scale = 1.0 + _pulseController.value * 0.08;
+        final glowAlpha =
+            0.06 + _pulseController.value * (widget.isRecordUpdating ? 0.12 : 0.06);
+        return Transform.scale(
+          scale: scale,
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.grey15,
+              border: Border.all(
+                color: AppColors.white.withValues(alpha: 0.15),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.white.withValues(alpha: glowAlpha),
+                  blurRadius: 32,
+                  spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.local_fire_department_rounded,
+              size: 40,
+              color: AppColors.white.withValues(
+                  alpha: 0.7 + _pulseController.value * 0.3),
+            ),
           ),
         );
       },
@@ -240,9 +239,9 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
                   (v + 0.3).clamp(0.0, 1.0),
                 ],
                 colors: [
-                  Colors.white.withValues(alpha: 0),
-                  Colors.white.withValues(alpha: 0.08),
-                  Colors.white.withValues(alpha: 0),
+                  AppColors.white.withValues(alpha: 0),
+                  AppColors.white.withValues(alpha: 0.06),
+                  AppColors.white.withValues(alpha: 0),
                 ],
               ),
             ),
@@ -251,102 +250,4 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
       ),
     );
   }
-}
-
-/// 炎を描画するカスタムペインター
-class FlamePainter extends CustomPainter {
-  final double animationValue;
-  final bool isIntense;
-
-  FlamePainter({required this.animationValue, required this.isIntense});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.8);
-    final flicker = animationValue * (isIntense ? 0.15 : 0.08);
-
-    // 1. 外側の炎 (Deep Orange)
-    _drawFlamePart(
-      canvas,
-      center,
-      size.width * 0.5,
-      size.height * 0.9 * (1.0 + flicker),
-      const Color(0xFFFF4D00),
-    );
-
-    // 2. 中間の炎 (Orange/Amber)
-    _drawFlamePart(
-      canvas,
-      center,
-      size.width * 0.35,
-      size.height * 0.7 * (1.1 + flicker),
-      Colors.amber.shade700,
-    );
-
-    // 3. 内側の芯 (Yellow)
-    _drawFlamePart(
-      canvas,
-      center,
-      size.width * 0.2,
-      size.height * 0.4 * (1.2 + flicker),
-      Colors.yellow.shade400,
-    );
-
-    // 4. 最深部の光 (White)
-    final whitePaint =
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.8)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-    canvas.drawCircle(center.translate(0, -10), 5, whitePaint);
-  }
-
-  void _drawFlamePart(
-    Canvas canvas,
-    Offset baseCenter,
-    double width,
-    double height,
-    Color color,
-  ) {
-    final path = Path();
-    final paint =
-        Paint()
-          ..color = color
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
-
-    // 炎のしずく型を描画
-    path.moveTo(baseCenter.dx, baseCenter.dy);
-
-    // 右側
-    path.quadraticBezierTo(
-      baseCenter.dx + width,
-      baseCenter.dy,
-      baseCenter.dx + width * 0.5,
-      baseCenter.dy - height * 0.4,
-    );
-    path.quadraticBezierTo(
-      baseCenter.dx,
-      baseCenter.dy - height,
-      baseCenter.dx,
-      baseCenter.dy - height,
-    );
-
-    // 左側
-    path.quadraticBezierTo(
-      baseCenter.dx,
-      baseCenter.dy - height,
-      baseCenter.dx - width * 0.5,
-      baseCenter.dy - height * 0.4,
-    );
-    path.quadraticBezierTo(
-      baseCenter.dx - width,
-      baseCenter.dy,
-      baseCenter.dx,
-      baseCenter.dy,
-    );
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant FlamePainter oldDelegate) => true;
 }

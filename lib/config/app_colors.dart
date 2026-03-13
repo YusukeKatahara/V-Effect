@@ -1,66 +1,65 @@
 import 'package:flutter/material.dart';
 
-/// V-Effect のカラーシステム
+/// V-Effect カラーシステム — Absolute Monochrome
 ///
-/// ブラック × アンバーゴールドのプレミアムダークテーマ
+/// 有彩色を一切排除。白・黒・グレーの階調のみで構成。
 class AppColors {
   AppColors._();
 
-  // ── Brand ──────────────────────────────────
-  /// メインアクセント（アンバーゴールド）
-  static const Color primary = Color(0xFFFFB800);
+  // ── Monochrome Scale ─────────────────────
+  static const Color white       = Color(0xFFFFFFFF);
+  static const Color grey95      = Color(0xFFF2F2F2);
+  static const Color grey85      = Color(0xFFD9D9D9);
+  static const Color grey70      = Color(0xFFB3B3B3);
+  static const Color grey50      = Color(0xFF808080);
+  static const Color grey30      = Color(0xFF4D4D4D);
+  static const Color grey20      = Color(0xFF333333);
+  static const Color grey15      = Color(0xFF262626);
+  static const Color grey10      = Color(0xFF1A1A1A);
+  static const Color grey08      = Color(0xFF141414);
+  static const Color grey05      = Color(0xFF0D0D0D);
+  static const Color black       = Color(0xFF000000);
 
-  /// プライマリの薄いバリアント
-  static const Color primaryLight = Color(0xFFFFD54F);
+  // ── Semantic aliases ─────────────────────
+  static const Color primary       = white;
+  static const Color primaryLight  = grey95;
+  static const Color primaryDark   = grey85;
 
-  /// プライマリの暗いバリアント
-  static const Color primaryDark = Color(0xFFF59E0B);
+  static const Color bgBase     = black;
+  static const Color bgSurface  = grey08;
+  static const Color bgElevated = grey15;
+  static const Color border     = grey20;
 
-  // ── Backgrounds ────────────────────────────
-  /// アプリ最底面の背景
-  static const Color bgBase = Color(0xFF0A0A0B);
+  static const Color textPrimary   = white;
+  static const Color textSecondary = grey50;
+  static const Color textMuted     = grey30;
 
-  /// カード・モーダルなどの浮いた面
-  static const Color bgSurface = Color(0xFF141417);
+  static const Color success = grey85;
+  static const Color error   = Color(0xFFFF5252); // 唯一の例外：エラーは赤を許容
+  static const Color warning = grey70;
 
-  /// 少し明るい面（入力欄、チップなど）
-  static const Color bgElevated = Color(0xFF1E1E24);
-
-  /// ボーダー・区切り線
-  static const Color border = Color(0xFF2A2A32);
-
-  // ── Text ───────────────────────────────────
-  static const Color textPrimary   = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFFAAAAAF);
-  static const Color textMuted     = Color(0xFF666672);
-
-  // ── Semantic ───────────────────────────────
-  static const Color success = Color(0xFF34D399);
-  static const Color error   = Color(0xFFFF5252);
-  static const Color warning = Color(0xFFFFB800);
-
-  // ── Gradients ──────────────────────────────
+  // ── Gradients ────────────────────────────
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFFB800), Color(0xFFF59E0B)],
+    colors: [white, grey85],
   );
 
   static const LinearGradient bgGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFF12121A), Color(0xFF0A0A0B)],
+    colors: [grey08, black],
   );
 
-  static const LinearGradient streakActiveGradient = LinearGradient(
+  static const LinearGradient cardGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFF8C00), Color(0xFFFFB800)],
+    colors: [grey15, grey10],
   );
 
-  static const LinearGradient streakInactiveGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF1E1E24), Color(0xFF2A2A32)],
+  static const LinearGradient glassGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0x1AFFFFFF), Color(0x08FFFFFF)],
   );
 }

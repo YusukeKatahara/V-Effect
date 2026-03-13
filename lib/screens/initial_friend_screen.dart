@@ -90,7 +90,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
           await _friendService.sendRequest(user.uid);
           sentCount++;
         } catch (e) {
-          errors.add('$userId: $e');
+          errors.add('$userId: 送信に失敗しました');
         }
       }
 
@@ -110,7 +110,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = '送信に失敗しました: $e');
+        setState(() => _error = '送信に失敗しました。もう一度お試しください。');
       }
     } finally {
       if (mounted) setState(() => _isSending = false);
@@ -149,7 +149,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                 ),
               ),
               child: selected
-                  ? const Icon(Icons.check, size: 14, color: Color(0xFF1A1000))
+                  ? const Icon(Icons.check, size: 14, color: AppColors.black)
                   : null,
             ),
             const SizedBox(width: 12),
