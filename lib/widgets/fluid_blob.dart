@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// アメーバ型の流体アバター
+/// 円形アバター with 縁の輝きアニメーション
 ///
-/// [isAnimating] が true のとき、Blob が呼吸するように変形し続ける。
-/// false のとき形は固定される。
+/// [isAnimating] が true のとき、縁に光の回転エフェクトが走る。
+/// false のときは静的な縁表示。
 class FluidBlobAvatar extends StatefulWidget {
   const FluidBlobAvatar({
     super.key,
@@ -31,24 +31,16 @@ class _FluidBlobAvatarState extends State<FluidBlobAvatar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
-  // 各頂点のランダムオフセット（固定時の形状を決める）
-  late final List<double> _phaseOffsets;
-
   @override
   void initState() {
     super.initState();
-    final rng = math.Random();
-    _phaseOffsets = List.generate(8, (_) => rng.nextDouble() * math.pi * 2);
-
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
+      duration: const Duration(seconds: 3),
     );
 
     if (widget.isAnimating) {
       _controller.repeat();
-    } else {
-      _controller.value = 0.0;
     }
   }
 
@@ -58,7 +50,6 @@ class _FluidBlobAvatarState extends State<FluidBlobAvatar>
     if (widget.isAnimating && !_controller.isAnimating) {
       _controller.repeat();
     } else if (!widget.isAnimating && _controller.isAnimating) {
-      // 現在位置で止めるとスムーズ
       _controller.stop();
     }
   }
@@ -74,15 +65,14 @@ class _FluidBlobAvatarState extends State<FluidBlobAvatar>
     final glowColor = widget.glowColor ?? const Color(0xFFFFFFFF);
 
     return SizedBox(
-      width: widget.size + 8, // glow 分のマージン
+      width: widget.size + 8,
       height: widget.size + 8,
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
           return CustomPaint(
-            painter: _BlobPainter(
+            painter: _ShimmerRingPainter(
               progress: _controller.value,
-              phaseOffsets: _phaseOffsets,
               gradient: widget.gradient,
               glowColor: glowColor,
               borderWidth: widget.borderWidth,
@@ -91,12 +81,7 @@ class _FluidBlobAvatarState extends State<FluidBlobAvatar>
             child: Center(child: child),
           );
         },
-        child: ClipPath(
-          clipper: _BlobClipper(
-            progress: widget.isAnimating ? null : 0.0,
-            phaseOffsets: _phaseOffsets,
-            controller: _controller,
-          ),
+        child: ClipOval(
           child: SizedBox(
             width: widget.size - 4,
             height: widget.size - 4,
@@ -108,66 +93,9 @@ class _FluidBlobAvatarState extends State<FluidBlobAvatar>
   }
 }
 
-/// Blob のパスを生成するユーティリティ
-Path _createBlobPath(
-  Size size,
-  double progress,
-  List<double> phaseOffsets, {
-  double inset = 0,
-}) {
-  final cx = size.width / 2;
-  final cy = size.height / 2;
-  final baseRadius = (math.min(cx, cy)) - inset;
-
-  const pointCount = 8;
-  const smoothFactor = 0.55; // cubic bezier の滑らかさ
-
-  // 各頂点の角度と半径を計算
-  final points = <Offset>[];
-  final radii = <double>[];
-  for (int i = 0; i < pointCount; i++) {
-    final angle = (i / pointCount) * math.pi * 2;
-    // 変形量: sin波の重ね合わせでアメーバ感を出す
-    final deform = math.sin(progress * math.pi * 2 + phaseOffsets[i]) * 0.08 +
-        math.sin(progress * math.pi * 4 + phaseOffsets[i] * 1.5) * 0.04;
-    final r = baseRadius * (1.0 + deform);
-    radii.add(r);
-    points.add(Offset(cx + r * math.cos(angle), cy + r * math.sin(angle)));
-  }
-
-  // ベジェ曲線でスムーズなBlobパスを構築
-  final path = Path();
-  for (int i = 0; i < pointCount; i++) {
-    final curr = points[i];
-    final next = points[(i + 1) % pointCount];
-    final prev = points[(i - 1 + pointCount) % pointCount];
-    final nextNext = points[(i + 2) % pointCount];
-
-    if (i == 0) {
-      path.moveTo(curr.dx, curr.dy);
-    }
-
-    // コントロールポイントを計算
-    final cp1 = Offset(
-      curr.dx + (next.dx - prev.dx) * smoothFactor / 3,
-      curr.dy + (next.dy - prev.dy) * smoothFactor / 3,
-    );
-    final cp2 = Offset(
-      next.dx - (nextNext.dx - curr.dx) * smoothFactor / 3,
-      next.dy - (nextNext.dy - curr.dy) * smoothFactor / 3,
-    );
-
-    path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, next.dx, next.dy);
-  }
-
-  path.close();
-  return path;
-}
-
-class _BlobPainter extends CustomPainter {
-  _BlobPainter({
+class _ShimmerRingPainter extends CustomPainter {
+  _ShimmerRingPainter({
     required this.progress,
-    required this.phaseOffsets,
     required this.gradient,
     required this.glowColor,
     required this.borderWidth,
@@ -175,7 +103,6 @@ class _BlobPainter extends CustomPainter {
   });
 
   final double progress;
-  final List<double> phaseOffsets;
   final Gradient? gradient;
   final Color glowColor;
   final double borderWidth;
@@ -183,59 +110,66 @@ class _BlobPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final blobPath = _createBlobPath(size, progress, phaseOffsets, inset: 4);
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final radius = math.min(cx, cy) - 4;
 
-    // ── Glow（発光）──
-    final glowPaint = Paint()
-      ..color = glowColor.withValues(alpha: isAnimating ? 0.35 : 0.2)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
-    canvas.drawPath(blobPath, glowPaint);
-
-    // ── グラデーション塗り ──
+    // ── 背景グラデーション塗り ──
     if (gradient != null) {
       final fillPaint = Paint()
-        ..shader = gradient!.createShader(Offset.zero & size);
-      canvas.drawPath(blobPath, fillPaint);
+        ..shader = gradient!.createShader(
+          Rect.fromCircle(center: Offset(cx, cy), radius: radius),
+        );
+      canvas.drawCircle(Offset(cx, cy), radius, fillPaint);
     }
 
-    // ── Border (soft glow border) ──
-    final borderPaint = Paint()
+    // ── 静的なベースの縁 ──
+    final baseBorderPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = borderWidth
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+      ..color = glowColor.withValues(alpha: 0.3);
+    canvas.drawCircle(Offset(cx, cy), radius, baseBorderPaint);
+
+    // ── 輝きエフェクト（回転するハイライト） ──
+    final sweepAngle = progress * math.pi * 2;
+
+    // 光の弧を SweepGradient で描画
+    final shimmerPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth + (isAnimating ? 1.0 : 0.0)
+      ..shader = SweepGradient(
+        startAngle: sweepAngle,
+        endAngle: sweepAngle + math.pi * 2,
         colors: [
-          glowColor,
-          glowColor.withValues(alpha: 0.4),
+          glowColor.withValues(alpha: 0.0),
+          glowColor.withValues(alpha: 0.0),
+          glowColor.withValues(alpha: isAnimating ? 0.9 : 0.3),
+          glowColor.withValues(alpha: isAnimating ? 1.0 : 0.4),
+          glowColor.withValues(alpha: isAnimating ? 0.9 : 0.3),
+          glowColor.withValues(alpha: 0.0),
+          glowColor.withValues(alpha: 0.0),
         ],
-      ).createShader(Offset.zero & size);
-    canvas.drawPath(blobPath, borderPaint);
+        stops: const [0.0, 0.25, 0.40, 0.50, 0.60, 0.75, 1.0],
+        transform: GradientRotation(sweepAngle),
+      ).createShader(
+        Rect.fromCircle(center: Offset(cx, cy), radius: radius),
+      );
+    canvas.drawCircle(Offset(cx, cy), radius, shimmerPaint);
+
+    // ── 光源付近に柔らかいグロー ──
+    if (isAnimating) {
+      final glowAngle = sweepAngle + math.pi * 0.5;
+      final glowX = cx + radius * math.cos(glowAngle);
+      final glowY = cy + radius * math.sin(glowAngle);
+
+      final spotGlow = Paint()
+        ..color = glowColor.withValues(alpha: 0.25)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+      canvas.drawCircle(Offset(glowX, glowY), 6, spotGlow);
+    }
   }
 
   @override
-  bool shouldRepaint(_BlobPainter old) =>
+  bool shouldRepaint(_ShimmerRingPainter old) =>
       old.progress != progress || old.isAnimating != isAnimating;
-}
-
-/// ClipPath 用の Clipper — AnimationController で動的に更新
-class _BlobClipper extends CustomClipper<Path> {
-  _BlobClipper({
-    required this.phaseOffsets,
-    this.progress,
-    this.controller,
-  }) : super(reclip: controller);
-
-  final List<double> phaseOffsets;
-  final double? progress;
-  final AnimationController? controller;
-
-  @override
-  Path getClip(Size size) {
-    final p = progress ?? controller?.value ?? 0.0;
-    return _createBlobPath(size, p, phaseOffsets, inset: 2);
-  }
-
-  @override
-  bool shouldReclip(_BlobClipper old) => true;
 }

@@ -11,6 +11,7 @@ import '../config/routes.dart';
 import '../services/notification_service.dart';
 import '../services/post_service.dart';
 import '../widgets/fluid_blob.dart';
+import '../widgets/streak_flame.dart';
 import 'camera_screen.dart';
 import 'friend_feed_screen.dart';
 
@@ -47,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late final Animation<double> _sublimation;
   int? _heroIndex; // 選ばれたHero Taskのインデックス
   bool _isSublimating = false;
+  int _focusedIndex = 0; // 扇状カードのフォーカス位置（最前面）
 
   @override
   void initState() {
@@ -173,6 +175,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       if (mounted) {
         // 昇華完了 → Zen Mode へ遷移
+        setState(() => _isSublimating = false);
         _loadData(); // streak等を再取得
       }
     }
@@ -193,6 +196,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       _buildTitleBar(),
                       _buildBlobRow(),
+                      if (_streak > 0 && !(_postedToday && !_isSublimating)) _buildStreakRow(),
                       Expanded(
                         child: _postedToday && !_isSublimating
                             ? _buildZenMode()
@@ -258,45 +262,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildTitleBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          const Spacer(),
-          Text(
-            'V EFFECT',
-            style: GoogleFonts.outfit(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppColors.white,
-              letterSpacing: 6.0,
+          Center(
+            child: Text(
+              'V EFFECT',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.white,
+                letterSpacing: 6.0,
+              ),
             ),
           ),
-          const Spacer(),
-          StreamBuilder<int>(
-            stream: _notificationStream,
-            builder: (context, snapshot) {
-              final count = snapshot.data ?? 0;
-              return GestureDetector(
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRoutes.notifications),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.grey10,
-                    border: Border.all(
-                        color: AppColors.grey20.withValues(alpha: 0.5)),
+          Positioned(
+            right: 0,
+            child: StreamBuilder<int>(
+              stream: _notificationStream,
+              builder: (context, snapshot) {
+                final count = snapshot.data ?? 0;
+                return GestureDetector(
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppRoutes.notifications),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.grey10,
+                      border: Border.all(
+                          color: AppColors.grey20.withValues(alpha: 0.5)),
+                    ),
+                    child: Badge(
+                      isLabelVisible: count > 0,
+                      label:
+                          Text('$count', style: const TextStyle(fontSize: 9)),
+                      child: const Icon(Icons.notifications_none_rounded,
+                          color: AppColors.grey50, size: 18),
+                    ),
                   ),
-                  child: Badge(
-                    isLabelVisible: count > 0,
-                    label:
-                        Text('$count', style: const TextStyle(fontSize: 9)),
-                    child: const Icon(Icons.notifications_none_rounded,
-                        color: AppColors.grey50, size: 18),
-                  ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -402,6 +411,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // ════════════════════════════════════════════
+  // Streak Row — 炎 + "N Day Streak"
+  // ════════════════════════════════════════════
+  Widget _buildStreakRow() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const StreakFlame(size: 18),
+          const SizedBox(width: 6),
+          Text(
+            '$_streak Day Streak',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.grey70,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════
   // Card Stack — Z軸に奥へ重なるカードスタック
   // ════════════════════════════════════════════
   Widget _buildCardStack() {
@@ -425,6 +460,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
+    // フォーカスインデックスをタスク数に合わせてクランプ
+    if (_focusedIndex >= _tasks.length) _focusedIndex = _tasks.length - 1;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // カードの最大高さを計算（9:16比率で利用可能幅の65%をカード幅に）
@@ -434,22 +472,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         final maxCardHeight = (constraints.maxHeight - 60).clamp(0.0, cardHeight);
         final finalCardWidth = maxCardHeight * (9 / 16);
 
-        return Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            // 後ろのカードから描画（index 0 が一番後ろ）
-            for (int i = 0; i < _tasks.length; i++)
-              _buildStackedCard(
-                index: i,
-                total: _tasks.length,
-                cardWidth: finalCardWidth,
-                cardHeight: maxCardHeight,
-              ),
-          ],
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: _tasks.length > 1
+              ? (details) {
+                  final velocity = details.primaryVelocity ?? 0;
+                  if (velocity < -200 && _focusedIndex < _tasks.length - 1) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _focusedIndex++);
+                  } else if (velocity > 200 && _focusedIndex > 0) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _focusedIndex--);
+                  }
+                }
+              : null,
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              // depth が大きい順に描画（フォーカスカードが最前面に来る）
+              for (final i in _sortedCardIndices())
+                _buildStackedCard(
+                  index: i,
+                  total: _tasks.length,
+                  cardWidth: finalCardWidth,
+                  cardHeight: maxCardHeight,
+                ),
+            ],
+          ),
         );
       },
     );
+  }
+
+  /// カードの描画順を返す（depth が大きい→小さい順 = 奥→手前）
+  List<int> _sortedCardIndices() {
+    final indices = List.generate(_tasks.length, (i) => i);
+    indices.sort((a, b) {
+      final depthA = (a - _focusedIndex).abs();
+      final depthB = (b - _focusedIndex).abs();
+      return depthB.compareTo(depthA); // depth大きい方を先に描画
+    });
+    return indices;
   }
 
   Widget _buildStackedCard({
@@ -458,15 +522,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required double cardWidth,
     required double cardHeight,
   }) {
-    // 一番手前のカード = index (total - 1)
-    // Z深度: 0 = 最前面, (total-1) = 最奥
-    final depth = total - 1 - index;
+    // フォーカス中のカードが最前面（depth=0）
+    final depth = (index - _focusedIndex).abs();
 
-    // 各カードの奥行き表現
-    final scale = 1.0 - depth * 0.06;
-    final yOffset = depth * 14.0; // 後ろほど下にずれる
-    final dimAlpha = depth * 0.12; // 後ろほど暗くなる
-    final blurSigma = depth * 1.5; // 後ろほどぼける
+    // ── 扇状レイアウト ──
+    // フォーカスカードを中心(0°)として、他のカードが左右に広がる
+    final fanPosition = index - _focusedIndex; // 負=左、正=右
+    const fanSpreadDeg = 6.0; // カード間の角度（度）
+    final fanAngleDeg = fanPosition * fanSpreadDeg;
+    final fanAngleRad = fanAngleDeg * 3.14159265 / 180.0;
+
+    // 奥行き表現
+    final scale = 1.0 - depth * 0.04;
+    final dimAlpha = depth * 0.10;
+    final blurSigma = depth * 1.2;
 
     // ジャイロパララックス（奥のカードほど動きが小さい = 視差効果）
     final parallaxFactor = 1.0 - depth * 0.25;
@@ -476,10 +545,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return AnimatedBuilder(
       animation: _sublimation,
       builder: (context, child) {
-        // 昇華中の値を再計算
-        double currentSublimateY = 0;
         double currentOpacity = 1.0;
         double currentScale = scale;
+        double currentAngle = fanAngleRad;
+        double currentSublimateY = 0;
 
         if (_isSublimating && _heroIndex != null) {
           final t = _sublimation.value;
@@ -487,6 +556,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             currentScale = scale + t * 0.05;
             currentOpacity = 1.0 - t * 0.3;
           } else {
+            // 昇華時: 扇が広がりながら上へ飛ぶ
+            currentAngle = fanAngleRad * (1.0 + t * 1.5);
             currentSublimateY = -t * 300 - depth * 40 * t;
             currentOpacity = (1.0 - t * 1.2).clamp(0.0, 1.0);
             currentScale = scale * (1.0 + t * 0.15);
@@ -496,9 +567,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         if (currentOpacity <= 0) return const SizedBox.shrink();
 
         return Transform.translate(
-          offset: Offset(px, yOffset + py + currentSublimateY),
-          child: Transform.scale(
-            scale: currentScale,
+          offset: Offset(px, py + currentSublimateY),
+          child: Transform(
+            alignment: Alignment.bottomCenter,
+            transform: Matrix4.identity()
+              ..rotateZ(currentAngle)
+              // ignore: deprecated_member_use
+              ..scale(currentScale),
             child: Opacity(
               opacity: currentOpacity,
               child: child,
@@ -507,7 +582,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       },
       child: GestureDetector(
-        onTap: (!_postedToday && !_isSublimating)
+        onTap: (!_postedToday && !_isSublimating && index == _focusedIndex)
             ? () => _selectHeroTask(index)
             : null,
         child: SizedBox(
@@ -520,7 +595,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             depth: depth,
             dimAlpha: dimAlpha,
             blurSigma: blurSigma,
-            showCamera: !_postedToday && !_isSublimating,
+            showCamera: !_postedToday && !_isSublimating && index == _focusedIndex,
           ),
         ),
       ),
@@ -588,7 +663,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              Text('Days Streak',
+              Text('Day Streak',
                   style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w400,

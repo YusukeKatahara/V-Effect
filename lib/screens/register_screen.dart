@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
+import '../config/routes.dart';
 
 import '../services/auth_service.dart';
+import '../services/push_notification_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -42,6 +45,26 @@ class _RegisterScreenState extends State<RegisterScreen>
     super.dispose();
   }
 
+  /// ユーザードキュメントを作成し、プロフィール設定画面へ直接遷移する
+  Future<void> _ensureUserDocAndNavigate() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final doc = await docRef.get();
+    if (!doc.exists) {
+      await docRef.set({
+        'profileCompleted': false,
+        'onboardingCompleted': false,
+      });
+    }
+    PushNotificationService().saveFcmToken().catchError((_) {});
+
+    if (!mounted) return;
+    // 新規登録 → 必ずプロフィール設定へ（スタックをクリア）
+    Navigator.of(context)
+        .pushNamedAndRemoveUntil(AppRoutes.profileSetup, (r) => false);
+  }
+
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
@@ -50,15 +73,16 @@ class _RegisterScreenState extends State<RegisterScreen>
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text.trim(),
       );
-      if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
+      await _ensureUserDocAndNavigate();
     } on FirebaseAuthException catch (e) {
       String msg = '登録に失敗しました。';
       if (e.code == 'email-already-in-use') msg = 'このメールアドレスは既に使われています。';
       if (e.code == 'weak-password') msg = 'パスワードは6文字以上にしてください。';
       _showError(msg);
+      if (mounted) setState(() => _isLoading = false);
     } catch (e) {
+      debugPrint('Registration error: $e');
       _showError('登録に失敗しました。しばらくしてからお試しください。');
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -67,10 +91,14 @@ class _RegisterScreenState extends State<RegisterScreen>
     setState(() => _isLoading = true);
     try {
       final cred = await _authService.signInWithGoogle();
-      if (cred != null && mounted) Navigator.popUntil(context, (route) => route.isFirst);
-    } catch (_) {
+      if (cred != null) {
+        await _ensureUserDocAndNavigate();
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      debugPrint('Google sign-in error: $e');
       _showError('Googleでの登録に失敗しました。');
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -79,10 +107,14 @@ class _RegisterScreenState extends State<RegisterScreen>
     setState(() => _isLoading = true);
     try {
       final cred = await _authService.signInWithApple();
-      if (cred != null && mounted) Navigator.popUntil(context, (route) => route.isFirst);
-    } catch (_) {
+      if (cred != null) {
+        await _ensureUserDocAndNavigate();
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      debugPrint('Apple sign-in error: $e');
       _showError('Appleでの登録に失敗しました。');
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }

@@ -50,9 +50,10 @@ service cloud.firestore {
       // 通知作成: 認証済みユーザー（自分宛て or 相手宛て）
       allow create: if request.auth != null;
 
-      // 通知読み取り: 自分宛ての通知のみ
+      // 通知読み取り: 自分宛て or 自分が送信した通知
       allow read: if request.auth != null
-        && resource.data.toUid == request.auth.uid;
+        && (resource.data.toUid == request.auth.uid
+            || resource.data.fromUid == request.auth.uid);
 
       // 通知削除: 自分宛ての通知のみ（ユーザーが通知を消す）
       allow delete: if request.auth != null

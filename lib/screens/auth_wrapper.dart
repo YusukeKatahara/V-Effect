@@ -5,8 +5,28 @@ import '../config/routes.dart';
 import 'login_screen.dart';
 
 /// 認証状態とプロフィール完了状態を監視し、適切な画面へルーティングするラッパー
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _navigating = false;
+  // FutureBuilder の再ビルドで同じ future が再利用されるようキャッシュ
+  Future<DocumentSnapshot>? _userDocFuture;
+  String? _lastUid;
+
+  void _navigateTo(String route) {
+    if (_navigating) return;
+    _navigating = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, route);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,16 +40,29 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // 2. ログインしていない ➔ ログイン画面へ
+        // 2. ログインしていない → ログイン画面へ
         if (!snapshot.hasData || snapshot.data == null) {
+          _navigating = false;
+          _userDocFuture = null;
+          _lastUid = null;
           return const LoginScreen();
         }
 
         final user = snapshot.data!;
 
-        // 3. ログイン済み ➔ Firestoreのデータを確認して分岐
+        // UID が変わったら future を再作成（ログインユーザー切り替え対応）
+        if (_lastUid != user.uid) {
+          _lastUid = user.uid;
+          _navigating = false;
+          _userDocFuture = FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+        }
+
+        // 3. ログイン済み → Firestore のデータを確認して分岐
         return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+          future: _userDocFuture,
           builder: (context, docSnapshot) {
             if (docSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
@@ -37,12 +70,9 @@ class AuthWrapper extends StatelessWidget {
               );
             }
 
-            // ドキュメントが存在しない or profileCompletedがtrueでない ➔ プロフィール設定へ
+            // ドキュメントが存在しない → プロフィール設定へ
             if (!docSnapshot.hasData || !docSnapshot.data!.exists) {
-              // 少し遅延を入れてルーティング（build中のエラーを防ぐため）
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
-              });
+              _navigateTo(AppRoutes.profileSetup);
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );
@@ -52,18 +82,13 @@ class AuthWrapper extends StatelessWidget {
             final isProfileCompleted = data?['profileCompleted'] == true;
             final isOnboardingCompleted = data?['onboardingCompleted'] == true;
 
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!isProfileCompleted) {
-                // Step 1: プロフィール基本情報が未入力
-                Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
-              } else if (!isOnboardingCompleted) {
-                // Step 2: タスク設定が未入力
-                Navigator.pushReplacementNamed(context, AppRoutes.taskSetup);
-              } else {
-                // 全て完了 ➔ ホーム画面へ
-                Navigator.pushReplacementNamed(context, AppRoutes.home);
-              }
-            });
+            if (!isProfileCompleted) {
+              _navigateTo(AppRoutes.profileSetup);
+            } else if (!isOnboardingCompleted) {
+              _navigateTo(AppRoutes.taskSetup);
+            } else {
+              _navigateTo(AppRoutes.home);
+            }
 
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),

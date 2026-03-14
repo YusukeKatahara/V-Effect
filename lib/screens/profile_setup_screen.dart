@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
+import '../config/routes.dart';
 import '../services/user_service.dart';
 import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
@@ -102,7 +103,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       );
 
       if (mounted) {
-        Navigator.popUntil(context, (route) => route.isFirst);
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil(AppRoutes.taskSetup, (r) => false);
       }
     } catch (e) {
       if (mounted) {
@@ -135,11 +137,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: Row(
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                              color: AppColors.textPrimary),
-                          onPressed: () => Navigator.pop(context),
-                        ),
+                        if (Navigator.of(context).canPop())
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                                color: AppColors.textPrimary),
+                            onPressed: () => Navigator.pop(context),
+                          ),
                         const Text('プロフィール設定',
                             style: TextStyle(
                               fontSize: 18,

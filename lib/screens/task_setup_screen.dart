@@ -121,13 +121,14 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
+                        if (Navigator.of(context).canPop())
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                            ),
+                            child: const Text('キャンセル'),
                           ),
-                          child: const Text('キャンセル'),
-                        ),
                         Text(
                           isWakeUp ? '起きる時間' : 'タスクの時間',
                           style: const TextStyle(
@@ -350,13 +351,14 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                     ),
                     child: Row(
                       children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back,
-                            color: AppColors.textPrimary,
+                        if (Navigator.of(context).canPop())
+                          IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: AppColors.textPrimary,
+                            ),
+                            onPressed: () => Navigator.pop(context),
                           ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
                         const Text(
                           'タスク設定',
                           style: TextStyle(

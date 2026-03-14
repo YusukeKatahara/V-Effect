@@ -147,14 +147,14 @@ class PostService {
   /// フレンドの24時間以内の投稿を取得します（リアルタイム更新）
   ///
   /// [friendUids] を渡すと追加のユーザードキュメント読み込みをスキップします。
-  Stream<QuerySnapshot> getFriendsFeed({
+  Stream<List<Post>> getFriendsFeed({
     bool guardedByPost = true,
     List<String>? friendUids,
   }) async* {
     if (guardedByPost) {
       final posted = await hasPostedToday();
       if (!posted) {
-        yield* const Stream.empty();
+        yield* const Stream<List<Post>>.empty();
         return;
       }
     }
@@ -170,19 +170,24 @@ class PostService {
     }
 
     if (friends.isEmpty) {
-      yield* const Stream.empty();
+      yield* const Stream<List<Post>>.empty();
       return;
     }
 
-    final now = Timestamp.now();
     final limitedFriends = friends.take(10).toList();
 
     yield* _db
         .collection('posts')
         .where('userId', whereIn: limitedFriends)
-        .where('expiresAt', isGreaterThan: now)
-        .orderBy('expiresAt', descending: true)
-        .snapshots();
+        .snapshots()
+        .map((snap) {
+      final now = DateTime.now();
+      return snap.docs
+          .map((doc) => Post.fromFirestore(doc))
+          .where((p) => p.expiresAt.isAfter(now))
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    });
   }
 
   /// 投稿にリアクションをつけます
@@ -198,6 +203,7 @@ class PostService {
   }
 
   /// リアクション通知を送信する内部メソッド
+  /// 同じ投稿に対して同じユーザーからの通知は1回のみ送信する
   Future<void> _sendReactionNotification(String postId) async {
     final postSnap = await _db.collection('posts').doc(postId).get();
     if (!postSnap.exists) return;
@@ -206,6 +212,16 @@ class PostService {
 
     final myUid = _auth.currentUser!.uid;
     if (postOwnerId == myUid) return; // 自分への投稿には通知しない
+
+    // 同じ投稿・同じ送信者のリアクション通知が既にあるかチェック
+    final existing = await _db
+        .collection('notifications')
+        .where('fromUid', isEqualTo: myUid)
+        .where('relatedId', isEqualTo: postId)
+        .where('type', isEqualTo: NotificationType.reactionReceived.name)
+        .limit(1)
+        .get();
+    if (existing.docs.isNotEmpty) return; // 既に通知済み
 
     final myUserSnap = await _db.collection('users').doc(myUid).get();
     final myUsername = myUserSnap.data()?['username'] ?? 'フレンド';
@@ -229,26 +245,34 @@ class PostService {
   }
 
   /// 特定フレンドの24h以内の投稿を取得します（リアルタイム）
-  Stream<QuerySnapshot> getFriendPosts(String friendUid) {
-    final now = Timestamp.now();
+  Stream<List<Post>> getFriendPosts(String friendUid) {
     return _db
         .collection('posts')
         .where('userId', isEqualTo: friendUid)
-        .where('expiresAt', isGreaterThan: now)
-        .orderBy('expiresAt', descending: true)
-        .snapshots();
+        .snapshots()
+        .map((snap) {
+      final now = DateTime.now();
+      final posts = snap.docs
+          .map((doc) => Post.fromFirestore(doc))
+          .where((p) => p.expiresAt.isAfter(now))
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return posts;
+    });
   }
 
   /// 特定フレンドの24h以内の投稿を一括取得します（ストーリー表示用）
   Future<List<Post>> getFriendPostsList(String friendUid) async {
-    final now = Timestamp.now();
     final snap = await _db
         .collection('posts')
         .where('userId', isEqualTo: friendUid)
-        .where('expiresAt', isGreaterThan: now)
-        .orderBy('expiresAt', descending: true)
         .get();
-    return snap.docs.map((doc) => Post.fromFirestore(doc)).toList();
+    final now = DateTime.now();
+    return snap.docs
+        .map((doc) => Post.fromFirestore(doc))
+        .where((p) => p.expiresAt.isAfter(now))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   /// 自分のタスクリストを取得します

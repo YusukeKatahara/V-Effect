@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/auth_service.dart';
@@ -39,6 +40,39 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
+  /// ユーザードキュメントを確認・作成し、状態に応じた画面に直接遷移する
+  Future<void> _ensureUserDocAndNavigate() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final doc = await docRef.get();
+    if (!doc.exists) {
+      await docRef.set({
+        'profileCompleted': false,
+        'onboardingCompleted': false,
+      });
+    }
+    PushNotificationService().saveFcmToken().catchError((_) {});
+
+    if (!mounted) return;
+
+    // ドキュメントの状態に応じて遷移先を決定
+    final data = doc.exists ? doc.data() : null;
+    final isProfileCompleted = data?['profileCompleted'] == true;
+    final isOnboardingCompleted = data?['onboardingCompleted'] == true;
+
+    String route;
+    if (!isProfileCompleted) {
+      route = AppRoutes.profileSetup;
+    } else if (!isOnboardingCompleted) {
+      route = AppRoutes.taskSetup;
+    } else {
+      route = AppRoutes.home;
+    }
+
+    Navigator.of(context).pushNamedAndRemoveUntil(route, (r) => false);
+  }
+
   Future<void> _login() async {
     setState(() => _isLoading = true);
     try {
@@ -46,14 +80,16 @@ class _LoginScreenState extends State<LoginScreen>
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text.trim(),
       );
-      await PushNotificationService().saveFcmToken();
-      if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
+      await _ensureUserDocAndNavigate();
     } on FirebaseAuthException catch (e) {
       String msg = 'ログインに失敗しました。';
       if (e.code == 'user-not-found') msg = 'ユーザーが見つかりません。';
       if (e.code == 'wrong-password')  msg = 'パスワードが間違っています。';
       _showError(msg);
-    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      debugPrint('Login error: $e');
+      _showError('ログインに失敗しました。');
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -63,12 +99,13 @@ class _LoginScreenState extends State<LoginScreen>
     try {
       final cred = await _authService.signInWithGoogle();
       if (cred != null) {
-        await PushNotificationService().saveFcmToken();
-        if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
+        await _ensureUserDocAndNavigate();
+      } else {
+        if (mounted) setState(() => _isLoading = false);
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Google sign-in error: $e');
       _showError('Googleでのログインに失敗しました。');
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -78,12 +115,13 @@ class _LoginScreenState extends State<LoginScreen>
     try {
       final cred = await _authService.signInWithApple();
       if (cred != null) {
-        await PushNotificationService().saveFcmToken();
-        if (mounted) Navigator.popUntil(context, (route) => route.isFirst);
+        await _ensureUserDocAndNavigate();
+      } else {
+        if (mounted) setState(() => _isLoading = false);
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Apple sign-in error: $e');
       _showError('Appleでのログインに失敗しました。');
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
