@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 
@@ -18,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailCtrl = TextEditingController();
   final _passCtrl  = TextEditingController();
   final _authService = AuthService();
+  final _analytics = AnalyticsService.instance;
   bool _isLoading = false;
   bool _obscurePass = true;
 
@@ -80,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen>
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text.trim(),
       );
+      await _analytics.logLogin('email');
       await _ensureUserDocAndNavigate();
     } on FirebaseAuthException catch (e) {
       String msg = 'ログインに失敗しました。';
@@ -99,6 +102,7 @@ class _LoginScreenState extends State<LoginScreen>
     try {
       final cred = await _authService.signInWithGoogle();
       if (cred != null) {
+        await _analytics.logLogin('google');
         await _ensureUserDocAndNavigate();
       } else {
         if (mounted) setState(() => _isLoading = false);
@@ -115,6 +119,7 @@ class _LoginScreenState extends State<LoginScreen>
     try {
       final cred = await _authService.signInWithApple();
       if (cred != null) {
+        await _analytics.logLogin('apple');
         await _ensureUserDocAndNavigate();
       } else {
         if (mounted) setState(() => _isLoading = false);

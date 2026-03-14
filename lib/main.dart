@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_localizations/flutter_localizations.dart'; // 日本語ロケール用
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'firebase_options.dart';
 import 'config/routes.dart';
 import 'config/theme.dart';
+import 'services/analytics_service.dart';
 import 'services/push_notification_service.dart';
 
 void main() async {
@@ -13,6 +16,20 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    // Crashlytics 初期化（Web非対応のためスキップ）
+    if (!kIsWeb) {
+      // Flutter フレームワーク内のエラーを自動送信
+      FlutterError.onError =
+          FirebaseCrashlytics.instance.recordFlutterFatalError;
+
+      // Flutter フレームワーク外の非同期エラーを自動送信
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
+    }
+
     // プッシュ通知の初期化
     await PushNotificationService().initialize();
   } catch (e) {
@@ -58,11 +75,13 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('ja', 'JP'), // 日本語
+        Locale('ja', 'JP'),
       ],
-      locale: const Locale('ja', 'JP'), // デフォルトを日本語に固定
+      locale: const Locale('ja', 'JP'),
       initialRoute: AppRoutes.wrapper,
       routes: AppRoutes.routes,
+      // 画面遷移の自動トラッキング
+      navigatorObservers: [AnalyticsService.instance.observer],
     );
   }
 }

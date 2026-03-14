@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_request.dart';
 import '../models/app_notification.dart';
 import '../models/app_user.dart';
+import 'analytics_service.dart';
 import 'notification_service.dart';
 
 /// フレンド検索・リクエスト送受信・フレンドリストを担当するサービス
@@ -22,6 +23,7 @@ class FriendService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final NotificationService _notificationService = NotificationService();
+  final AnalyticsService _analytics = AnalyticsService.instance;
 
   /// ユーザーIDで検索します（部分一致ではなく完全一致）
   Future<AppUser?> searchByUserId(String userId) async {
@@ -79,6 +81,8 @@ class FriendService {
       params: {'username': myData['username'] ?? ''},
       fromUid: myUid,
     );
+
+    _analytics.logFriendRequestSent();
   }
 
   /// 受信したフレンドリクエスト一覧を取得します（リアルタイム）
@@ -125,6 +129,8 @@ class FriendService {
       params: {'username': request.toUsername},
       fromUid: request.toUid,
     );
+
+    _analytics.logFriendRequestAccepted();
   }
 
   /// フレンドリクエストを拒否します
@@ -132,6 +138,7 @@ class FriendService {
     await _db.collection('friend_requests').doc(request.id).update({
       'status': 'rejected',
     });
+    _analytics.logFriendRequestRejected();
   }
 
   /// フレンドリストを取得します（リアルタイム）
@@ -194,5 +201,6 @@ class FriendService {
     );
 
     await batch.commit();
+    _analytics.logFriendRemoved();
   }
 }

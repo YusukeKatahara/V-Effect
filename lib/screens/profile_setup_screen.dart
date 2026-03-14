@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../services/analytics_service.dart';
 import '../services/user_service.dart';
 import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
@@ -101,6 +102,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
         birthDate: birthDate,
         gender: _gender!,
       );
+
+      await AnalyticsService.instance.logProfileSetupComplete();
 
       if (mounted) {
         Navigator.of(context)

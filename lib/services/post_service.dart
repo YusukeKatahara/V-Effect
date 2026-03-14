@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import '../models/post.dart';
 import '../models/app_notification.dart';
 import '../utils/date_helper.dart';
+import 'analytics_service.dart';
 import 'streak_service.dart';
 import 'notification_service.dart';
 
@@ -24,6 +25,7 @@ class PostService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final StreakService _streakService = StreakService();
   final NotificationService _notificationService = NotificationService();
+  final AnalyticsService _analytics = AnalyticsService.instance;
 
   /// ストリークサービスへの委譲メソッド
   Future<int> getStreak() => _streakService.getStreak();
@@ -119,7 +121,18 @@ class PostService {
     // Step3: ストリークを更新
     final streakResult = await _streakService.updateStreak(uid, now);
 
-    // Step4: フレンドに通知を送る（バックグラウンドで処理、エラーハンドリング付き）
+    // Step4: Analytics イベント送信
+    _analytics.logPostCreated(taskName: taskName);
+    final newStreak = streakResult['newStreak'] as int;
+    final isRecord = streakResult['isRecordUpdating'] as bool;
+    _analytics.logStreakUpdate(streak: newStreak, isRecord: isRecord);
+    _analytics.setStreakTier(newStreak);
+    // マイルストーン判定（7, 30, 100, 365日）
+    if (const [7, 30, 100, 365].contains(newStreak)) {
+      _analytics.logStreakMilestone(streak: newStreak);
+    }
+
+    // Step5: フレンドに通知を送る（バックグラウンドで処理、エラーハンドリング付き）
     _sendPostNotifications(uid).catchError((_) {
       // 通知送信失敗はクリティカルではないので静かに無視
     });
@@ -195,6 +208,7 @@ class PostService {
     await _db.collection('posts').doc(postId).update({
       'reactionCount': FieldValue.increment(1),
     });
+    _analytics.logReactionSent();
 
     // リアクション通知を送付（バックグラウンドで処理、エラーハンドリング付き）
     _sendReactionNotification(postId).catchError((_) {

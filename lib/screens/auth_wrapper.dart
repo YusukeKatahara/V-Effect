@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/routes.dart';
+import '../services/analytics_service.dart';
 import 'login_screen.dart';
 
 /// 認証状態とプロフィール完了状態を監視し、適切な画面へルーティングするラッパー
@@ -54,6 +55,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
         if (_lastUid != user.uid) {
           _lastUid = user.uid;
           _navigating = false;
+          // Analytics にユーザーIDを設定
+          AnalyticsService.instance.setUserId(user.uid);
           _userDocFuture = FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)

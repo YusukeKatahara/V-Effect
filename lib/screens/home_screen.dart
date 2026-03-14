@@ -8,6 +8,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../services/analytics_service.dart';
 import '../services/notification_service.dart';
 import '../services/post_service.dart';
 import '../widgets/fluid_blob.dart';
@@ -25,6 +26,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final PostService _postService = PostService();
   final NotificationService _notificationService = NotificationService();
+  final AnalyticsService _analytics = AnalyticsService.instance;
 
   int _streak = 0;
   bool _postedToday = false;
@@ -123,6 +125,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (_postedToday && _tasks.isNotEmpty) {
         _zenController.repeat(reverse: true);
       }
+
+      // ユーザープロパティを更新
+      _analytics.setStreakTier(_streak);
+      _analytics.setTaskCount(_tasks.length);
+      _analytics.setFriendCount(friendUids.length);
 
       _notificationService
           .checkAndCreateTimeReminders(streak: _streak)

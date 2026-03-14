@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../config/app_colors.dart';
 import '../models/post.dart';
+import '../services/analytics_service.dart';
 import '../services/post_service.dart';
 
 /// Stories風のフルスクリーン投稿ビューアー
@@ -51,6 +52,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
     super.initState();
     _currentFriendIndex = widget.initialFriendIndex;
     _loadPosts();
+    AnalyticsService.instance.logFriendFeedViewed();
   }
 
   @override
