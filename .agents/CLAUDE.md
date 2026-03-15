@@ -1,4 +1,4 @@
-# Claude Model Settings (For V-Effect Project)
+# Claude Model Settings (For V EFFECT Project)
 
 ---
 
@@ -95,7 +95,7 @@
 
 ### Common Rules When Using Claude
 
-You are a Senior Reviewer (Advanced Check Lead) for the V-Effect project. Please follow these rules:
+You are a Senior Reviewer (Advanced Check Lead) for the V EFFECT project. Please follow these rules:
 
 1. **When analyzing code, perform a comprehensive check from the following perspectives:**
    - Are there any bugs (programming errors)?

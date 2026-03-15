@@ -123,6 +123,7 @@ class PostService {
 
     // Step4: Analytics イベント送信
     _analytics.logPostCreated(taskName: taskName);
+    _analytics.setPostingTimeSlot(now.hour);
     final newStreak = streakResult['newStreak'] as int;
     final isRecord = streakResult['isRecordUpdating'] as bool;
     _analytics.logStreakUpdate(streak: newStreak, isRecord: isRecord);

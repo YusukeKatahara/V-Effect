@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'analytics_service.dart';
 
 /// バックグラウンドメッセージハンドラー（トップレベル関数である必要がある）
 @pragma('vm:entry-point')
@@ -34,8 +35,8 @@ class PushNotificationService {
   /// Android のフォアグラウンド通知チャンネル
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'veffect_notifications',
-    'V-Effect 通知',
-    description: 'V-Effect アプリからの通知',
+    'V EFFECT 通知',
+    description: 'V EFFECT アプリからの通知',
     importance: Importance.high,
   );
 
@@ -61,6 +62,14 @@ class PushNotificationService {
     // フォアグラウンドでの通知受信リスナー
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
+    // 通知タップによるアプリ起動を計測
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationOpen);
+    // アプリ終了状態から通知タップで起動した場合
+    final initialMessage = await _messaging.getInitialMessage();
+    if (initialMessage != null) {
+      _handleNotificationOpen(initialMessage);
+    }
+
     // FCM トークンを保存
     await saveFcmToken();
 
@@ -72,17 +81,14 @@ class PushNotificationService {
 
   /// 通知権限をリクエスト
   Future<void> _requestPermission() async {
-    await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await _messaging.requestPermission(alert: true, badge: true, sound: true);
   }
 
   /// ローカル通知プラグインの初期化
   Future<void> _initializeLocalNotifications() async {
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings();
     const settings = InitializationSettings(
       android: androidSettings,
@@ -93,8 +99,10 @@ class PushNotificationService {
 
     // Android の通知チャンネルを作成
     final androidPlugin =
-        _localNotifications.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+        _localNotifications
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
     await androidPlugin?.createNotificationChannel(_channel);
   }
 
@@ -122,6 +130,12 @@ class PushNotificationService {
     );
   }
 
+  /// 通知タップによるアプリ起動を Analytics に記録
+  void _handleNotificationOpen(RemoteMessage message) {
+    final type = message.data['type'] as String? ?? 'unknown';
+    AnalyticsService.instance.logOpenFromNotification(type: type);
+  }
+
   /// FCM トークンを Firestore に保存
   Future<void> saveFcmToken() async {
     final user = _auth.currentUser;
@@ -131,10 +145,9 @@ class PushNotificationService {
       final token = await _messaging.getToken();
       if (token == null) return;
 
-      await _db.collection('users').doc(user.uid).set(
-        {'fcmToken': token},
-        SetOptions(merge: true),
-      );
+      await _db.collection('users').doc(user.uid).set({
+        'fcmToken': token,
+      }, SetOptions(merge: true));
     } catch (e) {
       debugPrint('FCMトークン保存エラー: $e');
     }
@@ -146,9 +159,9 @@ class PushNotificationService {
     if (user == null) return;
 
     try {
-      await _db.collection('users').doc(user.uid).update(
-        {'fcmToken': FieldValue.delete()},
-      );
+      await _db.collection('users').doc(user.uid).update({
+        'fcmToken': FieldValue.delete(),
+      });
     } catch (e) {
       debugPrint('FCMトークン削除エラー: $e');
     }

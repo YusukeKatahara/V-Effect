@@ -17,24 +17,27 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen>
     with SingleTickerProviderStateMixin {
-  final _formKey        = GlobalKey<FormState>();
-  final _emailCtrl      = TextEditingController();
-  final _passCtrl       = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
   final _passConfirmCtrl = TextEditingController();
-  final _authService    = AuthService();
-  final _analytics     = AnalyticsService.instance;
-  bool _isLoading    = false;
-  bool _obscurePass  = true;
-  bool _obscureConf  = true;
+  final _authService = AuthService();
+  final _analytics = AnalyticsService.instance;
+  bool _isLoading = false;
+  bool _obscurePass = true;
+  bool _obscureConf = true;
 
   late final AnimationController _fadeCtrl;
-  late final Animation<double>   _fadeAnim;
+  late final Animation<double> _fadeAnim;
 
   @override
   void initState() {
     super.initState();
-    _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _fadeAnim  = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+    _fadeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _fadeCtrl.forward();
   }
 
@@ -63,8 +66,9 @@ class _RegisterScreenState extends State<RegisterScreen>
 
     if (!mounted) return;
     // 新規登録 → 必ずプロフィール設定へ（スタックをクリア）
-    Navigator.of(context)
-        .pushNamedAndRemoveUntil(AppRoutes.profileSetup, (r) => false);
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.profileSetup, (r) => false);
   }
 
   Future<void> _register() async {
@@ -126,7 +130,9 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -143,20 +149,27 @@ class _RegisterScreenState extends State<RegisterScreen>
                 children: [
                   // ── カスタムAppBar ──
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                              color: AppColors.textPrimary),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: AppColors.textPrimary,
+                          ),
                           onPressed: () => Navigator.pop(context),
                         ),
-                        const Text('新規登録',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            )),
+                        const Text(
+                          '新規登録',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -249,7 +262,11 @@ class _RegisterScreenState extends State<RegisterScreen>
               ),
             ],
           ),
-          child: const Icon(Icons.bolt_rounded, size: 40, color: AppColors.black),
+          child: const Icon(
+            Icons.bolt_rounded,
+            size: 40,
+            color: AppColors.black,
+          ),
         ),
         const SizedBox(height: 14),
         const Text(
@@ -262,7 +279,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         ),
         const SizedBox(height: 4),
         Text(
-          'V-Effectに参加して仲間と高め合おう',
+          'V EFFECTに参加して仲間と高め合おう',
           style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
       ],
@@ -281,7 +298,9 @@ class _RegisterScreenState extends State<RegisterScreen>
             labelText: 'メールアドレス',
             prefixIcon: Icon(Icons.mail_outline_rounded),
           ),
-          validator: (v) => (v == null || v.trim().isEmpty) ? 'メールアドレスを入力してください' : null,
+          validator:
+              (v) =>
+                  (v == null || v.trim().isEmpty) ? 'メールアドレスを入力してください' : null,
         ),
         const SizedBox(height: 14),
 
@@ -295,7 +314,9 @@ class _RegisterScreenState extends State<RegisterScreen>
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               icon: Icon(
-                _obscurePass ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                _obscurePass
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
                 color: AppColors.textMuted,
               ),
               onPressed: () => setState(() => _obscurePass = !_obscurePass),
@@ -319,7 +340,9 @@ class _RegisterScreenState extends State<RegisterScreen>
             prefixIcon: const Icon(Icons.lock_person_outlined),
             suffixIcon: IconButton(
               icon: Icon(
-                _obscureConf ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                _obscureConf
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
                 color: AppColors.textMuted,
               ),
               onPressed: () => setState(() => _obscureConf = !_obscureConf),
@@ -337,42 +360,42 @@ class _RegisterScreenState extends State<RegisterScreen>
         _isLoading
             ? _buildLoadingButton()
             : SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: _register,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      foregroundColor: AppColors.black,
-                      minimumSize: const Size(double.infinity, 54),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+              width: double.infinity,
+              height: 54,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
                     ),
-                    child: const Text(
-                      'アカウントを作成',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                      ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _register,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: AppColors.black,
+                    minimumSize: const Size(double.infinity, 54),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'アカウントを作成',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ),
               ),
+            ),
       ],
     );
   }
@@ -385,7 +408,10 @@ class _RegisterScreenState extends State<RegisterScreen>
             const Expanded(child: Divider()),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text('または', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              child: Text(
+                'または',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+              ),
             ),
             const Expanded(child: Divider()),
           ],
@@ -403,11 +429,18 @@ class _RegisterScreenState extends State<RegisterScreen>
                 Image.network(
                   'https://developers.google.com/identity/images/g-logo.png',
                   height: 22,
-                  errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.g_mobiledata, size: 24, color: AppColors.textPrimary),
+                  errorBuilder:
+                      (_, __, ___) => const Icon(
+                        Icons.g_mobiledata,
+                        size: 24,
+                        color: AppColors.textPrimary,
+                      ),
                 ),
                 const SizedBox(width: 10),
-                const Text('Googleで作成', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text(
+                  'Googleで作成',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ],
             ),
           ),

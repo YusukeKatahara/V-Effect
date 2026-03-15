@@ -1,4 +1,4 @@
-# V-Effect 画面遷移図
+# V EFFECT 画面遷移図
 
 ```mermaid
 flowchart TD

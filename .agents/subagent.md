@@ -3,7 +3,7 @@
 > **What is this document?**
 > Antigravity has a feature called "Subagent".
 > This is a feature where the AI operates the browser itself to look things up or check screens for you.
-> This guide introduces specific ways to utilize subagents in the V-Effect project.
+> This guide introduces specific ways to utilize subagents in the V EFFECT project.
 
 ---
 
@@ -18,9 +18,9 @@
 
 ---
 
-## 📋 V-Effect Specific Subagent Definitions
+## 📋 V EFFECT Specific Subagent Definitions
 
-Below are **specific subagent task definitions** that can be repeatedly used in V-Effect development.
+Below are **specific subagent task definitions** that can be repeatedly used in V EFFECT development.
 Just talk to Antigravity as follows, and the subagent will automatically perform the work.
 
 ---
@@ -49,17 +49,17 @@ Just talk to Antigravity as follows, and the subagent will automatically perform
 
 ### 🎨 2. UI/UX Design Reference Research Agent
 
-**Purpose:** Research competing apps and reference designs to use as a reference for V-Effect's design.
+**Purpose:** Research competing apps and reference designs to use as a reference for V EFFECT's design.
 
 **Example of how to talk:**
 > "Research the home screen designs of BeReal or Instagram and summarize their features."
 > "Research how to use Material Design 3's card components."
-> "Research UI/UX trends in photo posting apps and tell me 5 ideas that could be used for V-Effect."
+> "Research UI/UX trends in photo posting apps and tell me 5 ideas that could be used for V EFFECT."
 
 **What the subagent does:**
 1. Check specified apps or design resource sites in the browser.
 2. Analyze design features (layout, color scheme, interaction).
-3. Pick up elements that fit V-Effect's concept.
+3. Pick up elements that fit V EFFECT's concept.
 4. Report the analysis results along with screenshots.
 
 **When to use:**
@@ -88,7 +88,7 @@ Just talk to Antigravity as follows, and the subagent will automatically perform
 **When to use:**
 - When introducing a new Firebase service.
 - During the design/confirmation of Security Rules.
-- For implementation research of V-Effect specific requirements like "can only be viewed the day after posting".
+- For implementation research of V EFFECT specific requirements like "can only be viewed the day after posting".
 
 ---
 
@@ -129,7 +129,7 @@ Just talk to Antigravity as follows, and the subagent will automatically perform
 1. Browse the help pages of Google Play Console / App Store Connect.
 2. List necessary procedures, documents, and costs.
 3. Research review points specific to SNS apps (photo handling, minor protection, etc.).
-4. Organize as an action list required for V-Effect's release.
+4. Organize as an action list required for V EFFECT's release.
 
 **When to use:**
 - Preliminary research for Phase 5 (Release preparation).
@@ -151,7 +151,7 @@ Just talk to Antigravity as follows, and the subagent will automatically perform
 1. Search Stack Overflow or GitHub Issues based on the error message.
 2. Check the troubleshooting section of the official documentation.
 3. Collect multiple solutions from developers who encountered the same problem.
-4. Propose a resolution procedure suited for the V-Effect environment (Flutter + Firebase).
+4. Propose a resolution procedure suited for the V EFFECT environment (Flutter + Firebase).
 
 **When to use:**
 - When a warning or error occurs in `flutter doctor`.
@@ -165,12 +165,12 @@ Just talk to Antigravity as follows, and the subagent will automatically perform
 **Purpose:** Support the checking and management of repository settings and Issues on GitHub.
 
 **Example of how to talk:**
-> "Check the Settings of the V-Effect repository on GitHub and see if branch protection is configured."
+> "Check the Settings of the V EFFECT repository on GitHub and see if branch protection is configured."
 > "Check the execution results of GitHub Actions workflows."
-> "Check the Issue list of the V-Effect repository and summarize open tasks."
+> "Check the Issue list of the V EFFECT repository and summarize open tasks."
 
 **What the subagent does:**
-1. Open the V-Effect repository page on GitHub in the browser.
+1. Open the V EFFECT repository page on GitHub in the browser.
 2. Check the specified tab (Settings, Actions, Issues, etc.).
 3. Report the configuration content and results along with screenshots.
 4. Propose if there are points that need improvement.

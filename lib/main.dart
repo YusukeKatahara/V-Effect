@@ -54,6 +54,8 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // 初回セッション開始を記録
+    AnalyticsService.instance.onAppResumed();
   }
 
   @override
@@ -62,11 +64,22 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  /// アプリのライフサイクルを監視してセッションを計測
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final analytics = AnalyticsService.instance;
+    if (state == AppLifecycleState.resumed) {
+      analytics.onAppResumed();
+    } else if (state == AppLifecycleState.paused) {
+      analytics.onAppPaused();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: VEffectApp.navigatorKey,
-      title: 'V-Effect',
+      title: 'V EFFECT',
       theme: AppTheme.dark,
       // 日本語ロケール設定（午前/午後表示などに必要）
       localizationsDelegates: const [
@@ -74,9 +87,7 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('ja', 'JP'),
-      ],
+      supportedLocales: const [Locale('ja', 'JP')],
       locale: const Locale('ja', 'JP'),
       initialRoute: AppRoutes.wrapper,
       routes: AppRoutes.routes,

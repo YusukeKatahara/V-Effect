@@ -130,6 +130,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _analytics.setStreakTier(_streak);
       _analytics.setTaskCount(_tasks.length);
       _analytics.setFriendCount(friendUids.length);
+      _analytics.setTaskCategories(_tasks);
 
       _notificationService
           .checkAndCreateTimeReminders(streak: _streak)

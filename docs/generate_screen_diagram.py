@@ -1,4 +1,4 @@
-"""V-Effect 画面遷移図を生成するスクリプト（UIモックアップ版）"""
+"""V EFFECT 画面遷移図を生成するスクリプト（UIモックアップ版）"""
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, Circle, Rectangle
 import matplotlib.patheffects as pe
@@ -120,7 +120,7 @@ def draw_bottom_nav(x0, y0, active_idx=0):
 
 def draw_login_screen(cx, cy):
     x0, y0 = phone_frame(cx, cy, '/login')
-    draw_appbar(x0, y0, 'V-Effect')
+    draw_appbar(x0, y0, 'V EFFECT')
     draw_circle_icon(cx, y0 + PH - 1.25, 0.27, 'V', COL_AMBER, '#000')
     draw_textfield(x0, PW, y0 + PH - 1.95, 'mail@example.com')
     draw_textfield(x0, PW, y0 + PH - 2.35, '********')
@@ -238,7 +238,7 @@ def draw_main_shell(cx, cy):
 
 def draw_home_screen(cx, cy):
     x0, y0 = phone_frame(cx, cy, 'HomeScreen [Tab 0]')
-    draw_appbar(x0, y0, 'V-Effect', ['N'])
+    draw_appbar(x0, y0, 'V EFFECT', ['N'])
     # Stories row
     story_y = y0 + PH - 1.05
     for i in range(4):
@@ -699,7 +699,7 @@ ax.text(17, 11.2, 'Main App', fontsize=12, color='#4db6ac',
 
 
 # ===== Title =====
-ax.text(0.5, 25.5, 'V-Effect Screen Transitions', fontsize=30, fontweight='bold',
+ax.text(0.5, 25.5, 'V EFFECT Screen Transitions', fontsize=30, fontweight='bold',
         color=COL_AMBER, zorder=10)
 
 # ===== Legend =====
@@ -720,7 +720,7 @@ for i, (color, _, label) in enumerate(arrow_items):
 
 
 plt.tight_layout()
-output_path = r'C:\Users\katahara yusuke\V-Effect\docs\screen_transitions.png'
+output_path = r'C:\Users\katahara yusuke\V EFFECT\docs\screen_transitions.png'
 fig.savefig(output_path, dpi=150, bbox_inches='tight',
             facecolor=fig.get_facecolor(), edgecolor='none')
 plt.close()

@@ -1,7 +1,7 @@
-# 📖 V-Effect 開発環境 仕様書
+# 📖 V EFFECT 開発環境 仕様書
 
 > **このドキュメントは何？**
-> V-Effect プロジェクトに参加するメンバーが、
+> V EFFECT プロジェクトに参加するメンバーが、
 > **同じ開発環境を構築**し、**日々の作業をスムーズに進め**、
 > **アプリのリリースに向けて迷わず進められる**ようにするための説明書です。
 >
@@ -44,13 +44,13 @@
 │                                                         │
 │  あなたのPC                    GitHub（ネット上）          │
 │  ┌────────────┐    Push →     ┌──────────────┐          │
-│  │ V-Effect   │ ──────────→  │  V-Effect    │          │
+│  │ V EFFECT   │ ──────────→  │  V EFFECT    │          │
 │  │ フォルダ    │ ←──────────  │  リポジトリ   │          │
 │  └────────────┘    ← Pull     └──────────────┘          │
 │        ↕                            ↕                   │
 │   Antigravityで               パートナーのPC             │
 │   コードを作成             ┌────────────┐               │
-│                            │ V-Effect   │               │
+│                            │ V EFFECT   │               │
 │                            │ フォルダ    │               │
 │                            └────────────┘               │
 └─────────────────────────────────────────────────────────┘
@@ -115,7 +115,7 @@ Antigravityのターミナルで以下のコマンドを実行します。
 
 ```bash
 # 自分のPCにプロジェクトをダウンロード
-git clone https://github.com/YusukeKatahara/V-Effect.git
+git clone https://github.com/YusukeKatahara/V EFFECT.git
 ```
 
 > **💡 「ターミナル」って何？**
@@ -404,7 +404,7 @@ Phase 1        Phase 2         Phase 3        Phase 4        Phase 5
 
 ### 方法2：GitHub で確認する
 
-ブラウザで [https://github.com/YusukeKatahara/V-Effect](https://github.com/YusukeKatahara/V-Effect) にアクセスすると：
+ブラウザで [https://github.com/YusukeKatahara/V EFFECT](https://github.com/YusukeKatahara/V EFFECT) にアクセスすると：
 - **最新のファイル一覧** が見られます
 - **誰が・いつ・何を変更したか** の履歴（Commitsタブ）が見られます
 - パートナーの作業状況も確認できます

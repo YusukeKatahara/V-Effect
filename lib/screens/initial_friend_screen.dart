@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../services/analytics_service.dart';
 import '../services/friend_service.dart';
 import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
@@ -93,6 +94,16 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
           errors.add('$userId: 送信に失敗しました');
         }
       }
+
+      // 招待元を Analytics に記録（UIには影響なし）
+      final referrers = <String>[];
+      if (_rennSelected) referrers.add('renn');
+      if (_yusukeSelected) referrers.add('yusuke');
+      if (_otherSelected && _userIdCtrl.text.trim().isNotEmpty) {
+        referrers.add('other');
+      }
+      AnalyticsService.instance
+          .logReferralSource(referrers: referrers, skipped: false);
 
       if (mounted) {
         if (sentCount > 0) {
@@ -295,6 +306,10 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                             onPressed: _isSending
                                 ? null
                                 : () {
+                                    // スキップも記録
+                                    AnalyticsService.instance
+                                        .logReferralSource(
+                                            referrers: [], skipped: true);
                                     Navigator.pushReplacementNamed(
                                         context, AppRoutes.home);
                                   },

@@ -1,14 +1,14 @@
 ---
-name: V-Effect App Development Skills
-description: Common rules and skill definitions for mobile app development in the V-Effect project
+name: V EFFECT App Development Skills
+description: Common rules and skill definitions for mobile app development in the V EFFECT project
 ---
 
-# V-Effect App Development Skills
+# V EFFECT App Development Skills
 ---
 
 ## Project Overview
 
-- **Project Name:** V-Effect
+- **Project Name:** V EFFECT
 - **App Description:** An all-positive SNS app where users share their daily efforts with photos and praise each other to maintain motivation for growth. Users post photos once a day in a narrow community such as among friends, and only those who post can view others' posts (BeReal style). Combines goal management, roadmap creation, and game elements (skill tree, XP, streak) to visualize self-growth.
 - **Target Users:** 学生や、日々の目標に向かって泥臭く頑張る人たち。
 - **Platform:** Android / iOS (Cross-platform development using Flutter)
@@ -16,7 +16,7 @@ description: Common rules and skill definitions for mobile app development in th
 - **Development Members:** 2 members
   - **renn** (Planner): A beginner with no programming experience. In charge of ideas, planning, and design direction.
   - **yusuke** (Technical Co-developer): Doctoral course (Engineering). Experienced in Python/C/C++/Matlab. Well-versed in machine learning, generative AI, mathematics, and English. Role is to technically realize the app upon consultation from renn.
-- **Source Code Management:** GitHub (Repository: YusukeKatahara/V-Effect)
+- **Source Code Management:** GitHub (Repository: YusukeKatahara/V EFFECT)
 
 ---
 
@@ -46,7 +46,7 @@ description: Common rules and skill definitions for mobile app development in th
 ### Folder Structure (Flutter Project)
 
 ```
-V-Effect/
+V EFFECT/
 ├── .agents/          ... AI configuration files (this folder)
 ├── docs/             ... Documents
 ├── setup/            ... Setup guides

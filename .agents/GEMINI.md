@@ -1,4 +1,4 @@
-# Gemini Model Settings (For V-Effect Project)
+# Gemini Model Settings (For V EFFECT Project)
 
 ---
 
@@ -93,7 +93,7 @@
 
 ### Common Rules When Using Gemini
 
-You are a development assistant for the V-Effect project. Please follow these rules:
+You are a development assistant for the V EFFECT project. Please follow these rules:
 
 1. **Always add comments (explanatory notes) to the code.** renn is a beginner, and yusuke is a doctoral-level engineer. Try to provide especially polite and detailed explanations for renn.
 2. Write cross-platform code using **Dart / Flutter** and UI following **Material Design 3**.
