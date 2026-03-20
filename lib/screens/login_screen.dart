@@ -6,6 +6,7 @@ import '../config/routes.dart';
 import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
+import '../widgets/animated_v_logo.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -229,22 +230,7 @@ class _LoginScreenState extends State<LoginScreen>
     return Column(
       children: [
         // グロー付きアイコン
-        Container(
-          width: 88,
-          height: 88,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: AppColors.primaryGradient,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.white.withValues(alpha: 0.3),
-                blurRadius: 32,
-                spreadRadius: 4,
-              ),
-            ],
-          ),
-          child: const Icon(Icons.bolt_rounded, size: 52, color: AppColors.black),
-        ),
+        const AnimatedVLogo(size: 88),
         const SizedBox(height: 20),
         ShaderMask(
           shaderCallback: (bounds) =>

@@ -239,7 +239,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                 Expanded(
                                   flex: 3,
                                   child: DropdownButtonFormField<int>(
-                                    initialValue: _birthYear,
+                                    value: _birthYear,
                                     dropdownColor: AppColors.bgElevated,
                                     style: const TextStyle(
                                         color: AppColors.textPrimary),
@@ -274,7 +274,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                 Expanded(
                                   flex: 2,
                                   child: DropdownButtonFormField<int>(
-                                    initialValue: _birthMonth,
+                                    value: _birthMonth,
                                     dropdownColor: AppColors.bgElevated,
                                     style: const TextStyle(
                                         color: AppColors.textPrimary),
@@ -306,7 +306,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                 Expanded(
                                   flex: 2,
                                   child: DropdownButtonFormField<int>(
-                                    initialValue: _birthDay,
+                                    value: _birthDay,
                                     dropdownColor: AppColors.bgElevated,
                                     style: const TextStyle(
                                         color: AppColors.textPrimary),
@@ -337,26 +337,24 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             // 性別
                             const SectionTitle(title: '性別'),
                             const SizedBox(height: 8),
-                            RadioGroup<String>(
-                              groupValue: _gender ?? '',
-                              onChanged: (v) =>
-                                  setState(() => _gender = v),
-                              child: Column(
-                                children: _genderOptions.map((option) {
-                                  return RadioListTile<String>(
-                                    title: Text(option,
-                                        style: const TextStyle(
-                                            color: AppColors.textPrimary)),
-                                    value: option,
-                                    activeColor: AppColors.primary,
-                                    tileColor: AppColors.bgSurface,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    contentPadding: EdgeInsets.zero,
-                                  );
-                                }).toList(),
-                              ),
+                            Column(
+                              children: _genderOptions.map((option) {
+                                return RadioListTile<String>(
+                                  title: Text(option,
+                                      style: const TextStyle(
+                                          color: AppColors.textPrimary)),
+                                  value: option,
+                                  groupValue: _gender,
+                                  onChanged: (v) =>
+                                      setState(() => _gender = v),
+                                  activeColor: AppColors.primary,
+                                  tileColor: AppColors.bgSurface,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: EdgeInsets.zero,
+                                );
+                              }).toList(),
                             ),
                             const SizedBox(height: 32),
 

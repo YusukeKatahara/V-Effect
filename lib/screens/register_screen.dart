@@ -7,6 +7,7 @@ import '../config/routes.dart';
 import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
+import '../widgets/animated_v_logo.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -248,26 +249,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   Widget _buildLogo() {
     return Column(
       children: [
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: AppColors.primaryGradient,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.white.withValues(alpha: 0.2),
-                blurRadius: 24,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.bolt_rounded,
-            size: 40,
-            color: AppColors.black,
-          ),
-        ),
+        const AnimatedVLogo(size: 72),
         const SizedBox(height: 14),
         const Text(
           'アカウントを作成',
