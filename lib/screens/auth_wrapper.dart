@@ -83,10 +83,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
             final data = docSnapshot.data!.data() as Map<String, dynamic>?;
             final isProfileCompleted = data?['profileCompleted'] == true;
+            final isTemplateCompleted = data?['templateCompleted'] == true;
             final isOnboardingCompleted = data?['onboardingCompleted'] == true;
 
             if (!isProfileCompleted) {
               _navigateTo(AppRoutes.profileSetup);
+            } else if (!isTemplateCompleted) {
+              _navigateTo(AppRoutes.taskTemplate);
             } else if (!isOnboardingCompleted) {
               _navigateTo(AppRoutes.taskSetup);
             } else {

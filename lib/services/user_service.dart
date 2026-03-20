@@ -8,6 +8,9 @@ class UserService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  /// 現在ログイン中のユーザーUID（未ログイン時はnull）
+  String? get currentUid => _auth.currentUser?.uid;
+
   /// プロフィール設定を保存します（新規登録フロー Step1）
   /// 公開情報は users/{uid}、非公開情報は users/{uid}/private/data に分離
   Future<void> saveProfile({
@@ -51,6 +54,19 @@ class UserService {
     );
 
     await batch.commit();
+  }
+
+  /// テンプレートタスク選択を保存します（新規登録フロー: テンプレート選択ステップ）
+  /// 選択されたタスクをtasksの最初の要素として保存し、templateCompletedをtrueに設定
+  Future<void> saveTemplateTask({required String taskName}) async {
+    final uid = _auth.currentUser!.uid;
+    await _db.collection('users').doc(uid).set(
+      {
+        'tasks': [taskName],
+        'templateCompleted': true,
+      },
+      SetOptions(merge: true),
+    );
   }
 
   /// タスク設定を保存します（新規登録フロー Step2）

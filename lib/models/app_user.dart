@@ -17,6 +17,7 @@ class AppUser {
   final String? wakeUpTime;
   final String? taskTime;
   final bool profileCompleted;
+  final bool templateCompleted;
   final bool onboardingCompleted;
   final int? lastProfileEditDate;
 
@@ -36,6 +37,7 @@ class AppUser {
     this.wakeUpTime,
     this.taskTime,
     this.profileCompleted = false,
+    this.templateCompleted = false,
     this.onboardingCompleted = false,
     this.lastProfileEditDate,
   });
@@ -58,6 +60,7 @@ class AppUser {
       wakeUpTime: data['wakeUpTime'],
       taskTime: data['taskTime'],
       profileCompleted: data['profileCompleted'] ?? false,
+      templateCompleted: data['templateCompleted'] ?? false,
       onboardingCompleted: data['onboardingCompleted'] ?? false,
       lastProfileEditDate: data['lastProfileEditDate'],
     );

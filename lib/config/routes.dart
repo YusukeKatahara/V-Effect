@@ -5,6 +5,7 @@ import '../screens/camera_screen.dart';
 import '../screens/register_screen.dart';
 import '../screens/profile_setup_screen.dart';
 import '../screens/task_setup_screen.dart';
+import '../screens/task_template_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/friends_screen.dart';
 import '../screens/notifications_screen.dart';
@@ -23,6 +24,7 @@ class AppRoutes {
   static const String camera = '/camera';
   static const String profileSetup = '/profile-setup';
   static const String taskSetup = '/task-setup';
+  static const String taskTemplate = '/task-template';
   static const String friends = '/friends';
   static const String profile = '/profile';
   static const String notifications = '/notifications';
@@ -39,6 +41,7 @@ class AppRoutes {
         camera: (context) => const CameraScreen(),
         profileSetup: (context) => const ProfileSetupScreen(),
         taskSetup: (context) => const TaskSetupScreen(),
+        taskTemplate: (context) => const TaskTemplateScreen(),
         profile: (context) => const ProfileScreen(),
         friends: (context) => const FriendsScreen(),
         notifications: (context) => const NotificationsScreen(),

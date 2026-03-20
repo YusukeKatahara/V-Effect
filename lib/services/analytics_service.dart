@@ -102,6 +102,20 @@ class AnalyticsService {
     await _analytics.logEvent(name: 'onboarding_complete');
   }
 
+  /// テンプレートタスク選択を記録
+  Future<void> logTemplateSelected({
+    required String templateName,
+    required bool isCustom,
+  }) async {
+    await _analytics.logEvent(
+      name: 'template_selected',
+      parameters: {
+        'template_name': templateName,
+        'is_custom': isCustom ? 1 : 0,
+      },
+    );
+  }
+
   // ════════════════════════════════════════════
   // 投稿イベント（タスクカテゴリ + 時間帯付き）
   // ════════════════════════════════════════════

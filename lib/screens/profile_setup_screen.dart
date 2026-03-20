@@ -107,7 +107,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
 
       if (mounted) {
         Navigator.of(context)
-            .pushNamedAndRemoveUntil(AppRoutes.taskSetup, (r) => false);
+            .pushNamedAndRemoveUntil(AppRoutes.taskTemplate, (r) => false);
       }
     } catch (e) {
       if (mounted) {

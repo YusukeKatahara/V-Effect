@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
@@ -13,8 +14,9 @@ import '../widgets/gradient_button.dart';
 import '../widgets/premium_icon_header.dart';
 import '../widgets/section_title.dart';
 
-/// 新規登録後のタスク設定画面（Step 2/2）
+/// 新規登録後のタスク設定画面
 /// プロフィール写真、タスク（1〜5個）、タスク実行時間、起床時間を入力します
+/// テンプレート選択で既にタスクが1つ保存されている場合、それをプリフィルします
 class TaskSetupScreen extends StatefulWidget {
   const TaskSetupScreen({super.key});
 
@@ -55,6 +57,27 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
       curve: Curves.easeOut,
     );
     _fadeController.forward();
+    _loadTemplateTask();
+  }
+
+  /// テンプレートで選択済みのタスクがあればプリフィル
+  Future<void> _loadTemplateTask() async {
+    try {
+      final uid = _userService.currentUid;
+      if (uid == null) return;
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      final tasks = List<String>.from(snap.data()?['tasks'] ?? []);
+      if (tasks.isNotEmpty && mounted) {
+        setState(() {
+          _taskCtrls[0].text = tasks[0];
+        });
+      }
+    } catch (_) {
+      // テンプレートタスクの読み込みに失敗しても続行
+    }
   }
 
   @override
@@ -402,7 +425,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             ),
                             const SizedBox(height: 4),
                             const Text(
-                              '日々のタスクとスケジュールを設定しましょう',
+                              'タスクとスケジュールをカスタマイズしましょう',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 18,
