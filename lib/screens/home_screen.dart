@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
@@ -56,7 +57,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _notificationStream = _notificationService.getNotificationCount();
-    _loadData();
+    _loadData().then((_) {
+      _checkAndShowTutorial();
+    });
 
     _zenController = AnimationController(
       vsync: this,
@@ -140,6 +143,112 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  /// 初回アクセス時のチュートリアル表示（投稿方法）
+  Future<void> _checkAndShowTutorial() async {
+    if (!mounted || _postedToday) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenTutorial = prefs.getBool('has_seen_tutorial') ?? false;
+
+    if (!hasSeenTutorial) {
+      await prefs.setBool('has_seen_tutorial', true);
+      if (!mounted) return;
+      _showTutorialDialog(
+        title: 'タスクを設定しました！',
+        message: '画面中央のタスクカードをタップして、\n写真を撮って投稿してみましょう。',
+        icon: Icons.touch_app_rounded,
+      );
+    }
+  }
+
+  /// 投稿完了後のチュートリアル表示
+  Future<void> _checkAndShowPostTutorial() async {
+    if (!mounted) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenPostTutorial = prefs.getBool('has_seen_post_tutorial') ?? false;
+
+    if (!hasSeenPostTutorial) {
+      await prefs.setBool('has_seen_post_tutorial', true);
+      if (!mounted) return;
+      _showTutorialDialog(
+        title: 'ナイス初投稿！',
+        message: '投稿はフィードに表示され、フレンドに共有されます。\n\n「プロフィールの設定画面」から、あなただけの独自のタスクを追加・変更することも可能です。',
+        icon: Icons.celebration_rounded,
+        buttonText: '次へ',
+        onButtonPressed: () {
+          Navigator.of(context).pop();
+          Navigator.pushNamed(context, AppRoutes.initialFriend);
+        },
+      );
+    }
+  }
+
+  void _showTutorialDialog({
+    required String title,
+    required String message,
+    required IconData icon,
+    String buttonText = 'OK',
+    VoidCallback? onButtonPressed,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: AppColors.bgElevated,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 48, color: AppColors.white),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: onButtonPressed ?? () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.white,
+                    foregroundColor: AppColors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  child: Text(
+                    buttonText,
+                    style: GoogleFonts.notoSansJp(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   List<Map<String, dynamic>> get _postedFriends =>
       _friendStatuses.where((f) => f['hasPostedToday'] == true).toList();
 
@@ -184,7 +293,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (mounted) {
         // 昇華完了 → Zen Mode へ遷移
         setState(() => _isSublimating = false);
-        _loadData(); // streak等を再取得
+        await _loadData(); // streak等を再取得
+        await _checkAndShowPostTutorial(); // タスク設定ガイドを表示
       }
     }
   }

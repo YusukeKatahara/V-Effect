@@ -7,13 +7,11 @@ import '../config/routes.dart';
 import '../services/analytics_service.dart';
 import '../services/user_service.dart';
 import '../widgets/premium_background.dart';
-import 'camera_screen.dart';
 
 /// プロフィール設定後に表示されるタスクテンプレート選択画面
 ///
 /// ユーザーが V Effect の標準フローを即座に体験できるよう、
-/// 写真投稿しやすい簡単なテンプレートを提示します。
-/// フロー: テンプレート選択 → カメラ起動 → 投稿 → タスク設定画面へ
+/// フロー: テンプレート選択 → Main (Home) へ遷移
 class TaskTemplateScreen extends StatefulWidget {
   const TaskTemplateScreen({super.key});
 
@@ -116,25 +114,12 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
       await _userService.saveTemplateTask(taskName: taskName);
 
       if (!mounted) return;
-
-      // カメラ画面を起動
-      final posted = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CameraScreen(heroTaskName: taskName),
-        ),
-      );
-
-      if (!mounted) return;
-
-      if (posted == true) {
-        // 投稿成功 → タスク設定画面へ
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil(AppRoutes.taskSetup, (r) => false);
-      } else {
-        // カメラをキャンセルした場合は元に戻す
-        setState(() => _isProcessing = false);
-      }
+      
+      // チュートリアル用のフラグをローカル等に立てる代わりに、Home画面遷移時に渡すこともできますが、
+      // 簡単のため、初回のHome表示時にフラグを監視・チェックする方法もあります。Analyticsで初投稿か判定します。
+      
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil(AppRoutes.home, (r) => false);
     } catch (e) {
       debugPrint('TaskTemplate error: $e');
       if (mounted) {
@@ -177,7 +162,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
                         const SizedBox(width: 48), // balance
                         const Spacer(),
                         Text(
-                          'はじめてのタスク',
+                          'Step 2 / 2',
                           style: GoogleFonts.notoSansJp(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -283,7 +268,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
         ),
         const SizedBox(height: 8),
         Text(
-          'かんたんなタスクを選んで\n写真を撮って投稿してみましょう',
+          'かんたんなタスクを選んで\nアプリをはじめましょう',
           textAlign: TextAlign.center,
           style: GoogleFonts.notoSansJp(
             fontSize: 14,
@@ -510,16 +495,8 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
                   : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.camera_alt_rounded,
-                          size: 20,
-                          color: canStart
-                              ? AppColors.black
-                              : AppColors.textMuted,
-                        ),
-                        const SizedBox(width: 8),
                         Text(
-                          '写真を撮って投稿する',
+                          'アプリをはじめる',
                           style: GoogleFonts.notoSansJp(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,

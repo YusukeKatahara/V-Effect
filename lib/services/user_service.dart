@@ -64,6 +64,7 @@ class UserService {
       {
         'tasks': [taskName],
         'templateCompleted': true,
+        'onboardingCompleted': true,
       },
       SetOptions(merge: true),
     );

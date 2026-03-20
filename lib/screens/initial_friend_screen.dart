@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
-import '../config/routes.dart';
 import '../services/analytics_service.dart';
 import '../services/friend_service.dart';
 import '../widgets/premium_background.dart';
@@ -116,7 +115,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
         if (errors.isNotEmpty) {
           setState(() => _error = errors.join('\n'));
         } else {
-          Navigator.pushReplacementNamed(context, AppRoutes.home);
+          Navigator.of(context).pop();
         }
       }
     } catch (e) {
@@ -310,8 +309,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                                     AnalyticsService.instance
                                         .logReferralSource(
                                             referrers: [], skipped: true);
-                                    Navigator.pushReplacementNamed(
-                                        context, AppRoutes.home);
+                                    Navigator.of(context).pop();
                                   },
                             child: const Text(
                               'あとで登録する',
