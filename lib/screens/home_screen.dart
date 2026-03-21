@@ -25,8 +25,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  final PostService _postService = PostService();
-  final NotificationService _notificationService = NotificationService();
+  final PostService _postService = PostService.instance;
+  final NotificationService _notificationService = NotificationService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
 
   int _streak = 0;
@@ -41,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   double _gyroX = 0;
   double _gyroY = 0;
   StreamSubscription? _gyroSub;
+  DateTime _lastGyroUpdate = DateTime.now();
 
   // ── Zen Mode ──
   late final AnimationController _zenController;
@@ -84,14 +85,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _initGyro() {
     try {
       _gyroSub = accelerometerEventStream(
-        samplingPeriod: const Duration(milliseconds: 60),
+        samplingPeriod: const Duration(milliseconds: 100),
       ).listen((event) {
         if (!mounted) return;
+        // フレームレートを制限（最大10fps）
+        final now = DateTime.now();
+        if (now.difference(_lastGyroUpdate).inMilliseconds < 100) return;
         final newX = _gyroX * 0.85 + event.x * 0.15;
         final newY = _gyroY * 0.85 + event.y * 0.15;
-        if ((newX - _gyroX).abs() < 0.05 && (newY - _gyroY).abs() < 0.05) {
+        if ((newX - _gyroX).abs() < 0.15 && (newY - _gyroY).abs() < 0.15) {
           return;
         }
+        _lastGyroUpdate = now;
         setState(() {
           _gyroX = newX;
           _gyroY = newY;
@@ -964,7 +969,7 @@ class _TaskCard extends StatelessWidget {
                       const SizedBox(height: 10),
                       Center(
                         child: Text(
-                          'タップして Hero Task に選ぶ',
+                          'タップしてヒーロータスクに選ぶ',
                           style: GoogleFonts.outfit(
                             fontSize: 11,
                             color: AppColors.grey30,

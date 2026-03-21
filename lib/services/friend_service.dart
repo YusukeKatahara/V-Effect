@@ -20,9 +20,12 @@ import 'notification_service.dart';
 ///     - status: string        "pending" | "accepted" | "rejected"
 ///     - createdAt: Timestamp
 class FriendService {
+  FriendService._();
+  static final FriendService instance = FriendService._();
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final NotificationService _notificationService = NotificationService();
+  final NotificationService _notificationService = NotificationService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
 
   /// ユーザーIDで検索します（部分一致ではなく完全一致）
@@ -36,16 +39,7 @@ class FriendService {
     return AppUser.fromFirestore(query.docs.first);
   }
 
-  /// メールアドレスで検索します（完全一致）
-  Future<AppUser?> searchByEmail(String email) async {
-    final query = await _db
-        .collection('users')
-        .where('email', isEqualTo: email)
-        .limit(1)
-        .get();
-    if (query.docs.isEmpty) return null;
-    return AppUser.fromFirestore(query.docs.first);
-  }
+
 
   /// フレンドリクエストを送信します
   Future<void> sendRequest(String targetUid) async {

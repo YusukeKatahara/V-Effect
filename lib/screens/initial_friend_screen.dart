@@ -17,7 +17,7 @@ class InitialFriendScreen extends StatefulWidget {
 
 class _InitialFriendScreenState extends State<InitialFriendScreen>
     with SingleTickerProviderStateMixin {
-  final FriendService _friendService = FriendService();
+  final FriendService _friendService = FriendService.instance;
   final TextEditingController _userIdCtrl = TextEditingController();
 
   // プリセットユーザーの選択状態
@@ -28,9 +28,9 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
   bool _isSending = false;
   String? _error;
 
-  // プリセットユーザーのメールアドレス
-  static const String _rennEmail = 'ren0930ren0930@gmail.com';
-  static const String _yusukeEmail = 'y.katahara.academia@gmail.com';
+  // プリセットユーザーのユーザーID
+  static const String _rennUserId = 'X';
+  static const String _yusukeUserId = 'katahara01';
 
   late final AnimationController _fadeController;
   late final Animation<double> _fadeAnimation;
@@ -70,9 +70,9 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
     });
 
     try {
-      final presetEmails = <String>[];
-      if (_rennSelected) presetEmails.add(_rennEmail);
-      if (_yusukeSelected) presetEmails.add(_yusukeEmail);
+      final presetUserIds = <String>[];
+      if (_rennSelected) presetUserIds.add(_rennUserId);
+      if (_yusukeSelected) presetUserIds.add(_yusukeUserId);
 
       final otherUserId =
           _otherSelected ? _userIdCtrl.text.trim() : null;
@@ -80,18 +80,18 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
       int sentCount = 0;
       final errors = <String>[];
 
-      // プリセットユーザー（メールで検索）
-      for (final email in presetEmails) {
+      // プリセットユーザー（ユーザーIDで検索）
+      for (final userId in presetUserIds) {
         try {
-          final user = await _friendService.searchByEmail(email);
+          final user = await _friendService.searchByUserId(userId);
           if (user == null) {
-            errors.add('$email: ユーザーが見つかりません');
+            errors.add('@$userId: ユーザーが見つかりません');
             continue;
           }
           await _friendService.sendRequest(user.uid);
           sentCount++;
         } catch (e) {
-          errors.add('$email: 送信に失敗しました');
+          errors.add('@$userId: 送信に失敗しました');
         }
       }
 

@@ -35,7 +35,7 @@ class FriendFeedScreen extends StatefulWidget {
 }
 
 class _FriendFeedScreenState extends State<FriendFeedScreen> {
-  final PostService _postService = PostService();
+  final PostService _postService = PostService.instance;
 
   late int _currentFriendIndex;
   List<Post> _posts = [];

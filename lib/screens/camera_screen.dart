@@ -25,7 +25,7 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   final ImagePicker _picker = ImagePicker();
-  final PostService _postService = PostService();
+  final PostService _postService = PostService.instance;
   XFile? _image;
   DateTime? _captureTime;
   bool _isUploading = false;

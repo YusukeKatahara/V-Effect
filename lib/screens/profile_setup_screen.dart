@@ -24,7 +24,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   final _formKey = GlobalKey<FormState>();
   final _usernameCtrl = TextEditingController();
   final _userIdCtrl = TextEditingController();
-  final _userService = UserService();
+  final _userService = UserService.instance;
   bool _isSaving = false;
 
   // 生年月日

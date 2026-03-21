@@ -21,7 +21,7 @@ class TaskTemplateScreen extends StatefulWidget {
 
 class _TaskTemplateScreenState extends State<TaskTemplateScreen>
     with TickerProviderStateMixin {
-  final UserService _userService = UserService();
+  final UserService _userService = UserService.instance;
 
   // テンプレート定義
   static const List<_TaskTemplate> _templates = [

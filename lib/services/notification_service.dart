@@ -15,6 +15,9 @@ import '../models/notification_messages.dart';
 ///     - relatedId: string?     関連ドキュメント ID
 ///     - createdAt: Timestamp
 class NotificationService {
+  NotificationService._();
+  static final NotificationService instance = NotificationService._();
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -58,8 +61,14 @@ class NotificationService {
   }
 
   /// 通知の件数をリアルタイムで取得します
+  /// デシリアライズせずDoc数だけカウントしてパフォーマンスを向上
   Stream<int> getNotificationCount() {
-    return getMyNotifications().map((list) => list.length);
+    final myUid = _auth.currentUser!.uid;
+    return _db
+        .collection('notifications')
+        .where('toUid', isEqualTo: myUid)
+        .snapshots()
+        .map((snap) => snap.docs.length);
   }
 
   /// 通知を1件削除します

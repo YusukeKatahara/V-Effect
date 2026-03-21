@@ -20,11 +20,14 @@ import 'notification_service.dart';
 ///    - expiresAt: Timestamp
 ///    - reactionCount: number
 class PostService {
+  PostService._();
+  static final PostService instance = PostService._();
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final StreakService _streakService = StreakService();
-  final NotificationService _notificationService = NotificationService();
+  final StreakService _streakService = StreakService.instance;
+  final NotificationService _notificationService = NotificationService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
 
   /// ストリークサービスへの委譲メソッド
@@ -193,14 +196,15 @@ class PostService {
     yield* _db
         .collection('posts')
         .where('userId', whereIn: limitedFriends)
+        .where('expiresAt', isGreaterThan: Timestamp.now())
+        .orderBy('expiresAt')
         .snapshots()
         .map((snap) {
-      final now = DateTime.now();
-      return snap.docs
+      final posts = snap.docs
           .map((doc) => Post.fromFirestore(doc))
-          .where((p) => p.expiresAt.isAfter(now))
           .toList()
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return posts;
     });
   }
 
@@ -264,15 +268,14 @@ class PostService {
     return _db
         .collection('posts')
         .where('userId', isEqualTo: friendUid)
+        .where('expiresAt', isGreaterThan: Timestamp.now())
+        .orderBy('expiresAt')
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) {
-      final now = DateTime.now();
-      final posts = snap.docs
+      return snap.docs
           .map((doc) => Post.fromFirestore(doc))
-          .where((p) => p.expiresAt.isAfter(now))
-          .toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return posts;
+          .toList();
     });
   }
 
@@ -281,13 +284,13 @@ class PostService {
     final snap = await _db
         .collection('posts')
         .where('userId', isEqualTo: friendUid)
+        .where('expiresAt', isGreaterThan: Timestamp.now())
+        .orderBy('expiresAt')
+        .orderBy('createdAt', descending: true)
         .get();
-    final now = DateTime.now();
     return snap.docs
         .map((doc) => Post.fromFirestore(doc))
-        .where((p) => p.expiresAt.isAfter(now))
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        .toList();
   }
 
   /// 自分のヒーロータスクリストを取得します

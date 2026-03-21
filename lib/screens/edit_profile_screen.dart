@@ -28,7 +28,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _usernameCtrl;
   late TextEditingController _userIdCtrl;
   final List<TextEditingController> _taskCtrls = [];
-  final _userService = UserService();
+  final _userService = UserService.instance;
 
   bool _isSaving = false;
   File? _newProfileImage;

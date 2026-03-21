@@ -15,7 +15,7 @@ class FriendsScreen extends StatefulWidget {
 }
 
 class _FriendsScreenState extends State<FriendsScreen> {
-  final FriendService _friendService = FriendService();
+  final FriendService _friendService = FriendService.instance;
   final _searchCtrl = TextEditingController();
 
   bool _isSearching = false;

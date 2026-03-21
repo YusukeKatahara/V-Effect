@@ -5,6 +5,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 /// ユーザープロフィール・ヒーロータスク設定の読み書きを担当するサービス
 class UserService {
+  UserService._();
+  static final UserService instance = UserService._();
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 

@@ -24,7 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _notificationStream = NotificationService().getNotificationCount();
+    _notificationStream = NotificationService.instance.getNotificationCount();
     _loadProfile();
   }
 

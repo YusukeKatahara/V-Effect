@@ -27,7 +27,7 @@ class TaskSetupScreen extends StatefulWidget {
 class _TaskSetupScreenState extends State<TaskSetupScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _userService = UserService();
+  final _userService = UserService.instance;
   bool _isSaving = false;
 
   // フェードアニメーション

@@ -13,8 +13,8 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final NotificationService _notificationService = NotificationService();
-  final FriendService _friendService = FriendService();
+  final NotificationService _notificationService = NotificationService.instance;
+  final FriendService _friendService = FriendService.instance;
   late final Stream<List<AppNotification>> _notificationsStream;
   bool _isProcessing = false;
 

@@ -4,6 +4,9 @@ import '../utils/date_helper.dart';
 
 /// ストリーク（連続記録）に関するロジックを専門に担当するサービス
 class StreakService {
+  StreakService._();
+  static final StreakService instance = StreakService._();
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
