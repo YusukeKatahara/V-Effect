@@ -461,7 +461,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               Expanded(
                                 flex: 3,
                                 child: DropdownButtonFormField<int>(
-                                  initialValue: _birthYear,
+                                  value: _birthYear,
                                   dropdownColor: AppColors.bgElevated,
                                   style: const TextStyle(color: AppColors.textPrimary),
                                   decoration: const InputDecoration(labelText: '年'),
@@ -481,7 +481,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               Expanded(
                                 flex: 2,
                                 child: DropdownButtonFormField<int>(
-                                  initialValue: _birthMonth,
+                                  value: _birthMonth,
                                   dropdownColor: AppColors.bgElevated,
                                   style: const TextStyle(color: AppColors.textPrimary),
                                   decoration: const InputDecoration(labelText: '月'),
@@ -501,7 +501,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               Expanded(
                                 flex: 2,
                                 child: DropdownButtonFormField<int>(
-                                  initialValue: _birthDay,
+                                  value: _birthDay,
                                   dropdownColor: AppColors.bgElevated,
                                   style: const TextStyle(color: AppColors.textPrimary),
                                   decoration: const InputDecoration(labelText: '日'),
