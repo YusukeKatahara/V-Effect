@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
@@ -34,6 +35,25 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   String? _gender;
   static const _genderOptions = ['男性', '女性', 'その他'];
 
+  // 追加項目
+  TimeOfDay? _wakeUpTime;
+  TimeOfDay? _taskTime;
+  
+  String? _occupation;
+  static const _occupationOptions = [
+    '会社員',
+    '経営者・役員',
+    '公務員',
+    '自営業・フリーランス',
+    '専門職（医師・弁護士など）',
+    '教員・教育関係',
+    '学生',
+    'パート・アルバイト',
+    '専業主婦・主夫',
+    '無職',
+    'その他',
+  ];
+
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
 
@@ -54,6 +74,144 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     _userIdCtrl.dispose();
     _fadeCtrl.dispose();
     super.dispose();
+  }
+
+  String _formatTime(TimeOfDay? time) {
+    if (time == null) return '選択してください';
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _showTimePickerBottomSheet(
+    BuildContext context,
+    String title,
+    TimeOfDay? initialTime,
+    ValueChanged<TimeOfDay> onTimeSelected,
+  ) {
+    TimeOfDay selectedTime = initialTime ?? const TimeOfDay(hour: 7, minute: 0);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext builder) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    Text(title, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                    TextButton(
+                      child: const Text('完了', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        onTimeSelected(selectedTime);
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 216,
+                child: CupertinoTheme(
+                  data: const CupertinoThemeData(
+                    textTheme: CupertinoTextThemeData(
+                      dateTimePickerTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 22),
+                    ),
+                  ),
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.time,
+                    initialDateTime: DateTime(2024, 1, 1, selectedTime.hour, selectedTime.minute),
+                    use24hFormat: true,
+                    onDateTimeChanged: (DateTime newDateTime) {
+                      selectedTime = TimeOfDay.fromDateTime(newDateTime);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showOccupationPickerBottomSheet(BuildContext context) {
+    int selectedIndex = _occupationOptions.indexOf(_occupation ?? _occupationOptions[0]);
+    if (selectedIndex == -1) selectedIndex = 0;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext builder) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const Text('職業を選択', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                    TextButton(
+                      child: const Text('完了', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        setState(() {
+                          _occupation = _occupationOptions[selectedIndex];
+                        });
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 216,
+                child: CupertinoTheme(
+                  data: const CupertinoThemeData(
+                    textTheme: CupertinoTextThemeData(
+                      pickerTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 20),
+                    ),
+                  ),
+                  child: CupertinoPicker(
+                    scrollController: FixedExtentScrollController(initialItem: selectedIndex),
+                    itemExtent: 40,
+                    onSelectedItemChanged: (int index) {
+                      selectedIndex = index;
+                    },
+                    children: _occupationOptions.map((String value) {
+                      return Center(
+                        child: Text(
+                          value,
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 20),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   /// 選択中の年月に応じた日数を返す
@@ -80,6 +238,26 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       return;
     }
 
+    // 追加項目のバリデーション
+    if (_occupation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('職業を選択してください')),
+      );
+      return;
+    }
+    if (_wakeUpTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('起床時間を設定してください')),
+      );
+      return;
+    }
+    if (_taskTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ヒーロータスク時間を設定してください')),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
       // ユーザーIDの重複チェック
@@ -103,6 +281,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
         userId: _userIdCtrl.text.trim(),
         birthDate: birthDate,
         gender: _gender!,
+        wakeUpTime: '${_wakeUpTime!.hour.toString().padLeft(2, '0')}:${_wakeUpTime!.minute.toString().padLeft(2, '0')}',
+        taskTime: '${_taskTime!.hour.toString().padLeft(2, '0')}:${_taskTime!.minute.toString().padLeft(2, '0')}',
+        occupation: _occupation!,
       );
 
       await AnalyticsService.instance.logProfileSetupComplete();
@@ -396,6 +577,106 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                       contentPadding: EdgeInsets.zero,
                                     );
                                   }).toList(),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // 職業
+                            const SectionTitle(title: '職業（非公開情報）'),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () => _showOccupationPickerBottomSheet(context),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.bgElevated,
+                                  border: Border.all(color: AppColors.border),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _occupation ?? '選択してください',
+                                      style: TextStyle(
+                                        color: _occupation == null ? AppColors.textSecondary : AppColors.textPrimary,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // 起床時間
+                            const SectionTitle(title: '起床時間'),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () => _showTimePickerBottomSheet(
+                                context,
+                                '起床時間を設定',
+                                _wakeUpTime,
+                                (t) => setState(() => _wakeUpTime = t),
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.bgElevated,
+                                  border: Border.all(color: AppColors.border),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _formatTime(_wakeUpTime),
+                                      style: TextStyle(
+                                        color: _wakeUpTime == null ? AppColors.textSecondary : AppColors.textPrimary,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const Icon(Icons.access_time, color: AppColors.textSecondary),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // ヒーロータスク時間
+                            const SectionTitle(title: 'ヒーロータスク実行時間'),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () => _showTimePickerBottomSheet(
+                                context,
+                                'ヒーロータスク実行時間を設定',
+                                _taskTime,
+                                (t) => setState(() => _taskTime = t),
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.bgElevated,
+                                  border: Border.all(color: AppColors.border),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _formatTime(_taskTime),
+                                      style: TextStyle(
+                                        color: _taskTime == null ? AppColors.textSecondary : AppColors.textPrimary,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const Icon(Icons.access_time, color: AppColors.textSecondary),
+                                  ],
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 32),
 

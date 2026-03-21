@@ -18,6 +18,9 @@ class UserService {
     required String userId,
     required String birthDate,
     required String gender,
+    required String wakeUpTime,
+    required String taskTime,
+    required String occupation,
   }) async {
     final uid = _auth.currentUser!.uid;
     final email = _auth.currentUser!.email;
@@ -47,8 +50,9 @@ class UserService {
         'email': email,
         'birthDate': birthDate,
         'gender': gender,
-        'wakeUpTime': null,
-        'taskTime': null,
+        'wakeUpTime': wakeUpTime,
+        'taskTime': taskTime,
+        'occupation': occupation,
       },
       SetOptions(merge: true),
     );

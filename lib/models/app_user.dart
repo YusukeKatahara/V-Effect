@@ -16,6 +16,7 @@ class AppUser {
   final List<String> tasks;
   final String? wakeUpTime;
   final String? taskTime;
+  final String? occupation;
   final bool profileCompleted;
   final bool templateCompleted;
   final bool onboardingCompleted;
@@ -36,6 +37,7 @@ class AppUser {
     this.tasks = const [],
     this.wakeUpTime,
     this.taskTime,
+    this.occupation,
     this.profileCompleted = false,
     this.templateCompleted = false,
     this.onboardingCompleted = false,
@@ -59,6 +61,7 @@ class AppUser {
       tasks: List<String>.from(data['tasks'] ?? []),
       wakeUpTime: data['wakeUpTime'],
       taskTime: data['taskTime'],
+      occupation: data['occupation'],
       profileCompleted: data['profileCompleted'] ?? false,
       templateCompleted: data['templateCompleted'] ?? false,
       onboardingCompleted: data['onboardingCompleted'] ?? false,
