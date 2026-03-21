@@ -286,9 +286,10 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
 
     // Staggered animation
     final delay = index / _templates.length;
+    final end = (delay + 0.5) > 1.0 ? 1.0 : (delay + 0.5);
     final animation = CurvedAnimation(
       parent: _staggerCtrl,
-      curve: Interval(delay, delay + 0.5, curve: Curves.easeOutCubic),
+      curve: Interval(delay, end, curve: Curves.easeOutCubic),
     );
 
     return AnimatedBuilder(

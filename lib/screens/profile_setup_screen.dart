@@ -41,7 +41,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   void initState() {
     super.initState();
     _fadeCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 800));
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _fadeCtrl.forward();
   }
@@ -64,17 +66,17 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
 
     // 生年月日のバリデーション
     if (_birthYear == null || _birthMonth == null || _birthDay == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('生年月日を選択してください')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('生年月日を選択してください')));
       return;
     }
 
     // 性別のバリデーション
     if (_gender == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('性別を選択してください')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('性別を選択してください')));
       return;
     }
 
@@ -86,9 +88,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       );
       if (!available) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('このユーザーIDは既に使われています')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('このユーザーIDは既に使われています')));
         }
         return;
       }
@@ -106,14 +108,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       await AnalyticsService.instance.logProfileSetupComplete();
 
       if (mounted) {
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil(AppRoutes.taskTemplate, (r) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.taskTemplate, (r) => false);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('保存に失敗しました。もう一度お試しください。')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('保存に失敗しました。もう一度お試しください。')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -136,22 +139,28 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                 children: [
                   // ── カスタムAppBar ──
                   Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     child: Row(
                       children: [
                         if (Navigator.of(context).canPop())
                           IconButton(
-                            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                                color: AppColors.textPrimary),
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              color: AppColors.textPrimary,
+                            ),
                             onPressed: () => Navigator.pop(context),
                           ),
-                        const Text('プロフィール設定',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            )),
+                        const Text(
+                          'プロフィール設定',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -166,25 +175,28 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                           children: [
                             const SizedBox(height: 8),
                             const PremiumIconHeader(
-                                icon: Icons.person_outline,
-                                size: 72,
-                                iconSize: 40),
+                              icon: Icons.person_outline,
+                              size: 72,
+                              iconSize: 40,
+                            ),
                             const SizedBox(height: 8),
                             const Text(
                               'Step 1 / 2',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.textSecondary),
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             const Text(
                               'あなたのプロフィールを設定しましょう',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                             const SizedBox(height: 32),
 
@@ -192,15 +204,18 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             TextFormField(
                               controller: _usernameCtrl,
                               style: const TextStyle(
-                                  color: AppColors.textPrimary),
+                                color: AppColors.textPrimary,
+                              ),
                               decoration: const InputDecoration(
                                 labelText: 'ユーザー名',
-                                hintText: '例: れん',
+                                hintText: '例: V EFFECT',
                                 prefixIcon: Icon(Icons.badge),
                               ),
-                              validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? 'ユーザー名を入力してください'
-                                  : null,
+                              validator:
+                                  (v) =>
+                                      (v == null || v.trim().isEmpty)
+                                          ? 'ユーザー名を入力してください'
+                                          : null,
                             ),
                             const SizedBox(height: 16),
 
@@ -208,10 +223,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             TextFormField(
                               controller: _userIdCtrl,
                               style: const TextStyle(
-                                  color: AppColors.textPrimary),
+                                color: AppColors.textPrimary,
+                              ),
                               decoration: const InputDecoration(
                                 labelText: 'ユーザーID',
-                                hintText: '例: renn_123',
+                                hintText: '例: v_effect',
                                 prefixIcon: Icon(Icons.alternate_email),
                               ),
                               validator: (v) {
@@ -221,8 +237,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                 if (v.trim().length < 5) {
                                   return '5文字以上で入力してください';
                                 }
-                                if (!RegExp(r'^[a-zA-Z0-9_]+$')
-                                    .hasMatch(v.trim())) {
+                                if (!RegExp(
+                                  r'^[a-zA-Z0-9_]+$',
+                                ).hasMatch(v.trim())) {
                                   return '英数字とアンダースコアのみ使えます';
                                 }
                                 return null;
@@ -242,31 +259,38 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                     value: _birthYear,
                                     dropdownColor: AppColors.bgElevated,
                                     style: const TextStyle(
-                                        color: AppColors.textPrimary),
+                                      color: AppColors.textPrimary,
+                                    ),
                                     decoration: const InputDecoration(
                                       labelText: '年',
                                     ),
-                                    items: List.generate(
-                                      100,
-                                      (i) => currentYear - i,
-                                    )
-                                        .map((y) => DropdownMenuItem(
-                                              value: y,
-                                              child: Text('$y'),
-                                            ))
-                                        .toList(),
-                                    onChanged: (v) => setState(() {
-                                      _birthYear = v;
-                                      // 日の上限を再計算
-                                      if (_birthMonth != null &&
-                                          _birthDay != null) {
-                                        final maxDay = _daysInMonth(
-                                            _birthYear!, _birthMonth!);
-                                        if (_birthDay! > maxDay) {
-                                          _birthDay = maxDay;
-                                        }
-                                      }
-                                    }),
+                                    items:
+                                        List.generate(
+                                              100,
+                                              (i) => currentYear - i,
+                                            )
+                                            .map(
+                                              (y) => DropdownMenuItem(
+                                                value: y,
+                                                child: Text('$y'),
+                                              ),
+                                            )
+                                            .toList(),
+                                    onChanged:
+                                        (v) => setState(() {
+                                          _birthYear = v;
+                                          // 日の上限を再計算
+                                          if (_birthMonth != null &&
+                                              _birthDay != null) {
+                                            final maxDay = _daysInMonth(
+                                              _birthYear!,
+                                              _birthMonth!,
+                                            );
+                                            if (_birthDay! > maxDay) {
+                                              _birthDay = maxDay;
+                                            }
+                                          }
+                                        }),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -277,28 +301,35 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                     value: _birthMonth,
                                     dropdownColor: AppColors.bgElevated,
                                     style: const TextStyle(
-                                        color: AppColors.textPrimary),
+                                      color: AppColors.textPrimary,
+                                    ),
                                     decoration: const InputDecoration(
                                       labelText: '月',
                                     ),
-                                    items: List.generate(12, (i) => i + 1)
-                                        .map((m) => DropdownMenuItem(
-                                              value: m,
-                                              child: Text('$m'),
-                                            ))
-                                        .toList(),
-                                    onChanged: (v) => setState(() {
-                                      _birthMonth = v;
-                                      // 日の上限を再計算
-                                      if (_birthYear != null &&
-                                          _birthDay != null) {
-                                        final maxDay = _daysInMonth(
-                                            _birthYear!, _birthMonth!);
-                                        if (_birthDay! > maxDay) {
-                                          _birthDay = maxDay;
-                                        }
-                                      }
-                                    }),
+                                    items:
+                                        List.generate(12, (i) => i + 1)
+                                            .map(
+                                              (m) => DropdownMenuItem(
+                                                value: m,
+                                                child: Text('$m'),
+                                              ),
+                                            )
+                                            .toList(),
+                                    onChanged:
+                                        (v) => setState(() {
+                                          _birthMonth = v;
+                                          // 日の上限を再計算
+                                          if (_birthYear != null &&
+                                              _birthDay != null) {
+                                            final maxDay = _daysInMonth(
+                                              _birthYear!,
+                                              _birthMonth!,
+                                            );
+                                            if (_birthDay! > maxDay) {
+                                              _birthDay = maxDay;
+                                            }
+                                          }
+                                        }),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -309,25 +340,31 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                     value: _birthDay,
                                     dropdownColor: AppColors.bgElevated,
                                     style: const TextStyle(
-                                        color: AppColors.textPrimary),
+                                      color: AppColors.textPrimary,
+                                    ),
                                     decoration: const InputDecoration(
                                       labelText: '日',
                                     ),
-                                    items: List.generate(
-                                      (_birthYear != null &&
-                                              _birthMonth != null)
-                                          ? _daysInMonth(
-                                              _birthYear!, _birthMonth!)
-                                          : 31,
-                                      (i) => i + 1,
-                                    )
-                                        .map((d) => DropdownMenuItem(
-                                              value: d,
-                                              child: Text('$d'),
-                                            ))
-                                        .toList(),
-                                    onChanged: (v) =>
-                                        setState(() => _birthDay = v),
+                                    items:
+                                        List.generate(
+                                              (_birthYear != null &&
+                                                      _birthMonth != null)
+                                                  ? _daysInMonth(
+                                                    _birthYear!,
+                                                    _birthMonth!,
+                                                  )
+                                                  : 31,
+                                              (i) => i + 1,
+                                            )
+                                            .map(
+                                              (d) => DropdownMenuItem(
+                                                value: d,
+                                                child: Text('$d'),
+                                              ),
+                                            )
+                                            .toList(),
+                                    onChanged:
+                                        (v) => setState(() => _birthDay = v),
                                   ),
                                 ),
                               ],
@@ -338,23 +375,27 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             const SectionTitle(title: '性別'),
                             const SizedBox(height: 8),
                             Column(
-                              children: _genderOptions.map((option) {
-                                return RadioListTile<String>(
-                                  title: Text(option,
-                                      style: const TextStyle(
-                                          color: AppColors.textPrimary)),
-                                  value: option,
-                                  groupValue: _gender,
-                                  onChanged: (v) =>
-                                      setState(() => _gender = v),
-                                  activeColor: AppColors.primary,
-                                  tileColor: AppColors.bgSurface,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  contentPadding: EdgeInsets.zero,
-                                );
-                              }).toList(),
+                              children:
+                                  _genderOptions.map((option) {
+                                    return RadioListTile<String>(
+                                      title: Text(
+                                        option,
+                                        style: const TextStyle(
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      value: option,
+                                      groupValue: _gender,
+                                      onChanged:
+                                          (v) => setState(() => _gender = v),
+                                      activeColor: AppColors.primary,
+                                      tileColor: AppColors.bgSurface,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      contentPadding: EdgeInsets.zero,
+                                    );
+                                  }).toList(),
                             ),
                             const SizedBox(height: 32),
 
