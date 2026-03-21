@@ -24,7 +24,12 @@ class _RegisterScreenState extends State<RegisterScreen>
   final _passConfirmCtrl = TextEditingController();
   final _authService = AuthService();
   final _analytics = AnalyticsService.instance;
-  bool _isLoading = false;
+  bool _isEmailLoading = false;
+  bool _isGoogleLoading = false;
+  bool _isAppleLoading = false;
+
+  bool get _isLoadingAny => _isEmailLoading || _isGoogleLoading || _isAppleLoading;
+
   bool _obscurePass = true;
   bool _obscureConf = true;
 
@@ -74,7 +79,9 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
+    if (_isLoadingAny) return;
+    setState(() => _isEmailLoading = true);
+    final scaffold = ScaffoldMessenger.maybeOf(context);
     try {
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailCtrl.text.trim(),
@@ -86,55 +93,54 @@ class _RegisterScreenState extends State<RegisterScreen>
       String msg = '登録に失敗しました。';
       if (e.code == 'email-already-in-use') msg = 'このメールアドレスは既に使われています。';
       if (e.code == 'weak-password') msg = 'パスワードは6文字以上にしてください。';
-      _showError(msg);
-      if (mounted) setState(() => _isLoading = false);
+      scaffold?.showSnackBar(SnackBar(content: Text(msg)));
+      if (mounted) setState(() => _isEmailLoading = false);
     } catch (e) {
       debugPrint('Registration error: $e');
-      _showError('登録に失敗しました。しばらくしてからお試しください。');
-      if (mounted) setState(() => _isLoading = false);
+      scaffold?.showSnackBar(const SnackBar(content: Text('登録に失敗しました。しばらくしてからお試しください。')));
+      if (mounted) setState(() => _isEmailLoading = false);
     }
   }
 
   Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
+    if (_isLoadingAny) return;
+    setState(() => _isGoogleLoading = true);
+    final scaffold = ScaffoldMessenger.maybeOf(context);
     try {
       final cred = await _authService.signInWithGoogle();
       if (cred != null) {
         await _analytics.logSignUp('google');
         await _ensureUserDocAndNavigate();
       } else {
-        if (mounted) setState(() => _isLoading = false);
+        if (mounted) setState(() => _isGoogleLoading = false);
       }
     } catch (e) {
       debugPrint('Google sign-in error: $e');
-      _showError('Googleでの登録に失敗しました。');
-      if (mounted) setState(() => _isLoading = false);
+      scaffold?.showSnackBar(const SnackBar(content: Text('Googleでの登録に失敗しました。')));
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
   Future<void> _signInWithApple() async {
-    setState(() => _isLoading = true);
+    if (_isLoadingAny) return;
+    setState(() => _isAppleLoading = true);
+    final scaffold = ScaffoldMessenger.maybeOf(context);
     try {
       final cred = await _authService.signInWithApple();
       if (cred != null) {
         await _analytics.logSignUp('apple');
         await _ensureUserDocAndNavigate();
       } else {
-        if (mounted) setState(() => _isLoading = false);
+        if (mounted) setState(() => _isAppleLoading = false);
       }
     } catch (e) {
       debugPrint('Apple sign-in error: $e');
-      _showError('Appleでの登録に失敗しました。');
-      if (mounted) setState(() => _isLoading = false);
+      scaffold?.showSnackBar(const SnackBar(content: Text('Appleでの登録に失敗しました。')));
+      if (mounted) setState(() => _isAppleLoading = false);
     }
   }
 
-  void _showError(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -339,7 +345,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         const SizedBox(height: 28),
 
         // 登録ボタン
-        _isLoading
+        _isEmailLoading
             ? _buildLoadingButton()
             : SizedBox(
               width: double.infinity,
@@ -348,7 +354,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 decoration: BoxDecoration(
                   gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
+                  boxShadow: _isLoadingAny ? [] : [
                     BoxShadow(
                       color: Colors.white.withValues(alpha: 0.2),
                       blurRadius: 16,
@@ -357,11 +363,12 @@ class _RegisterScreenState extends State<RegisterScreen>
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: _register,
+                  onPressed: _isLoadingAny ? null : _register,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
                     foregroundColor: AppColors.black,
+                    disabledForegroundColor: AppColors.textMuted,
                     minimumSize: const Size(double.infinity, 54),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -404,27 +411,33 @@ class _RegisterScreenState extends State<RegisterScreen>
           width: double.infinity,
           height: 50,
           child: OutlinedButton(
-            onPressed: _signInWithGoogle,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.network(
-                  'https://developers.google.com/identity/images/g-logo.png',
-                  height: 22,
-                  errorBuilder:
-                      (_, __, ___) => const Icon(
-                        Icons.g_mobiledata,
-                        size: 24,
-                        color: AppColors.textPrimary,
+            onPressed: _isLoadingAny ? null : _signInWithGoogle,
+            child: _isGoogleLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.network(
+                        'https://developers.google.com/identity/images/g-logo.png',
+                        height: 22,
+                        errorBuilder:
+                            (_, __, ___) => const Icon(
+                              Icons.g_mobiledata,
+                              size: 24,
+                              color: AppColors.textPrimary,
+                            ),
                       ),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Googleで作成',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Googleで作成',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
           ),
         ),
         const SizedBox(height: 12),
@@ -433,15 +446,21 @@ class _RegisterScreenState extends State<RegisterScreen>
           width: double.infinity,
           height: 50,
           child: OutlinedButton(
-            onPressed: _signInWithApple,
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
-                SizedBox(width: 10),
-                Text('Appleで作成', style: TextStyle(fontWeight: FontWeight.w600)),
-              ],
-            ),
+            onPressed: _isLoadingAny ? null : _signInWithApple,
+            child: _isAppleLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
+                      const SizedBox(width: 10),
+                      const Text('Appleで作成', style: TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
           ),
         ),
       ],

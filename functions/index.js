@@ -141,3 +141,57 @@ exports.sendPasswordReset = onCall(async (request) => {
   // ここでは検証のみ行い、クライアントに送信許可を返す
   return { success: true, email: email };
 });
+
+/**
+ * ユーザーIDとパスワードを用いてログインするためのカスタム認証トークンを発行する
+ *
+ * クライアントから呼び出し:
+ *   FirebaseFunctions.instance.httpsCallable('loginWithUserId')
+ *     .call({ userId: '...', password: '...', apiKey: '...' })
+ */
+exports.loginWithUserId = onCall(async (request) => {
+  const { userId, password, apiKey } = request.data;
+  if (!userId || !password || !apiKey) {
+    throw new HttpsError("invalid-argument", "ユーザーID、パスワード、またはAPIキーが不足しています。");
+  }
+
+  const db = getFirestore();
+  const usersSnap = await db.collection("users").where("userId", "==", userId).limit(1).get();
+  
+  if (usersSnap.empty) {
+    throw new HttpsError("not-found", "ユーザーIDまたはパスワードが正しくありません。");
+  }
+
+  const uid = usersSnap.docs[0].id;
+  const privateSnap = await db.collection("users").doc(uid).collection("private").doc("data").get();
+  
+  if (!privateSnap.exists) {
+    throw new HttpsError("not-found", "ユーザーIDまたはパスワードが正しくありません。");
+  }
+
+  const email = privateSnap.data().email;
+  if (!email) {
+    throw new HttpsError("not-found", "ユーザーIDまたはパスワードが正しくありません。");
+  }
+
+  // Identity Toolkit REST API を使用してパスワードを検証
+  const verifyUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
+  const response = await fetch(verifyUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email, password: password, returnSecureToken: true }),
+  });
+
+  if (!response.ok) {
+    throw new HttpsError("unauthenticated", "ユーザーIDまたはパスワードが正しくありません。");
+  }
+
+  // 検証成功 -> カスタムトークンを発行
+  try {
+    const customToken = await getAuth().createCustomToken(uid);
+    return { token: customToken };
+  } catch (err) {
+    console.error("Token creation error:", err);
+    throw new HttpsError("internal", "認証トークンの生成に失敗しました。");
+  }
+});

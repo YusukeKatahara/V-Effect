@@ -1,6 +1,8 @@
 # This is a generated file; do not edit or check into version control.
 cloud_firestore=/Users/rennlikeu/.pub-cache/hosted/pub.dev/cloud_firestore-6.1.3/
 cloud_firestore_web=/Users/rennlikeu/.pub-cache/hosted/pub.dev/cloud_firestore_web-5.1.3/
+cloud_functions=/Users/rennlikeu/.pub-cache/hosted/pub.dev/cloud_functions-6.0.7/
+cloud_functions_web=/Users/rennlikeu/.pub-cache/hosted/pub.dev/cloud_functions_web-5.1.3/
 file_selector_linux=/Users/rennlikeu/.pub-cache/hosted/pub.dev/file_selector_linux-0.9.3+2/
 file_selector_macos=/Users/rennlikeu/.pub-cache/hosted/pub.dev/file_selector_macos-0.9.4+4/
 file_selector_windows=/Users/rennlikeu/.pub-cache/hosted/pub.dev/file_selector_windows-0.9.3+4/

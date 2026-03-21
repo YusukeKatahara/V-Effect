@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../firebase_options.dart';
 import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
@@ -21,7 +23,12 @@ class _LoginScreenState extends State<LoginScreen>
   final _passCtrl  = TextEditingController();
   final _authService = AuthService();
   final _analytics = AnalyticsService.instance;
-  bool _isLoading = false;
+  bool _isEmailLoading = false;
+  bool _isGoogleLoading = false;
+  bool _isAppleLoading = false;
+
+  bool get _isLoadingAny => _isEmailLoading || _isGoogleLoading || _isAppleLoading;
+
   bool _obscurePass = true;
 
   late final AnimationController _fadeCtrl;
@@ -77,67 +84,85 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _login() async {
-    setState(() => _isLoading = true);
+    if (_isLoadingAny) return;
+    setState(() => _isEmailLoading = true);
+    final scaffold = ScaffoldMessenger.maybeOf(context);
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text.trim(),
-      );
-      await _analytics.logLogin('email');
+      final input = _emailCtrl.text.trim();
+      final password = _passCtrl.text.trim();
+
+      if (input.contains('@')) {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: input,
+          password: password,
+        );
+      } else {
+        await _authService.loginWithUserId(
+          input,
+          password,
+          DefaultFirebaseOptions.web.apiKey,
+        );
+      }
+
+      await _analytics.logLogin('email_or_id');
       await _ensureUserDocAndNavigate();
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('Cloud Function error: ${e.code} - ${e.message}');
+      scaffold?.showSnackBar(const SnackBar(content: Text('ユーザーIDまたはパスワードが間違っています。')));
+      if (mounted) setState(() => _isEmailLoading = false);
     } on FirebaseAuthException catch (e) {
       String msg = 'ログインに失敗しました。';
       if (e.code == 'user-not-found') msg = 'ユーザーが見つかりません。';
       if (e.code == 'wrong-password')  msg = 'パスワードが間違っています。';
-      _showError(msg);
-      if (mounted) setState(() => _isLoading = false);
+      if (e.code == 'invalid-credential') msg = 'メールアドレスまたはパスワードが間違っています。';
+      scaffold?.showSnackBar(SnackBar(content: Text(msg)));
+      if (mounted) setState(() => _isEmailLoading = false);
     } catch (e) {
       debugPrint('Login error: $e');
-      _showError('ログインに失敗しました。');
-      if (mounted) setState(() => _isLoading = false);
+      scaffold?.showSnackBar(const SnackBar(content: Text('ログインに失敗しました。')));
+      if (mounted) setState(() => _isEmailLoading = false);
     }
   }
 
   Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
+    if (_isLoadingAny) return;
+    setState(() => _isGoogleLoading = true);
+    final scaffold = ScaffoldMessenger.maybeOf(context);
     try {
       final cred = await _authService.signInWithGoogle();
       if (cred != null) {
         await _analytics.logLogin('google');
         await _ensureUserDocAndNavigate();
       } else {
-        if (mounted) setState(() => _isLoading = false);
+        if (mounted) setState(() => _isGoogleLoading = false);
       }
     } catch (e) {
       debugPrint('Google sign-in error: $e');
-      _showError('Googleでのログインに失敗しました。');
-      if (mounted) setState(() => _isLoading = false);
+      scaffold?.showSnackBar(const SnackBar(content: Text('Googleでのログインに失敗しました。')));
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
   Future<void> _signInWithApple() async {
-    setState(() => _isLoading = true);
+    if (_isLoadingAny) return;
+    setState(() => _isAppleLoading = true);
+    final scaffold = ScaffoldMessenger.maybeOf(context);
     try {
       final cred = await _authService.signInWithApple();
       if (cred != null) {
         await _analytics.logLogin('apple');
         await _ensureUserDocAndNavigate();
       } else {
-        if (mounted) setState(() => _isLoading = false);
+        if (mounted) setState(() => _isAppleLoading = false);
       }
     } catch (e) {
       debugPrint('Apple sign-in error: $e');
-      _showError('Appleでのログインに失敗しました。');
-      if (mounted) setState(() => _isLoading = false);
+      scaffold?.showSnackBar(const SnackBar(content: Text('Appleでのログインに失敗しました。')));
+      if (mounted) setState(() => _isAppleLoading = false);
     }
   }
 
-  void _showError(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -272,8 +297,8 @@ class _LoginScreenState extends State<LoginScreen>
           keyboardType: TextInputType.emailAddress,
           style: const TextStyle(color: AppColors.textPrimary),
           decoration: const InputDecoration(
-            labelText: 'メールアドレス',
-            prefixIcon: Icon(Icons.mail_outline_rounded),
+            labelText: 'メールアドレスまたはユーザーID',
+            prefixIcon: Icon(Icons.person_outline_rounded),
           ),
         ),
         const SizedBox(height: 16),
@@ -308,7 +333,7 @@ class _LoginScreenState extends State<LoginScreen>
         const SizedBox(height: 20),
 
         // ログインボタン
-        _isLoading
+        _isEmailLoading
             ? const _LoadingButton()
             : SizedBox(
                 width: double.infinity,
@@ -317,7 +342,7 @@ class _LoginScreenState extends State<LoginScreen>
                   decoration: BoxDecoration(
                     gradient: AppColors.primaryGradient,
                     borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
+                    boxShadow: _isLoadingAny ? [] : [
                       BoxShadow(
                         color: Colors.white.withValues(alpha: 0.2),
                         blurRadius: 16,
@@ -326,11 +351,12 @@ class _LoginScreenState extends State<LoginScreen>
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: _login,
+                    onPressed: _isLoadingAny ? null : _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
                       foregroundColor: AppColors.black,
+                      disabledForegroundColor: AppColors.textMuted,
                       minimumSize: const Size(double.infinity, 54),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -371,7 +397,8 @@ class _LoginScreenState extends State<LoginScreen>
 
         // Google
         _SocialButton(
-          onPressed: _signInWithGoogle,
+          onPressed: _isLoadingAny ? null : _signInWithGoogle,
+          isLoading: _isGoogleLoading,
           icon: Image.network(
             'https://developers.google.com/identity/images/g-logo.png',
             height: 22,
@@ -384,7 +411,8 @@ class _LoginScreenState extends State<LoginScreen>
 
         // Apple
         _SocialButton(
-          onPressed: _signInWithApple,
+          onPressed: _isLoadingAny ? null : _signInWithApple,
+          isLoading: _isAppleLoading,
           icon: const Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
           label: 'Appleでログイン',
         ),
@@ -418,11 +446,13 @@ class _SocialButton extends StatelessWidget {
     required this.onPressed,
     required this.icon,
     required this.label,
+    this.isLoading = false,
   });
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Widget icon;
   final String label;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -431,14 +461,20 @@ class _SocialButton extends StatelessWidget {
       height: 50,
       child: OutlinedButton(
         onPressed: onPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            icon,
-            const SizedBox(width: 10),
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-          ],
-        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  icon,
+                  const SizedBox(width: 10),
+                  Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
       ),
     );
   }
