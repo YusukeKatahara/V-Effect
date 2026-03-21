@@ -91,14 +91,19 @@ class _LoginScreenState extends State<LoginScreen>
       final input = _emailCtrl.text.trim();
       final password = _passCtrl.text.trim();
 
-      if (input.contains('@')) {
+      // メールアドレス判定: @ を含み、かつ @ の後にドメイン(.)がある場合のみメール扱い
+      final isEmail = RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(input);
+
+      if (isEmail) {
         await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: input,
           password: password,
         );
       } else {
+        // @RN のように @ で始まる or @ のないユーザーIDはこちら
+        final userId = input.startsWith('@') ? input.substring(1) : input;
         await _authService.loginWithUserId(
-          input,
+          userId,
           password,
           DefaultFirebaseOptions.web.apiKey,
         );
