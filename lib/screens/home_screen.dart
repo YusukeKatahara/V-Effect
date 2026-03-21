@@ -102,7 +102,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _gyroY = newY;
         });
       });
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Gyro init failed: $e');
+    }
   }
 
   @override
@@ -142,8 +144,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       _notificationService
           .checkAndCreateTimeReminders(streak: _streak)
-          .catchError((_) {});
-    } catch (_) {
+          .catchError((e) => debugPrint('Time reminder error: $e'));
+    } catch (e) {
+      debugPrint('Load data error: $e');
       if (mounted) setState(() => _loading = false);
     }
   }

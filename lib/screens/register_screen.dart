@@ -68,7 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         'onboardingCompleted': false,
       });
     }
-    PushNotificationService().saveFcmToken().catchError((_) {});
+    PushNotificationService().saveFcmToken().catchError((e) => debugPrint('FCM token save error: $e'));
 
     if (!mounted) return;
     // 新規登録 → 必ずプロフィール設定へ（スタックをクリア）

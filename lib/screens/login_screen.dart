@@ -62,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen>
         'onboardingCompleted': false,
       });
     }
-    PushNotificationService().saveFcmToken().catchError((_) {});
+    PushNotificationService().saveFcmToken().catchError((e) => debugPrint('FCM token save error: $e'));
 
     if (!mounted) return;
 

@@ -461,7 +461,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               Expanded(
                                 flex: 3,
                                 child: DropdownButtonFormField<int>(
-                                  value: _birthYear, // ignore: deprecated_member_use
+                                  initialValue: _birthYear,
                                   dropdownColor: AppColors.bgElevated,
                                   style: const TextStyle(color: AppColors.textPrimary),
                                   decoration: const InputDecoration(labelText: '年'),
@@ -481,7 +481,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               Expanded(
                                 flex: 2,
                                 child: DropdownButtonFormField<int>(
-                                  value: _birthMonth, // ignore: deprecated_member_use
+                                  initialValue: _birthMonth,
                                   dropdownColor: AppColors.bgElevated,
                                   style: const TextStyle(color: AppColors.textPrimary),
                                   decoration: const InputDecoration(labelText: '月'),
@@ -501,7 +501,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               Expanded(
                                 flex: 2,
                                 child: DropdownButtonFormField<int>(
-                                  value: _birthDay, // ignore: deprecated_member_use
+                                  initialValue: _birthDay,
                                   dropdownColor: AppColors.bgElevated,
                                   style: const TextStyle(color: AppColors.textPrimary),
                                   decoration: const InputDecoration(labelText: '日'),
