@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/analytics_service.dart';
@@ -415,13 +416,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                 if (v == null || v.trim().isEmpty) {
                                   return 'ユーザーIDを入力してください';
                                 }
-                                if (v.trim().length < 5) {
-                                  return '5文字以上で入力してください';
-                                }
-                                if (!RegExp(
-                                  r'^[a-zA-Z0-9_]+$',
-                                ).hasMatch(v.trim())) {
-                                  return '英数字とアンダースコアのみ使えます';
+                                final adminEmails = [
+                                  'ren0930ren0930@gmail.com',
+                                  'y.katahara.academia@gmail.com'
+                                ];
+                                final isSpecialAdmin = adminEmails.contains(FirebaseAuth.instance.currentUser?.email);
+                                if (!isSpecialAdmin) {
+                                  if (v.trim().length < 5) {
+                                    return '5文字以上で入力してください';
+                                  }
+                                  if (!RegExp(
+                                    r'^[a-zA-Z0-9_]+$',
+                                  ).hasMatch(v.trim())) {
+                                    return '英数字とアンダースコアのみ使えます';
+                                  }
                                 }
                                 return null;
                               },

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/user_service.dart';
@@ -439,8 +440,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) return 'ユーザーIDを入力してください';
-                              if (v.trim().length < 5) return '5文字以上で入力してください';
-                              if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v.trim())) return '英数字とアンダースコアのみ使えます';
+                              final adminEmails = [
+                                'ren0930ren0930@gmail.com',
+                                'y.katahara.academia@gmail.com'
+                              ];
+                              final isSpecialAdmin = adminEmails.contains(FirebaseAuth.instance.currentUser?.email);
+                              if (!isSpecialAdmin) {
+                                if (v.trim().length < 5) return '5文字以上で入力してください';
+                                if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v.trim())) return '英数字とアンダースコアのみ使えます';
+                              }
                               return null;
                             },
                           ),

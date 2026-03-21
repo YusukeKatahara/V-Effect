@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
 import '../models/app_notification.dart';
 import '../services/notification_service.dart';
+import '../services/friend_service.dart';
 
 /// 通知画面
 class NotificationsScreen extends StatefulWidget {
@@ -13,7 +14,9 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final NotificationService _notificationService = NotificationService();
+  final FriendService _friendService = FriendService();
   late final Stream<List<AppNotification>> _notificationsStream;
+  bool _isProcessing = false;
 
   @override
   void initState() {
@@ -101,6 +104,42 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SnackBar(content: Text('削除に失敗しました。もう一度お試しください。')),
         );
       }
+    }
+  }
+
+  Future<void> _handleFriendRequest(
+      AppNotification notif, bool accept) async {
+    if (notif.relatedId == null) return;
+
+    setState(() => _isProcessing = true);
+    try {
+      final request = await _friendService.getRequestById(notif.relatedId!);
+      if (request == null) {
+        throw Exception('リクエストが見つかりませんでした。すでに処理されている可能性があります。');
+      }
+
+      if (accept) {
+        await _friendService.acceptRequest(request);
+      } else {
+        await _friendService.rejectRequest(request);
+      }
+
+      // 完了したら通知を削除
+      await _notificationService.deleteNotification(notif.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(accept ? 'フレンド申請を承認しました！' : 'フレンド申請を拒否しました。')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('エラーが発生しました: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -213,6 +252,52 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 style: const TextStyle(
                                     color: AppColors.textSecondary,
                                     fontSize: 13)),
+                            if (notif.type == NotificationType.friendRequestReceived) ...[
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: _isProcessing
+                                          ? null
+                                          : () => _handleFriendRequest(notif, true),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.white,
+                                        foregroundColor: AppColors.black,
+                                        elevation: 0,
+                                        minimumSize: const Size(0, 36),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: const Text('承認',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: _isProcessing
+                                          ? null
+                                          : () => _handleFriendRequest(notif, false),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.textSecondary,
+                                        side: const BorderSide(
+                                            color: AppColors.border),
+                                        minimumSize: const Size(0, 36),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: const Text('あとで',
+                                          style: TextStyle(fontSize: 13)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),

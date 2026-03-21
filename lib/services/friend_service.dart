@@ -63,7 +63,7 @@ class FriendService {
     final myFriends = List<String>.from(myData['friends'] ?? []);
     if (myFriends.contains(targetUid)) throw Exception('既にフレンドです');
 
-    await _db.collection('friend_requests').add({
+    final docRef = await _db.collection('friend_requests').add({
       'fromUid': myUid,
       'toUid': targetUid,
       'fromUserId': myData['userId'] ?? '',
@@ -80,6 +80,7 @@ class FriendService {
       type: NotificationType.friendRequestReceived,
       params: {'username': myData['username'] ?? ''},
       fromUid: myUid,
+      relatedId: docRef.id,
     );
 
     _analytics.logFriendRequestSent();
@@ -98,6 +99,13 @@ class FriendService {
           list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return list;
         });
+  }
+
+  /// IDからフレンドリクエストを取得します
+  Future<FriendRequest?> getRequestById(String requestId) async {
+    final doc = await _db.collection('friend_requests').doc(requestId).get();
+    if (!doc.exists) return null;
+    return FriendRequest.fromFirestore(doc);
   }
 
   /// フレンドリクエストを承認します（双方の friends リストに追加）
