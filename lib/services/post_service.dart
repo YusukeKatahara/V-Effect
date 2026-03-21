@@ -264,6 +264,9 @@ class PostService {
     return getFriendsListFromUids(friendUids);
   }
 
+    });
+  }
+
   /// 特定フレンドの24h以内の投稿を取得します（リアルタイム）
   Stream<List<Post>> getFriendPosts(String friendUid) {
     return _db
@@ -271,7 +274,6 @@ class PostService {
         .where('userId', isEqualTo: friendUid)
         .where('expiresAt', isGreaterThan: Timestamp.now())
         .orderBy('expiresAt')
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) {
       return snap.docs
@@ -281,6 +283,7 @@ class PostService {
   }
 
   /// 特定フレンドの24h以内の投稿を一括取得します（ストーリー表示用）
+  Future<List<Post>> getFriendPostsList(String friendUid) async {
     final snap = await _db
         .collection('posts')
         .where('userId', isEqualTo: friendUid)
