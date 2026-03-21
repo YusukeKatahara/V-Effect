@@ -153,12 +153,16 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             ),
                             child: const Text('キャンセル'),
                           ),
-                        Text(
-                          isWakeUp ? '起きる時間' : 'タスクの時間',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              isWakeUp ? '起きる時間' : 'タスクの時間',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
                           ),
                         ),
                         TextButton(
