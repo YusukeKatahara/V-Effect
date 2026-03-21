@@ -36,6 +36,17 @@ class FriendService {
     return AppUser.fromFirestore(query.docs.first);
   }
 
+  /// メールアドレスで検索します（完全一致）
+  Future<AppUser?> searchByEmail(String email) async {
+    final query = await _db
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+    if (query.docs.isEmpty) return null;
+    return AppUser.fromFirestore(query.docs.first);
+  }
+
   /// フレンドリクエストを送信します
   Future<void> sendRequest(String targetUid) async {
     final myUid = _auth.currentUser!.uid;

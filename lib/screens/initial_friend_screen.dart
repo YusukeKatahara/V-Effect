@@ -28,9 +28,9 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
   bool _isSending = false;
   String? _error;
 
-  // プリセットユーザーの User ID
-  static const String _rennUserId = 'renn';
-  static const String _yusukeUserId = 'yusuke';
+  // プリセットユーザーのメールアドレス
+  static const String _rennEmail = 'ren0930ren0930@gmail.com';
+  static const String _yusukeEmail = 'y.katahara.academia@gmail.com';
 
   late final AnimationController _fadeController;
   late final Animation<double> _fadeAnimation;
@@ -70,27 +70,43 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
     });
 
     try {
-      final userIds = <String>[];
-      if (_rennSelected) userIds.add(_rennUserId);
-      if (_yusukeSelected) userIds.add(_yusukeUserId);
-      if (_otherSelected && _userIdCtrl.text.trim().isNotEmpty) {
-        userIds.add(_userIdCtrl.text.trim());
-      }
+      final presetEmails = <String>[];
+      if (_rennSelected) presetEmails.add(_rennEmail);
+      if (_yusukeSelected) presetEmails.add(_yusukeEmail);
+
+      final otherUserId =
+          _otherSelected ? _userIdCtrl.text.trim() : null;
 
       int sentCount = 0;
       final errors = <String>[];
 
-      for (final userId in userIds) {
+      // プリセットユーザー（メールで検索）
+      for (final email in presetEmails) {
         try {
-          final user = await _friendService.searchByUserId(userId);
+          final user = await _friendService.searchByEmail(email);
           if (user == null) {
-            errors.add('$userId: ユーザーが見つかりません');
+            errors.add('$email: ユーザーが見つかりません');
             continue;
           }
           await _friendService.sendRequest(user.uid);
           sentCount++;
         } catch (e) {
-          errors.add('$userId: 送信に失敗しました');
+          errors.add('$email: 送信に失敗しました');
+        }
+      }
+
+      // その他のユーザー（ユーザーIDで検索）
+      if (otherUserId != null && otherUserId.isNotEmpty) {
+        try {
+          final user = await _friendService.searchByUserId(otherUserId);
+          if (user == null) {
+            errors.add('$otherUserId: ユーザーが見つかりません');
+          } else {
+            await _friendService.sendRequest(user.uid);
+            sentCount++;
+          }
+        } catch (e) {
+          errors.add('$otherUserId: 送信に失敗しました');
         }
       }
 
@@ -98,7 +114,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
       final referrers = <String>[];
       if (_rennSelected) referrers.add('renn');
       if (_yusukeSelected) referrers.add('yusuke');
-      if (_otherSelected && _userIdCtrl.text.trim().isNotEmpty) {
+      if (otherUserId != null && otherUserId.isNotEmpty) {
         referrers.add('other');
       }
       AnalyticsService.instance
