@@ -93,7 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-          // ── タスクリスト ───────────────────────────
+          // ── ヒーロータスクリスト ───────────────────────────
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverToBoxAdapter(child: _buildTaskSection()),
@@ -296,7 +296,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _StatItem(
             icon: Icons.schedule_rounded,
             value: _privateData['taskTime'] ?? '--',
-            label: 'タスク時間',
+            label: 'ヒーロータスク時間',
             color: _user!.streak > 0 ? Colors.white : AppColors.textMuted,
           ),
         ],
@@ -348,13 +348,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ════════════════════════════════════════════
-  // タスクセクション
+  // ヒーロータスクセクション
   // ════════════════════════════════════════════
   Widget _buildTaskSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionTitle(title: 'タスク'),
+        const _SectionTitle(title: 'ヒーロータスク'),
         const SizedBox(height: 12),
         if (_user!.tasks.isEmpty)
           Container(
@@ -364,7 +364,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.border),
             ),
-            child: const Text('タスクが設定されていません',
+            child: const Text('ヒーロータスクが設定されていません',
                 style: TextStyle(color: AppColors.textSecondary)),
           )
         else

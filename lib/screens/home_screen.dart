@@ -154,8 +154,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       await prefs.setBool('has_seen_tutorial', true);
       if (!mounted) return;
       _showTutorialDialog(
-        title: 'タスクを設定しました！',
-        message: '画面中央のタスクカードをタップして、\n写真を撮って投稿してみましょう。',
+        title: 'ヒーロータスクを設定しました！',
+        message: '画面中央のヒーロータスクカードをタップして、\n写真を撮って投稿してみましょう。',
         icon: Icons.touch_app_rounded,
       );
     }
@@ -173,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (!mounted) return;
       _showTutorialDialog(
         title: 'ナイス初投稿！',
-        message: '投稿はフィードに表示され、フレンドに共有されます。\n\n「プロフィールの設定画面」から、あなただけの独自のタスクを追加・変更することも可能です。',
+        message: '投稿はフィードに表示され、フレンドに共有されます。\n\n「プロフィールの設定画面」から、あなただけの独自のヒーロータスクを追加・変更することも可能です。',
         icon: Icons.celebration_rounded,
         buttonText: '次へ',
         onButtonPressed: () {
@@ -294,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         // 昇華完了 → Zen Mode へ遷移
         setState(() => _isSublimating = false);
         await _loadData(); // streak等を再取得
-        await _checkAndShowPostTutorial(); // タスク設定ガイドを表示
+        await _checkAndShowPostTutorial(); // ヒーロータスク設定ガイドを表示
       }
     }
   }
@@ -565,20 +565,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           children: [
             Icon(Icons.layers_outlined, size: 48, color: AppColors.grey20),
             const SizedBox(height: 16),
-            Text('タスクが設定されていません',
+            Text('ヒーロータスクが設定されていません',
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppColors.grey50)),
             const SizedBox(height: 4),
-            Text('プロフィールからタスクを設定',
+            Text('プロフィールからヒーロータスクを設定',
                 style: TextStyle(fontSize: 12, color: AppColors.grey30)),
           ],
         ),
       );
     }
 
-    // フォーカスインデックスをタスク数に合わせてクランプ
+    // フォーカスインデックスをヒーロータスク数に合わせてクランプ
     if (_focusedIndex >= _tasks.length) _focusedIndex = _tasks.length - 1;
 
     return LayoutBuilder(

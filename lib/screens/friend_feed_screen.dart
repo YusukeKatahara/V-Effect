@@ -296,7 +296,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
 
               // タイムスタンプ装飾（シンプルな白色）
               Positioned(
-                bottom: 120, // 下のタスク名やリアクションボタンに被らないよう上に配置
+                bottom: 120, // 下のヒーロータスク名やリアクションボタンに被らないよう上に配置
                 right: 20,
                 child: Text(
                   DateFormat('yy/MM/dd\nHH:mm').format(post.createdAt),

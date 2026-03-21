@@ -290,7 +290,7 @@ class PostService {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
-  /// 自分のタスクリストを取得します
+  /// 自分のヒーロータスクリストを取得します
   Future<List<String>> getMyTasks() async {
     final uid = _auth.currentUser!.uid;
     final snap = await _db.collection('users').doc(uid).get();

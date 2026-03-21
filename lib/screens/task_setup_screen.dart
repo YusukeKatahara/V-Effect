@@ -14,9 +14,9 @@ import '../widgets/gradient_button.dart';
 import '../widgets/premium_icon_header.dart';
 import '../widgets/section_title.dart';
 
-/// 新規登録後のタスク設定画面
-/// プロフィール写真、タスク（1〜5個）、タスク実行時間、起床時間を入力します
-/// テンプレート選択で既にタスクが1つ保存されている場合、それをプリフィルします
+/// 新規登録後のヒーロータスク設定画面
+/// プロフィール写真、ヒーロータスク（1〜5個）、ヒーロータスク実行時間、起床時間を入力します
+/// テンプレート選択で既にヒーロータスクが1つ保存されている場合、それをプリフィルします
 class TaskSetupScreen extends StatefulWidget {
   const TaskSetupScreen({super.key});
 
@@ -38,10 +38,10 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
   File? _profileImage;
   final _picker = ImagePicker();
 
-  // タスク入力欄（最初は1つ、最大5つまで追加可能）
+  // ヒーロータスク入力欄（最初は1つ、最大5つまで追加可能）
   final List<TextEditingController> _taskCtrls = [TextEditingController()];
 
-  // タスク実行時間と起床時間
+  // ヒーロータスク実行時間と起床時間
   TimeOfDay _taskTime = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _wakeUpTime = const TimeOfDay(hour: 7, minute: 0);
 
@@ -60,7 +60,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
     _loadTemplateTask();
   }
 
-  /// テンプレートで選択済みのタスクがあればプリフィル
+  /// テンプレートで選択済みのヒーロータスクがあればプリフィル
   Future<void> _loadTemplateTask() async {
     try {
       final uid = _userService.currentUid;
@@ -76,7 +76,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
         });
       }
     } catch (_) {
-      // テンプレートタスクの読み込みに失敗しても続行
+      // テンプレートヒーロータスクの読み込みに失敗しても続行
     }
   }
 
@@ -156,7 +156,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                         Expanded(
                           child: Center(
                             child: Text(
-                              isWakeUp ? '起きる時間' : 'タスクの時間',
+                              isWakeUp ? '起きる時間' : 'ヒーロータスクの時間',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -315,7 +315,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
     if (tasks.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('タスクを1つ以上入力してください')));
+      ).showSnackBar(const SnackBar(content: Text('ヒーロータスクを1つ以上入力してください')));
       return;
     }
 
@@ -327,7 +327,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
         photoUrl = await _uploadProfileImage();
       }
 
-      debugPrint('タスク保存開始: tasks=$tasks');
+      debugPrint('ヒーロータスク保存開始: tasks=$tasks');
       debugPrint('wakeUpTime=${_formatTimeForSave(_wakeUpTime)}');
       debugPrint('taskTime=${_formatTimeForSave(_taskTime)}');
 
@@ -338,7 +338,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
         photoUrl: photoUrl,
       );
 
-      debugPrint('タスク保存成功！');
+      debugPrint('ヒーロータスク保存成功！');
 
       final analytics = AnalyticsService.instance;
       await analytics.logTaskSetupComplete(taskCount: tasks.length);
@@ -349,7 +349,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
         Navigator.pushReplacementNamed(context, AppRoutes.initialFriend);
       }
     } catch (e, stackTrace) {
-      debugPrint('タスク保存エラー: $e');
+      debugPrint('ヒーロータスク保存エラー: $e');
       debugPrint('スタックトレース: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -393,7 +393,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             onPressed: () => Navigator.pop(context),
                           ),
                         const Text(
-                          'タスク設定',
+                          'ヒーロータスク設定',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -429,7 +429,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             ),
                             const SizedBox(height: 4),
                             const Text(
-                              'タスクとスケジュールをカスタマイズしましょう',
+                              'ヒーロータスクとスケジュールをカスタマイズしましょう',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 18,
@@ -497,8 +497,8 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             ),
                             const SizedBox(height: 24),
 
-                            // ── タスク入力欄 ──
-                            const SectionTitle(title: 'やりたいタスク（1〜5個）'),
+                            // ── ヒーロータスク入力欄 ──
+                            const SectionTitle(title: 'やりたいヒーロータスク（1〜5個）'),
                             const SizedBox(height: 8),
                             ...List.generate(_taskCtrls.length, (index) {
                               return Padding(
@@ -531,7 +531,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                           color: AppColors.textPrimary,
                                         ),
                                         decoration: InputDecoration(
-                                          labelText: 'タスク ${index + 1}',
+                                          labelText: 'ヒーロータスク ${index + 1}',
                                           hintText: '例: ランニング3km',
                                         ),
                                       ),
@@ -554,7 +554,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                 alignment: Alignment.centerLeft,
                                 child: TextButton.icon(
                                   icon: const Icon(Icons.add),
-                                  label: const Text('タスクを追加'),
+                                  label: const Text('ヒーロータスクを追加'),
                                   onPressed: _addTaskField,
                                 ),
                               ),
@@ -588,11 +588,11 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             ),
                             const SizedBox(height: 24),
 
-                            // ── タスク実行時間 ──
-                            const SectionTitle(title: 'タスクをいつやりたいですか？'),
+                            // ── ヒーロータスク実行時間 ──
+                            const SectionTitle(title: 'ヒーロータスクをいつやりたいですか？'),
                             const SizedBox(height: 4),
                             const Text(
-                              'この時間に通知を送ってタスクをリマインドします',
+                              'この時間に通知を送ってヒーロータスクをリマインドします',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: AppColors.textSecondary,

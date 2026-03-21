@@ -63,34 +63,34 @@ abstract class NotificationMessages {
       ),
     ],
 
-    // ── タスクリマインダー ──
+    // ── ヒーロータスクリマインダー ──
     NotificationType.taskReminder: [
       _Template(
-        title: 'タスクの時間です',
+        title: 'ヒーロータスクの時間です',
         body: '自分で決めたことをやる。それが一番の自信になります',
       ),
       _Template(
-        title: 'タスクの時間です',
+        title: 'ヒーロータスクの時間です',
         body: '完璧じゃなくていい。今日も「やった」という事実を積み上げよう',
         condition: _Condition.streakAtLeast1,
       ),
       _Template(
-        title: 'タスクの時間です',
+        title: 'ヒーロータスクの時間です',
         body: '{streak}日目の挑戦。続けている自分を誇ろう',
         condition: _Condition.streakAtLeast5,
       ),
       _Template(
-        title: 'タスクの時間です',
+        title: 'ヒーロータスクの時間です',
         body: 'まずは始めるだけ。やると決めたのはあなたです',
       ),
       _Template(
-        title: 'タスクの時間です',
+        title: 'ヒーロータスクの時間です',
         body: '昨日の自分にできなかったことが、今日はできるかもしれない',
         condition: _Condition.streakZero,
       ),
     ],
 
-    // ── フレンドのタスク完了 ──
+    // ── フレンドのヒーロータスク完了 ──
     NotificationType.friendTaskCompleted: [
       _Template(
         title: '仲間の一歩',

@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-/// ユーザープロフィール・タスク設定の読み書きを担当するサービス
+/// ユーザープロフィール・ヒーロータスク設定の読み書きを担当するサービス
 class UserService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -60,8 +60,8 @@ class UserService {
     await batch.commit();
   }
 
-  /// テンプレートタスク選択を保存します（新規登録フロー: テンプレート選択ステップ）
-  /// 選択されたタスクをtasksの最初の要素として保存し、templateCompletedをtrueに設定
+  /// テンプレートヒーロータスク選択を保存します（新規登録フロー: テンプレート選択ステップ）
+  /// 選択されたヒーロータスクをtasksの最初の要素として保存し、templateCompletedをtrueに設定
   Future<void> saveTemplateTask({required String taskName}) async {
     final uid = _auth.currentUser!.uid;
     await _db.collection('users').doc(uid).set(
@@ -74,7 +74,7 @@ class UserService {
     );
   }
 
-  /// タスク設定を保存します（新規登録フロー Step2）
+  /// ヒーロータスク設定を保存します（新規登録フロー Step2）
   /// tasks は公開、wakeUpTime/taskTime は非公開
   Future<void> saveTaskSettings({
     required List<String> tasks,

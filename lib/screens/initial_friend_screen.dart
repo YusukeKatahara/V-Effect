@@ -7,7 +7,7 @@ import '../widgets/gradient_button.dart';
 import '../widgets/premium_icon_header.dart';
 import '../widgets/section_title.dart';
 
-/// タスク設定完了後に表示される初期フレンド登録画面
+/// ヒーロータスク設定完了後に表示される初期フレンド登録画面
 class InitialFriendScreen extends StatefulWidget {
   const InitialFriendScreen({super.key});
 

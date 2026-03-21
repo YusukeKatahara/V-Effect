@@ -185,7 +185,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (_taskTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('タスク実行時間を選択してください')),
+        const SnackBar(content: Text('ヒーロータスク実行時間を選択してください')),
       );
       return;
     }
@@ -197,7 +197,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (newTasks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('タスクを1つ以上入力してください')),
+        const SnackBar(content: Text('ヒーロータスクを1つ以上入力してください')),
       );
       return;
     }
@@ -210,15 +210,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     bool isRestrictedFieldsChanged = false;
 
+    // ユーザーIDと生年月日の変更チェック（90日制限の対象）
     if (newUserId != widget.user.userId ||
-        _newProfileImage != null ||
-        birthDateStr != widget.privateData['birthDate']) {
+        birthDateStr != (widget.privateData['birthDate'] ?? '')) {
       isRestrictedFieldsChanged = true;
     }
 
     if (isRestrictedFieldsChanged && _isRestricted) {
        ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('名前以外の変更はあと $_daysRemaining 日経過するまでできません。')),
+        SnackBar(content: Text('ユーザーIDと生年月日の変更はあと $_daysRemaining 日経過するまでできません。')),
       );
       return;
     }
@@ -231,7 +231,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('確認', style: TextStyle(color: AppColors.textPrimary)),
           content: const Text(
-            'この変更を保存すると、名前以外のプロフィール項目は今後90日間変更できなくなります。\n\n本当によろしいですか？',
+            'この変更を保存すると、ユーザーIDと生年月日は今後90日間変更できなくなります。\n\n本当によろしいですか？',
             style: TextStyle(color: AppColors.textSecondary),
           ),
           actions: [
@@ -357,7 +357,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      '名前以外の項目は、あと $_daysRemaining 日経過するまで変更できません。\n(次回変更可能目安: ${DateTime.now().add(Duration(days: _daysRemaining)).toString().split(' ')[0]})',
+                                      'ユーザーIDと生年月日は前回の変更から90日間変更できません。\nあと $_daysRemaining 日お待ちください。\n(次回変更可能: ${DateTime.now().add(Duration(days: _daysRemaining)).toString().split(' ')[0]})',
                                       style: const TextStyle(color: AppColors.error, fontSize: 13),
                                     ),
                                   ),
@@ -368,7 +368,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           // Photo upload
                           Center(
                             child: GestureDetector(
-                              onTap: _isRestricted ? null : _pickImage,
+                              onTap: _pickImage,
                               child: Container(
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
@@ -393,8 +393,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           ? const Icon(Icons.person, size: 50, color: AppColors.textMuted)
                                           : null,
                                     ),
-                                    if (!_isRestricted)
-                                      Positioned(
+                                    Positioned(
                                         bottom: 0,
                                         right: 0,
                                         child: Container(
@@ -433,7 +432,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           TextFormField(
                             controller: _userIdCtrl,
                             enabled: !_isRestricted,
-                            style: const TextStyle(color: AppColors.textPrimary),
+                            style: TextStyle(color: _isRestricted ? AppColors.textMuted : AppColors.textPrimary),
                             decoration: const InputDecoration(
                               labelText: 'ユーザーID',
                               prefixIcon: Icon(Icons.alternate_email, color: AppColors.textMuted),
@@ -475,6 +474,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       if (_birthDay! > maxDay) _birthDay = maxDay;
                                     }
                                   }),
+
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -494,6 +494,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       if (_birthDay! > maxDay) _birthDay = maxDay;
                                     }
                                   }),
+
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -535,7 +536,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     foregroundColor: AppColors.primary,
                                     side: const BorderSide(color: AppColors.border),
                                   ),
-                                  onPressed: _isRestricted ? null : () => _pickTime(true),
+                                  onPressed: () => _pickTime(true),
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -543,7 +544,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 child: OutlinedButton.icon(
                                   icon: const Icon(Icons.schedule),
                                   label: Text(
-                                    _taskTime != null ? _formatTimeOfDay(_taskTime!) : 'タスク時間',
+                                    _taskTime != null ? _formatTimeOfDay(_taskTime!) : 'ヒーロータスク時間',
                                     style: TextStyle(
                                       color: _taskTime != null ? AppColors.textPrimary : AppColors.textMuted,
                                     ),
@@ -554,7 +555,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     foregroundColor: AppColors.primary,
                                     side: const BorderSide(color: AppColors.border),
                                   ),
-                                  onPressed: _isRestricted ? null : () => _pickTime(false),
+                                  onPressed: () => _pickTime(false),
                                 ),
                               ),
                             ],
@@ -562,7 +563,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           const SizedBox(height: 32),
 
                           // Tasks
-                          const SectionTitle(title: 'やりたいタスク（1〜5個）'),
+                          const SectionTitle(title: 'やりたいヒーロータスク（1〜5個）'),
                           const SizedBox(height: 12),
                           ...List.generate(_taskCtrls.length, (index) {
                             return Padding(
@@ -574,7 +575,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       controller: _taskCtrls[index],
                                       style: const TextStyle(color: AppColors.textPrimary),
                                       decoration: InputDecoration(
-                                        labelText: 'タスク ${index + 1}',
+                                        labelText: 'ヒーロータスク ${index + 1}',
                                         hintText: '例: ランニング3km',
                                         hintStyle: const TextStyle(color: AppColors.textMuted),
                                       ),
@@ -594,7 +595,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               alignment: Alignment.centerLeft,
                               child: TextButton.icon(
                                 icon: const Icon(Icons.add, color: AppColors.primary),
-                                label: const Text('タスクを追加', style: TextStyle(color: AppColors.primary)),
+                                label: const Text('ヒーロータスクを追加', style: TextStyle(color: AppColors.primary)),
                                 onPressed: _addTaskField,
                               ),
                             ),

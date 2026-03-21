@@ -12,7 +12,7 @@ import '../widgets/post_success_dialog.dart';
 
 /// Hero Task 撮影画面
 ///
-/// [heroTaskName] が渡された場合、タスク名は固定表示されます。
+/// [heroTaskName] が渡された場合、ヒーロータスク名は固定表示されます。
 /// 投稿成功時は `Navigator.pop(context, true)` で結果を返します。
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key, this.heroTaskName});
@@ -64,7 +64,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _uploadPost() async {
     if (_image == null) return;
-    final taskName = _taskName ?? '今日のタスク';
+    final taskName = _taskName ?? '今日のヒーロータスク';
 
     HapticFeedback.mediumImpact();
     setState(() => _isUploading = true);

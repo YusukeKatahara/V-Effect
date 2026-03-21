@@ -8,7 +8,7 @@ import '../services/analytics_service.dart';
 import '../services/user_service.dart';
 import '../widgets/premium_background.dart';
 
-/// プロフィール設定後に表示されるタスクテンプレート選択画面
+/// プロフィール設定後に表示されるヒーロータスクテンプレート選択画面
 ///
 /// ユーザーが V Effect の標準フローを即座に体験できるよう、
 /// フロー: テンプレート選択 → Main (Home) へ遷移
@@ -43,14 +43,14 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
     _TaskTemplate(
       icon: Icons.edit_rounded,
       title: '自分で決める',
-      subtitle: '好きなタスクを自由に設定しよう',
+      subtitle: '好きなヒーロータスクを自由に設定しよう',
     ),
   ];
 
   int? _selectedIndex;
   bool _isProcessing = false;
 
-  // カスタムタスク入力用（「自分で決める」選択時）
+  // カスタムヒーロータスク入力用（「自分で決める」選択時）
   final TextEditingController _customTaskCtrl = TextEditingController();
   bool _showCustomInput = false;
 
@@ -84,7 +84,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
     super.dispose();
   }
 
-  /// 選択されたテンプレートのタスク名を返す
+  /// 選択されたテンプレートのヒーロータスク名を返す
   String? get _selectedTaskName {
     if (_selectedIndex == null) return null;
     // 「自分で決める」の場合はカスタム入力値
@@ -95,7 +95,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
     return _templates[_selectedIndex!].title;
   }
 
-  /// テンプレート選択 → カメラ起動 → 投稿完了でタスク設定へ遷移
+  /// テンプレート選択 → カメラ起動 → 投稿完了でヒーロータスク設定へ遷移
   Future<void> _onStartTask() async {
     final taskName = _selectedTaskName;
     if (taskName == null) return;
@@ -110,7 +110,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
         isCustom: _selectedIndex == _templates.length - 1,
       );
 
-      // テンプレートのタスクを一時的に保存（初回投稿用）
+      // テンプレートのヒーロータスクを一時的に保存（初回投稿用）
       await _userService.saveTemplateTask(taskName: taskName);
 
       if (!mounted) return;
@@ -131,7 +131,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
     }
   }
 
-  /// スキップ → 直接タスク設定画面へ
+  /// スキップ → 直接ヒーロータスク設定画面へ
   void _onSkip() {
     AnalyticsService.instance.logTemplateSelected(
       templateName: 'skipped',
@@ -268,7 +268,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
         ),
         const SizedBox(height: 8),
         Text(
-          'かんたんなタスクを選んで\nアプリをはじめましょう',
+          'かんたんなヒーロータスクを選んで\nアプリをはじめましょう',
           textAlign: TextAlign.center,
           style: GoogleFonts.notoSansJp(
             fontSize: 14,
@@ -433,7 +433,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
           fontSize: 15,
         ),
         decoration: InputDecoration(
-          labelText: 'タスク名を入力',
+          labelText: 'ヒーロータスク名を入力',
           hintText: '例: ランニング3km',
           labelStyle: TextStyle(color: AppColors.textSecondary),
           hintStyle: TextStyle(color: AppColors.textMuted),

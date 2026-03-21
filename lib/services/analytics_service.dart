@@ -89,7 +89,7 @@ class AnalyticsService {
     await _analytics.logEvent(name: 'profile_setup_complete');
   }
 
-  /// タスク設定完了
+  /// ヒーロータスク設定完了
   Future<void> logTaskSetupComplete({required int taskCount}) async {
     await _analytics.logEvent(
       name: 'task_setup_complete',
@@ -102,7 +102,7 @@ class AnalyticsService {
     await _analytics.logEvent(name: 'onboarding_complete');
   }
 
-  /// テンプレートタスク選択を記録
+  /// テンプレートヒーロータスク選択を記録
   Future<void> logTemplateSelected({
     required String templateName,
     required bool isCustom,
@@ -117,10 +117,10 @@ class AnalyticsService {
   }
 
   // ════════════════════════════════════════════
-  // 投稿イベント（タスクカテゴリ + 時間帯付き）
+  // 投稿イベント（ヒーロータスクカテゴリ + 時間帯付き）
   // ════════════════════════════════════════════
 
-  /// 投稿作成（タスクカテゴリと時間帯を自動分類して付与）
+  /// 投稿作成（ヒーロータスクカテゴリと時間帯を自動分類して付与）
   Future<void> logPostCreated({required String taskName}) async {
     final now = DateTime.now();
     await _analytics.logEvent(
@@ -258,7 +258,7 @@ class AnalyticsService {
     await _analytics.setUserProperty(name: 'streak_tier', value: tier);
   }
 
-  /// タスク数をユーザープロパティとして設定
+  /// ヒーロータスク数をユーザープロパティとして設定
   Future<void> setTaskCount(int count) async {
     await _analytics.setUserProperty(
       name: 'task_count',
@@ -274,8 +274,8 @@ class AnalyticsService {
     );
   }
 
-  /// 主要タスクカテゴリをユーザープロパティとして設定
-  /// 複数タスクのうち最も多いカテゴリを代表値とする
+  /// 主要ヒーロータスクカテゴリをユーザープロパティとして設定
+  /// 複数ヒーロータスクのうち最も多いカテゴリを代表値とする
   Future<void> setTaskCategories(List<String> tasks) async {
     if (tasks.isEmpty) return;
 
@@ -301,10 +301,10 @@ class AnalyticsService {
   }
 
   // ════════════════════════════════════════════
-  // タスクカテゴリ自動分類（内部ロジック）
+  // ヒーロータスクカテゴリ自動分類（内部ロジック）
   // ════════════════════════════════════════════
 
-  /// タスク名からカテゴリを自動推定する
+  /// ヒーロータスク名からカテゴリを自動推定する
   /// ユーザーには見えない裏側のロジック
   static String classifyTask(String taskName) {
     final t = taskName.toLowerCase();
@@ -348,7 +348,7 @@ class AnalyticsService {
 
     // 仕事・副業
     if (_matchesAny(t, [
-      '仕事', 'タスク', '案件', '副業', '作業', 'メール', 'ミーティング',
+      '仕事', 'ヒーロータスク', '案件', '副業', '作業', 'メール', 'ミーティング',
       '企画', '営業', 'プレゼン', '資料',
       'work', 'task', 'meeting', 'email', 'project',
     ])) {
