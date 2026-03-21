@@ -80,7 +80,13 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
       });
       _startAutoTimer();
     } catch (e) {
-      if (mounted) setState(() => _loading = false);
+      debugPrint('LoadPosts error: $e');
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('投稿の読み込みに失敗しました: $e')),
+        );
+      }
     }
   }
 
@@ -464,11 +470,16 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                       backgroundColor: isActive
                           ? AppColors.primary
                           : AppColors.bgElevated,
-                      child: Icon(
-                        Icons.person,
-                        size: 20,
-                        color: isActive ? AppColors.textPrimary : AppColors.textMuted,
-                      ),
+                      backgroundImage: friend['photoUrl'] != null
+                          ? NetworkImage(friend['photoUrl'] as String)
+                          : null,
+                      child: friend['photoUrl'] == null
+                          ? Icon(
+                              Icons.person,
+                              size: 20,
+                              color: isActive ? AppColors.textPrimary : AppColors.textMuted,
+                            )
+                          : null,
                     ),
                   ),
                   const SizedBox(height: 2),

@@ -491,14 +491,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       size: 56,
                       isAnimating: true,
                       glowColor: AppColors.white,
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [AppColors.grey85, AppColors.grey50],
-                      ),
+                      gradient: friend['photoUrl'] == null
+                          ? const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [AppColors.grey85, AppColors.grey50],
+                            )
+                          : null,
                       borderWidth: 1.5,
-                      child: const Icon(Icons.person_rounded,
-                          size: 24, color: AppColors.grey10),
+                      child: friend['photoUrl'] != null
+                          ? ClipOval(
+                              child: Image.network(
+                                friend['photoUrl'] as String,
+                                width: 56,
+                                height: 56,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : const Icon(Icons.person_rounded,
+                              size: 24, color: AppColors.grey10),
                     ),
                     const SizedBox(height: 4),
                     SizedBox(

@@ -87,6 +87,7 @@ class PostService {
         'uid': doc.id,
         'username': data['username'] ?? '',
         'userId': data['userId'] ?? '',
+        'photoUrl': data['photoUrl'] as String?,
         'hasPostedToday': data['lastPostedDate'] == today,
       };
     }).toList();
@@ -280,13 +281,11 @@ class PostService {
   }
 
   /// 特定フレンドの24h以内の投稿を一括取得します（ストーリー表示用）
-  Future<List<Post>> getFriendPostsList(String friendUid) async {
     final snap = await _db
         .collection('posts')
         .where('userId', isEqualTo: friendUid)
         .where('expiresAt', isGreaterThan: Timestamp.now())
         .orderBy('expiresAt')
-        .orderBy('createdAt', descending: true)
         .get();
     return snap.docs
         .map((doc) => Post.fromFirestore(doc))
