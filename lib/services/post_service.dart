@@ -264,8 +264,7 @@ class PostService {
     return getFriendsListFromUids(friendUids);
   }
 
-    });
-  }
+
 
   /// 特定フレンドの24h以内の投稿を取得します（リアルタイム）
   Stream<List<Post>> getFriendPosts(String friendUid) {
