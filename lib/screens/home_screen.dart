@@ -261,15 +261,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _friendStatuses.where((f) => f['hasPostedToday'] == true).toList();
 
   void _openFriendFeed(Map<String, dynamic> friend) {
-    final postedFriends = _postedFriends;
-    final idx = postedFriends.indexWhere((f) => f['uid'] == friend['uid']);
+    // 投稿済みフレンドのみ渡す（ただし未投稿でも自分はフィードを開ける）
+    final feedFriends = _postedFriends.isNotEmpty ? _postedFriends : _friendStatuses;
+    final idx = feedFriends.indexWhere((f) => f['uid'] == friend['uid']);
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => FriendFeedScreen(
           friendUid: friend['uid'] as String,
           friendUsername: friend['username'] as String,
-          allFriends: postedFriends,
+          allFriends: feedFriends,
           initialFriendIndex: idx >= 0 ? idx : 0,
         ),
       ),
@@ -448,21 +449,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Text('フレンドを追加しましょう',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.grey30, fontSize: 12)),
-      );
-    }
-
-    if (!_postedToday) {
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.grey10.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.grey20.withValues(alpha: 0.3)),
-        ),
-        child: Text('投稿するとフレンドの写真が見られます',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppColors.grey50)),
       );
     }
 

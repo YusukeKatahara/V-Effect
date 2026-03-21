@@ -296,9 +296,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Navigator.pop(context, true); // 変更があったことを伝えるためにtrueを返す
       }
     } catch (e) {
+      debugPrint('SaveProfile error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('保存に失敗しました。もう一度お試しください。')),
+          SnackBar(content: Text('保存に失敗しました: $e')),
         );
       }
     } finally {
