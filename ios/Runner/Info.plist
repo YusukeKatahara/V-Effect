@@ -53,5 +53,11 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>ヒーロータスクの写真を撮影するためにカメラを使用します。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>プロフィール写真を選択するためにフォトライブラリを使用します。</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>動画撮影時にマイクを使用します（カメラ機能の安定動作のため）。</string>
 </dict>
 </plist>

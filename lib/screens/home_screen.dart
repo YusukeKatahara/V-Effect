@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_colors.dart';
@@ -152,44 +153,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   /// 初回アクセス時のチュートリアル表示（投稿方法）
+  /// 本当の「初回のみ」を保証するため Firestore フラグで管理
   Future<void> _checkAndShowTutorial() async {
     if (!mounted || _postedToday) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenTutorial = prefs.getBool('has_seen_tutorial') ?? false;
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
 
-    if (!hasSeenTutorial) {
-      await prefs.setBool('has_seen_tutorial', true);
-      if (!mounted) return;
-      _showTutorialDialog(
-        title: 'ヒーロータスクを設定しました！',
-        message: '画面中央のヒーロータスクカードをタップして、\n写真を撮って投稿してみましょう。',
-        icon: Icons.touch_app_rounded,
-      );
-    }
+    final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final shown = snap.data()?['taskTutorialShown'] == true;
+    if (shown || !mounted) return;
+
+    await FirebaseFirestore.instance.collection('users').doc(uid).update({'taskTutorialShown': true});
+    if (!mounted) return;
+    _showTutorialDialog(
+      title: 'ヒーロータスクを設定しました！',
+      message: '画面中央のヒーロータスクカードをタップして、\n写真を撮って投稿してみましょう。',
+      icon: Icons.touch_app_rounded,
+    );
   }
 
-  /// 投稿完了後のチュートリアル表示
+  /// 投稿完了後のチュートリアル表示（初回投稿のみ）
+  /// 本当の「初回のみ」を保証するため Firestore フラグで管理
   Future<void> _checkAndShowPostTutorial() async {
     if (!mounted) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenPostTutorial = prefs.getBool('has_seen_post_tutorial') ?? false;
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
 
-    if (!hasSeenPostTutorial) {
-      await prefs.setBool('has_seen_post_tutorial', true);
-      if (!mounted) return;
-      _showTutorialDialog(
-        title: 'ナイス初投稿！',
-        message: '投稿はフィードに表示され、フレンドに共有されます。\n\n「プロフィールの設定画面」から、あなただけの独自のヒーロータスクを追加・変更することも可能です。',
-        icon: Icons.celebration_rounded,
-        buttonText: '次へ',
-        onButtonPressed: () {
-          Navigator.of(context).pop();
-          Navigator.pushNamed(context, AppRoutes.initialFriend);
-        },
-      );
-    }
+    final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final shown = snap.data()?['postTutorialShown'] == true;
+    if (shown || !mounted) return;
+
+    await FirebaseFirestore.instance.collection('users').doc(uid).update({'postTutorialShown': true});
+    if (!mounted) return;
+    _showTutorialDialog(
+      title: 'ナイス初投稿！',
+      message: '投稿はフィードに表示され、フレンドに共有されます。\n\n「プロフィールの設定画面」から、あなただけの独自のヒーロータスクを追加・変更することも可能です。',
+      icon: Icons.celebration_rounded,
+      buttonText: '次へ',
+      onButtonPressed: () {
+        Navigator.of(context).pop();
+        Navigator.pushNamed(context, AppRoutes.initialFriend);
+      },
+    );
   }
 
   void _showTutorialDialog({
