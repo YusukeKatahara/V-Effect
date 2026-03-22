@@ -18,6 +18,7 @@ import '../widgets/fluid_blob.dart';
 import '../widgets/streak_flame.dart';
 import 'camera_screen.dart';
 import 'friend_feed_screen.dart';
+import '../widgets/splash_loading.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -329,8 +330,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Scaffold(
       backgroundColor: AppColors.black,
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.white))
+          ? const SplashLoading()
           : Stack(
               children: [
                 _buildDeepBackground(),

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/routes.dart';
 import '../services/analytics_service.dart';
+import '../widgets/splash_loading.dart';
 import 'login_screen.dart';
 
 /// 認証状態とプロフィール完了状態を監視し、適切な画面へルーティングするラッパー
@@ -36,9 +37,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       builder: (context, snapshot) {
         // 1. まだ判定中
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const SplashLoading();
         }
 
         // 2. ログインしていない → ログイン画面へ
@@ -68,17 +67,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
           future: _userDocFuture,
           builder: (context, docSnapshot) {
             if (docSnapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
+              return const SplashLoading();
             }
 
             // ドキュメントが存在しない → プロフィール設定へ
             if (!docSnapshot.hasData || !docSnapshot.data!.exists) {
               _navigateTo(AppRoutes.profileSetup);
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
+              return const SplashLoading();
             }
 
             final data = docSnapshot.data!.data() as Map<String, dynamic>?;
@@ -96,9 +91,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
               _navigateTo(AppRoutes.home);
             }
 
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
+            return const SplashLoading();
           },
         );
       },

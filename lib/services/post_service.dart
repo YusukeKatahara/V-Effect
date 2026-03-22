@@ -57,15 +57,22 @@ class PostService {
     final lastPostedDate = data['lastPostedDate'] as String?;
     final tasks = List<String>.from(data['tasks'] ?? []);
 
-    // 今日投稿したタスクを特定する
+    // 今日投稿したタスクを特定する (インデックス要件を避けるため、メモリ内でソートとフィルタリングを行う)
     final now = DateTime.now();
-    final startOfDay = Timestamp.fromDate(DateTime(now.year, now.month, now.day));
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    
+    // 単純な userId フィルターのみを使用（インデックス不要、または自動作成済み）
     final postsSnap = await _db.collection('posts')
         .where('userId', isEqualTo: uid)
-        .where('createdAt', isGreaterThanOrEqualTo: startOfDay)
         .get();
 
-    final postedTasksToday = postsSnap.docs.map((d) => d.data()['taskName'] as String).toList();
+    final postedTasksToday = postsSnap.docs.where((doc) {
+      final data = doc.data();
+      if (!data.containsKey('createdAt')) return false;
+      final createdAt = (data['createdAt'] as Timestamp).toDate();
+      // 今日の日付以降の投稿をフィルタリング
+      return createdAt.isAfter(startOfToday) || createdAt.isAtSameMomentAs(startOfToday);
+    }).map((d) => d.data()['taskName'] as String).toList();
 
     return {
       'streak': (data['streak'] as num?)?.toInt() ?? 0,
