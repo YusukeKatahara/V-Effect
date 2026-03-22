@@ -198,7 +198,6 @@ class PostService {
         .collection('posts')
         .where('userId', whereIn: limitedFriends)
         .where('expiresAt', isGreaterThan: Timestamp.now())
-        .orderBy('expiresAt')
         .snapshots()
         .map((snap) {
       final posts = snap.docs
@@ -272,12 +271,13 @@ class PostService {
         .collection('posts')
         .where('userId', isEqualTo: friendUid)
         .where('expiresAt', isGreaterThan: Timestamp.now())
-        .orderBy('expiresAt')
         .snapshots()
         .map((snap) {
-      return snap.docs
+      final posts = snap.docs
           .map((doc) => Post.fromFirestore(doc))
-          .toList();
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return posts;
     });
   }
 
@@ -287,11 +287,11 @@ class PostService {
         .collection('posts')
         .where('userId', isEqualTo: friendUid)
         .where('expiresAt', isGreaterThan: Timestamp.now())
-        .orderBy('expiresAt')
         .get();
     return snap.docs
         .map((doc) => Post.fromFirestore(doc))
-        .toList();
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   /// 自分のヒーロータスクリストを取得します
