@@ -260,7 +260,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                     borderRadius: BorderRadius.circular(2),
                     color: i <= _currentPostIndex
                         ? AppColors.textPrimary
-                        : AppColors.textPrimary.withValues(alpha: 0.24),
+                        : AppColors.textPrimary.withOpacity(0.24),
                   ),
                 ),
               );
@@ -313,7 +313,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                     fontWeight: FontWeight.bold,
                     shadows: [
                       Shadow(
-                        color: AppColors.bgBase.withValues(alpha: 0.54),
+                        color: AppColors.bgBase.withOpacity(0.54),
                         offset: const Offset(1, 1),
                         blurRadius: 2,
                       ),
@@ -352,7 +352,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
-                      colors: [AppColors.bgBase.withValues(alpha: 0.87), Colors.transparent],
+                      colors: [AppColors.bgBase.withOpacity(0.87), Colors.transparent],
                     ),
                   ),
                   padding:
@@ -378,7 +378,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                               post.remainingText,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textPrimary.withValues(alpha: 0.6),
+                                color: AppColors.textPrimary.withOpacity(0.6),
                               ),
                             ),
                           ],
@@ -394,7 +394,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                               width: 52,
                               height: 52,
                               decoration: BoxDecoration(
-                                color: AppColors.textPrimary.withValues(alpha: 0.15),
+                                color: AppColors.textPrimary.withOpacity(0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -408,7 +408,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                           Text(
                             '${post.reactionCount}',
                             style: TextStyle(
-                                fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.7)),
+                                fontSize: 13, color: AppColors.textPrimary.withOpacity(0.7)),
                           ),
                         ],
                       ),
@@ -576,7 +576,7 @@ class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
         Icons.whatshot,
         color: AppColors.primary,
         size: 40,
-        shadows: [Shadow(color: AppColors.white.withValues(alpha: 0.5), blurRadius: 12)],
+        shadows: [Shadow(color: AppColors.white.withOpacity(0.5), blurRadius: 12)],
       ),
     );
   }

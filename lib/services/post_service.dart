@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
 import '../models/post.dart';
 import '../models/app_notification.dart';
@@ -49,7 +50,7 @@ class PostService {
         'tasks': <String>[],
         'friends': <String>[],
         'lastPostedDate': null,
-        'postedTasksToday': <String>[],
+        'postedTasksToday': <Post>[],
       };
     }
     final data = snap.data()!;
@@ -60,29 +61,35 @@ class PostService {
     // 今日投稿したタスクを特定する (インデックス要件を避けるため、メモリ内でソートとフィルタリングを行う)
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
-    
-    // 単純な userId フィルターのみを使用（インデックス不要、または自動作成済み）
-    final postsSnap = await _db.collection('posts')
-        .where('userId', isEqualTo: uid)
-        .get();
 
-    final postedTasksToday = postsSnap.docs.where((doc) {
-      final data = doc.data();
-      if (!data.containsKey('createdAt')) return false;
-      final createdAt = (data['createdAt'] as Timestamp).toDate();
-      // 今日の日付以降の投稿をフィルタリング
-      return createdAt.isAfter(startOfToday) || createdAt.isAtSameMomentAs(startOfToday);
-    }).map((d) => d.data()['taskName'] as String).toList();
+    // 単純な userId フィルターのみを使用（インデックス不要、または自動作成済み）
+    final postsSnap =
+        await _db.collection('posts').where('userId', isEqualTo: uid).get();
+
+    final postedPostsToday =
+        postsSnap.docs
+            .where((doc) {
+              final data = doc.data();
+              if (!data.containsKey('createdAt')) return false;
+              final createdAt = (data['createdAt'] as Timestamp).toDate();
+              // 今日の日付以降の投稿をフィルタリング
+              return createdAt.isAfter(startOfToday) ||
+                  createdAt.isAtSameMomentAs(startOfToday);
+            })
+            .map((doc) => Post.fromFirestore(doc))
+            .toList();
 
     return {
       'streak': (data['streak'] as num?)?.toInt() ?? 0,
       'postedToday': lastPostedDate == today,
-      'isAllTasksCompleted': tasks.isNotEmpty && tasks.every((t) => postedTasksToday.contains(t)),
+      'isAllTasksCompleted':
+          tasks.isNotEmpty &&
+          tasks.every((t) => postedPostsToday.any((p) => p.taskName == t)),
       'username': data['username'] as String? ?? '',
       'tasks': tasks,
       'friends': List<String>.from(data['friends'] ?? []),
       'lastPostedDate': lastPostedDate,
-      'postedTasksToday': postedTasksToday,
+      'postedTasksToday': postedPostsToday,
     };
   }
 
@@ -91,16 +98,18 @@ class PostService {
   /// [friendUids] はgetHomeData()で取得済みのフレンドUID一覧を渡してください。
   /// これにより追加のユーザードキュメント読み込みを回避します。
   Future<List<Map<String, dynamic>>> getFriendsListFromUids(
-      List<String> friendUids) async {
+    List<String> friendUids,
+  ) async {
     if (friendUids.isEmpty) return [];
 
     final limitedUids = friendUids.take(30).toList();
 
     // Firestore の whereIn は最大30件なので分割不要
-    final friendsSnap = await _db
-        .collection('users')
-        .where(FieldPath.documentId, whereIn: limitedUids)
-        .get();
+    final friendsSnap =
+        await _db
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: limitedUids)
+            .get();
 
     final today = DateHelper.toDateString(DateTime.now());
     return friendsSnap.docs.map((doc) {
@@ -222,12 +231,11 @@ class PostService {
         .where('expiresAt', isGreaterThan: Timestamp.now())
         .snapshots()
         .map((snap) {
-      final posts = snap.docs
-          .map((doc) => Post.fromFirestore(doc))
-          .toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return posts;
-    });
+          final posts =
+              snap.docs.map((doc) => Post.fromFirestore(doc)).toList()
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return posts;
+        });
   }
 
   /// 投稿にリアクションをつけます
@@ -244,7 +252,7 @@ class PostService {
   }
 
   /// リアクション通知を送信する内部メソッド
-  /// 同じ投稿に対して同じユーザーからの通知は1回のみ送信する
+  /// 同じ投稿に対して同じユーザーからの通知がある場合は、回数を増やして更新する
   Future<void> _sendReactionNotification(String postId) async {
     final postSnap = await _db.collection('posts').doc(postId).get();
     if (!postSnap.exists) return;
@@ -254,26 +262,45 @@ class PostService {
     final myUid = _auth.currentUser!.uid;
     if (postOwnerId == myUid) return; // 自分への投稿には通知しない
 
-    // 同じ投稿・同じ送信者のリアクション通知が既にあるかチェック
-    final existing = await _db
-        .collection('notifications')
-        .where('fromUid', isEqualTo: myUid)
-        .where('relatedId', isEqualTo: postId)
-        .where('type', isEqualTo: NotificationType.reactionReceived.name)
-        .limit(1)
-        .get();
-    if (existing.docs.isNotEmpty) return; // 既に通知済み
-
+    // 自分のユーザー名を取得
     final myUserSnap = await _db.collection('users').doc(myUid).get();
     final myUsername = myUserSnap.data()?['username'] ?? 'フレンド';
 
-    await _notificationService.createNotification(
-      toUid: postOwnerId,
-      type: NotificationType.reactionReceived,
-      params: {'username': myUsername},
-      fromUid: myUid,
-      relatedId: postId,
-    );
+    // 同じ投稿・同じ送信者のリアクション通知が既にあるかチェック
+    final existing =
+        await _db
+            .collection('notifications')
+            .where('fromUid', isEqualTo: myUid)
+            .where('relatedId', isEqualTo: postId)
+            .where('type', isEqualTo: NotificationType.reactionReceived.name)
+            .limit(1)
+            .get();
+
+    int newCount = 1;
+    if (existing.docs.isNotEmpty) {
+      final doc = existing.docs.first;
+      final data = doc.data();
+      // bodyから回数をパースするか、隠しフィールドがあればそれを使う
+      // 今回は 'reactionCount' というフィールドを通知ドキュメントに追加して管理する
+      final currentCount = data['reactionCount'] as int? ?? 0;
+      newCount = currentCount + 1;
+
+      // 既存の通知を削除（onCreateトリガーを再発火させるため）
+      await doc.reference.delete();
+    }
+
+    // 新しい通知を作成
+    await _db.collection('notifications').add({
+      'toUid': postOwnerId,
+      'fromUid': myUid,
+      'relatedId': postId,
+      'type': NotificationType.reactionReceived.name,
+      'reactionCount': newCount,
+      'title': '🔥 激しい炎！',
+      'body': '$myUsernameさんがあなたの投稿で$newCount回、激しい炎を燃やしてます!!',
+      'isRead': false,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 
   /// フレンド一覧を取得します（Stories 表示用）
@@ -285,8 +312,6 @@ class PostService {
     return getFriendsListFromUids(friendUids);
   }
 
-
-
   /// 特定フレンドの24h以内の投稿を取得します（リアルタイム）
   Stream<List<Post>> getFriendPosts(String friendUid) {
     return _db
@@ -295,24 +320,22 @@ class PostService {
         .where('expiresAt', isGreaterThan: Timestamp.now())
         .snapshots()
         .map((snap) {
-      final posts = snap.docs
-          .map((doc) => Post.fromFirestore(doc))
-          .toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return posts;
-    });
+          final posts =
+              snap.docs.map((doc) => Post.fromFirestore(doc)).toList()
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return posts;
+        });
   }
 
   /// 特定フレンドの24h以内の投稿を一括取得します（ストーリー表示用）
   Future<List<Post>> getFriendPostsList(String friendUid) async {
-    final snap = await _db
-        .collection('posts')
-        .where('userId', isEqualTo: friendUid)
-        .where('expiresAt', isGreaterThan: Timestamp.now())
-        .get();
-    return snap.docs
-        .map((doc) => Post.fromFirestore(doc))
-        .toList()
+    final snap =
+        await _db
+            .collection('posts')
+            .where('userId', isEqualTo: friendUid)
+            .where('expiresAt', isGreaterThan: Timestamp.now())
+            .get();
+    return snap.docs.map((doc) => Post.fromFirestore(doc)).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
@@ -328,5 +351,77 @@ class PostService {
     final uid = _auth.currentUser!.uid;
     final snap = await _db.collection('users').doc(uid).get();
     return snap.data()?['username'] ?? '';
+  }
+
+  /// 全フレンドの直近の投稿（24時間以内）をまとめて取得します
+  Future<List<Post>> getAllFriendsPosts(List<String> friendUids) async {
+    if (friendUids.isEmpty) return [];
+
+    // Firestoreの `in` クエリは最大10件までの制限があるため、10件ごとに分割
+    List<Post> allPosts = [];
+    for (var i = 0; i < friendUids.length; i += 10) {
+      final chunk = friendUids.sublist(
+        i,
+        i + 10 > friendUids.length ? friendUids.length : i + 10,
+      );
+      final snap =
+          await _db
+              .collection('posts')
+              .where('userId', whereIn: chunk)
+              .where('expiresAt', isGreaterThan: Timestamp.now())
+              .get();
+
+      allPosts.addAll(snap.docs.map((doc) => Post.fromFirestore(doc)));
+    }
+
+    // 作成日時の新しい順にソート
+    allPosts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return allPosts;
+  }
+
+  /// 投稿を削除します
+  Future<void> deletePost(String postId) async {
+    final postSnap = await _db.collection('posts').doc(postId).get();
+    if (!postSnap.exists) return;
+
+    final data = postSnap.data()!;
+    final imageUrl = data['imageUrl'] as String?;
+    final uid = data['userId'] as String;
+
+    // 1. Firestore から投稿を削除
+    await postSnap.reference.delete();
+
+    // 2. Storage から画像を削除
+    if (imageUrl != null) {
+      try {
+        final ref = _storage.refFromURL(imageUrl);
+        await ref.delete();
+      } catch (e) {
+        debugPrint('Failed to delete image from storage: $e');
+      }
+    }
+
+    // 3. その日が最後の投稿だった場合、ユーザードキュメントの lastPostedDate をクリアする検討
+    final startOfToday = DateTime.now().copyWith(
+      hour: 0,
+      minute: 0,
+      second: 0,
+      millisecond: 0,
+    );
+
+    final otherPosts =
+        await _db
+            .collection('posts')
+            .where('userId', isEqualTo: uid)
+            .where(
+              'createdAt',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfToday),
+            )
+            .limit(1)
+            .get();
+
+    if (otherPosts.docs.isEmpty) {
+      await _db.collection('users').doc(uid).update({'lastPostedDate': null});
+    }
   }
 }

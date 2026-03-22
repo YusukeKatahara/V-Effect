@@ -41,6 +41,7 @@ class NotificationService {
       'body': content.body,
       'fromUid': fromUid,
       'relatedId': relatedId,
+      'isRead': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -60,15 +61,33 @@ class NotificationService {
         });
   }
 
-  /// 通知の件数をリアルタイムで取得します
-  /// デシリアライズせずDoc数だけカウントしてパフォーマンスを向上
+  /// 未読の通知件数をリアルタイムで取得します
   Stream<int> getNotificationCount() {
     final myUid = _auth.currentUser!.uid;
     return _db
         .collection('notifications')
         .where('toUid', isEqualTo: myUid)
+        .where('isRead', isEqualTo: false)
         .snapshots()
         .map((snap) => snap.docs.length);
+  }
+
+  /// 全ての未読通知を既読にします
+  Future<void> markAllAsRead() async {
+    final myUid = _auth.currentUser!.uid;
+    final snap = await _db
+        .collection('notifications')
+        .where('toUid', isEqualTo: myUid)
+        .where('isRead', isEqualTo: false)
+        .get();
+    
+    if (snap.docs.isEmpty) return;
+
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.update(doc.reference, {'isRead': true});
+    }
+    await batch.commit();
   }
 
   /// 通知を1件削除します

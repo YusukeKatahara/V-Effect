@@ -41,24 +41,62 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void initState() {
     super.initState();
-    // 画面を開いたら即カメラ起動
-    WidgetsBinding.instance.addPostFrameCallback((_) => _takePhoto());
+    // 画面を開いたら即選択メニューを表示
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showPickerMenu());
   }
 
-  Future<void> _takePhoto() async {
+  Future<void> _showPickerMenu() async {
+    // インスタ風に下からメニューを出す
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppColors.grey10,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: AppColors.white),
+                title: const Text('カメラで撮影', style: TextStyle(color: AppColors.white)),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: AppColors.white),
+                title: const Text('アルバムから選択', style: TextStyle(color: AppColors.white)),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source != null) {
+      _pickImage(source);
+    } else if (_image == null && mounted) {
+      // メニューを閉じた時に写真が未選択なら戻る
+      Navigator.pop(context, false);
+    }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
     final XFile? photo = await _picker.pickImage(
-      source: ImageSource.camera,
+      source: source,
       imageQuality: 80,
       preferredCameraDevice: CameraDevice.rear,
     );
     if (photo != null && mounted) {
       setState(() {
         _image = photo;
-        _captureTime = DateTime.now();
+        _captureTime = DateTime.now(); // ギャラリーからの場合も現在時刻とする
       });
     } else if (_image == null && mounted) {
-      // カメラをキャンセルした場合、写真がなければ戻る
-      Navigator.pop(context, false);
+      // キャンセルした場合は再度メニューを出すか戻る
+      _showPickerMenu();
     }
   }
 
@@ -248,7 +286,7 @@ class _CameraScreenState extends State<CameraScreen> {
             children: [
               // Retake
               GestureDetector(
-                onTap: _isUploading ? null : _takePhoto,
+                onTap: _isUploading ? null : _showPickerMenu,
                 child: Container(
                   width: 48,
                   height: 48,

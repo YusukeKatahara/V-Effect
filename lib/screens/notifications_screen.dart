@@ -22,6 +22,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     _notificationsStream = _notificationService.getMyNotifications();
+    // 画面を開いた瞬間に全て既読にする
+    _notificationService.markAllAsRead();
   }
 
   IconData _iconForType(NotificationType type) {

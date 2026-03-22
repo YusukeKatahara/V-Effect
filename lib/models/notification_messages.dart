@@ -117,24 +117,8 @@ abstract class NotificationMessages {
     // ── リアクション受信 ──
     NotificationType.reactionReceived: [
       _Template(
-        title: '🔥リアクション',
-        body: 'あなたの一歩に{username}さんから🔥が届きました',
-      ),
-      _Template(
-        title: '🔥リアクション',
-        body: '{username}さんがあなたの努力を見ています🔥',
-      ),
-      _Template(
-        title: '🔥リアクション',
-        body: '{username}さんから🔥！あなたの積み重ねが誰かの力になっています',
-      ),
-      _Template(
-        title: '🔥リアクション',
-        body: '{username}さんがあなたの挑戦に🔥を送りました',
-      ),
-      _Template(
-        title: '🔥リアクション',
-        body: '🔥{username}さんがあなたの一歩を称えています',
+        title: '🔥 激しい炎！',
+        body: '{username}さんがあなたの投稿で{count}回、激しい炎を燃やしてます!!',
       ),
     ],
 

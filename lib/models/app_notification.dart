@@ -19,6 +19,8 @@ class AppNotification {
   final String body;
   final String? fromUid;
   final String? relatedId;
+  final int reactionCount;
+  final bool isRead;
   final DateTime createdAt;
 
   const AppNotification({
@@ -29,6 +31,8 @@ class AppNotification {
     required this.body,
     this.fromUid,
     this.relatedId,
+    this.reactionCount = 0,
+    this.isRead = false,
     required this.createdAt,
   });
 
@@ -45,6 +49,8 @@ class AppNotification {
       body: data['body'] ?? '',
       fromUid: data['fromUid'],
       relatedId: data['relatedId'],
+      reactionCount: data['reactionCount'] as int? ?? 0,
+      isRead: data['isRead'] ?? false,
       createdAt:
           (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -57,6 +63,8 @@ class AppNotification {
         'body': body,
         'fromUid': fromUid,
         'relatedId': relatedId,
+        'reactionCount': reactionCount,
+        'isRead': isRead,
         'createdAt': FieldValue.serverTimestamp(),
       };
 }

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
+import 'hero_tasks_screen.dart';
 
 /// Spatial Shell — ジェスチャー主導のUI空間
 ///
@@ -19,10 +20,18 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  bool _isHomeLoading = true;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    ProfileScreen(),
+  late final List<Widget> _screens = [
+    HomeScreen(
+      onLoadingChanged: (isLoading) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _isHomeLoading = isLoading);
+        });
+      },
+    ),
+    const HeroTasksScreen(),
+    const ProfileScreen(),
   ];
 
   void _onTap(int index) {
@@ -37,62 +46,84 @@ class _MainShellState extends State<MainShell> {
       body: Stack(
         children: [
           // ── Screens ──
-          IndexedStack(
-            index: _currentIndex,
-            children: _screens,
-          ),
+          IndexedStack(index: _currentIndex, children: _screens),
 
           // ── Bottom spatial nav ──
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildSpatialNav(),
-          ),
+          if (!_isHomeLoading || _currentIndex != 0)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildSpatialNav(),
+            ),
         ],
       ),
     );
   }
 
   Widget _buildSpatialNav() {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+    return SafeArea(
+      top: false,
+      child: Center(
         child: Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          height: 64,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                AppColors.black.withValues(alpha: 0.6),
-                AppColors.black.withValues(alpha: 0.9),
-              ],
-              stops: const [0.0, 0.3, 1.0],
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(
+              color: AppColors.white.withOpacity(0.08),
+              width: 0.5,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.black.withOpacity(0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.only(
-                  left: 80, right: 80, bottom: 8, top: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Home
-                  _SpatialNavItem(
-                    label: 'HOME',
-                    isActive: _currentIndex == 0,
-                    onTap: () => _onTap(0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.white.withOpacity(0.05),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.white.withOpacity(0.08),
+                      AppColors.white.withOpacity(0.02),
+                    ],
                   ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Home (Feed)
+                    _SpatialNavItem(
+                      icon: Icons.explore_rounded,
+                      isActive: _currentIndex == 0,
+                      onTap: () => _onTap(0),
+                    ),
 
-                  // Profile
-                  _SpatialNavItem(
-                    label: 'PROFILE',
-                    isActive: _currentIndex == 1,
-                    onTap: () => _onTap(1),
-                  ),
-                ],
+                    // Hero Tasks
+                    _SpatialNavItem(
+                      icon: Icons.whatshot_rounded,
+                      isActive: _currentIndex == 1,
+                      onTap: () => _onTap(1),
+                    ),
+
+                    // Profile
+                    _SpatialNavItem(
+                      icon: Icons.person_rounded,
+                      isActive: _currentIndex == 2,
+                      onTap: () => _onTap(2),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -103,16 +134,16 @@ class _MainShellState extends State<MainShell> {
 }
 
 // ────────────────────────────────────────────
-// Spatial Nav Item — Typography-driven
+// Spatial Nav Item — Icon-driven
 // ────────────────────────────────────────────
 class _SpatialNavItem extends StatelessWidget {
   const _SpatialNavItem({
-    required this.label,
+    required this.icon,
     required this.isActive,
     required this.onTap,
   });
 
-  final String label;
+  final IconData icon;
   final bool isActive;
   final VoidCallback onTap;
 
@@ -121,20 +152,31 @@ class _SpatialNavItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        child: AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 200),
-          style: GoogleFonts.outfit(
-            fontSize: 11,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-            color: isActive ? AppColors.white : AppColors.grey30,
-            letterSpacing: 3,
-          ),
-          child: Text(label),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: isActive ? AppColors.white : AppColors.grey30,
+            ),
+            const SizedBox(height: 4),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: isActive ? 3 : 0,
+              height: 3,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.white,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
-
