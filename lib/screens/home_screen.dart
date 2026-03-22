@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -29,12 +30,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final PostService _postService = PostService.instance;
   final NotificationService _notificationService = NotificationService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   int _streak = 0;
   bool _postedToday = false;
   bool _loading = true;
   String _username = '';
-  List<String> _tasks = [];
+  List<String> _tasks = []; // 表示用の未完了タスク
+  bool _isAllTasksCompleted = false; // 全タスク完了フラグ
   List<Map<String, dynamic>> _friendStatuses = [];
   late final Stream<int> _notificationStream;
 
@@ -125,15 +128,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           : <Map<String, dynamic>>[];
 
       if (!mounted) return;
+      
+      final allTasks = homeData['tasks'] as List<String>;
+      final postedTasks = homeData['postedTasksToday'] as List<String>;
+      final remainingTasks = allTasks.where((t) => !postedTasks.contains(t)).toList();
+
       setState(() {
         _streak = homeData['streak'] as int;
         _postedToday = homeData['postedToday'] as bool;
+        _isAllTasksCompleted = homeData['isAllTasksCompleted'] as bool;
         _username = homeData['username'] as String;
-        _tasks = homeData['tasks'] as List<String>;
+        _tasks = remainingTasks;
         _friendStatuses = friendStatuses;
         _loading = false;
       });
-      if (_postedToday && _tasks.isNotEmpty) {
+      if (_isAllTasksCompleted && allTasks.isNotEmpty) {
         _zenController.repeat(reverse: true);
       }
 
@@ -307,10 +316,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       await _sublimationController.forward();
 
       if (mounted) {
-        // 昇華完了 → Zen Mode へ遷移
+        // 昇華完了 → 状態更新
         setState(() => _isSublimating = false);
-        await _loadData(); // streak等を再取得
-        await _checkAndShowPostTutorial(); // ヒーロータスク設定ガイドを表示
+        await _loadData(); // streakや残りタスクを再取得
+        await _checkAndShowPostTutorial();
       }
     }
   }
@@ -330,9 +339,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       _buildTitleBar(),
                       _buildBlobRow(),
-                      if (_streak > 0 && !(_postedToday && !_isSublimating)) _buildStreakRow(),
+                      if (_streak > 0 && !(_isAllTasksCompleted && !_isSublimating)) _buildStreakRow(),
                       Expanded(
-                        child: _postedToday && !_isSublimating
+                        child: _isAllTasksCompleted && !_isSublimating
                             ? _buildZenMode()
                             : _buildCardStack(),
                       ),

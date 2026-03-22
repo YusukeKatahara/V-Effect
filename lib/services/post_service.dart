@@ -36,7 +36,7 @@ class PostService {
 
   /// ホーム画面に必要なデータを1回のFirestore読み込みで取得します
   ///
-  /// 戻り値のキー: streak, postedToday, username, tasks, friends, lastPostedDate
+  /// 戻り値のキー: streak, postedToday (＝1つ以上投稿済み), isAllTasksCompleted, username, tasks, friends, lastPostedDate
   Future<Map<String, dynamic>> getHomeData() async {
     final uid = _auth.currentUser!.uid;
     final snap = await _db.collection('users').doc(uid).get();
@@ -44,23 +44,38 @@ class PostService {
       return {
         'streak': 0,
         'postedToday': false,
+        'isAllTasksCompleted': false,
         'username': '',
         'tasks': <String>[],
         'friends': <String>[],
         'lastPostedDate': null,
+        'postedTasksToday': <String>[],
       };
     }
     final data = snap.data()!;
     final today = DateHelper.toDateString(DateTime.now());
     final lastPostedDate = data['lastPostedDate'] as String?;
+    final tasks = List<String>.from(data['tasks'] ?? []);
+
+    // 今日投稿したタスクを特定する
+    final now = DateTime.now();
+    final startOfDay = Timestamp.fromDate(DateTime(now.year, now.month, now.day));
+    final postsSnap = await _db.collection('posts')
+        .where('userId', isEqualTo: uid)
+        .where('createdAt', isGreaterThanOrEqualTo: startOfDay)
+        .get();
+
+    final postedTasksToday = postsSnap.docs.map((d) => d.data()['taskName'] as String).toList();
 
     return {
       'streak': (data['streak'] as num?)?.toInt() ?? 0,
       'postedToday': lastPostedDate == today,
+      'isAllTasksCompleted': tasks.isNotEmpty && tasks.every((t) => postedTasksToday.contains(t)),
       'username': data['username'] as String? ?? '',
-      'tasks': List<String>.from(data['tasks'] ?? []),
+      'tasks': tasks,
       'friends': List<String>.from(data['friends'] ?? []),
       'lastPostedDate': lastPostedDate,
+      'postedTasksToday': postedTasksToday,
     };
   }
 
