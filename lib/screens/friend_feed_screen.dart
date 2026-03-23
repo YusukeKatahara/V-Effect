@@ -241,7 +241,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                     borderRadius: BorderRadius.circular(2),
                     color: i <= _currentPostIndex
                         ? AppColors.textPrimary
-                        : AppColors.textPrimary.withOpacity(0.24),
+                        : AppColors.textPrimary.withValues(alpha: 0.24),
                   ),
                 ),
               );
@@ -285,27 +285,27 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
               ),
 
               // タイムスタンプ装飾（シンプルな白色）
-              Positioned(
-                bottom: 120, // 下のヒーロータスク名やリアクションボタンに被らないよう上に配置
-                right: 20,
-                child: Text(
-                  DateFormat('yy/MM/dd\nHH:mm').format(post.createdAt),
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    shadows: [
-                      Shadow(
-                        color: AppColors.bgBase.withOpacity(0.54),
-                        offset: const Offset(1, 1),
-                        blurRadius: 2,
-                      ),
-                    ],
+              if (post.showTimestamp)
+                Positioned(
+                  bottom: 120, // 下のヒーロータスク名やリアクションボタンに被らないよう上に配置
+                  right: 20,
+                  child: Text(
+                    DateFormat('yy/MM/dd\nHH:mm').format(post.createdAt),
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          color: AppColors.bgBase.withValues(alpha: 0.54),
+                          offset: const Offset(1, 1),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-
               // Tap zones (left half = prev, right half = next)
               Row(
                 children: [
@@ -336,7 +336,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
-                      colors: [AppColors.bgBase.withOpacity(0.87), Colors.transparent],
+                      colors: [AppColors.bgBase.withValues(alpha: 0.87), Colors.transparent],
                     ),
                   ),
                   padding:
@@ -362,7 +362,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                               post.remainingText,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textPrimary.withOpacity(0.6),
+                                color: AppColors.textPrimary.withValues(alpha: 0.6),
                               ),
                             ),
                           ],
@@ -378,7 +378,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                               width: 52,
                               height: 52,
                               decoration: BoxDecoration(
-                                color: AppColors.textPrimary.withOpacity(0.15),
+                                color: AppColors.textPrimary.withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -392,7 +392,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                           Text(
                             '${post.reactionCount}',
                             style: TextStyle(
-                                fontSize: 13, color: AppColors.textPrimary.withOpacity(0.7)),
+                                fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.7)),
                           ),
                         ],
                       ),
@@ -597,7 +597,7 @@ class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
         Icons.whatshot,
         color: AppColors.primary,
         size: 40,
-        shadows: [Shadow(color: AppColors.white.withOpacity(0.5), blurRadius: 12)],
+        shadows: [Shadow(color: AppColors.white.withValues(alpha: 0.5), blurRadius: 12)],
       ),
     );
   }

@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../config/app_colors.dart';
+import '../config/routes.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
+import '../services/notification_service.dart';
 import '../services/analytics_service.dart';
 import '../widgets/splash_loading.dart';
 
@@ -23,6 +24,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final PostService _postService = PostService.instance;
+  final NotificationService _notificationService = NotificationService.instance;
+  StreamSubscription? _updateSubscription;
+  late final Stream<int> _notificationStream;
   bool _loading = true;
   bool _postedToday = false;
   List<Post> _feedPosts = [];
@@ -48,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _notificationStream = _notificationService.getNotificationCount();
     _flashController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -65,11 +70,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         });
       }
     });
+
+    // データの更新通知を監視
+    _updateSubscription = _postService.updateStream.listen((_) {
+      if (mounted) _loadData();
+    });
+
     _loadData();
   }
 
   @override
   void dispose() {
+    _updateSubscription?.cancel();
     _pageController.dispose();
     _flashController.dispose();
     super.dispose();
@@ -210,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               builder: (context, _) {
                 if (_flashAnimation.value == 0) return const SizedBox.shrink();
                 return Container(
-                  color: Colors.white.withOpacity(_flashAnimation.value),
+                  color: Colors.white.withValues(alpha: _flashAnimation.value),
                 );
               },
             ),
@@ -222,17 +234,72 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildTitleBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Center(
-        child: Text(
-          'V EFFECT',
-          style: GoogleFonts.outfit(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: AppColors.white,
-            letterSpacing: 6.0,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.white.withValues(alpha: 0.1),
+                  width: 0.5,
+                ),
+              ),
+              child: TextField(
+                onSubmitted: (v) {
+                  if (v.trim().isNotEmpty) {
+                    // 検索画面へ遷移（仮）
+                    Navigator.pushNamed(context, '/search', arguments: v.trim());
+                  }
+                },
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                decoration: const InputDecoration(
+                  hintText: 'IDまたは名前を検索',
+                  hintStyle: TextStyle(color: AppColors.grey30, fontSize: 13),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    color: AppColors.grey30,
+                    size: 18,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(width: 12),
+          Text(
+            'V EFFECT',
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppColors.white,
+              letterSpacing: 2.0,
+            ),
+          ),
+          const SizedBox(width: 8),
+          StreamBuilder<int>(
+            stream: _notificationStream,
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              return IconButton(
+                icon: Badge(
+                  isLabelVisible: count > 0,
+                  label: Text('$count'),
+                  child: const Icon(
+                    Icons.notifications_outlined,
+                    color: AppColors.white,
+                  ),
+                ),
+                onPressed:
+                    () => Navigator.pushNamed(context, AppRoutes.notifications),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -284,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 color: AppColors.grey10,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: const Color(0xFFD4AF37).withOpacity(0.3),
+                  color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
                 ),
               ),
               child: const Icon(
@@ -470,18 +537,18 @@ class _FeedCard extends StatelessWidget {
         color: AppColors.grey15,
         border: Border.all(
           color:
-              isTop ? tierColor.withOpacity(0.6) : tierColor.withOpacity(0.1),
+              isTop ? tierColor.withValues(alpha: 0.6) : tierColor.withValues(alpha: 0.1),
           width: isTop ? 1.5 : 0.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withOpacity(0.6),
+            color: AppColors.black.withValues(alpha: 0.6),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
           if (isTop)
             BoxShadow(
-              color: tierColor.withOpacity(0.15),
+              color: tierColor.withValues(alpha: 0.15),
               blurRadius: 40,
               spreadRadius: 2,
             ),
@@ -537,7 +604,7 @@ class _FeedCard extends StatelessWidget {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      AppColors.black.withOpacity(0.9),
+                      AppColors.black.withValues(alpha: 0.9),
                       Colors.transparent,
                     ],
                   ),
@@ -623,10 +690,10 @@ class _FeedCard extends StatelessWidget {
                             width: 56,
                             height: 56,
                             decoration: BoxDecoration(
-                              color: AppColors.white.withOpacity(0.1),
+                              color: AppColors.white.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: AppColors.white.withOpacity(0.1),
+                                color: AppColors.white.withValues(alpha: 0.1),
                                 width: 1,
                               ),
                             ),
@@ -655,7 +722,7 @@ class _FeedCard extends StatelessWidget {
             // 暗幕レイヤー（奥にあるカードを暗くする）
             if (dimAlpha > 0)
               Positioned.fill(
-                child: ColoredBox(color: AppColors.black.withOpacity(dimAlpha)),
+                child: ColoredBox(color: AppColors.black.withValues(alpha: dimAlpha)),
               ),
           ],
         ),

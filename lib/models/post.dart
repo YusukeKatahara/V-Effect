@@ -9,6 +9,7 @@ class Post {
   final DateTime createdAt;
   final DateTime expiresAt;
   final int reactionCount;
+  final bool showTimestamp;
 
   const Post({
     required this.id,
@@ -18,6 +19,7 @@ class Post {
     required this.createdAt,
     required this.expiresAt,
     this.reactionCount = 0,
+    this.showTimestamp = true,
   });
 
   /// Firestore の DocumentSnapshot からモデルを生成します
@@ -31,6 +33,7 @@ class Post {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       expiresAt: (data['expiresAt'] as Timestamp?)?.toDate() ?? DateTime.now().add(const Duration(hours: 24)),
       reactionCount: (data['reactionCount'] as num?)?.toInt() ?? 0,
+      showTimestamp: data['showTimestamp'] ?? true,
     );
   }
 

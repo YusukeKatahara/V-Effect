@@ -38,7 +38,8 @@ class UserService {
         'userId': userId,
         'streak': 0,
         'lastPostedDate': null,
-        'friends': [],
+        'following': [],
+        'followers': [],
         'tasks': [],
         'photoUrl': null,
         'profileCompleted': true,
@@ -56,6 +57,7 @@ class UserService {
         'wakeUpTime': wakeUpTime,
         'taskTime': taskTime,
         'occupation': occupation,
+        'showTimestamp': true,
       },
       SetOptions(merge: true),
     );
@@ -150,6 +152,7 @@ class UserService {
     String? taskTime,
     String? photoUrl,
     List<String>? tasks,
+    bool? showTimestamp,
     bool updateEditDate = false,
   }) async {
     final uid = _auth.currentUser!.uid;
@@ -178,6 +181,7 @@ class UserService {
     if (birthDate != null) privateData['birthDate'] = birthDate;
     if (wakeUpTime != null) privateData['wakeUpTime'] = wakeUpTime;
     if (taskTime != null) privateData['taskTime'] = taskTime;
+    if (showTimestamp != null) privateData['showTimestamp'] = showTimestamp;
 
     if (privateData.isNotEmpty) {
       batch.set(

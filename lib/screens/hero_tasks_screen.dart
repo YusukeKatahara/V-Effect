@@ -1,15 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import 'dart:math';
 import 'dart:ui';
 
 import '../config/app_colors.dart';
-import '../config/routes.dart';
 import '../models/post.dart';
 import '../services/analytics_service.dart';
 import '../services/notification_service.dart';
@@ -40,7 +36,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   final PostService _postService = PostService.instance;
   final NotificationService _notificationService = NotificationService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  StreamSubscription? _updateSubscription;
 
   int _streak = 0;
   bool _postedToday = false;
@@ -48,7 +44,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   String _username = '';
   List<_HeroTaskItem> _taskItems = [];
   bool _isAllTasksCompleted = false;
-  late final Stream<int> _notificationStream;
 
   // ── Card Expansion ──
   int? _expandedIndex; // 長押しで拡大中のカードインデックス
@@ -88,7 +83,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           });
         }
       });
-    _notificationStream = _notificationService.getNotificationCount();
     _loadData().then((_) {
       _checkAndShowTutorial();
     });
@@ -110,10 +104,16 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       parent: _sublimationController,
       curve: Curves.easeInOutCubic,
     );
+
+    // データの更新通知を監視
+    _updateSubscription = _postService.updateStream.listen((_) {
+      if (mounted) _loadData();
+    });
   }
 
   @override
   void dispose() {
+    _updateSubscription?.cancel();
     _pageController.dispose();
     _zenController.dispose();
     _sublimationController.dispose();
@@ -380,23 +380,44 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   }
 
   Widget _buildStreakRow() {
+    final focusedTask = _taskItems.isNotEmpty ? _taskItems[_focusedIndex] : null;
+    final isCompleted = focusedTask?.isCompleted ?? false;
+
     return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.only(top: 4, bottom: 2, left: 20, right: 20),
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          const StreakFlame(size: 18),
-          const SizedBox(width: 6),
-          Text(
-            '$_streak Day Streak',
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.grey70,
-              letterSpacing: 0.5,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const StreakFlame(size: 18),
+              const SizedBox(width: 6),
+              Text(
+                '$_streak Day Streak',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.grey70,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
           ),
+          if (isCompleted)
+            Positioned(
+              right: 0,
+              child: IconButton(
+                onPressed: () => _deleteHeroPost(focusedTask!.completedPost!.id),
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.error,
+                  size: 20,
+                ),
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
         ],
       ),
     );
@@ -461,11 +482,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                   physics: const _FrictionlessPageScrollPhysics(),
                   itemBuilder: (context, rawIndex) {
                     final actualIndex = rawIndex % _taskItems.length;
-                    final isExpanded = actualIndex == _expandedIndex;
 
                     return Stack(
                       children: [
-                        // 全体検知（拡大解除・タスク選択）
+                        // 全体検知（タップで拡大・タスク選択）
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () {
@@ -474,72 +494,19 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                               return;
                             }
                             final item = _taskItems[actualIndex];
-                            if (!item.isCompleted &&
-                                actualIndex == _focusedIndex) {
-                              _selectHeroTask(actualIndex);
-                            }
-                          },
-                          onLongPress: () {
-                            final item = _taskItems[actualIndex];
                             if (item.isCompleted &&
                                 actualIndex == _focusedIndex) {
+                              // タップで拡大
                               HapticFeedback.mediumImpact();
                               setState(() => _expandedIndex = actualIndex);
+                            } else if (!item.isCompleted &&
+                                actualIndex == _focusedIndex) {
+                              // 未完了ならカメラへ
+                              _selectHeroTask(actualIndex);
                             }
                           },
                           child: const SizedBox.expand(),
                         ),
-
-                        // 拡大中のみ表示される「本物の」削除ボタン（最前面）
-                        if (isExpanded)
-                          Align(
-                            alignment: Alignment.center,
-                            child: Transform.scale(
-                              scale: 1.15, // カードの拡大率に合わせる
-                              child: SizedBox(
-                                width: finalCardWidth,
-                                height: maxCardHeight,
-                                child: Stack(
-                                  children: [
-                                    Positioned(
-                                      top: 40,
-                                      right: 40,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          final item = _taskItems[actualIndex];
-                                          if (item.completedPost != null) {
-                                            _deleteHeroPost(
-                                              item.completedPost!.id,
-                                            );
-                                          }
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(10),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.error.withOpacity(
-                                              0.9,
-                                            ),
-                                            shape: BoxShape.circle,
-                                            boxShadow: const [
-                                              BoxShadow(
-                                                color: Colors.black45,
-                                                blurRadius: 12,
-                                              ),
-                                            ],
-                                          ),
-                                          child: const Icon(
-                                            Icons.delete_outline_rounded,
-                                            color: Colors.white,
-                                            size: 24,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
                       ],
                     );
                   },
@@ -674,7 +641,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.white.withOpacity(glowAlpha),
+                      color: AppColors.white.withValues(alpha: glowAlpha),
                       blurRadius: 100 + glow * 40,
                       spreadRadius: 20 + glow * 20,
                     ),
@@ -685,8 +652,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.white.withOpacity(0.12 + glow * 0.06),
-                        AppColors.white.withOpacity(0.03),
+                        AppColors.white.withValues(alpha: 0.12 + glow * 0.06),
+                        AppColors.white.withValues(alpha: 0.03),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.5, 1.0],
@@ -804,8 +771,8 @@ class _TaskCard extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    bgColorTop.withOpacity(isTop ? 0.85 : 0.4),
-                    bgColorBottom.withOpacity(isTop ? 0.75 : 0.2),
+                    bgColorTop.withValues(alpha: isTop ? 0.85 : 0.4),
+                    bgColorBottom.withValues(alpha: isTop ? 0.75 : 0.2),
                   ],
                 ),
         image:
@@ -814,7 +781,7 @@ class _TaskCard extends StatelessWidget {
                   image: NetworkImage(item.completedPost!.imageUrl!),
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
-                    Colors.black.withOpacity(
+                    Colors.black.withValues(alpha: 
                       isExpanded ? 0.1 : (isTop ? 0.3 : 0.6),
                     ),
                     BlendMode.darken,
@@ -824,15 +791,15 @@ class _TaskCard extends StatelessWidget {
         border: Border.all(
           color:
               isCompleted
-                  ? tierColor.withOpacity(isTop ? 0.8 : 0.3)
+                  ? tierColor.withValues(alpha: isTop ? 0.8 : 0.3)
                   : (isTop
-                      ? tierColor.withOpacity(0.3)
-                      : AppColors.white.withOpacity(0.05)),
+                      ? tierColor.withValues(alpha: 0.3)
+                      : AppColors.white.withValues(alpha: 0.05)),
           width: isCompleted ? 1.5 : 0.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withOpacity(isTop ? 0.4 : 0.2),
+            color: AppColors.black.withValues(alpha: isTop ? 0.4 : 0.2),
             blurRadius: 40,
             offset: const Offset(0, 20),
             spreadRadius: -4,
@@ -841,8 +808,8 @@ class _TaskCard extends StatelessWidget {
             BoxShadow(
               color:
                   isCompleted
-                      ? tierColor.withOpacity(0.3)
-                      : tierColor.withOpacity(0.03),
+                      ? tierColor.withValues(alpha: 0.3)
+                      : tierColor.withValues(alpha: 0.03),
               blurRadius: isCompleted ? 40 : 60,
               spreadRadius: isCompleted ? 4 : 10,
             ),
@@ -860,7 +827,7 @@ class _TaskCard extends StatelessWidget {
               if (dimAlpha > 0 && !isExpanded)
                 Positioned.fill(
                   child: ColoredBox(
-                    color: AppColors.black.withOpacity(dimAlpha),
+                    color: AppColors.black.withValues(alpha: dimAlpha),
                   ),
                 ),
 
@@ -871,7 +838,7 @@ class _TaskCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: tierColor.withOpacity(0.2),
+                      color: tierColor.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                       border: Border.all(color: tierColor, width: 1),
                     ),
@@ -893,7 +860,7 @@ class _TaskCard extends StatelessWidget {
                         Container(
                           width: 1,
                           height: 16,
-                          color: tierColor.withOpacity(0.6),
+                          color: tierColor.withValues(alpha: 0.6),
                         ),
                         const SizedBox(width: 12),
                         Text(
@@ -925,12 +892,12 @@ class _TaskCard extends StatelessWidget {
                               shape: BoxShape.circle,
                               gradient: RadialGradient(
                                 colors: [
-                                  tierColor.withOpacity(0.1),
+                                  tierColor.withValues(alpha: 0.1),
                                   Colors.transparent,
                                 ],
                               ),
                               border: Border.all(
-                                color: tierColor.withOpacity(0.3),
+                                color: tierColor.withValues(alpha: 0.3),
                                 width: 0.5,
                               ),
                             ),
@@ -945,7 +912,7 @@ class _TaskCard extends StatelessWidget {
                         Center(
                           child: Icon(
                             Icons.camera_alt_outlined,
-                            color: AppColors.grey30.withOpacity(0.3),
+                            color: AppColors.grey30.withValues(alpha: 0.3),
                             size: 20,
                           ),
                         ),
@@ -975,14 +942,14 @@ class _TaskCard extends StatelessWidget {
                           Container(
                             width: 24,
                             height: 1,
-                            color: tierColor.withOpacity(0.5),
+                            color: tierColor.withValues(alpha: 0.5),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             isCompleted ? 'COMPLETED' : 'TARGET',
                             style: GoogleFonts.outfit(
                               fontSize: 8,
-                              color: tierColor.withOpacity(0.7),
+                              color: tierColor.withValues(alpha: 0.7),
                               letterSpacing: 2,
                             ),
                           ),

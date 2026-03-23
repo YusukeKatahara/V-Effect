@@ -71,12 +71,12 @@ class _MainShellState extends State<MainShell> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(32),
             border: Border.all(
-              color: AppColors.white.withOpacity(0.08),
+              color: AppColors.white.withValues(alpha: 0.08),
               width: 0.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.black.withOpacity(0.4),
+                color: AppColors.black.withValues(alpha: 0.4),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -89,13 +89,13 @@ class _MainShellState extends State<MainShell> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.white.withOpacity(0.05),
+                  color: AppColors.white.withValues(alpha: 0.05),
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      AppColors.white.withOpacity(0.08),
-                      AppColors.white.withOpacity(0.02),
+                      AppColors.white.withValues(alpha: 0.08),
+                      AppColors.white.withValues(alpha: 0.02),
                     ],
                   ),
                 ),

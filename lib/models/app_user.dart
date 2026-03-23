@@ -12,7 +12,8 @@ class AppUser {
   final String? photoUrl;
   final int streak;
   final String? lastPostedDate;
-  final List<String> friends;
+  final List<String> following;
+  final List<String> followers;
   final List<String> tasks;
   final String? wakeUpTime;
   final String? taskTime;
@@ -33,7 +34,8 @@ class AppUser {
     this.photoUrl,
     this.streak = 0,
     this.lastPostedDate,
-    this.friends = const [],
+    this.following = const [],
+    this.followers = const [],
     this.tasks = const [],
     this.wakeUpTime,
     this.taskTime,
@@ -57,7 +59,8 @@ class AppUser {
       photoUrl: data['photoUrl'],
       streak: (data['streak'] as num?)?.toInt() ?? 0,
       lastPostedDate: data['lastPostedDate'],
-      friends: List<String>.from(data['friends'] ?? []),
+      following: List<String>.from(data['following'] ?? data['friends'] ?? []),
+      followers: List<String>.from(data['followers'] ?? []),
       tasks: List<String>.from(data['tasks'] ?? []),
       wakeUpTime: data['wakeUpTime'],
       taskTime: data['taskTime'],

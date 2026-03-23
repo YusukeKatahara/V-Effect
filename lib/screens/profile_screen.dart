@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/app_user.dart';
-import '../services/notification_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/user_service.dart';
 import 'edit_profile_screen.dart';
@@ -23,12 +22,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   AppUser? _user;
   Map<String, dynamic> _privateData = {};
-  late final Stream<int> _notificationStream;
 
   @override
   void initState() {
     super.initState();
-    _notificationStream = NotificationService.instance.getNotificationCount();
     _loadProfile();
   }
 
@@ -198,6 +195,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // ── ヒーロータスクの編集 ──
+  Future<void> _editTask(int index) async {
+    final controller = TextEditingController(text: _user!.tasks[index]);
+    final updatedTask = await showDialog<String>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: AppColors.bgElevated,
+            title: const Text(
+              'タスクを編集',
+              style: TextStyle(color: AppColors.white),
+            ),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              style: const TextStyle(color: AppColors.white),
+              decoration: const InputDecoration(
+                hintText: '例: 読書を30分する',
+                hintStyle: TextStyle(color: AppColors.grey30),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'キャンセル',
+                  style: TextStyle(color: AppColors.grey50),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, controller.text),
+                child: const Text(
+                  '保存',
+                  style: TextStyle(color: AppColors.white),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (updatedTask != null && updatedTask.trim().isNotEmpty) {
+      final updatedTasks = List<String>.from(_user!.tasks);
+      updatedTasks[index] = updatedTask.trim();
+      await _userService.updateProfile(tasks: updatedTasks);
+      _loadProfile();
+    }
+  }
+
   // ── ヒーロータスクの削除 ──
   Future<void> _deleteTask(int index) async {
     final confirmed = await showDialog<bool>(
@@ -304,7 +349,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       title: const Text('プロフィール'),
       actions: [
         IconButton(
-          icon: const Icon(Icons.edit_outlined, color: AppColors.textPrimary),
+          icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
           onPressed: () async {
             if (_user == null) return;
             final didUpdate = await Navigator.push<bool>(
@@ -320,25 +365,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (didUpdate == true) _loadProfile();
           },
         ),
-        StreamBuilder<int>(
-          stream: _notificationStream,
-          builder: (context, snapshot) {
-            final count = snapshot.data ?? 0;
-            return IconButton(
-              icon: Badge(
-                isLabelVisible: count > 0,
-                label: Text('$count'),
-                child: const Icon(
-                  Icons.notifications_outlined,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              onPressed:
-                  () => Navigator.pushNamed(context, AppRoutes.notifications),
-            );
-          },
-        ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 8),
       ],
     );
   }
@@ -349,83 +376,113 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildProfileHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient:
-                  _user!.photoUrl == null ? AppColors.primaryGradient : null,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  blurRadius: 20,
+          Row(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient:
+                      _user!.photoUrl == null ? AppColors.primaryGradient : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child:
-                _user!.photoUrl != null
-                    ? CircleAvatar(
-                      radius: 40,
-                      backgroundImage: ResizeImage(CachedNetworkImageProvider(_user!.photoUrl!), width: 240, height: 240),
-                    )
-                    : const CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.transparent,
-                      child: Icon(
-                        Icons.person_rounded,
-                        size: 40,
-                        color: AppColors.black,
+                child:
+                    _user!.photoUrl != null
+                        ? CircleAvatar(
+                          radius: 40,
+                          backgroundImage: ResizeImage(
+                            CachedNetworkImageProvider(_user!.photoUrl!),
+                            width: 240,
+                            height: 240,
+                          ),
+                        )
+                        : const CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.transparent,
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 40,
+                            color: AppColors.black,
+                          ),
+                        ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _user!.username ?? '',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _user!.username ?? '',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '@${_user!.userId ?? ''}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.local_fire_department_rounded,
-                      size: 16,
-                      color: Color(0xFFD4AF37),
-                    ),
-                    const SizedBox(width: 4),
+                    const SizedBox(height: 2),
                     Text(
-                      '${_user!.streak} Day Streak',
+                      '@${_user!.userId ?? ''}',
                       style: const TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFD4AF37),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildFollowStat('フォロー', _user!.following.length),
+              _buildFollowStat('フォロワー', _user!.followers.length),
+              _buildFollowStat('ストリーク', _user!.streak, icon: Icons.local_fire_department_rounded),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFollowStat(String label, int count, {IconData? icon}) {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 16, color: const Color(0xFFD4AF37)),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              '$count',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 
@@ -520,50 +577,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 final isLast = i == _user!.tasks.length - 1;
                 return Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.grey10,
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${i + 1}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.white,
+                    InkWell(
+                      onTap: () => _editTask(i),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.grey10,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${i + 1}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.white,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _user!.tasks[i],
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: AppColors.textPrimary,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _user!.tasks[i],
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                             ),
-                          ),
-                          IconButton(
-                            onPressed: () => _deleteTask(i),
-                            icon: const Icon(
-                              Icons.remove_circle_outline_rounded,
-                              size: 20,
-                              color: AppColors.grey30,
+                            IconButton(
+                              onPressed: () => _deleteTask(i),
+                              icon: const Icon(
+                                Icons.remove_circle_outline_rounded,
+                                size: 20,
+                                color: AppColors.grey30,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     if (!isLast) const Divider(height: 1, indent: 52),

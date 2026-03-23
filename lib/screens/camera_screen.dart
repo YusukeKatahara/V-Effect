@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../services/post_service.dart';
 import '../widgets/post_success_dialog.dart';
@@ -29,6 +31,7 @@ class _CameraScreenState extends State<CameraScreen> {
   XFile? _image;
   DateTime? _captureTime;
   bool _isUploading = false;
+  bool _showTimestamp = true;
 
   String? get _taskName {
     // ルート引数 or コンストラクタ引数
@@ -41,8 +44,25 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void initState() {
     super.initState();
+    _loadSettings();
     // 画面を開いたら即選択メニューを表示
     WidgetsBinding.instance.addPostFrameCallback((_) => _showPickerMenu());
+  }
+
+  Future<void> _loadSettings() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final snap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('private')
+        .doc('data')
+        .get();
+    if (mounted) {
+      setState(() {
+        _showTimestamp = snap.data()?['showTimestamp'] ?? true;
+      });
+    }
   }
 
   Future<void> _showPickerMenu() async {
@@ -217,7 +237,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 : Image.file(File(_image!.path), fit: BoxFit.cover),
 
             // Timestamp
-            if (_captureTime != null)
+            if (_captureTime != null && _showTimestamp)
               Positioned(
                 bottom: 20,
                 right: 20,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -30,6 +31,10 @@ class PostService {
   final StreakService _streakService = StreakService.instance;
   final NotificationService _notificationService = NotificationService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
+
+  /// アプリ全体にデータ更新（投稿作成・削除）を通知するためのストリーム
+  final _updateController = StreamController<void>.broadcast();
+  Stream<void> get updateStream => _updateController.stream;
 
   /// ストリークサービスへの委譲メソッド
   Future<int> getStreak() => _streakService.getStreak();
@@ -87,7 +92,7 @@ class PostService {
           tasks.every((t) => postedPostsToday.any((p) => p.taskName == t)),
       'username': data['username'] as String? ?? '',
       'tasks': tasks,
-      'friends': List<String>.from(data['friends'] ?? []),
+      'friends': List<String>.from(data['following'] ?? data['friends'] ?? []),
       'lastPostedDate': lastPostedDate,
       'postedTasksToday': postedPostsToday,
     };
@@ -144,6 +149,10 @@ class PostService {
     final now = DateTime.now();
     final expiresAt = now.add(const Duration(hours: 24));
 
+    // ユーザー設定（タイムスタンプ表示）を取得
+    final userPrivateSnap = await _db.collection('users').doc(uid).collection('private').doc('data').get();
+    final showTimestamp = userPrivateSnap.data()?['showTimestamp'] ?? true;
+
     await _db.collection('posts').add({
       'userId': uid,
       'imageUrl': imageUrl,
@@ -151,6 +160,7 @@ class PostService {
       'createdAt': Timestamp.fromDate(now),
       'expiresAt': Timestamp.fromDate(expiresAt),
       'reactionCount': 0,
+      'showTimestamp': showTimestamp,
     });
 
     // Step3: ストリークを更新
@@ -173,6 +183,9 @@ class PostService {
       // 通知送信失敗はクリティカルではないので静かに無視
     });
 
+    // データの変更をアプリ全体に通知
+    _updateController.add(null);
+
     return streakResult;
   }
 
@@ -181,7 +194,7 @@ class PostService {
     final userSnap = await _db.collection('users').doc(uid).get();
     if (!userSnap.exists) return;
     final username = userSnap.data()?['username'] ?? 'フレンド';
-    final friends = List<String>.from(userSnap.data()?['friends'] ?? []);
+    final friends = List<String>.from(userSnap.data()?['following'] ?? userSnap.data()?['friends'] ?? []);
 
     for (final friendUid in friends) {
       await _notificationService.createNotification(
@@ -215,7 +228,7 @@ class PostService {
     } else {
       final uid = _auth.currentUser!.uid;
       final userSnap = await _db.collection('users').doc(uid).get();
-      friends = List<String>.from(userSnap.data()?['friends'] ?? []);
+      friends = List<String>.from(userSnap.data()?['following'] ?? userSnap.data()?['friends'] ?? []);
     }
 
     if (friends.isEmpty) {
@@ -308,7 +321,7 @@ class PostService {
   Future<List<Map<String, dynamic>>> getFriendsList() async {
     final uid = _auth.currentUser!.uid;
     final userSnap = await _db.collection('users').doc(uid).get();
-    final friendUids = List<String>.from(userSnap.data()?['friends'] ?? []);
+    final friendUids = List<String>.from(userSnap.data()?['following'] ?? userSnap.data()?['friends'] ?? []);
     return getFriendsListFromUids(friendUids);
   }
 
@@ -423,5 +436,8 @@ class PostService {
     if (otherPosts.docs.isEmpty) {
       await _db.collection('users').doc(uid).update({'lastPostedDate': null});
     }
+
+    // データの変更をアプリ全体に通知
+    _updateController.add(null);
   }
 }

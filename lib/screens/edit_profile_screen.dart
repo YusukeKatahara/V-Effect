@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/user_service.dart';
@@ -29,19 +30,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _usernameCtrl;
   late TextEditingController _userIdCtrl;
-  final List<TextEditingController> _taskCtrls = [];
   final _userService = UserService.instance;
 
   bool _isSaving = false;
   File? _newProfileImage;
   String? _currentPhotoUrl;
 
-  late int? _birthYear;
-  late int? _birthMonth;
-  late int? _birthDay;
-
   TimeOfDay? _wakeUpTime;
   TimeOfDay? _taskTime;
+  bool _showTimestamp = true;
 
   bool _isRestricted = false;
   int _daysRemaining = 0;
@@ -53,35 +50,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _userIdCtrl = TextEditingController(text: widget.user.userId);
     _currentPhotoUrl = widget.user.photoUrl;
 
-    if (widget.user.tasks.isEmpty) {
-      _taskCtrls.add(TextEditingController());
-    } else {
-      for (final task in widget.user.tasks) {
-        _taskCtrls.add(TextEditingController(text: task));
-      }
-    }
-
-    // Parse BirthDate: YYYY-MM-DD
-    final birthDateStr = widget.privateData['birthDate'] as String?;
-    if (birthDateStr != null && birthDateStr.contains('-')) {
-      final parts = birthDateStr.split('-');
-      if (parts.length == 3) {
-        _birthYear = int.tryParse(parts[0]);
-        _birthMonth = int.tryParse(parts[1]);
-        _birthDay = int.tryParse(parts[2]);
-      } else {
-        _birthYear = null;
-        _birthMonth = null;
-        _birthDay = null;
-      }
-    } else {
-      _birthYear = null;
-      _birthMonth = null;
-      _birthDay = null;
-    }
-
     _wakeUpTime = _parseTimeOfDay(widget.privateData['wakeUpTime'] as String?);
     _taskTime = _parseTimeOfDay(widget.privateData['taskTime'] as String?);
+    _showTimestamp = widget.privateData['showTimestamp'] ?? true;
 
     _checkRestriction();
   }
@@ -104,23 +75,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     _usernameCtrl.dispose();
     _userIdCtrl.dispose();
-    for (final ctrl in _taskCtrls) {
-      ctrl.dispose();
-    }
     super.dispose();
-  }
-
-  void _addTaskField() {
-    if (_taskCtrls.length >= 5) return;
-    setState(() => _taskCtrls.add(TextEditingController()));
-  }
-
-  void _removeTaskField(int index) {
-    if (_taskCtrls.length <= 1) return;
-    setState(() {
-      _taskCtrls[index].dispose();
-      _taskCtrls.removeAt(index);
-    });
   }
 
   TimeOfDay? _parseTimeOfDay(String? timeStr) {
@@ -131,10 +86,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   String _formatTimeOfDay(TimeOfDay time) {
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
-
-  int _daysInMonth(int year, int month) {
-    return DateUtils.getDaysInMonth(year, month);
   }
 
   Future<void> _pickImage() async {
@@ -253,37 +204,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_wakeUpTime == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('起床時間を選択してください')));
-      return;
-    }
-
-    if (_taskTime == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ヒーロータスク実行時間を選択してください')));
-      return;
-    }
-
-    final newTasks =
-        _taskCtrls
-            .map((c) => c.text.trim())
-            .where((t) => t.isNotEmpty)
-            .toList();
-
-    if (newTasks.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ヒーロータスクを1つ以上入力してください')));
-      return;
-    }
-
     final newUserId = _userIdCtrl.text.trim();
     final newUsername = _usernameCtrl.text.trim();
-    final wakeUpTimeStr = _formatTimeOfDay(_wakeUpTime!);
-    final taskTimeStr = _formatTimeOfDay(_taskTime!);
+    final wakeUpTimeStr = _wakeUpTime != null ? _formatTimeOfDay(_wakeUpTime!) : null;
+    final taskTimeStr = _taskTime != null ? _formatTimeOfDay(_taskTime!) : null;
 
     bool isRestrictedFieldsChanged = false;
 
@@ -368,28 +292,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         photoUrl: updatedPhotoUrl,
         wakeUpTime: wakeUpTimeStr,
         taskTime: taskTimeStr,
-        tasks: newTasks,
+        showTimestamp: _showTimestamp,
         updateEditDate: isRestrictedFieldsChanged,
       );
 
       if (mounted) {
-        final screenHeight = MediaQuery.of(context).size.height;
-        final statusBarHeight = MediaQuery.of(context).padding.top;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('プロフィールが更新されました！'),
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(
-              bottom:
-                  screenHeight - statusBarHeight - 80, // ステータスバーの高さ + 余裕分を空けて表示
-              left: 16,
-              right: 16,
-            ),
-            elevation: 0,
-            dismissDirection: DismissDirection.up,
-          ),
+          const SnackBar(content: Text('設定を保存しました！')),
         );
-        Navigator.pop(context, true); // 変更があったことを伝えるためにtrueを返す
+        Navigator.pop(context, true);
       }
     } catch (e) {
       debugPrint('SaveProfile error: $e');
@@ -403,10 +314,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  void _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currentYear = DateTime.now().year;
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body: Stack(
@@ -431,7 +347,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         onPressed: () => Navigator.pop(context),
                       ),
                       const Text(
-                        'プロフィールを編集',
+                        '設定',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -450,282 +366,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           if (_isRestricted)
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              margin: const EdgeInsets.only(bottom: 24),
-                              decoration: BoxDecoration(
-                                color: AppColors.error.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: AppColors.error.withValues(alpha: 0.4),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.info_outline,
-                                    color: AppColors.error,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      'ユーザーIDと生年月日は前回の変更から90日間変更できません。\nあと $_daysRemaining 日お待ちください。\n(次回変更可能: ${DateTime.now().add(Duration(days: _daysRemaining)).toString().split(' ')[0]})',
-                                      style: const TextStyle(
-                                        color: AppColors.error,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            _buildRestrictionWarning(),
 
                           // Photo upload
-                          Center(
-                            child: GestureDetector(
-                              onTap: _pickImage,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.5),
-                                    width: 3,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.12,
-                                      ),
-                                      blurRadius: 16,
-                                      spreadRadius: 2,
-                                    ),
-                                  ],
-                                ),
-                                child: Stack(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 50,
-                                      backgroundColor: AppColors.bgElevated,
-                                      backgroundImage:
-                                          _newProfileImage != null
-                                              ? FileImage(_newProfileImage!)
-                                                  as ImageProvider
-                                              : (_currentPhotoUrl != null
-                                                  ? ResizeImage(CachedNetworkImageProvider(_currentPhotoUrl!), width: 300, height: 300)
-                                                  : null),
-                                      child:
-                                          (_newProfileImage == null &&
-                                                  _currentPhotoUrl == null)
-                                              ? const Icon(
-                                                Icons.person,
-                                                size: 50,
-                                                color: AppColors.textMuted,
-                                              )
-                                              : null,
-                                    ),
-                                    Positioned(
-                                      bottom: 0,
-                                      right: 0,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.primary,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.camera_alt,
-                                          color: AppColors.black,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                          _buildPhotoPicker(),
+
                           const SizedBox(height: 32),
 
-                          // Section: Basic Info
-                          const SectionTitle(title: '基本情報'),
+                          // Section: Account
+                          const SectionTitle(title: 'アカウント'),
                           const SizedBox(height: 12),
-
-                          // Username
-                          TextFormField(
-                            controller: _usernameCtrl,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText: '名前',
-                              prefixIcon: Icon(
-                                Icons.badge,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                            validator:
-                                (v) =>
-                                    (v == null || v.trim().isEmpty)
-                                        ? '名前を入力してください'
-                                        : null,
-                          ),
+                          _buildTextField(_usernameCtrl, '名前', Icons.badge),
                           const SizedBox(height: 16),
-
-                          // User ID
-                          TextFormField(
-                            controller: _userIdCtrl,
-                            enabled: !_isRestricted,
-                            style: TextStyle(
-                              color:
-                                  _isRestricted
-                                      ? AppColors.textMuted
-                                      : AppColors.textPrimary,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText: 'ユーザーID',
-                              prefixIcon: Icon(
-                                Icons.alternate_email,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty)
-                                return 'ユーザーIDを入力してください';
-                              final adminEmails = [
-                                'ren0930ren0930@gmail.com',
-                                'y.katahara.academia@gmail.com',
-                              ];
-                              final isSpecialAdmin = adminEmails.contains(
-                                FirebaseAuth.instance.currentUser?.email,
-                              );
-                              if (!isSpecialAdmin) {
-                                if (v.trim().length < 5)
-                                  return '5文字以上で入力してください';
-                                if (!RegExp(
-                                  r'^[a-zA-Z0-9_]+$',
-                                ).hasMatch(v.trim()))
-                                  return '英数字とアンダースコアのみ使えます';
-                              }
-                              return null;
-                            },
-                          ),
+                          _buildUserIdField(),
                           const SizedBox(height: 32),
 
-                          // Section: Routine
-                          const SectionTitle(title: 'スケジュール'),
+                          // Section: Preferences
+                          const SectionTitle(title: 'アプリ設定'),
                           const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  icon: const Icon(Icons.alarm),
-                                  label: Text(
-                                    _wakeUpTime != null
-                                        ? _formatTimeOfDay(_wakeUpTime!)
-                                        : '起床時間',
-                                    style: TextStyle(
-                                      color:
-                                          _wakeUpTime != null
-                                              ? AppColors.textPrimary
-                                              : AppColors.textMuted,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
-                                    alignment: Alignment.centerLeft,
-                                    foregroundColor: AppColors.primary,
-                                    side: const BorderSide(
-                                      color: AppColors.border,
-                                    ),
-                                  ),
-                                  onPressed: () => _pickTime(true),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  icon: const Icon(Icons.schedule),
-                                  label: Text(
-                                    _taskTime != null
-                                        ? _formatTimeOfDay(_taskTime!)
-                                        : 'ヒーロータスク時間',
-                                    style: TextStyle(
-                                      color:
-                                          _taskTime != null
-                                              ? AppColors.textPrimary
-                                              : AppColors.textMuted,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
-                                    alignment: Alignment.centerLeft,
-                                    foregroundColor: AppColors.primary,
-                                    side: const BorderSide(
-                                      color: AppColors.border,
-                                    ),
-                                  ),
-                                  onPressed: () => _pickTime(false),
-                                ),
-                              ),
-                            ],
-                          ),
+                          _buildTimePickerRow(),
+                          const SizedBox(height: 16),
+                          _buildTimestampToggle(),
                           const SizedBox(height: 32),
 
-                          // Tasks
-                          const SectionTitle(title: 'ヒーロータスク'),
+                          // Section: Support
+                          const SectionTitle(title: 'サポート'),
                           const SizedBox(height: 12),
-                          ...List.generate(_taskCtrls.length, (index) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _taskCtrls[index],
-                                      style: const TextStyle(
-                                        color: AppColors.textPrimary,
-                                      ),
-                                      decoration: InputDecoration(
-                                        labelText: 'ヒーロータスク ${index + 1}',
-                                        hintText: '例: ランニング3km',
-                                        hintStyle: const TextStyle(
-                                          color: AppColors.textMuted,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  if (_taskCtrls.length > 1)
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.remove_circle_outline,
-                                        color: AppColors.error,
-                                      ),
-                                      onPressed: () => _removeTaskField(index),
-                                    ),
-                                ],
-                              ),
-                            );
-                          }),
-                          if (_taskCtrls.length < 5)
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: TextButton.icon(
-                                icon: const Icon(
-                                  Icons.add,
-                                  color: AppColors.primary,
-                                ),
-                                label: const Text(
-                                  'ヒーロータスクを追加',
-                                  style: TextStyle(color: AppColors.primary),
-                                ),
-                                onPressed: _addTaskField,
-                              ),
-                            ),
-
+                          _buildLinkItem('プライバシーポリシー', 'https://veffect.firebaseapp.com/privacy'),
+                          _buildLinkItem('利用規約', 'https://veffect.firebaseapp.com/terms'),
                           const SizedBox(height: 48),
 
                           // Save button
@@ -734,7 +402,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             isLoading: _isSaving,
                             child: const Text('保存する'),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 40),
                         ],
                       ),
                     ),
@@ -745,6 +413,179 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRestrictionWarning() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.error.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: AppColors.error),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'ユーザーIDは前回の変更から90日間変更できません。\nあと $_daysRemaining 日お待ちください。',
+              style: const TextStyle(color: AppColors.error, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoPicker() {
+    return Center(
+      child: GestureDetector(
+        onTap: _pickImage,
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 3),
+            boxShadow: [
+              BoxShadow(color: Colors.white.withValues(alpha: 0.12), blurRadius: 16, spreadRadius: 2),
+            ],
+          ),
+          child: Stack(
+            children: [
+              CircleAvatar(
+                radius: 50,
+                backgroundColor: AppColors.bgElevated,
+                backgroundImage: _newProfileImage != null
+                    ? FileImage(_newProfileImage!) as ImageProvider
+                    : (_currentPhotoUrl != null
+                        ? ResizeImage(
+                          CachedNetworkImageProvider(_currentPhotoUrl!),
+                          width: 300,
+                          height: 300,
+                        )
+                        : null),
+                child: (_newProfileImage == null && _currentPhotoUrl == null)
+                    ? const Icon(Icons.person, size: 50, color: AppColors.textMuted)
+                    : null,
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                  child: const Icon(Icons.camera_alt, color: AppColors.black, size: 20),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon) {
+    return TextFormField(
+      controller: ctrl,
+      style: const TextStyle(color: AppColors.textPrimary),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: AppColors.textMuted),
+      ),
+      validator: (v) => (v == null || v.trim().isEmpty) ? '$labelを入力してください' : null,
+    );
+  }
+
+  Widget _buildUserIdField() {
+    return TextFormField(
+      controller: _userIdCtrl,
+      enabled: !_isRestricted,
+      style: TextStyle(color: _isRestricted ? AppColors.textMuted : AppColors.textPrimary),
+      decoration: const InputDecoration(
+        labelText: 'ユーザーID',
+        prefixIcon: Icon(Icons.alternate_email, color: AppColors.textMuted),
+      ),
+      validator: (v) {
+        if (v == null || v.trim().isEmpty) return 'ユーザーIDを入力してください';
+        if (v.trim().length < 5) return '5文字以上で入力してください';
+        return null;
+      },
+    );
+  }
+
+  Widget _buildTimePickerRow() {
+    return Row(
+      children: [
+        Expanded(child: _buildTimeButton('起床リマインダー', _wakeUpTime, () => _pickTime(true))),
+        const SizedBox(width: 16),
+        Expanded(child: _buildTimeButton('タスクリマインダー', _taskTime, () => _pickTime(false))),
+      ],
+    );
+  }
+
+  Widget _buildTimeButton(String label, TimeOfDay? time, VoidCallback onTap) {
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        alignment: Alignment.centerLeft,
+        side: const BorderSide(color: AppColors.border),
+      ),
+      onPressed: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+          const SizedBox(height: 4),
+          Text(
+            time != null ? _formatTimeOfDay(time) : '--:--',
+            style: const TextStyle(fontSize: 16, color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimestampToggle() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.bgSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.timer_outlined, color: AppColors.textMuted),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('写真のタイムスタンプ', style: TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+                Text('投稿写真に時刻を表示します', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              ],
+            ),
+          ),
+          Switch(
+            value: _showTimestamp,
+            onChanged: (v) => setState(() => _showTimestamp = v),
+            activeColor: AppColors.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLinkItem(String title, String url) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+      trailing: const Icon(Icons.open_in_new_rounded, size: 18, color: AppColors.textMuted),
+      onTap: () => _launchUrl(url),
     );
   }
 }
