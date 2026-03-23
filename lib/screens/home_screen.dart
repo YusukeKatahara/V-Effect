@@ -564,7 +564,7 @@ class _FeedCard extends StatelessWidget {
                               backgroundColor: AppColors.grey20,
                               backgroundImage:
                                   userPhotoUrl != null
-                                      ? CachedNetworkImageProvider(userPhotoUrl!)
+                                      ? ResizeImage(CachedNetworkImageProvider(userPhotoUrl!), width: 100, height: 100)
                                       : null,
                               child:
                                   userPhotoUrl == null

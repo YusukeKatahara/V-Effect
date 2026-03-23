@@ -511,9 +511,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                               ? FileImage(_newProfileImage!)
                                                   as ImageProvider
                                               : (_currentPhotoUrl != null
-                                                  ? CachedNetworkImageProvider(
-                                                    _currentPhotoUrl!,
-                                                  )
+                                                  ? ResizeImage(CachedNetworkImageProvider(_currentPhotoUrl!), width: 300, height: 300)
                                                   : null),
                                       child:
                                           (_newProfileImage == null &&

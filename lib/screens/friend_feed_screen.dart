@@ -455,7 +455,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                           ? AppColors.primary
                           : AppColors.bgElevated,
                       backgroundImage: friend['photoUrl'] != null
-                          ? CachedNetworkImageProvider(friend['photoUrl'] as String)
+                          ? ResizeImage(CachedNetworkImageProvider(friend['photoUrl'] as String), width: 120, height: 120)
                           : null,
                       child: friend['photoUrl'] == null
                           ? Icon(

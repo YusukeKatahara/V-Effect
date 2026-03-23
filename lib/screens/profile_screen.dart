@@ -369,7 +369,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _user!.photoUrl != null
                     ? CircleAvatar(
                       radius: 40,
-                      backgroundImage: CachedNetworkImageProvider(_user!.photoUrl!),
+                      backgroundImage: ResizeImage(CachedNetworkImageProvider(_user!.photoUrl!), width: 240, height: 240),
                     )
                     : const CircleAvatar(
                       radius: 40,
