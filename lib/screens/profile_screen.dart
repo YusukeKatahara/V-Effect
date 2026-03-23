@@ -9,6 +9,7 @@ import '../services/notification_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/user_service.dart';
 import 'edit_profile_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -368,7 +369,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _user!.photoUrl != null
                     ? CircleAvatar(
                       radius: 40,
-                      backgroundImage: NetworkImage(_user!.photoUrl!),
+                      backgroundImage: CachedNetworkImageProvider(_user!.photoUrl!),
                     )
                     : const CircleAvatar(
                       radius: 40,

@@ -86,7 +86,9 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<void> _pickImage(ImageSource source) async {
     final XFile? photo = await _picker.pickImage(
       source: source,
-      imageQuality: 80,
+      maxWidth: 1080,
+      maxHeight: 1920,
+      imageQuality: 70,
       preferredCameraDevice: CameraDevice.rear,
     );
     if (photo != null && mounted) {

@@ -9,6 +9,7 @@ import '../services/user_service.dart';
 import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/section_title.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final AppUser user;
@@ -510,7 +511,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                               ? FileImage(_newProfileImage!)
                                                   as ImageProvider
                                               : (_currentPhotoUrl != null
-                                                  ? NetworkImage(
+                                                  ? CachedNetworkImageProvider(
                                                     _currentPhotoUrl!,
                                                   )
                                                   : null),

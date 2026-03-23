@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../config/app_colors.dart';
 import '../models/post.dart';
 import '../services/analytics_service.dart';
@@ -43,9 +44,8 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   bool _loading = true;
   Timer? _autoTimer;
 
-  // ── リアクションアニメーション用 ──
-  int _flameCounter = 0;
-  final Map<int, Widget> _activeFlames = {};
+  // ── リアクションアニメーション制御用 ──
+  final GlobalKey<_FloatingFlamesLayerState> _flamesKey = GlobalKey();
 
   @override
   void initState() {
@@ -164,7 +164,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
     
     // ドーパミン誘発：軽いバイブレーションと炎アニメーション
     HapticFeedback.lightImpact();
-    _showFloatingFlame();
+    _flamesKey.currentState?.addFlame();
 
     final post = _posts[_currentPostIndex];
     // Optimistic UI update (immediately increase count locally)
@@ -183,25 +183,6 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
     await _postService.addReaction(post.id);
   }
 
-  void _showFloatingFlame() {
-    final id = _flameCounter++;
-    final randomX = (Random().nextDouble() - 0.5) * 40; // 左右に少しバラけさせる
-    
-    setState(() {
-      _activeFlames[id] = Positioned(
-        bottom: 80,
-        right: 20 + randomX, // ボタンの少し上あたり
-        child: _FloatingFlameWidget(
-          key: ValueKey(id),
-          onComplete: () {
-            if (mounted) {
-              setState(() => _activeFlames.remove(id));
-            }
-          },
-        ),
-      );
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -280,23 +261,26 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
               Stack(
                 fit: StackFit.expand,
                 children: [
-                  post.imageUrl != null
-                      ? Image.network(
-                          post.imageUrl!,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (ctx, child, progress) =>
-                              progress == null
-                                  ? child
-                                  : const Center(
-                                      child: CircularProgressIndicator()),
-                          errorBuilder: (ctx, e, st) => const Center(
-                            child: Icon(Icons.broken_image,
-                                size: 60, color: AppColors.textMuted),
+                  // Photo (RepaintBoundaryで囲んで無駄な再描画を抑制)
+                  RepaintBoundary(
+                    child: post.imageUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: post.imageUrl!,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 1080, // メモリ上のデコードサイズを制限
+                            placeholder: (ctx, url) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            errorWidget: (ctx, url, error) => const Center(
+                              child: Icon(Icons.broken_image,
+                                  size: 60, color: AppColors.textMuted),
+                            ),
+                          )
+                        : const Center(
+                            child: Icon(Icons.image,
+                                size: 80, color: AppColors.textMuted),
                           ),
-                        )
-                      : const Center(
-                          child: Icon(Icons.image, size: 80, color: AppColors.textMuted),
-                        ),
+                  ),
                 ],
               ),
 
@@ -427,8 +411,8 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                 ),
               ),
 
-              // ── Floating Flames Layer ──
-              ..._activeFlames.values,
+              // ── Floating Flames Layer (setStateの影響をここだけに留める) ──
+              _FloatingFlamesLayer(key: _flamesKey),
             ],
           ),
         ),
@@ -471,7 +455,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                           ? AppColors.primary
                           : AppColors.bgElevated,
                       backgroundImage: friend['photoUrl'] != null
-                          ? NetworkImage(friend['photoUrl'] as String)
+                          ? CachedNetworkImageProvider(friend['photoUrl'] as String)
                           : null,
                       child: friend['photoUrl'] == null
                           ? Icon(
@@ -508,6 +492,46 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   }
 }
 
+/// ── リアクションの火の粉を管理する専用レイヤー ──
+class _FloatingFlamesLayer extends StatefulWidget {
+  const _FloatingFlamesLayer({super.key});
+
+  @override
+  State<_FloatingFlamesLayer> createState() => _FloatingFlamesLayerState();
+}
+
+class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
+  int _counter = 0;
+  final Map<int, Widget> _flames = {};
+
+  void addFlame() {
+    final id = _counter++;
+    final randomX = (Random().nextDouble() - 0.5) * 40;
+
+    setState(() {
+      _flames[id] = Positioned(
+        key: ValueKey(id),
+        bottom: 80,
+        right: 20 + randomX,
+        child: _FloatingFlameWidget(
+          onComplete: () {
+            if (mounted) {
+              setState(() => _flames.remove(id));
+            }
+          },
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: _flames.values.toList(),
+    );
+  }
+}
+
 /// ── 連打で飛んでいく🔥アニメーションヴィジェット ──
 class _FloatingFlameWidget extends StatefulWidget {
   final VoidCallback onComplete;
@@ -533,15 +557,12 @@ class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
       duration: const Duration(milliseconds: 1000),
     );
 
-    // 上に昇っていく
     _dy = Tween<double>(begin: 0, end: -250).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
     );
-    // 途中から消えていく
     _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(parent: _ctrl, curve: const Interval(0.5, 1.0)),
     );
-    // 最初だけ少し大きくなる
     _scale = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.5, end: 1.5), weight: 20),
       TweenSequenceItem(tween: Tween(begin: 1.5, end: 1.0), weight: 80),

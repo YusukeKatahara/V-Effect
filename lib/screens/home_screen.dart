@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../config/app_colors.dart';
 import '../models/post.dart';
@@ -37,9 +38,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return _scrollPosition.round() % _feedPosts.length;
   }
 
-  // ── リアクションアニメーション用 ──
-  int _flameCounter = 0;
-  final Map<int, Widget> _activeFlames = {};
+  // ── リアクションアニメーション制御用 ──
+  final GlobalKey<_FloatingFlamesLayerState> _flamesKey = GlobalKey();
 
   // ── V-Flash 演出用 ──
   late final AnimationController _flashController;
@@ -131,10 +131,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (isVFlash) {
       HapticFeedback.heavyImpact();
       _flashController.forward(from: 0);
-      _showFloatingFlame(isGold: true);
+      _flamesKey.currentState?.addFlame(isGold: true);
     } else {
       HapticFeedback.lightImpact();
-      _showFloatingFlame(isGold: false);
+      _flamesKey.currentState?.addFlame(isGold: false);
     }
 
     final post = _feedPosts[index];
@@ -153,27 +153,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
 
     await _postService.addReaction(post.id);
-  }
-
-  void _showFloatingFlame({bool isGold = false}) {
-    final id = _flameCounter++;
-    final randomX = (Random().nextDouble() - 0.5) * 60;
-
-    setState(() {
-      _activeFlames[id] = Positioned(
-        bottom: 120,
-        right: 40 + randomX,
-        child: _FloatingFlameWidget(
-          key: ValueKey(id),
-          isGold: isGold,
-          onComplete: () {
-            if (mounted) {
-              setState(() => _activeFlames.remove(id));
-            }
-          },
-        ),
-      );
-    });
   }
 
   Color _getTierColor(int streak) {
@@ -221,8 +200,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
 
-          // ── Floating Flames Layer ──
-          ..._activeFlames.values,
+          // ── Floating Flames Layer (setStateの影響を分離) ──
+          _FloatingFlamesLayer(key: _flamesKey),
 
           // ── V-Flash 演出レイヤー ──
           IgnorePointer(
@@ -513,36 +492,38 @@ class _FeedCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 写真
-            if (post.imageUrl != null)
-              Image.network(
-                post.imageUrl!,
-                fit: BoxFit.cover,
-                loadingBuilder:
-                    (ctx, child, progress) =>
-                        progress == null
-                            ? child
-                            : const Center(
-                              child: CircularProgressIndicator(
-                                color: Color(0xFFD4AF37),
-                              ),
-                            ),
-                errorBuilder:
-                    (ctx, e, st) => const Center(
-                      child: Icon(
-                        Icons.broken_image,
-                        color: AppColors.grey30,
-                        size: 40,
+            // 写真 (RepaintBoundary + CachedNetworkImage)
+            RepaintBoundary(
+              child: post.imageUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: post.imageUrl!,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 800, // カード表示なのでサイズを控えめにデコード
+                      placeholder: (ctx, url) => Container(
+                        color: AppColors.grey10,
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFD4AF37),
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      ),
+                      errorWidget: (ctx, url, error) => const Center(
+                        child: Icon(
+                          Icons.broken_image,
+                          color: AppColors.grey30,
+                          size: 40,
+                        ),
+                      ),
+                    )
+                  : Container(
+                      color: AppColors.grey10,
+                      child: const Center(
+                        child:
+                            Icon(Icons.image, color: AppColors.grey30, size: 60),
                       ),
                     ),
-              )
-            else
-              Container(
-                color: AppColors.grey10,
-                child: const Center(
-                  child: Icon(Icons.image, color: AppColors.grey30, size: 60),
-                ),
-              ),
+            ),
 
             // グラデーションオーバーレイ（下部を暗くしてテキストを読みやすく）
             Positioned(
@@ -583,7 +564,7 @@ class _FeedCard extends StatelessWidget {
                               backgroundColor: AppColors.grey20,
                               backgroundImage:
                                   userPhotoUrl != null
-                                      ? NetworkImage(userPhotoUrl!)
+                                      ? CachedNetworkImageProvider(userPhotoUrl!)
                                       : null,
                               child:
                                   userPhotoUrl == null
@@ -679,6 +660,49 @@ class _FeedCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────
+// リアクション層の分離
+// ────────────────────────────────────────────
+class _FloatingFlamesLayer extends StatefulWidget {
+  const _FloatingFlamesLayer({super.key});
+
+  @override
+  State<_FloatingFlamesLayer> createState() => _FloatingFlamesLayerState();
+}
+
+class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
+  int _counter = 0;
+  final Map<int, Widget> _flames = {};
+
+  void addFlame({bool isGold = false}) {
+    final id = _counter++;
+    final randomX = (Random().nextDouble() - 0.5) * 60;
+
+    setState(() {
+      _flames[id] = Positioned(
+        key: ValueKey(id),
+        bottom: 120,
+        right: 40 + randomX,
+        child: _FloatingFlameWidget(
+          isGold: isGold,
+          onComplete: () {
+            if (mounted) {
+              setState(() => _flames.remove(id));
+            }
+          },
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: _flames.values.toList(),
     );
   }
 }

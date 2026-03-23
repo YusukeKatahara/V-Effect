@@ -8,6 +8,7 @@ import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../widgets/animated_v_logo.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -421,15 +422,19 @@ class _RegisterScreenState extends State<RegisterScreen>
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Image.network(
-                        'https://developers.google.com/identity/images/g-logo.png',
+                      CachedNetworkImage(
+                        imageUrl: 'https://developers.google.com/identity/images/g-logo.png',
                         height: 22,
-                        errorBuilder:
-                            (_, __, ___) => const Icon(
-                              Icons.g_mobiledata,
-                              size: 24,
-                              color: AppColors.textPrimary,
-                            ),
+                        placeholder: (context, url) => const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 1),
+                        ),
+                        errorWidget: (context, url, error) => const Icon(
+                          Icons.g_mobiledata,
+                          size: 24,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       const Text(
