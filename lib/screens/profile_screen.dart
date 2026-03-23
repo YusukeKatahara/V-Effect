@@ -51,9 +51,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── 時刻設定の変更 ──
   Future<void> _selectTime(BuildContext context, bool isWakeUp) async {
-    final initialTimeStr = isWakeUp
-        ? (_privateData['wakeUpTime'] ?? '07:00')
-        : (_privateData['taskTime'] ?? '08:00');
+    final initialTimeStr =
+        isWakeUp
+            ? (_privateData['wakeUpTime'] ?? '07:00')
+            : (_privateData['taskTime'] ?? '08:00');
     final parts = initialTimeStr.split(':');
     final now = DateTime.now();
     DateTime tempDateTime = DateTime(
@@ -66,79 +67,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await showCupertinoModalPopup(
       context: context,
-      builder: (context) => Container(
-        height: 300,
-        padding: const EdgeInsets.only(top: 6.0),
-        margin: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        color: AppColors.bgElevated,
-        child: SafeArea(
-          top: false,
-          child: Column(
-            children: [
-              // ツールバー（完了ボタン）
-              Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                        color: AppColors.white.withValues(alpha: 0.1),
-                        width: 0.5),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    CupertinoButton(
-                      child: const Text('キャンセル',
-                          style: TextStyle(color: AppColors.grey50)),
-                      onPressed: () => Navigator.pop(context),
+      builder:
+          (context) => Container(
+            height: 300,
+            padding: const EdgeInsets.only(top: 6.0),
+            margin: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            color: AppColors.bgElevated,
+            child: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  // ツールバー（完了ボタン）
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: AppColors.white.withValues(alpha: 0.1),
+                          width: 0.5,
+                        ),
+                      ),
                     ),
-                    CupertinoButton(
-                      child: const Text('完了',
-                          style: TextStyle(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CupertinoButton(
+                          child: const Text(
+                            'キャンセル',
+                            style: TextStyle(color: AppColors.grey50),
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        CupertinoButton(
+                          child: const Text(
+                            '完了',
+                            style: TextStyle(
                               color: AppColors.white,
-                              fontWeight: FontWeight.bold)),
-                      onPressed: () {
-                        final timeStr =
-                            '${tempDateTime.hour.toString().padLeft(2, '0')}:${tempDateTime.minute.toString().padLeft(2, '0')}';
-                        _userService.updateProfile(
-                          wakeUpTime: isWakeUp ? timeStr : null,
-                          taskTime: isWakeUp ? null : timeStr,
-                        );
-                        Navigator.pop(context);
-                        _loadProfile();
-                      },
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          onPressed: () {
+                            final timeStr =
+                                '${tempDateTime.hour.toString().padLeft(2, '0')}:${tempDateTime.minute.toString().padLeft(2, '0')}';
+                            _userService.updateProfile(
+                              wakeUpTime: isWakeUp ? timeStr : null,
+                              taskTime: isWakeUp ? null : timeStr,
+                            );
+                            Navigator.pop(context);
+                            _loadProfile();
+                          },
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              // ピッカー本体
-              Expanded(
-                child: CupertinoTheme(
-                  data: const CupertinoThemeData(
-                    brightness: Brightness.dark,
-                    textTheme: CupertinoTextThemeData(
-                      dateTimePickerTextStyle: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 22,
+                  ),
+                  // ピッカー本体
+                  Expanded(
+                    child: CupertinoTheme(
+                      data: const CupertinoThemeData(
+                        brightness: Brightness.dark,
+                        textTheme: CupertinoTextThemeData(
+                          dateTimePickerTextStyle: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 22,
+                          ),
+                        ),
+                      ),
+                      child: CupertinoDatePicker(
+                        mode: CupertinoDatePickerMode.time,
+                        use24hFormat: true,
+                        initialDateTime: tempDateTime,
+                        onDateTimeChanged: (DateTime newDate) {
+                          tempDateTime = newDate;
+                        },
                       ),
                     ),
                   ),
-                  child: CupertinoDatePicker(
-                    mode: CupertinoDatePickerMode.time,
-                    use24hFormat: true,
-                    initialDateTime: tempDateTime,
-                    onDateTimeChanged: (DateTime newDate) {
-                      tempDateTime = newDate;
-                    },
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 

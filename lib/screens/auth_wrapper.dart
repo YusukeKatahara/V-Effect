@@ -56,10 +56,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
           _navigating = false;
           // Analytics にユーザーIDを設定
           AnalyticsService.instance.setUserId(user.uid);
-          _userDocFuture = FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get();
+          _userDocFuture =
+              FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .get();
         }
 
         // 3. ログイン済み → Firestore のデータを確認して分岐
