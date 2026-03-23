@@ -9,6 +9,7 @@ import '../screens/task_template_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/friends_screen.dart';
 import '../screens/notifications_screen.dart';
+import '../screens/search_screen.dart';
 
 import '../screens/initial_friend_screen.dart';
 import '../screens/forgot_password_screen.dart';
@@ -28,6 +29,7 @@ class AppRoutes {
   static const String friends = '/friends';
   static const String profile = '/profile';
   static const String notifications = '/notifications';
+  static const String search = '/search';
   static const String editProfile = '/edit-profile';
   static const String initialFriend = '/initial-friend';
   static const String forgotPassword = '/forgot-password';
@@ -45,6 +47,7 @@ class AppRoutes {
         profile: (context) => const ProfileScreen(),
         friends: (context) => const FriendsScreen(),
         notifications: (context) => const NotificationsScreen(),
+        search: (context) => const SearchScreen(),
         initialFriend: (context) => const InitialFriendScreen(),
         forgotPassword: (context) => const ForgotPasswordScreen(),
         resetPassword: (context) => const ResetPasswordScreen(),
