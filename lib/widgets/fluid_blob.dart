@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 /// 円形アバター with 縁の輝きアニメーション
 ///
@@ -30,6 +31,7 @@ class FluidBlobAvatar extends StatefulWidget {
 class _FluidBlobAvatarState extends State<FluidBlobAvatar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  bool _isCurrentlyVisible = true;
 
   @override
   void initState() {
@@ -47,7 +49,7 @@ class _FluidBlobAvatarState extends State<FluidBlobAvatar>
   @override
   void didUpdateWidget(FluidBlobAvatar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isAnimating && !_controller.isAnimating) {
+    if (widget.isAnimating && !_controller.isAnimating && _isCurrentlyVisible) {
       _controller.repeat();
     } else if (!widget.isAnimating && _controller.isAnimating) {
       _controller.stop();
@@ -60,32 +62,51 @@ class _FluidBlobAvatarState extends State<FluidBlobAvatar>
     super.dispose();
   }
 
+  void _handleVisibilityChanged(VisibilityInfo info) {
+    if (!mounted) return;
+    final isVisible = info.visibleFraction > 0.01;
+    if (_isCurrentlyVisible != isVisible) {
+      _isCurrentlyVisible = isVisible;
+      if (isVisible && widget.isAnimating) {
+        _controller.repeat();
+      } else {
+        _controller.stop();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final glowColor = widget.glowColor ?? const Color(0xFFFFFFFF);
 
-    return SizedBox(
-      width: widget.size + 8,
-      height: widget.size + 8,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return CustomPaint(
-            painter: _ShimmerRingPainter(
-              progress: _controller.value,
-              gradient: widget.gradient,
-              glowColor: glowColor,
-              borderWidth: widget.borderWidth,
-              isAnimating: widget.isAnimating,
+    return VisibilityDetector(
+      key: ValueKey('fluid_blob_${widget.hashCode}'),
+      onVisibilityChanged: _handleVisibilityChanged,
+      child: RepaintBoundary(
+        child: SizedBox(
+          width: widget.size + 8,
+          height: widget.size + 8,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: _ShimmerRingPainter(
+                  progress: _controller.value,
+                  gradient: widget.gradient,
+                  glowColor: glowColor,
+                  borderWidth: widget.borderWidth,
+                  isAnimating: widget.isAnimating,
+                ),
+                child: Center(child: child),
+              );
+            },
+            child: ClipOval(
+              child: SizedBox(
+                width: widget.size - 4,
+                height: widget.size - 4,
+                child: widget.child,
+              ),
             ),
-            child: Center(child: child),
-          );
-        },
-        child: ClipOval(
-          child: SizedBox(
-            width: widget.size - 4,
-            height: widget.size - 4,
-            child: widget.child,
           ),
         ),
       ),
@@ -164,7 +185,7 @@ class _ShimmerRingPainter extends CustomPainter {
 
       final spotGlow = Paint()
         ..color = glowColor.withValues(alpha: 0.25)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4); // 8 -> 4 に削減
       canvas.drawCircle(Offset(glowX, glowY), 6, spotGlow);
     }
   }

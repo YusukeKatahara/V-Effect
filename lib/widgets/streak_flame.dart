@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 /// モノクロの炎アイコンを CustomPaint で描画し、
 /// 揺らめきアニメーションを付けるウィジェット。
@@ -15,6 +16,7 @@ class StreakFlame extends StatefulWidget {
 class _StreakFlameState extends State<StreakFlame>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  bool _isVisible = true;
 
   @override
   void initState() {
@@ -22,7 +24,8 @@ class _StreakFlameState extends State<StreakFlame>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
-    )..repeat();
+    );
+    _controller.repeat();
   }
 
   @override
@@ -31,16 +34,37 @@ class _StreakFlameState extends State<StreakFlame>
     super.dispose();
   }
 
+  void _handleVisibilityChanged(VisibilityInfo info) {
+    if (!mounted) return;
+    final isVisible = info.visibleFraction > 0.01;
+    if (_isVisible != isVisible) {
+      setState(() {
+        _isVisible = isVisible;
+      });
+      if (isVisible) {
+        _controller.repeat();
+      } else {
+        _controller.stop();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        return CustomPaint(
-          size: Size(widget.size, widget.size * 1.3),
-          painter: _FlamePainter(progress: _controller.value),
-        );
-      },
+    return VisibilityDetector(
+      key: Key('streak_flame_${widget.hashCode}'),
+      onVisibilityChanged: _handleVisibilityChanged,
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            return CustomPaint(
+              size: Size(widget.size, widget.size * 1.3),
+              painter: _FlamePainter(progress: _controller.value),
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -67,6 +91,7 @@ class _FlamePainter extends CustomPainter {
     canvas.scale(scaleBreath, -scaleBreath); // Y反転（下→上に描画）
 
     // ── 外炎（薄いグロー） ──
+    // GPU負荷軽減のためぼかし半径を 6 -> 3 に縮小
     final outerPath = _buildFlamePath(
       w: w,
       h: h,
@@ -77,7 +102,7 @@ class _FlamePainter extends CustomPainter {
     );
     final outerGlow = Paint()
       ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.08)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
     canvas.drawPath(outerPath, outerGlow);
 
     // ── 主炎 ──

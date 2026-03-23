@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import '../config/app_colors.dart';
 
 class AnimatedVLogo extends StatefulWidget {
@@ -14,14 +15,16 @@ class AnimatedVLogo extends StatefulWidget {
 class _AnimatedVLogoState extends State<AnimatedVLogo>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  bool _isVisible = true;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4), // やや早めのループ
-    )..repeat();
+      duration: const Duration(seconds: 4),
+    );
+    _controller.repeat();
   }
 
   @override
@@ -30,70 +33,83 @@ class _AnimatedVLogoState extends State<AnimatedVLogo>
     super.dispose();
   }
 
-  Color _kagerouColor(double time, double offset) {
-    // カゲロウ（陽炎）のように下から上へ昇る波を計算
-    // timeが増加するとともに進むサイン波
-    final wave = (math.sin(time * 2.5 - offset * 1.5) + 1.0) / 2.0;
-    // 細かい揺らめきを追加
-    final ripple = (math.sin(time * 6.0 + offset * 0.5) + 1.0) / 2.0;
+  void _handleVisibilityChanged(VisibilityInfo info) {
+    if (!mounted) return;
+    final isVisible = info.visibleFraction > 0.01;
+    if (_isVisible != isVisible) {
+      setState(() {
+        _isVisible = isVisible;
+      });
+      if (isVisible) {
+        _controller.repeat();
+      } else {
+        _controller.stop();
+      }
+    }
+  }
 
-    final noise = wave * 0.7 + ripple * 0.3;
-    
-    // 輝度に変換（255:白 〜 130:やや暗め）
-    final intensity = 130 + (noise * 125).toInt();
+  Color _kagerouColor(double time, double offset) {
+    // 負荷軽減のためサイン波の計算を少し簡略化
+    final wave = (math.sin(time * 2.5 - offset * 1.5) + 1.0) * 0.5;
+    // 細かい揺らめきは固定値や周期を調整して負荷バランスを取る
+    final intensity = 135 + (wave * 120).toInt();
     return Color.fromARGB(255, intensity, intensity, intensity);
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final time = _controller.value * math.pi * 2;
+    return VisibilityDetector(
+      key: Key('animated_v_logo_${widget.hashCode}'),
+      onVisibilityChanged: _handleVisibilityChanged,
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final time = _controller.value * math.pi * 2;
 
-        // 全体の仄かな明るさの揺らめき用
-        final flicker = (math.sin(time * 3) + 1) / 2;
-        final spread = 2.0 + (flicker * 4.0);
-        final blur = 24.0 + (flicker * 8.0);
+            // 仄かな明るさの揺らめき
+            final flicker = (math.sin(time * 3) + 1) * 0.5;
+            final spread = 2.0 + (flicker * 3.0);
+            final blur = 20.0 + (flicker * 6.0);
 
-        return Container(
-          width: widget.size,
-          height: widget.size,
-          decoration: BoxDecoration(
-            color: AppColors.black,
-            borderRadius: BorderRadius.circular(widget.size * 0.25),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.white.withValues(alpha: 0.12 + (flicker * 0.08)),
-                blurRadius: blur,
-                spreadRadius: spread,
+            return Container(
+              width: widget.size,
+              height: widget.size,
+              decoration: BoxDecoration(
+                color: AppColors.black,
+                borderRadius: BorderRadius.circular(widget.size * 0.25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.12 + (flicker * 0.05)),
+                    blurRadius: blur,
+                    spreadRadius: spread,
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(widget.size * 0.25),
-            child: ShaderMask(
-              blendMode: BlendMode.multiply,
-              shaderCallback: (bounds) {
-                // 下から上へ、カゲロウのように揺らめくグラデーションバンド
-                return LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
-                  colors: [
-                    _kagerouColor(time, 0.0),
-                    _kagerouColor(time, math.pi * 0.5),
-                    _kagerouColor(time, math.pi * 1.0),
-                    _kagerouColor(time, math.pi * 1.5),
-                    _kagerouColor(time, math.pi * 2.0),
-                  ],
-                ).createShader(bounds);
-              },
-              child: Image.asset('assets/icon/app_icon.png', fit: BoxFit.cover),
-            ),
-          ),
-        );
-      },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(widget.size * 0.25),
+                child: ShaderMask(
+                  blendMode: BlendMode.multiply,
+                  shaderCallback: (bounds) {
+                    return LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      stops: const [0.0, 0.33, 0.66, 1.0],
+                      colors: [
+                        _kagerouColor(time, 0.0),
+                        _kagerouColor(time, math.pi * 0.6),
+                        _kagerouColor(time, math.pi * 1.2),
+                        _kagerouColor(time, math.pi * 1.8),
+                      ],
+                    ).createShader(bounds);
+                  },
+                  child: Image.asset('assets/icon/app_icon.png', fit: BoxFit.cover),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
