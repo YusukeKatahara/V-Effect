@@ -238,66 +238,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       child: Row(
         children: [
           Expanded(
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: AppColors.white.withValues(alpha: 0.1),
-                  width: 0.5,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                icon: const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.white,
                 ),
-              ),
-              child: TextField(
-                onSubmitted: (v) {
-                  if (v.trim().isNotEmpty) {
-                    // 検索画面へ遷移（仮）
-                    Navigator.pushNamed(context, '/search', arguments: v.trim());
-                  }
-                },
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                decoration: const InputDecoration(
-                  hintText: 'IDまたは名前を検索',
-                  hintStyle: TextStyle(color: AppColors.grey30, fontSize: 13),
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    color: AppColors.grey30,
-                    size: 18,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 10),
-                ),
+                onPressed: () => Navigator.pushNamed(context, '/search'),
               ),
             ),
           ),
-          const SizedBox(width: 12),
           Text(
             'V EFFECT',
             style: GoogleFonts.outfit(
-              fontSize: 14,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
               color: AppColors.white,
-              letterSpacing: 2.0,
+              letterSpacing: 6.0,
             ),
           ),
-          const SizedBox(width: 8),
-          StreamBuilder<int>(
-            stream: _notificationStream,
-            builder: (context, snapshot) {
-              final count = snapshot.data ?? 0;
-              return IconButton(
-                icon: Badge(
-                  isLabelVisible: count > 0,
-                  label: Text('$count'),
-                  child: const Icon(
-                    Icons.notifications_outlined,
-                    color: AppColors.white,
-                  ),
-                ),
-                onPressed:
-                    () => Navigator.pushNamed(context, AppRoutes.notifications),
-              );
-            },
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: StreamBuilder<int>(
+                stream: _notificationStream,
+                builder: (context, snapshot) {
+                  final count = snapshot.data ?? 0;
+                  return IconButton(
+                    icon: Badge(
+                      isLabelVisible: count > 0,
+                      label: Text('$count'),
+                      child: const Icon(
+                        Icons.notifications_outlined,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    onPressed:
+                        () => Navigator.pushNamed(context, AppRoutes.notifications),
+                  );
+                },
+              ),
+            ),
           ),
         ],
       ),
@@ -755,6 +737,7 @@ class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
         bottom: 120,
         right: 40 + randomX,
         child: _FloatingFlameWidget(
+          key: ValueKey('flame_$id'),
           isGold: isGold,
           onComplete: () {
             if (mounted) {

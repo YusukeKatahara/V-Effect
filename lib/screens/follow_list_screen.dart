@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/friend_service.dart';
@@ -19,7 +18,7 @@ class FollowListScreen extends StatefulWidget {
 
 class _FollowListScreenState extends State<FollowListScreen> {
   final FriendService _friendService = FriendService.instance;
-  final String _myUid = FirebaseAuth.instance.currentUser!.uid;
+  final String _myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   bool _loading = true;
   bool _initialized = false;

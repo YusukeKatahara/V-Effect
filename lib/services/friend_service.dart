@@ -27,12 +27,13 @@ class FriendService {
     return AppUser.fromFirestore(query.docs.first);
   }
 
-  /// 名前（username）で検索します（部分一致）
+  /// 名前（username）で検索します（部分一致・大文字小文字区別なし）
   Future<List<AppUser>> searchByUsername(String queryText) async {
+    final queryLower = queryText.toLowerCase();
     final query = await _db
         .collection('users')
-        .where('username', isGreaterThanOrEqualTo: queryText)
-        .where('username', isLessThanOrEqualTo: '$queryText\uf8ff')
+        .where('usernameLower', isGreaterThanOrEqualTo: queryLower)
+        .where('usernameLower', isLessThanOrEqualTo: '$queryLower\uf8ff')
         .limit(20)
         .get();
     return query.docs.map((doc) => AppUser.fromFirestore(doc)).toList();

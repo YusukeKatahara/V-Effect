@@ -40,6 +40,7 @@ class UserService {
       _db.collection('users').doc(uid),
       {
         'username': username,
+        'usernameLower': username.toLowerCase(),
         'userId': userId,
         'streak': 0,
         'lastPostedDate': null,
@@ -165,7 +166,10 @@ class UserService {
 
     // 公開情報の更新
     final publicData = <String, dynamic>{};
-    if (username != null) publicData['username'] = username;
+    if (username != null) {
+      publicData['username'] = username;
+      publicData['usernameLower'] = username.toLowerCase();
+    }
     if (userId != null) publicData['userId'] = userId;
     if (photoUrl != null) publicData['photoUrl'] = photoUrl;
     if (tasks != null) publicData['tasks'] = tasks;
