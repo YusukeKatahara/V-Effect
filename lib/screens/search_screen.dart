@@ -63,18 +63,18 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _toggleFollow(AppUser targetUser) async {
+  void _requestFollow(AppUser targetUser) async {
     try {
-      await _friendService.followUser(targetUser.uid);
+      await _friendService.sendRequest(targetUser.uid);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${targetUser.username}さんをフォローしました')),
+          SnackBar(content: Text('${targetUser.username}さんにフォローリクエストを送りました')),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('フォローに失敗しました: $e')),
+          SnackBar(content: Text('リクエストに失敗しました: $e')),
         );
       }
     }
@@ -155,8 +155,8 @@ class _SearchScreenState extends State<SearchScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           minimumSize: Size.zero,
                         ),
-                        onPressed: () => _toggleFollow(user),
-                        child: const Text('フォロー', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        onPressed: () => _requestFollow(user),
+                        child: const Text('リクエスト', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
                     );
                   },

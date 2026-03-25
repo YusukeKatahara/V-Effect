@@ -97,49 +97,53 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (BuildContext builder) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
-                      onPressed: () => Navigator.of(context).pop(),
+        return Container(
+          height: 300,
+          padding: const EdgeInsets.only(top: 6.0),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      Text(title, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                      TextButton(
+                        child: const Text('完了', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          onTimeSelected(selectedTime);
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoTheme(
+                    data: const CupertinoThemeData(
+                      brightness: Brightness.dark,
+                      textTheme: CupertinoTextThemeData(
+                        dateTimePickerTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 22),
+                      ),
                     ),
-                    Text(title, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-                    TextButton(
-                      child: const Text('完了', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                      onPressed: () {
-                        onTimeSelected(selectedTime);
-                        Navigator.of(context).pop();
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.time,
+                      initialDateTime: DateTime(2024, 1, 1, selectedTime.hour, selectedTime.minute),
+                      use24hFormat: true,
+                      onDateTimeChanged: (DateTime newDateTime) {
+                        selectedTime = TimeOfDay.fromDateTime(newDateTime);
                       },
                     ),
-                  ],
-                ),
-              ),
-              SizedBox(
-                height: 216,
-                child: CupertinoTheme(
-                  data: const CupertinoThemeData(
-                    textTheme: CupertinoTextThemeData(
-                      dateTimePickerTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 22),
-                    ),
-                  ),
-                  child: CupertinoDatePicker(
-                    mode: CupertinoDatePickerMode.time,
-                    initialDateTime: DateTime(2024, 1, 1, selectedTime.hour, selectedTime.minute),
-                    use24hFormat: true,
-                    onDateTimeChanged: (DateTime newDateTime) {
-                      selectedTime = TimeOfDay.fromDateTime(newDateTime);
-                    },
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

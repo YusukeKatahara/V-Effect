@@ -38,39 +38,125 @@ class FriendService {
     return query.docs.map((doc) => AppUser.fromFirestore(doc)).toList();
   }
 
-  /// ユーザーをフォローします
-  Future<void> followUser(String targetUid) async {
+  /// フォロー申請を送ります
+  ///
+  /// 相手から既に申請が来ていた場合は自動的に承認します。
+  Future<void> sendRequest(String targetUid) async {
     final myUid = _auth.currentUser!.uid;
-    if (myUid == targetUid) throw Exception('自分自身はフォローできません');
+    if (myUid == targetUid) throw Exception('自分自身にリクエストできません');
 
-    final batch = _db.batch();
+    // 既にフォロー中なら何もしない
+    if (await isFollowing(targetUid)) return;
 
-    // 自分の following に追加
-    batch.update(
-      _db.collection('users').doc(myUid),
-      {'following': FieldValue.arrayUnion([targetUid])},
+    // 相手から既に申請が来ているかチェック（来ていれば自動承認）
+    final reverseSnap = await _db
+        .collection('friend_requests')
+        .where('fromUid', isEqualTo: targetUid)
+        .where('toUid', isEqualTo: myUid)
+        .where('status', isEqualTo: 'pending')
+        .limit(1)
+        .get();
+    if (reverseSnap.docs.isNotEmpty) {
+      final reverseRequest = FriendRequest.fromFirestore(reverseSnap.docs.first);
+      await acceptRequest(reverseRequest);
+      return;
+    }
+
+    // 既に申請中かチェック
+    if (await hasPendingRequest(targetUid)) return;
+
+    // 自分のユーザー情報を取得
+    final mySnap = await _db.collection('users').doc(myUid).get();
+    final myUsername = mySnap.data()?['username'] ?? '';
+    final myUserId = mySnap.data()?['userId'] ?? '';
+
+    // 相手のユーザー情報を取得
+    final targetSnap = await _db.collection('users').doc(targetUid).get();
+    final targetUsername = targetSnap.data()?['username'] ?? '';
+    final targetUserId = targetSnap.data()?['userId'] ?? '';
+
+    // friend_requests に追加
+    final docRef = await _db.collection('friend_requests').add({
+      'fromUid': myUid,
+      'toUid': targetUid,
+      'fromUserId': myUserId,
+      'fromUsername': myUsername,
+      'toUserId': targetUserId,
+      'toUsername': targetUsername,
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // 相手に通知を送る
+    await _notificationService.createNotification(
+      toUid: targetUid,
+      type: NotificationType.friendRequestReceived,
+      params: {'username': myUsername},
+      fromUid: myUid,
+      relatedId: docRef.id,
     );
 
-    // 相手の followers に追加
+    _analytics.logFriendRequestSent();
+  }
+
+  /// 申請を承認します（followers / following 配列を更新）
+  Future<void> acceptRequest(FriendRequest request) async {
+    final myUid = _auth.currentUser!.uid;
+    final batch = _db.batch();
+
+    // リクエストのステータスを承認に更新
     batch.update(
-      _db.collection('users').doc(targetUid),
-      {'followers': FieldValue.arrayUnion([myUid])},
+      _db.collection('friend_requests').doc(request.id),
+      {'status': 'accepted'},
+    );
+
+    // 承認者（自分）の followers に申請者を追加
+    batch.update(
+      _db.collection('users').doc(myUid),
+      {'followers': FieldValue.arrayUnion([request.fromUid])},
+    );
+
+    // 申請者の following に承認者（自分）を追加
+    batch.update(
+      _db.collection('users').doc(request.fromUid),
+      {'following': FieldValue.arrayUnion([myUid])},
     );
 
     await batch.commit();
 
-    // 相手に通知を送る
+    // 申請者に承認通知を送る
     final mySnap = await _db.collection('users').doc(myUid).get();
-    final myUsername = mySnap.data()?['username'] ?? '誰か';
+    final myUsername = mySnap.data()?['username'] ?? '';
 
     await _notificationService.createNotification(
-      toUid: targetUid,
-      type: NotificationType.friendRequestAccepted, // 型を再利用
+      toUid: request.fromUid,
+      type: NotificationType.friendRequestAccepted,
       params: {'username': myUsername},
       fromUid: myUid,
+      relatedId: request.id,
     );
+  }
 
-    _analytics.logFriendRequestSent();
+  /// 申請を拒否します
+  Future<void> rejectRequest(FriendRequest request) async {
+    await _db
+        .collection('friend_requests')
+        .doc(request.id)
+        .update({'status': 'rejected'});
+  }
+
+  /// 自分が送った申請をキャンセルします
+  Future<void> cancelRequest(String targetUid) async {
+    final myUid = _auth.currentUser!.uid;
+    final snap = await _db
+        .collection('friend_requests')
+        .where('fromUid', isEqualTo: myUid)
+        .where('toUid', isEqualTo: targetUid)
+        .where('status', isEqualTo: 'pending')
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return;
+    await snap.docs.first.reference.delete();
   }
 
   /// フォローを解除します
@@ -90,6 +176,25 @@ class FriendService {
 
     await batch.commit();
     _analytics.logFriendRemoved();
+  }
+
+  /// 受信した申請一覧をリアルタイムで取得します（pending のみ）
+  Stream<List<FriendRequest>> getReceivedRequests() {
+    final myUid = _auth.currentUser!.uid;
+    return _db
+        .collection('friend_requests')
+        .where('toUid', isEqualTo: myUid)
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map((doc) => FriendRequest.fromFirestore(doc)).toList());
+  }
+
+  /// IDで申請を1件取得します
+  Future<FriendRequest?> getRequestById(String requestId) async {
+    final snap = await _db.collection('friend_requests').doc(requestId).get();
+    if (!snap.exists) return null;
+    return FriendRequest.fromFirestore(snap);
   }
 
   /// フォロー中リストを取得します（リアルタイム）
@@ -156,19 +261,30 @@ class FriendService {
     return following.contains(targetUid);
   }
 
-  // ── 以下、既存画面との互換性のためのエイリアス ──
+  /// 対象ユーザーが自分のフォロワーかどうか確認します
+  Future<bool> isFollower(String targetUid) async {
+    final myUid = _auth.currentUser!.uid;
+    final snap = await _db.collection('users').doc(myUid).get();
+    final followers = List<String>.from(snap.data()?['followers'] ?? []);
+    return followers.contains(targetUid);
+  }
 
-  Future<void> sendRequest(String targetUid) => followUser(targetUid);
-  
-  Stream<List<FriendRequest>> getReceivedRequests() => const Stream.empty();
-  
-  Future<FriendRequest?> getRequestById(String requestId) async => null;
-  
-  Future<void> acceptRequest(dynamic request) async {}
-  
-  Future<void> rejectRequest(dynamic request) async {}
-  
+  /// 自分が対象ユーザーへの申請を送り中かどうか確認します
+  Future<bool> hasPendingRequest(String targetUid) async {
+    final myUid = _auth.currentUser!.uid;
+    final snap = await _db
+        .collection('friend_requests')
+        .where('fromUid', isEqualTo: myUid)
+        .where('toUid', isEqualTo: targetUid)
+        .where('status', isEqualTo: 'pending')
+        .limit(1)
+        .get();
+    return snap.docs.isNotEmpty;
+  }
+
+  // ── 既存画面との互換性のためのエイリアス ──
+
   Stream<List<AppUser>> getFriends() => getFollowing();
-  
+
   Future<void> removeFriend(String friendUid) => unfollowUser(friendUid);
 }

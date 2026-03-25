@@ -24,6 +24,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   AppUser? _user;
   bool _loading = true;
   bool _isFollowing = false;
+  bool _isMyFollower = false;
+  bool _isPending = false;
   bool _isProcessing = false;
   bool _initialized = false;
 
@@ -45,10 +47,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         _friendService.getUserByUid(_targetUid!),
         _friendService.isFollowing(_targetUid!),
       ]);
+
+      // friend_requests コレクションへのアクセスが失敗しても他の処理を妨げない
+      bool isPending = false;
+      try {
+        isPending = await _friendService.hasPendingRequest(_targetUid!);
+      } catch (_) {}
+
       if (!mounted) return;
+      final loadedUser = results[0] as AppUser?;
       setState(() {
-        _user = results[0] as AppUser?;
+        _user = loadedUser;
         _isFollowing = results[1] as bool;
+        // _user.following にyusukeのUIDが含まれる = renがyusukeをフォローしている = renはyusukeのフォロワー
+        _isMyFollower = loadedUser?.following.contains(_myUid) ?? false;
+        _isPending = isPending;
         _loading = false;
       });
     } catch (e) {
@@ -62,8 +75,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       if (_isFollowing) {
         await _friendService.unfollowUser(_targetUid!);
+      } else if (_isPending) {
+        await _friendService.cancelRequest(_targetUid!);
       } else {
-        await _friendService.followUser(_targetUid!);
+        await _friendService.sendRequest(_targetUid!);
       }
       await _loadProfile();
     } catch (e) {
@@ -195,18 +210,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildStats() {
+    // フォロー/フォロワーリストは自分自身・自分のフォロワーのみ閲覧可能
+    final canViewList = _targetUid == _myUid || _isMyFollower;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _buildStatItem(
           'フォロー',
           _user!.following.length,
-          onTap: () => _openFollowList(isFollowing: true),
+          onTap: canViewList ? () => _openFollowList(isFollowing: true) : null,
         ),
         _buildStatItem(
           'フォロワー',
           _user!.followers.length,
-          onTap: () => _openFollowList(isFollowing: false),
+          onTap: canViewList ? () => _openFollowList(isFollowing: false) : null,
         ),
         _buildStatItem(
           'ストリーク',
@@ -267,20 +284,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildFollowButton() {
+    final String label;
+    final Color bgColor;
+    final Color fgColor;
+    final BorderSide border;
+
+    if (_isFollowing) {
+      label = 'フォロー中';
+      bgColor = AppColors.bgSurface;
+      fgColor = AppColors.textPrimary;
+      border = const BorderSide(color: AppColors.border);
+    } else if (_isPending) {
+      label = '申請中';
+      bgColor = AppColors.bgSurface;
+      fgColor = AppColors.textSecondary;
+      border = const BorderSide(color: AppColors.border);
+    } else {
+      label = 'フォローをリクエスト';
+      bgColor = AppColors.white;
+      fgColor = AppColors.black;
+      border = BorderSide.none;
+    }
+
     return SizedBox(
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
         onPressed: _isProcessing ? null : _toggleFollow,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _isFollowing ? AppColors.bgSurface : AppColors.white,
-          foregroundColor: _isFollowing ? AppColors.textPrimary : AppColors.black,
+          backgroundColor: bgColor,
+          foregroundColor: fgColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: _isFollowing
-                ? const BorderSide(color: AppColors.border)
-                : BorderSide.none,
+            side: border,
           ),
         ),
         child: _isProcessing
@@ -289,10 +326,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : Text(
-                _isFollowing ? 'フォロー中' : 'フォローする',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+            : Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
