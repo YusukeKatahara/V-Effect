@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -51,7 +52,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
         final user = snapshot.data!;
 
         // メール未認証（メール/パスワード登録のみ対象）
-        if (!user.emailVerified && user.providerData.any((p) => p.providerId == 'password')) {
+        // デバッグモード時は開発効率のため認証をスキップできるようにする
+        if (!user.emailVerified &&
+            user.providerData.any((p) => p.providerId == 'password') &&
+            !kDebugMode) {
           _navigating = false;
           _userDocFuture = null;
           _lastUid = null;

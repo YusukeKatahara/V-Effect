@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_colors.dart';
@@ -148,6 +149,23 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
               ),
+              if (kDebugMode) ...[
+                const SizedBox(height: 24),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      AppRoutes.wrapper,
+                      (r) => false,
+                    );
+                  },
+                  icon: const Icon(Icons.bug_report, color: Colors.orange),
+                  label: const Text(
+                    '[デバッグ用] メール認証をパスする',
+                    style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
