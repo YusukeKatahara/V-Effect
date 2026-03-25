@@ -393,44 +393,44 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
     return Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 2, left: 20, right: 20),
-      child: Row(
-        children: [
-          const SizedBox(width: 40), // バランスを取るためのプレースホルダー
-          const Spacer(),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const StreakFlame(size: 18),
-              const SizedBox(width: 6),
-              Text(
-                '$_streak Day Streak',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.grey70,
-                  letterSpacing: 0.5,
+      child: SizedBox(
+        width: double.infinity,
+        height: 32,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const StreakFlame(size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  '$_streak Day Streak',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.grey70,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+            if (isCompleted)
+              Positioned(
+                right: 0,
+                child: IconButton(
+                  onPressed: () => _deleteHeroPost(focusedTask!.completedPost!.id),
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.error,
+                    size: 20,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
               ),
-            ],
-          ),
-          const Spacer(),
-          if (isCompleted)
-            SizedBox(
-              width: 40,
-              child: IconButton(
-                onPressed: () => _deleteHeroPost(focusedTask!.completedPost!.id),
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: AppColors.error,
-                  size: 20,
-                ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            )
-          else
-            const SizedBox(width: 40),
-        ],
+          ],
+        ),
       ),
     );
   }

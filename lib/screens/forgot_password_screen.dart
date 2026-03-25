@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../widgets/premium_background.dart';
@@ -55,12 +56,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
 
     setState(() => _isSending = true);
     try {
-      // TODO: 本来はCloud FunctionsでユーザーID検証を行っていましたが、
-      // 現在iOS起動クラッシュの原因となっているため一時的にスキップし、直接メールを送ります。
+      // 1. Cloud Functions でユーザーIDとメールアドレスの一致を検証
+      final callable = FirebaseFunctions.instance.httpsCallable('sendPasswordReset');
+      await callable.call({
+        'userId': userId,
+        'email': email,
+      });
+
+      // 2. 検証成功時のみ、Firebase Auth でパスワードリセットメールを送信
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (mounted) setState(() => _sent = true);
     } catch (e) {
-      _showMessage('エラーが発生しました。もう一度お試しください。');
+      _showMessage('ユーザーIDまたはメールアドレスが正しくありません。');
     } finally {
       if (mounted) setState(() => _isSending = false);
     }

@@ -371,29 +371,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
       title: const Text('プロフィール'),
       actions: [
         IconButton(
-          icon: const Icon(Icons.edit_outlined, color: AppColors.textPrimary),
-          onPressed: () async {
-            if (_user == null) return;
-            final didUpdate = await Navigator.push<bool>(
-              context,
-              MaterialPageRoute(
-                builder: (_) => EditProfileScreen(
-                  user: _user!,
-                  privateData: _privateData,
-                ),
-              ),
-            );
-            if (didUpdate == true) {
-              _loadProfile();
-            }
-          },
-        ),
-        IconButton(
           icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: AppColors.bgSurface,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (BuildContext context) {
+                return SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.grey30,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        leading: const Icon(Icons.edit_outlined, color: AppColors.textPrimary),
+                        title: const Text('プロフィールを編集', style: TextStyle(color: AppColors.textPrimary)),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          if (_user == null) return;
+                          final didUpdate = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditProfileScreen(
+                                user: _user!,
+                                privateData: _privateData,
+                              ),
+                            ),
+                          );
+                          if (didUpdate == true) {
+                            _loadProfile();
+                          }
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
+                        title: const Text('その他の設定', style: TextStyle(color: AppColors.textPrimary)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                );
+              },
             );
           },
         ),

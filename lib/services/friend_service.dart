@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_request.dart';
@@ -158,6 +159,44 @@ class FriendService {
         .get();
     if (snap.docs.isEmpty) return;
     await snap.docs.first.reference.delete();
+  }
+
+  /// ユーザーをフォローします
+  Future<void> followUser(String targetUid) async {
+    final myUid = _auth.currentUser!.uid;
+    if (myUid == targetUid) throw Exception('自分自身はフォローできません');
+
+    final batch = _db.batch();
+
+    // 自分の following に相手を追加
+    batch.update(
+      _db.collection('users').doc(myUid),
+      {'following': FieldValue.arrayUnion([targetUid])},
+    );
+
+    // 相手の followers に自分を追加
+    batch.update(
+      _db.collection('users').doc(targetUid),
+      {'followers': FieldValue.arrayUnion([myUid])},
+    );
+
+    await batch.commit();
+
+    // 通知を送る
+    try {
+      final mySnap = await _db.collection('users').doc(myUid).get();
+      final myUsername = mySnap.data()?['username'] ?? '誰か';
+      await _notificationService.createNotification(
+        toUid: targetUid,
+        type: NotificationType.friendRequestAccepted,
+        params: {'username': myUsername},
+        fromUid: myUid,
+      );
+    } catch (e) {
+      debugPrint('Failed to send follow notification: $e');
+    }
+
+    _analytics.logFriendRequestSent();
   }
 
   /// フォローを解除します
