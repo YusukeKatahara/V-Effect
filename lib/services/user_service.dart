@@ -207,4 +207,21 @@ class UserService {
       _updateController.add(null);
     }
   }
+
+  /// アプリの設定（通知・プライバシー）を更新します
+  Future<void> updateSettings({
+    bool? pushNotifications,
+    bool? isPrivateAccount,
+  }) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final data = <String, dynamic>{};
+    if (pushNotifications != null) data['pushNotifications'] = pushNotifications;
+    if (isPrivateAccount != null) data['isPrivateAccount'] = isPrivateAccount;
+
+    if (data.isNotEmpty) {
+      await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
+    }
+  }
 }

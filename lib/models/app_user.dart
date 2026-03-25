@@ -22,6 +22,8 @@ class AppUser {
   final bool templateCompleted;
   final bool onboardingCompleted;
   final int? lastProfileEditDate;
+  final bool pushNotifications;
+  final bool isPrivateAccount;
 
   const AppUser({
     required this.uid,
@@ -44,6 +46,8 @@ class AppUser {
     this.templateCompleted = false,
     this.onboardingCompleted = false,
     this.lastProfileEditDate,
+    this.pushNotifications = true,
+    this.isPrivateAccount = false,
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -69,6 +73,8 @@ class AppUser {
       templateCompleted: data['templateCompleted'] ?? false,
       onboardingCompleted: data['onboardingCompleted'] ?? false,
       lastProfileEditDate: data['lastProfileEditDate'],
+      pushNotifications: data['pushNotifications'] ?? true,
+      isPrivateAccount: data['isPrivateAccount'] ?? false,
     );
   }
 }

@@ -327,6 +327,4 @@ class FriendService {
   Stream<List<AppUser>> getFriends() => getFollowing();
 
   Future<void> removeFriend(String friendUid) => unfollowUser(friendUid);
-
-  Future<void> followUser(String targetUid) => sendRequest(targetUid);
 }
