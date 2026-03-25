@@ -15,6 +15,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isLoading = true;
   List<AppUser> _results = [];
   String _query = '';
+  String? _errorMessage;
 
   @override
   void didChangeDependencies() {
@@ -32,6 +33,7 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {
       _isLoading = true;
       _results.clear();
+      _errorMessage = null;
     });
 
     try {
@@ -51,6 +53,9 @@ class _SearchScreenState extends State<SearchScreen> {
       }
     } catch (e) {
       debugPrint('Search error: $e');
+      if (mounted) {
+        setState(() => _errorMessage = e.toString());
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -87,7 +92,18 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _results.isEmpty
+          : _errorMessage != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      '検索エラー:\n$_errorMessage',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.error, fontSize: 13),
+                    ),
+                  ),
+                )
+              : _results.isEmpty
               ? const Center(
                   child: Text(
                     'ユーザーが見つかりませんでした',
@@ -99,6 +115,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   itemBuilder: (context, index) {
                     final user = _results[index];
                     return ListTile(
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/user-profile',
+                        arguments: user.uid,
+                      ),
                       leading: Container(
                         width: 40,
                         height: 40,

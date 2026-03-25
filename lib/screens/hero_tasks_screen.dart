@@ -10,6 +10,7 @@ import '../models/post.dart';
 import '../services/analytics_service.dart';
 import '../services/notification_service.dart';
 import '../services/post_service.dart';
+import '../services/user_service.dart';
 import '../widgets/splash_loading.dart';
 import '../widgets/streak_flame.dart';
 import 'camera_screen.dart';
@@ -34,9 +35,11 @@ class HeroTasksScreen extends StatefulWidget {
 class _HeroTasksScreenState extends State<HeroTasksScreen>
     with TickerProviderStateMixin {
   final PostService _postService = PostService.instance;
+  final UserService _userService = UserService.instance;
   final NotificationService _notificationService = NotificationService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
   StreamSubscription? _updateSubscription;
+  StreamSubscription? _userUpdateSubscription;
 
   int _streak = 0;
   bool _postedToday = false;
@@ -109,11 +112,16 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     _updateSubscription = _postService.updateStream.listen((_) {
       if (mounted) _loadData();
     });
+    // ヒーロータスク変更の通知を監視
+    _userUpdateSubscription = _userService.updateStream.listen((_) {
+      if (mounted) _loadData();
+    });
   }
 
   @override
   void dispose() {
     _updateSubscription?.cancel();
+    _userUpdateSubscription?.cancel();
     _pageController.dispose();
     _zenController.dispose();
     _sublimationController.dispose();

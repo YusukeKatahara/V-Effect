@@ -124,6 +124,38 @@ class FriendService {
     });
   }
 
+  /// UIDでユーザーを1件取得します
+  Future<AppUser?> getUserByUid(String uid) async {
+    final snap = await _db.collection('users').doc(uid).get();
+    if (!snap.exists) return null;
+    return AppUser.fromFirestore(snap);
+  }
+
+  /// 複数UIDのユーザーを一括取得します（最大30件/チャンク）
+  Future<List<AppUser>> getUsersByUids(List<String> uids) async {
+    if (uids.isEmpty) return [];
+    final results = <AppUser>[];
+    for (var i = 0; i < uids.length; i += 30) {
+      final chunk = uids.sublist(i, (i + 30).clamp(0, uids.length));
+      final snap = await _db
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      results.addAll(snap.docs.map((doc) => AppUser.fromFirestore(doc)));
+    }
+    return results;
+  }
+
+  /// 現在のユーザーが対象ユーザーをフォローしているか確認します
+  Future<bool> isFollowing(String targetUid) async {
+    final myUid = _auth.currentUser!.uid;
+    final snap = await _db.collection('users').doc(myUid).get();
+    final following = List<String>.from(
+      snap.data()?['following'] ?? snap.data()?['friends'] ?? [],
+    );
+    return following.contains(targetUid);
+  }
+
   // ── 以下、既存画面との互換性のためのエイリアス ──
 
   Future<void> sendRequest(String targetUid) => followUser(targetUid);

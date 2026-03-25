@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +8,10 @@ import 'package:firebase_storage/firebase_storage.dart';
 class UserService {
   UserService._();
   static final UserService instance = UserService._();
+
+  /// タスク変更など、ユーザーデータの更新をアプリ全体に通知するストリーム
+  final _updateController = StreamController<void>.broadcast();
+  Stream<void> get updateStream => _updateController.stream;
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -192,5 +197,10 @@ class UserService {
     }
 
     await batch.commit();
+
+    // タスクが変更された場合、HeroTasksScreen など購読者に通知
+    if (tasks != null) {
+      _updateController.add(null);
+    }
   }
 }

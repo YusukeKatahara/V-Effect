@@ -60,7 +60,7 @@ class AppUser {
       streak: (data['streak'] as num?)?.toInt() ?? 0,
       lastPostedDate: data['lastPostedDate'],
       following: List<String>.from(data['following'] ?? data['friends'] ?? []),
-      followers: List<String>.from(data['followers'] ?? []),
+      followers: List<String>.from(data['followers'] ?? data['friends'] ?? []),
       tasks: List<String>.from(data['tasks'] ?? []),
       wakeUpTime: data['wakeUpTime'],
       taskTime: data['taskTime'],

@@ -19,32 +19,38 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService.instance;
+  final _db = FirebaseFirestore.instance;
+  late final String _uid;
   bool _loading = true;
   AppUser? _user;
   Map<String, dynamic> _privateData = {};
+  Stream<DocumentSnapshot>? _userStream;
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _uid = FirebaseAuth.instance.currentUser!.uid;
+    _userStream = _db.collection('users').doc(_uid).snapshots();
+    _loadPrivateData();
   }
 
-  Future<void> _loadProfile() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final db = FirebaseFirestore.instance;
-    final results = await Future.wait([
-      db.collection('users').doc(uid).get(),
-      db.collection('users').doc(uid).collection('private').doc('data').get(),
-    ]);
-    final userSnap = results[0];
-    final privateSnap = results[1];
+  Future<void> _loadPrivateData() async {
+    final privateSnap = await _db
+        .collection('users')
+        .doc(_uid)
+        .collection('private')
+        .doc('data')
+        .get();
     if (!mounted) return;
     setState(() {
-      _user = userSnap.exists ? AppUser.fromFirestore(userSnap) : null;
       _privateData =
           privateSnap.exists ? privateSnap.data() as Map<String, dynamic> : {};
       _loading = false;
     });
+  }
+
+  Future<void> _loadProfile() async {
+    await _loadPrivateData();
   }
 
   // ── 時刻設定の変更 ──
@@ -285,12 +291,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgBase,
-      body:
-          _loading
-              ? const Center(child: CircularProgressIndicator())
-              : _user == null
-              ? _buildEmptyState()
-              : _buildContent(),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<DocumentSnapshot>(
+              stream: _userStream,
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data!.exists) {
+                  _user = AppUser.fromFirestore(snapshot.data!);
+                }
+                if (_user == null) return _buildEmptyState();
+                return _buildContent();
+              },
+            ),
     );
   }
 
@@ -444,8 +456,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildFollowStat('フォロー', _user!.following.length),
-              _buildFollowStat('フォロワー', _user!.followers.length),
+              _buildFollowStat(
+                'フォロー',
+                _user!.following.length,
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  '/follow-list',
+                  arguments: {
+                    'uid': _uid,
+                    'isFollowing': true,
+                    'title': 'フォロー中',
+                  },
+                ),
+              ),
+              _buildFollowStat(
+                'フォロワー',
+                _user!.followers.length,
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  '/follow-list',
+                  arguments: {
+                    'uid': _uid,
+                    'isFollowing': false,
+                    'title': 'フォロワー',
+                  },
+                ),
+              ),
               _buildFollowStat('ストリーク', _user!.streak, icon: Icons.local_fire_department_rounded),
             ],
           ),
@@ -454,8 +490,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildFollowStat(String label, int count, {IconData? icon}) {
-    return Column(
+  Widget _buildFollowStat(String label, int count, {IconData? icon, VoidCallback? onTap}) {
+    final content = Column(
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -482,8 +518,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: AppColors.textSecondary,
           ),
         ),
+        if (onTap != null) ...[
+          const SizedBox(height: 2),
+          Container(width: 24, height: 1, color: AppColors.grey20),
+        ],
       ],
     );
+
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: content,
+        ),
+      );
+    }
+    return content;
   }
 
   // ════════════════════════════════════════════

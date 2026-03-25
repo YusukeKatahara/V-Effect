@@ -23,7 +23,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     super.initState();
     _notificationsStream = _notificationService.getMyNotifications();
     // 画面を開いた瞬間に全て既読にする
-    _notificationService.markAllAsRead();
+    _notificationService.markAllAsRead().catchError((_) {});
   }
 
   IconData _iconForType(NotificationType type) {
@@ -165,6 +165,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       body: StreamBuilder<List<AppNotification>>(
         stream: _notificationsStream,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('エラーが発生しました: ${snapshot.error}',
+                  style: const TextStyle(color: AppColors.textSecondary)),
+            );
+          }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
