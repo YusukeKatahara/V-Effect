@@ -1,9 +1,10 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const { getAuth } = require("firebase-admin/auth");
+const { getStorage } = require("firebase-admin/storage");
 
 initializeApp();
 
@@ -68,6 +69,88 @@ exports.sendPushNotification = onDocumentCreated(
     }
   }
 );
+
+/**
+ * アカウントを完全削除する
+ * - Firestore: users/{uid}, users/{uid}/private/data, 投稿, 通知
+ * - フォロー/フォロワー関係の解除
+ * - Storage: プロフィール画像
+ * - Firebase Auth: アカウント削除
+ */
+exports.deleteAccount = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "認証が必要です。");
+  }
+
+  const db = getFirestore();
+  const auth = getAuth();
+
+  // 1. ユーザードキュメントを取得（following/followers リストを取得するため）
+  const userDoc = await db.collection("users").doc(uid).get();
+  const userData = userDoc.exists ? userDoc.data() : {};
+  const following = userData.following || [];
+  const followers = userData.followers || [];
+
+  // 2. フォロー関係の解除 & ユーザードキュメント・プライベートデータを削除
+  const batch = db.batch();
+
+  // 自分がフォローしているユーザーの followers から自分を削除
+  for (const followingUid of following) {
+    batch.update(db.collection("users").doc(followingUid), {
+      followers: FieldValue.arrayRemove(uid),
+    });
+  }
+
+  // 自分をフォローしているユーザーの following から自分を削除
+  for (const followerUid of followers) {
+    batch.update(db.collection("users").doc(followerUid), {
+      following: FieldValue.arrayRemove(uid),
+    });
+  }
+
+  batch.delete(db.collection("users").doc(uid).collection("private").doc("data"));
+  batch.delete(db.collection("users").doc(uid));
+
+  await batch.commit();
+
+  // 3. 投稿を削除
+  const postsSnap = await db.collection("posts").where("userId", "==", uid).get();
+  if (!postsSnap.empty) {
+    const postBatch = db.batch();
+    for (const doc of postsSnap.docs) {
+      postBatch.delete(doc.ref);
+    }
+    await postBatch.commit();
+  }
+
+  // 4. 通知を削除
+  const [notifToSnap, notifFromSnap] = await Promise.all([
+    db.collection("notifications").where("toUid", "==", uid).get(),
+    db.collection("notifications").where("fromUid", "==", uid).get(),
+  ]);
+  const notifDocs = [...notifToSnap.docs, ...notifFromSnap.docs];
+  if (notifDocs.length > 0) {
+    const notifBatch = db.batch();
+    for (const doc of notifDocs) {
+      notifBatch.delete(doc.ref);
+    }
+    await notifBatch.commit();
+  }
+
+  // 5. Storage のプロフィール画像を削除
+  try {
+    const bucket = getStorage().bucket();
+    await bucket.deleteFiles({ prefix: `profiles/${uid}/` });
+  } catch (error) {
+    console.warn("Storage deletion warning:", error.message);
+  }
+
+  // 6. Firebase Auth アカウントを削除
+  await auth.deleteUser(uid);
+
+  return { success: true };
+});
 
 /**
  * ユーザーID とメールアドレスの一致を検証してから

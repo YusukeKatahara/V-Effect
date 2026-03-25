@@ -50,6 +50,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         final user = snapshot.data!;
 
+        // メール未認証（メール/パスワード登録のみ対象）
+        if (!user.emailVerified && user.providerData.any((p) => p.providerId == 'password')) {
+          _navigating = false;
+          _userDocFuture = null;
+          _lastUid = null;
+          _navigateTo(AppRoutes.emailVerification);
+          return const SplashLoading();
+        }
+
         // UID が変わったら future を再作成（ログインユーザー切り替え対応）
         if (_lastUid != user.uid) {
           _lastUid = user.uid;

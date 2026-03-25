@@ -38,6 +38,14 @@ class AuthService {
     }
   }
 
+  /// アカウントを完全削除する（Cloud Functions経由）
+  /// Firestore・Storage・Firebase Auth のデータをすべて削除する
+  Future<void> deleteAccount() async {
+    final callable = FirebaseFunctions.instance.httpsCallable('deleteAccount');
+    await callable.call();
+    await _auth.signOut();
+  }
+
   /// Appleでログイン（または登録）
   Future<UserCredential?> signInWithApple() async {
     if (kIsWeb) {

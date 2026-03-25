@@ -16,6 +16,7 @@ import '../screens/user_profile_screen.dart';
 import '../screens/initial_friend_screen.dart';
 import '../screens/forgot_password_screen.dart';
 import '../screens/reset_password_screen.dart';
+import '../screens/email_verification_screen.dart';
 import '../screens/auth_wrapper.dart';
 
 /// アプリ全体のルート（画面の住所）定義
@@ -38,6 +39,7 @@ class AppRoutes {
   static const String initialFriend = '/initial-friend';
   static const String forgotPassword = '/forgot-password';
   static const String resetPassword = '/reset-password';
+  static const String emailVerification = '/email-verification';
 
   static Map<String, WidgetBuilder> get routes => {
         wrapper: (context) => const AuthWrapper(),
@@ -57,5 +59,6 @@ class AppRoutes {
         initialFriend: (context) => const InitialFriendScreen(),
         forgotPassword: (context) => const ForgotPasswordScreen(),
         resetPassword: (context) => const ResetPasswordScreen(),
+        emailVerification: (context) => const EmailVerificationScreen(),
       };
 }

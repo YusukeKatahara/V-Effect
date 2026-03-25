@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/app_user.dart';
+import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/user_service.dart';
 import 'edit_profile_screen.dart';
@@ -343,6 +344,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverToBoxAdapter(child: _buildLogoutButton()),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+          // ── アカウント削除 ─────────────────────────────
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverToBoxAdapter(child: _buildDeleteAccountButton()),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
@@ -685,6 +693,109 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // アカウント削除
+  // ════════════════════════════════════════════
+  Future<void> _deleteAccount() async {
+    // 1回目の確認ダイアログ
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgElevated,
+        title: const Text(
+          'アカウントを削除しますか？',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: const Text(
+          'アカウントを削除すると、プロフィール・投稿・フォロー関係などすべてのデータが完全に削除されます。この操作は取り消せません。',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('キャンセル', style: TextStyle(color: AppColors.grey50)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('削除する', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    // 2回目の確認ダイアログ
+    final finalConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgElevated,
+        title: const Text(
+          '本当に削除しますか？',
+          style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'この操作は元に戻せません。アカウントを完全に削除してよろしいですか？',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('キャンセル', style: TextStyle(color: AppColors.grey50)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('完全に削除する', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (finalConfirmed != true || !mounted) return;
+
+    // ローディング表示
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      await PushNotificationService().removeFcmToken();
+      await AuthService().deleteAccount();
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // ローディングを閉じる
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('アカウントの削除に失敗しました。時間をおいて再度お試しください。'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildDeleteAccountButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: TextButton(
+        onPressed: _deleteAccount,
+        child: const Text(
+          'アカウントを削除する',
+          style: TextStyle(
+            color: AppColors.grey30,
+            fontSize: 13,
+            decoration: TextDecoration.underline,
+            decorationColor: AppColors.grey30,
+          ),
+        ),
+      ),
     );
   }
 

@@ -57,10 +57,8 @@ class _RegisterScreenState extends State<RegisterScreen>
     super.dispose();
   }
 
-  /// ユーザードキュメントを作成し、プロフィール設定画面へ直接遷移する
-  Future<void> _ensureUserDocAndNavigate() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  /// ユーザードキュメントを作成する（ソーシャルログイン用）
+  Future<void> _ensureUserDoc(User user) async {
     final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
     final doc = await docRef.get();
     if (!doc.exists) {
@@ -70,9 +68,14 @@ class _RegisterScreenState extends State<RegisterScreen>
       });
     }
     PushNotificationService().saveFcmToken().catchError((e) => debugPrint('FCM token save error: $e'));
+  }
 
+  /// ユーザードキュメントを作成し、プロフィール設定画面へ直接遷移する（ソーシャルログイン用）
+  Future<void> _ensureUserDocAndNavigate() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    await _ensureUserDoc(user);
     if (!mounted) return;
-    // 新規登録 → 必ずプロフィール設定へ（スタックをクリア）
     Navigator.of(
       context,
     ).pushNamedAndRemoveUntil(AppRoutes.profileSetup, (r) => false);
@@ -84,12 +87,18 @@ class _RegisterScreenState extends State<RegisterScreen>
     setState(() => _isEmailLoading = true);
     final scaffold = ScaffoldMessenger.maybeOf(context);
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text.trim(),
       );
       await _analytics.logSignUp('email');
-      await _ensureUserDocAndNavigate();
+      // 認証メールを送信
+      await cred.user?.sendEmailVerification();
+      // Firestoreドキュメントを作成
+      await _ensureUserDoc(cred.user!);
+      if (!mounted) return;
+      // メール認証待ち画面へ
+      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.emailVerification, (r) => false);
     } on FirebaseAuthException catch (e) {
       String msg = '登録に失敗しました。';
       if (e.code == 'email-already-in-use') msg = 'このメールアドレスは既に使われています。';

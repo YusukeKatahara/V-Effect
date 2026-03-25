@@ -135,9 +135,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         );
       }
     } catch (e) {
+      debugPrint('承認エラー: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('エラーが発生しました: $e')),
+          SnackBar(content: Text('承認に失敗しました。もう一度お試しください。')),
         );
       }
     } finally {

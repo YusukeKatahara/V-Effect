@@ -41,6 +41,10 @@ service cloud.firestore {
       allow update: if request.auth != null
         && resource.data.toUid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+
+      // リクエスト削除（キャンセル）: 送信者のみ
+      allow delete: if request.auth != null
+        && resource.data.fromUid == request.auth.uid;
     }
 
     // ────────────────────────────────────────
@@ -54,6 +58,11 @@ service cloud.firestore {
       allow read: if request.auth != null
         && (resource.data.toUid == request.auth.uid
             || resource.data.fromUid == request.auth.uid);
+
+      // 通知更新（既読マーク）: 自分宛ての通知のみ & isRead のみ変更可
+      allow update: if request.auth != null
+        && resource.data.toUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
 
       // 通知削除: 自分宛ての通知のみ（ユーザーが通知を消す）
       allow delete: if request.auth != null
