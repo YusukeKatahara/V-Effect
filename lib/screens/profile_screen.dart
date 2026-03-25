@@ -9,6 +9,8 @@ import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/user_service.dart';
 import 'edit_profile_screen.dart';
+import 'follow_list_screen.dart';
+import 'settings_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -54,7 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await _loadPrivateData();
   }
 
-  // ── 時刻設定の変更 ──
+  // ---── 時刻設定の変更 ──
   Future<void> _selectTime(BuildContext context, bool isWakeUp) async {
     final initialTimeStr =
         isWakeUp
@@ -84,7 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               top: false,
               child: Column(
                 children: [
-                  // ツールバー（完了ボタン）
+                  // ---ツールバー（完了ボタン）
                   Container(
                     decoration: BoxDecoration(
                       border: Border(
@@ -126,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  // ピッカー本体
+                  // ---ピッカー本体
                   Expanded(
                     child: CupertinoTheme(
                       data: const CupertinoThemeData(
@@ -155,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ── ヒーロータスクの追加 ──
+  // ---── ヒーロータスクの追加 ──
   Future<void> _addTask() async {
     final controller = TextEditingController();
     final newTask = await showDialog<String>(
@@ -202,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ── ヒーロータスクの編集 ──
+  // ---── ヒーロータスクの編集 ──
   Future<void> _editTask(int index) async {
     final controller = TextEditingController(text: _user!.tasks[index]);
     final updatedTask = await showDialog<String>(
@@ -250,7 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ── ヒーロータスクの削除 ──
+  // ---── ヒーロータスクの削除 ──
   Future<void> _deleteTask(int index) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -326,21 +328,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildSliverAppBar(),
           SliverToBoxAdapter(child: _buildProfileHeader()),
 
-          // ── スケジュール設定 ─────────────────────────────
+          // ---── スケジュール設定 ─────────────────────────────
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverToBoxAdapter(child: _buildScheduleSection()),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-          // ── ヒーロータスク管理 ───────────────────────────
+          // ---── ヒーロータスク管理 ───────────────────────────
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverToBoxAdapter(child: _buildTaskSection()),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
 
-          // ── ログアウト ─────────────────────────────
+          // ---── ログアウト ─────────────────────────────
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverToBoxAdapter(child: _buildLogoutButton()),
@@ -358,9 +360,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ════════════════════════════════════════════
-  // SliverAppBar
-  // ════════════════════════════════════════════
+  // ---
+  // ---SliverAppBar
+  // ---
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       backgroundColor: AppColors.bgBase,
@@ -369,30 +371,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
       title: const Text('プロフィール'),
       actions: [
         IconButton(
-          icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
+          icon: const Icon(Icons.edit_outlined, color: AppColors.textPrimary),
           onPressed: () async {
             if (_user == null) return;
             final didUpdate = await Navigator.push<bool>(
               context,
               MaterialPageRoute(
-                builder:
-                    (_) => EditProfileScreen(
-                      user: _user!,
-                      privateData: _privateData,
-                    ),
+                builder: (_) => EditProfileScreen(
+                  user: _user!,
+                  privateData: _privateData,
+                ),
               ),
             );
-            if (didUpdate == true) _loadProfile();
+            if (didUpdate == true) {
+              _loadProfile();
+            }
           },
         ),
-        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            );
+          },
+        ),
       ],
     );
   }
 
-  // ════════════════════════════════════════════
-  // プロフィールヘッダー
-  // ════════════════════════════════════════════
+  // ---
+  // ---プロフィールヘッダー
+  // ---
   Widget _buildProfileHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -534,11 +545,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (onTap != null) {
-      return GestureDetector(
+      return InkWell(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: content,
         ),
       );
@@ -546,9 +557,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return content;
   }
 
-  // ════════════════════════════════════════════
-  // スケジュール設定（直接変更可能）
-  // ════════════════════════════════════════════
+  // ---
+  // ---スケジュール設定（直接変更可能）
+  // ---
   Widget _buildScheduleSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,9 +596,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ════════════════════════════════════════════
-  // ヒーロータスクセクション（追加・削除可能）
-  // ════════════════════════════════════════════
+  // ---
+  // ---ヒーロータスクセクション（追加・削除可能）
+  // ---
   Widget _buildTaskSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -799,9 +810,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ════════════════════════════════════════════
-  // ログアウトボタン
-  // ════════════════════════════════════════════
+  // ---
+  // ---ログアウトボタン
+  // ---
+
   Widget _buildLogoutButton() {
     return SizedBox(
       width: double.infinity,
@@ -834,9 +846,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ────────────────────────────────────────────
-// 直接編集可能な情報行
-// ────────────────────────────────────────────
+// ---────────────────────────────────────────────
+// ---直接編集可能な情報行
+// ---────────────────────────────────────────────
 class _EditableInfoRow extends StatelessWidget {
   const _EditableInfoRow({
     required this.icon,
@@ -897,9 +909,9 @@ class _EditableInfoRow extends StatelessWidget {
   }
 }
 
-// ────────────────────────────────────────────
-// セクションタイトル
-// ────────────────────────────────────────────
+// ---────────────────────────────────────────────
+// ---セクションタイトル
+// ---────────────────────────────────────────────
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title});
   final String title;

@@ -393,12 +393,12 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
     return Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 2, left: 20, right: 20),
-      child: Stack(
-        alignment: Alignment.center,
+      child: Row(
         children: [
+          const SizedBox(width: 40), // バランスを取るためのプレースホルダー
+          const Spacer(),
           Row(
             mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const StreakFlame(size: 18),
               const SizedBox(width: 6),
@@ -413,9 +413,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               ),
             ],
           ),
+          const Spacer(),
           if (isCompleted)
-            Positioned(
-              right: 0,
+            SizedBox(
+              width: 40,
               child: IconButton(
                 onPressed: () => _deleteHeroPost(focusedTask!.completedPost!.id),
                 icon: const Icon(
@@ -423,9 +424,12 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                   color: AppColors.error,
                   size: 20,
                 ),
-                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
-            ),
+            )
+          else
+            const SizedBox(width: 40),
         ],
       ),
     );

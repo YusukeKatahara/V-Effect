@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';

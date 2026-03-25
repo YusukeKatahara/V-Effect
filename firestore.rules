@@ -13,9 +13,11 @@ service cloud.firestore {
       allow read: if request.auth != null;
       
       allow write: if request.auth != null && request.auth.uid == uid;
-      // フォロー・アンフォロー時に相手の followers 配列を更新するため
-      allow update: if request.auth != null
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends', 'followers', 'following']);
+      // ユーザー情報の更新: 本人なら何でも。他人ならフォロー関連(friends, followers, following)のみ。
+      allow update: if request.auth != null && (
+        request.auth.uid == uid || 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends', 'followers', 'following'])
+      );
 
       // プライベート情報（email, birthDate, gender, wakeUpTime, taskTime）
       // 自分だけが読み書きできます

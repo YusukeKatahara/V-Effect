@@ -514,6 +514,7 @@ class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
         bottom: 80,
         right: 20 + randomX,
         child: _FloatingFlameWidget(
+          key: ValueKey('flame_$id'),
           onComplete: () {
             if (mounted) {
               setState(() => _flames.remove(id));

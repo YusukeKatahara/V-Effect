@@ -7,6 +7,33 @@ import 'app_colors.dart';
 class AppTheme {
   AppTheme._();
 
+  static ThemeData get light {
+    // 【rennさん・yusukeさんへ】
+    // 将来的なライトモード実装のためのベースです。
+    // 現状はアプリ内の大部分がAppColorsの固定色を使っているため、完全なライトモード対応には
+    // 全画面のリファクタリング（Theme.of(context)を使った動的な色取得への変更）が必要です。
+    // 今回は設定切り替えの基盤として仮の ThemeData を提供しています。
+    const cs = ColorScheme.light(
+      primary: AppColors.black,
+      onPrimary: AppColors.white,
+      surface: AppColors.white,
+      onSurface: AppColors.black,
+      error: AppColors.error,
+    );
+    
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: cs,
+      scaffoldBackgroundColor: AppColors.white,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppColors.black),
+      ),
+    );
+  }
+
   static ThemeData get dark {
     const cs = ColorScheme(
       brightness: Brightness.dark,

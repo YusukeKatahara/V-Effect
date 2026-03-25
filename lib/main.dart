@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 import 'config/routes.dart';
 import 'config/theme.dart';
@@ -32,11 +34,17 @@ void main() async {
 
     // プッシュ通知の初期化
     await PushNotificationService().initialize();
+
+    // テーマ設定の読み込み
+    final prefs = await SharedPreferences.getInstance();
+    final isDarkMode = prefs.getBool('isDarkMode') ?? true;
+    VEffectApp.themeNotifier.value = isDarkMode ? ThemeMode.dark : ThemeMode.light;
+
   } catch (e) {
     debugPrint('Firebase連携エラー: $e');
   }
 
-  runApp(const VEffectApp());
+  runApp(const ProviderScope(child: VEffectApp()));
 }
 
 class VEffectApp extends StatefulWidget {
@@ -44,6 +52,9 @@ class VEffectApp extends StatefulWidget {
 
   /// アプリ内のどこからでも Navigator にアクセスするためのグローバルキー
   static final navigatorKey = GlobalKey<NavigatorState>();
+
+  /// テーマ変更用のNotifier
+  static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 
   @override
   State<VEffectApp> createState() => _VEffectAppState();
@@ -77,22 +88,29 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: VEffectApp.navigatorKey,
-      title: 'V EFFECT',
-      theme: AppTheme.dark,
-      // 日本語ロケール設定（午前/午後表示などに必要）
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('ja', 'JP')],
-      locale: const Locale('ja', 'JP'),
-      initialRoute: AppRoutes.wrapper,
-      routes: AppRoutes.routes,
-      // 画面遷移の自動トラッキング
-      navigatorObservers: [AnalyticsService.instance.observer],
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: VEffectApp.themeNotifier,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          navigatorKey: VEffectApp.navigatorKey,
+          title: 'V EFFECT',
+          theme: AppTheme.light, // ライトモード用のテーマ（後で拡張予定）
+          darkTheme: AppTheme.dark,
+          themeMode: themeMode,
+          // 日本語ロケール設定（午前/午後表示などに必要）
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('ja', 'JP')],
+          locale: const Locale('ja', 'JP'),
+          initialRoute: AppRoutes.wrapper,
+          routes: AppRoutes.routes,
+          // 画面遷移の自動トラッキング
+          navigatorObservers: [AnalyticsService.instance.observer],
+        );
+      },
     );
   }
 }
