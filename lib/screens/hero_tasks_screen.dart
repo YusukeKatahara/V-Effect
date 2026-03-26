@@ -505,14 +505,21 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                               setState(() => _expandedIndex = null);
                               return;
                             }
+                            // カードが中央にない場合はスナップして終了
+                            if (actualIndex != _focusedIndex) {
+                              _pageController.animateToPage(
+                                rawIndex,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOutCubic,
+                              );
+                              return;
+                            }
                             final item = _taskItems[actualIndex];
-                            if (item.isCompleted &&
-                                actualIndex == _focusedIndex) {
+                            if (item.isCompleted) {
                               // タップで拡大
                               HapticFeedback.mediumImpact();
                               setState(() => _expandedIndex = actualIndex);
-                            } else if (!item.isCompleted &&
-                                actualIndex == _focusedIndex) {
+                            } else {
                               // 未完了ならカメラへ
                               _selectHeroTask(actualIndex);
                             }
@@ -988,7 +995,8 @@ class _FrictionlessPageScrollPhysics extends PageScrollPhysics {
 
   @override
   SpringDescription get spring =>
-      const SpringDescription(mass: 150.0, stiffness: 20.0, damping: 0.5);
+      // ζ ≈ 0.97（臨界減衰に近い）→ 約0.8秒で収束。旧値は実質無減衰だった。
+      const SpringDescription(mass: 4.0, stiffness: 60.0, damping: 30.0);
 
   @override
   double applyPhysicsToUserOffset(ScrollMetrics position, double offset) {

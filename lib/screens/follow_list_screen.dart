@@ -22,6 +22,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
 
   bool _loading = true;
   bool _initialized = false;
+  bool _showPendingBanner = false;
   List<AppUser> _users = [];
   String _title = '';
 
@@ -47,8 +48,17 @@ class _FollowListScreenState extends State<FollowListScreen> {
     final isFollowing = args['isFollowing'] as bool;
     _title = args['title'] as String? ?? (isFollowing ? 'フォロー中' : 'フォロワー');
 
+    // 自分のフォロワー画面の場合、保留中の申請があるか確認する
+    final isMyFollowers = !isFollowing && uid == _myUid;
+
     try {
-      final userSnap = await _friendService.getUserByUid(uid);
+      final results = await Future.wait([
+        _friendService.getUserByUid(uid),
+        if (isMyFollowers)
+          _friendService.getReceivedRequests().first,
+      ]);
+
+      final userSnap = results[0] as AppUser?;
       final uids = isFollowing
           ? (userSnap?.following ?? [])
           : (userSnap?.followers ?? []);
@@ -58,6 +68,10 @@ class _FollowListScreenState extends State<FollowListScreen> {
       setState(() {
         _users = users;
         _loading = false;
+        if (isMyFollowers) {
+          final pendingList = results[1] as List;
+          _showPendingBanner = pendingList.isNotEmpty;
+        }
       });
     } catch (e) {
       if (mounted) setState(() => _loading = false);
@@ -76,17 +90,66 @@ class _FollowListScreenState extends State<FollowListScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _users.isEmpty
-              ? Center(
-                  child: Text(
-                    'ユーザーがいません',
-                    style: const TextStyle(color: AppColors.textSecondary),
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: _users.length,
-                  itemBuilder: (context, index) => _buildUserTile(_users[index]),
+          : Column(
+              children: [
+                if (_showPendingBanner) _buildPendingBanner(),
+                Expanded(
+                  child: _users.isEmpty
+                      ? Center(
+                          child: Text(
+                            'ユーザーがいません',
+                            style: const TextStyle(
+                                color: AppColors.textSecondary),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _users.length,
+                          itemBuilder: (context, index) =>
+                              _buildUserTile(_users[index]),
+                        ),
                 ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildPendingBanner() {
+    return InkWell(
+      onTap: () => Navigator.pushNamed(context, '/pending-requests'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: const BoxDecoration(
+          color: AppColors.bgElevated,
+          border: Border(
+            bottom: BorderSide(color: AppColors.border),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.person_add_rounded,
+              color: AppColors.textPrimary,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'フォロー申請が届いています',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMuted,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

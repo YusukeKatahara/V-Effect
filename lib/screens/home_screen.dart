@@ -395,11 +395,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 controller: _pageController,
                 physics: const _FrictionlessPageScrollPhysics(),
                 itemBuilder: (context, index) {
-                  final actualIndex = index % _feedPosts.length;
                   return GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      _sendReaction(actualIndex);
+                      // カードが中央以外に止まっていても常に最前面カードにリアクション
+                      _sendReaction(_focusedIndex);
                     },
                     child: const SizedBox.expand(),
                   );
@@ -862,7 +862,8 @@ class _FrictionlessPageScrollPhysics extends PageScrollPhysics {
 
   @override
   SpringDescription get spring =>
-      const SpringDescription(mass: 120.0, stiffness: 40.0, damping: 0.8);
+      // ζ ≈ 0.9（やや不足減衰）→ 約0.7秒で収束。旧値(damping:0.8)は実質無減衰で数十秒振動していた。
+      const SpringDescription(mass: 4.0, stiffness: 100.0, damping: 36.0);
 
   @override
   double applyPhysicsToUserOffset(ScrollMetrics position, double offset) {

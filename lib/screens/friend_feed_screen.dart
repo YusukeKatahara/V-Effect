@@ -44,6 +44,11 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   bool _loading = true;
   Timer? _autoTimer;
 
+  // ── フレンドアイコン行のスクロール制御 ──
+  final ScrollController _iconScrollController = ScrollController();
+  static const double _iconItemWidth = 52.0; // 44px avatar + 4px padding × 2
+  static const double _iconListPadding = 8.0;
+
   // ── リアクションアニメーション制御用 ──
   final GlobalKey<_FloatingFlamesLayerState> _flamesKey = GlobalKey();
 
@@ -58,7 +63,23 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   @override
   void dispose() {
     _autoTimer?.cancel();
+    _iconScrollController.dispose();
     super.dispose();
+  }
+
+  /// アクティブなフレンドアイコンが中央に来るようスクロールする
+  void _scrollToCurrentFriend() {
+    if (!_iconScrollController.hasClients) return;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final targetOffset = _iconListPadding
+        + _currentFriendIndex * _iconItemWidth
+        + _iconItemWidth / 2
+        - screenWidth / 2;
+    _iconScrollController.animateTo(
+      targetOffset.clamp(0.0, _iconScrollController.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Future<void> _loadPosts() async {
@@ -67,6 +88,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
       _loading = true;
       _currentPostIndex = 0;
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrentFriend());
 
     try {
       final friend = widget.allFriends[_currentFriendIndex];
@@ -156,6 +178,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   void _selectFriend(int index) {
     if (index == _currentFriendIndex) return;
     setState(() => _currentFriendIndex = index);
+    _scrollToCurrentFriend();
     _loadPosts();
   }
 
@@ -377,21 +400,24 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                         children: [
                           GestureDetector(
                             onTap: _sendReaction,
-                            child: Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: AppColors.textPrimary.withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.local_fire_department,
-                                color: AppColors.primary,
-                                size: 32,
+                            behavior: HitTestBehavior.opaque,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Container(
+                                width: 52,
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  color: AppColors.textPrimary.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.local_fire_department,
+                                  color: AppColors.primary,
+                                  size: 32,
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 4),
                           Text(
                             '${post.reactionCount}',
                             style: TextStyle(
@@ -428,6 +454,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
     return SizedBox(
       height: 72,
       child: ListView.builder(
+        controller: _iconScrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         itemCount: widget.allFriends.length,

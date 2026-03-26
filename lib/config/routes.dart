@@ -11,6 +11,7 @@ import '../screens/friends_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/follow_list_screen.dart';
+import '../screens/pending_requests_screen.dart';
 import '../screens/user_profile_screen.dart';
 
 import '../screens/initial_friend_screen.dart';
@@ -36,6 +37,7 @@ class AppRoutes {
   static const String editProfile = '/edit-profile';
   static const String userProfile = '/user-profile';
   static const String followList = '/follow-list';
+  static const String pendingRequests = '/pending-requests';
   static const String initialFriend = '/initial-friend';
   static const String forgotPassword = '/forgot-password';
   static const String resetPassword = '/reset-password';
@@ -56,6 +58,7 @@ class AppRoutes {
         search: (context) => const SearchScreen(),
         userProfile: (context) => const UserProfileScreen(),
         followList: (context) => const FollowListScreen(),
+        pendingRequests: (context) => const PendingRequestsScreen(),
         initialFriend: (context) => const InitialFriendScreen(),
         forgotPassword: (context) => const ForgotPasswordScreen(),
         resetPassword: (context) => const ResetPasswordScreen(),
