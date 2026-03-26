@@ -15,30 +15,33 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    // 起動時の初期化を並列実行
+    final results = await Future.wait([
+      Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      ),
+      SharedPreferences.getInstance(),
+    ]);
 
-    // Crashlytics 初期化（Web非対応のためスキップ）
+    final prefs = results[1] as SharedPreferences;
+
+    // Firebase 初期化直後に必要な設定
     if (!kIsWeb) {
-      // Flutter フレームワーク内のエラーを自動送信
       FlutterError.onError =
           FirebaseCrashlytics.instance.recordFlutterFatalError;
-
-      // Flutter フレームワーク外の非同期エラーを自動送信
       PlatformDispatcher.instance.onError = (error, stack) {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
         return true;
       };
     }
 
-    // プッシュ通知の初期化
+    // 他のサービス初期化（FirebaseAppが必要なもの）
     await PushNotificationService().initialize();
 
-    // テーマ設定の読み込み
-    final prefs = await SharedPreferences.getInstance();
+    // テーマ設定の反映
     final isDarkMode = prefs.getBool('isDarkMode') ?? true;
-    VEffectApp.themeNotifier.value = isDarkMode ? ThemeMode.dark : ThemeMode.light;
+    VEffectApp.themeNotifier.value =
+        isDarkMode ? ThemeMode.dark : ThemeMode.light;
 
   } catch (e) {
     debugPrint('Firebase連携エラー: $e');

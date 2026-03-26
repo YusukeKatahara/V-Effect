@@ -87,6 +87,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  void _onPageChanged(int index) {
+    if (_feedPosts.isEmpty) return;
+    final actualIndex = index % _feedPosts.length;
+    final nextIndex = (index + 1) % _feedPosts.length;
+
+    // 次のカードの画像をプリキャッシュ
+    final nextPost = _feedPosts[nextIndex];
+    if (nextPost.imageUrl != null) {
+      precacheImage(
+        ResizeImage(
+          CachedNetworkImageProvider(nextPost.imageUrl!),
+          width: 800,
+        ),
+        context,
+      );
+    }
+
+    setState(() {
+      _scrollPosition = index.toDouble();
+    });
+  }
+
   Future<void> _loadData() async {
     try {
       final homeData = await _postService.getHomeData();
@@ -95,14 +117,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       final postedToday = homeData['postedToday'] as bool? ?? false;
 
-      // 全フレンドの投稿を取得
-      final posts = await _postService.getAllFriendsPosts(friendUids);
+      // フレンドの投稿とフレンド情報を並列で取得
+      final results = await Future.wait([
+        _postService.getAllFriendsPosts(friendUids),
+        friendUids.isNotEmpty
+            ? _postService.getFriendsListFromUids(friendUids)
+            : Future.value(<Map<String, dynamic>>[]),
+      ]);
 
-      // ユーザー情報のキャッシュを作成
-      final friendStatuses =
-          friendUids.isNotEmpty
-              ? await _postService.getFriendsListFromUids(friendUids)
-              : <Map<String, dynamic>>[];
+      final posts = results[0] as List<Post>;
+      final friendStatuses = results[1] as List<Map<String, dynamic>>;
 
       final names = <String, String>{};
       final photos = <String, String?>{};
@@ -114,6 +138,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
 
       if (!mounted) return;
+
+      // 最初の数枚の画像をプリキャッシュ
+      if (posts.isNotEmpty) {
+        for (var i = 0; i < min(posts.length, 3); i++) {
+          if (posts[i].imageUrl != null) {
+            precacheImage(
+              ResizeImage(
+                CachedNetworkImageProvider(posts[i].imageUrl!),
+                width: 800,
+              ),
+              context,
+            );
+          }
+        }
+      }
 
       setState(() {
         _postedToday = postedToday;
@@ -178,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const SplashLoading();
+    if (_loading) return _buildHomeSkeleton();
 
     return Scaffold(
       backgroundColor: AppColors.black,
@@ -229,6 +268,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHomeSkeleton() {
+    return Scaffold(
+      backgroundColor: AppColors.black,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildTitleBar(),
+            const Spacer(),
+            Center(
+              child: Container(
+                width: MediaQuery.sizeOf(context).width * 0.72,
+                height: MediaQuery.sizeOf(context).height * 0.6,
+                decoration: BoxDecoration(
+                  color: AppColors.grey10,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+            ),
+            const Spacer(),
+          ],
+        ),
       ),
     );
   }
@@ -394,14 +458,69 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: PageView.builder(
                 controller: _pageController,
                 physics: const _FrictionlessPageScrollPhysics(),
+                onPageChanged: _onPageChanged,
                 itemBuilder: (context, index) {
-                  return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      // カードが中央以外に止まっていても常に最前面カードにリアクション
-                      _sendReaction(_focusedIndex);
-                    },
-                    child: const SizedBox.expand(),
+                  final actualIndex = index % _feedPosts.length;
+                  final post = _feedPosts[actualIndex];
+
+                  return Stack(
+                    children: [
+                      // 背景全体：タップでリアクション
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _sendReaction(_focusedIndex),
+                        child: const SizedBox.expand(),
+                      ),
+
+                      // カード内の特定のインタラクティブエリア（プロフィール、リアクションボタンなど）
+                      // カードのサイズと位置に合わせる
+                      Center(
+                        child: SizedBox(
+                          width: finalCardWidth,
+                          height: maxCardHeight,
+                          child: Stack(
+                            children: [
+                              // プロフィールエリア（アイコンと名前）へのタップ
+                              Positioned(
+                                bottom: 30, // _FeedCardのPositionedと合わせる
+                                left: 20,
+                                width: finalCardWidth * 0.7, // 左側の概ね3/4
+                                height: 80, // アイコンと名前を含むエリア
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    final photoUrl = _userPhotos[post.userId];
+                                    final username = _userNames[post.userId] ?? 'User';
+                                    Navigator.pushNamed(
+                                      context,
+                                      AppRoutes.userProfile,
+                                      arguments: {
+                                        'uid': post.userId,
+                                        'username': username,
+                                        'photoUrl': photoUrl,
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+
+                              // 右下のリアクションボタンエリア
+                              // 既に画面全体でタップを拾っているが、ここを明示的にタップした場合のフィードバック用（将来的に）
+                              Positioned(
+                                bottom: 30,
+                                right: 20,
+                                width: 60,
+                                height: 80,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => _sendReaction(_focusedIndex),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -483,6 +602,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             onReaction: () => _sendReaction(index),
             isTop: index == _focusedIndex,
             tierColor: tierColor,
+            onProfileTap: () {
+              Navigator.pushNamed(
+                context,
+                AppRoutes.userProfile,
+                arguments: {
+                  'uid': post.userId,
+                  'username': username,
+                  'photoUrl': photoUrl,
+                },
+              );
+            },
           ),
         ),
       ),
@@ -502,6 +632,7 @@ class _FeedCard extends StatelessWidget {
     required this.onReaction,
     required this.isTop,
     required this.tierColor,
+    this.onProfileTap,
   });
 
   final Post post;
@@ -511,6 +642,7 @@ class _FeedCard extends StatelessWidget {
   final VoidCallback onReaction;
   final bool isTop;
   final Color tierColor;
+  final VoidCallback? onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -607,37 +739,43 @@ class _FeedCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundColor: AppColors.grey20,
-                              backgroundImage:
-                                  userPhotoUrl != null
-                                      ? ResizeImage(CachedNetworkImageProvider(userPhotoUrl!), width: 100, height: 100)
-                                      : null,
-                              child:
-                                  userPhotoUrl == null
-                                      ? Text(
+                        GestureDetector(
+                          onTap: onProfileTap,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min, // 行の幅を内容に合わせる
+                            children: [
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: AppColors.grey20,
+                                backgroundImage: userPhotoUrl != null
+                                    ? ResizeImage(
+                                        CachedNetworkImageProvider(
+                                            userPhotoUrl!),
+                                        width: 100,
+                                        height: 100)
+                                    : null,
+                                child: userPhotoUrl == null
+                                    ? Text(
                                         username[0].toUpperCase(),
                                         style: const TextStyle(
                                           color: AppColors.white,
                                           fontSize: 12,
                                         ),
                                       )
-                                      : null,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              username,
-                              style: GoogleFonts.outfit(
-                                color: AppColors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 1,
+                                    : null,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 10),
+                              Text(
+                                username,
+                                style: GoogleFonts.outfit(
+                                  color: AppColors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 12),
                         if (post.caption != null && post.caption!.isNotEmpty) ...[

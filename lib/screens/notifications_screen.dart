@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../config/app_colors.dart';
 import '../models/app_notification.dart';
+import '../models/app_user.dart';
 import '../services/notification_service.dart';
 import '../services/friend_service.dart';
+import '../utils/date_helper.dart';
 
 /// 通知画面
 class NotificationsScreen extends StatefulWidget {
@@ -17,13 +20,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   final FriendService _friendService = FriendService.instance;
   late final Stream<List<AppNotification>> _notificationsStream;
   bool _isProcessing = false;
+  final Set<String> _initialUnreadIds = {};
+  bool _hasMarkedRead = false;
 
   @override
   void initState() {
     super.initState();
     _notificationsStream = _notificationService.getMyNotifications();
-    // 画面を開いた瞬間に全て既読にする
-    _notificationService.markAllAsRead().catchError((_) {});
+    // 画面を開いた瞬間の既読化は build 内のデータ受信時に遅延実行する
   }
 
   IconData _iconForType(NotificationType type) {
@@ -58,6 +62,33 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NotificationType.friendTaskCompleted:
         return AppColors.grey85;
     }
+  }
+
+  Widget _buildAvatar(AppNotification notif) {
+    if (notif.fromUid == null) {
+      return _buildDefaultAvatar(notif);
+    }
+    return FutureBuilder<AppUser?>(
+      future: _friendService.getUserByUid(notif.fromUid!),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data?.photoUrl == null) {
+          return _buildDefaultAvatar(notif);
+        }
+        return CircleAvatar(
+          backgroundImage: CachedNetworkImageProvider(snapshot.data!.photoUrl!),
+        );
+      },
+    );
+  }
+
+  Widget _buildDefaultAvatar(AppNotification notif) {
+    return CircleAvatar(
+      backgroundColor: _colorForType(notif.type).withValues(alpha: 0.2),
+      child: Icon(
+        _iconForType(notif.type),
+        color: _colorForType(notif.type),
+      ),
+    );
   }
 
   Future<void> _deleteNotification(String id) async {
@@ -146,6 +177,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Widget _buildCompactButton({
+    required String label,
+    required VoidCallback onPressed,
+    required bool isPrimary,
+  }) {
+    return ElevatedButton(
+      onPressed: _isProcessing ? null : onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isPrimary ? AppColors.white : Colors.transparent,
+        foregroundColor: isPrimary ? AppColors.black : AppColors.textSecondary,
+        elevation: 0,
+        minimumSize: const Size(80, 32),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        side: isPrimary ? BorderSide.none : const BorderSide(color: AppColors.grey10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -177,6 +233,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           final notifications = snapshot.data ?? [];
+          
+          // データ受信時に一度だけ既読処理を行う（初期の未読状態をキャッシュ）
+          if (!_hasMarkedRead && notifications.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!_hasMarkedRead) {
+                _hasMarkedRead = true;
+                for (final n in notifications) {
+                  if (!n.isRead) _initialUnreadIds.add(n.id);
+                }
+                _notificationService.markAllAsRead().catchError((_) {});
+                if (mounted) setState(() {});
+              }
+            });
+          }
+
           if (notifications.isEmpty) {
             return Center(
               child: Column(
@@ -209,113 +280,139 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
+          return ListView.separated(
+            padding: EdgeInsets.zero, // 全体の余白を排除
             itemCount: notifications.length,
+            separatorBuilder: (context, index) => const Divider(
+              height: 1,
+              indent: 72, // アバターの横から線を引く
+              color: AppColors.grey10,
+            ),
             itemBuilder: (context, index) {
               final notif = notifications[index];
+              final isUnread =
+                  _initialUnreadIds.contains(notif.id) || !notif.isRead;
+
               return Dismissible(
                 key: Key(notif.id),
                 direction: DismissDirection.endToStart,
                 background: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.error,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(Icons.delete, color: Colors.white),
+                  color: AppColors.error.withValues(alpha: 0.8),
+                  child: const Icon(Icons.delete_outline, color: Colors.white),
                 ),
                 onDismissed: (_) => _deleteNotification(notif.id),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.bgSurface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor:
-                            _colorForType(notif.type).withValues(alpha: 0.2),
-                        child: Icon(
-                          _iconForType(notif.type),
-                          color: _colorForType(notif.type),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(notif.title,
-                                style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 2),
-                            Text(notif.body,
-                                style: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 13)),
-                            if (notif.type == NotificationType.friendRequestReceived) ...[
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: _isProcessing
-                                          ? null
-                                          : () => _handleFriendRequest(notif, true),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.white,
-                                        foregroundColor: AppColors.black,
-                                        elevation: 0,
-                                        minimumSize: const Size(0, 36),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                child: Material(
+                  color: isUnread
+                      ? AppColors.white.withValues(alpha: 0.03)
+                      : Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      if (notif.fromUid != null) {
+                        Navigator.pushNamed(context, '/user-profile',
+                            arguments: notif.fromUid);
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center, // 中央揃え
+                        children: [
+                          // 未読インジケーター (スリム化)
+                          if (isUnread)
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFD4AF37),
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                          else
+                            const SizedBox(width: 4),
+                          const SizedBox(width: 8),
+
+                          // アバター (少し小型化)
+                          SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: _buildAvatar(notif),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // コンテンツ
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                RichText(
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.textPrimary,
+                                      height: 1.3,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: notif.title,
+                                        style: TextStyle(
+                                          fontWeight: isUnread
+                                              ? FontWeight.bold
+                                              : FontWeight.w600,
                                         ),
                                       ),
-                                      child: const Text('承認',
-                                          style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold)),
-                                    ),
+                                      const TextSpan(text: ' '),
+                                      TextSpan(
+                                        text: notif.body,
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontWeight: FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: _isProcessing
-                                          ? null
-                                          : () => _handleFriendRequest(notif, false),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: AppColors.textSecondary,
-                                        side: const BorderSide(
-                                            color: AppColors.border),
-                                        minimumSize: const Size(0, 36),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  DateHelper.timeAgo(notif.createdAt),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                                
+                                // フレンド申請ボタン (コンパクト化)
+                                if (notif.type ==
+                                    NotificationType.friendRequestReceived) ...[
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      _buildCompactButton(
+                                        label: '承認',
+                                        onPressed: () =>
+                                            _handleFriendRequest(notif, true),
+                                        isPrimary: true,
                                       ),
-                                      child: const Text('あとで',
-                                          style: TextStyle(fontSize: 13)),
-                                    ),
+                                      const SizedBox(width: 8),
+                                      _buildCompactButton(
+                                        label: 'あとで',
+                                        onPressed: () =>
+                                            _handleFriendRequest(notif, false),
+                                        isPrimary: false,
+                                      ),
+                                    ],
                                   ),
                                 ],
-                              ),
-                            ],
-                          ],
-                        ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close,
-                            size: 18, color: AppColors.textMuted),
-                        onPressed: () => _deleteNotification(notif.id),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               );

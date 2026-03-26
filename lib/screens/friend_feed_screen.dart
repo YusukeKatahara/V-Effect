@@ -216,33 +216,58 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _posts.isEmpty
-                ? _buildEmpty(currentUsername)
-                : _buildStoryView(currentUsername),
+        child: Column(
+          children: [
+            // ── Progress bar ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                children: List.generate(
+                    _posts.isEmpty ? 3 : _posts.length, (i) {
+                  return Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      height: 3,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(2),
+                        color: _loading
+                            ? AppColors.textPrimary.withValues(alpha: 0.1)
+                            : (i <= _currentPostIndex
+                                ? AppColors.textPrimary
+                                : AppColors.textPrimary.withValues(alpha: 0.24)),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+
+            // ── Friend icon list (常に表示) ──
+            _buildFriendIconRow(),
+
+            // ── Main content ──
+            Expanded(
+              child: _loading
+                  ? _buildPhotoSkeleton()
+                  : _posts.isEmpty
+                      ? _buildEmpty(currentUsername)
+                      : _buildStoryView(currentUsername),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildEmpty(String username) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.photo_library_outlined,
-              size: 64, color: AppColors.textMuted),
-          const SizedBox(height: 16),
-          Text(
-            '$username の投稿はありません',
-            style: const TextStyle(fontSize: 16, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 24),
-          TextButton(
-            onPressed: _goHome,
-            child: const Text('ホームに戻る'),
-          ),
-        ],
+  Widget _buildPhotoSkeleton() {
+    return Container(
+      margin: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppColors.bgSurface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(strokeWidth: 2),
       ),
     );
   }
@@ -250,201 +275,168 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   Widget _buildStoryView(String username) {
     final post = _posts[_currentPostIndex];
 
-    return Column(
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        // ── Progress bar ──
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
-            children: List.generate(_posts.length, (i) {
-              return Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                  height: 3,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(2),
-                    color: i <= _currentPostIndex
-                        ? AppColors.textPrimary
-                        : AppColors.textPrimary.withValues(alpha: 0.24),
+        // Photo (RepaintBoundaryで囲んで無駄な再描画を抑制)
+        RepaintBoundary(
+          child: post.imageUrl != null
+              ? CachedNetworkImage(
+                  imageUrl: post.imageUrl!,
+                  fit: BoxFit.cover,
+                  memCacheWidth: 1080, // メモリ上のデコードサイズを制限
+                  placeholder: (ctx, url) => _buildPhotoSkeleton(),
+                  errorWidget: (ctx, url, error) => const Center(
+                    child: Icon(Icons.broken_image,
+                        size: 60, color: AppColors.textMuted),
                   ),
+                )
+              : const Center(
+                  child: Icon(Icons.image,
+                      size: 80, color: AppColors.textMuted),
                 ),
-              );
-            }),
-          ),
         ),
 
-        // ── Friend icon list ──
-        _buildFriendIconRow(),
-
-        // ── Main content (photo + tap zones) ──
-        Expanded(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Photo (フィルターなし)
-              Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Photo (RepaintBoundaryで囲んで無駄な再描画を抑制)
-                  RepaintBoundary(
-                    child: post.imageUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: post.imageUrl!,
-                            fit: BoxFit.cover,
-                            memCacheWidth: 1080, // メモリ上のデコードサイズを制限
-                            placeholder: (ctx, url) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                            errorWidget: (ctx, url, error) => const Center(
-                              child: Icon(Icons.broken_image,
-                                  size: 60, color: AppColors.textMuted),
-                            ),
-                          )
-                        : const Center(
-                            child: Icon(Icons.image,
-                                size: 80, color: AppColors.textMuted),
-                          ),
+        // タイムスタンプ装飾（シンプルな白色）
+        if (post.showTimestamp)
+          Positioned(
+            bottom: 120, // 下のヒーロータスク名やリアクションボタンに被らないよう上に配置
+            right: 20,
+            child: Text(
+              DateFormat('yy/MM/dd\nHH:mm').format(post.createdAt),
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: AppColors.bgBase.withValues(alpha: 0.54),
+                    offset: const Offset(1, 1),
+                    blurRadius: 2,
                   ),
                 ],
               ),
+            ),
+          ),
+        // Tap zones (left half = prev, right half = next)
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: _goPrev,
+                behavior: HitTestBehavior.translucent,
+                child: const SizedBox.expand(),
+              ),
+            ),
+            Expanded(
+              child: GestureDetector(
+                onTap: _goNext,
+                behavior: HitTestBehavior.translucent,
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ],
+        ),
 
-              // タイムスタンプ装飾（シンプルな白色）
-              if (post.showTimestamp)
-                Positioned(
-                  bottom: 120, // 下のヒーロータスク名やリアクションボタンに被らないよう上に配置
-                  right: 20,
-                  child: Text(
-                    DateFormat('yy/MM/dd\nHH:mm').format(post.createdAt),
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(
-                          color: AppColors.bgBase.withValues(alpha: 0.54),
-                          offset: const Offset(1, 1),
-                          blurRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              // Tap zones (left half = prev, right half = next)
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _goPrev,
-                      behavior: HitTestBehavior.translucent,
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _goNext,
-                      behavior: HitTestBehavior.translucent,
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
+        // Bottom overlay: task name + reaction button
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  AppColors.bgBase.withValues(alpha: 0.87),
+                  Colors.transparent
                 ],
               ),
-
-              // Bottom overlay: task name + reaction button
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [AppColors.bgBase.withValues(alpha: 0.87), Colors.transparent],
-                    ),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                // Task name + remaining time
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Task name + remaining time
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (post.caption != null && post.caption!.isNotEmpty) ...[
-                              Text(
-                                post.caption!,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                            ],
-                            Text(
-                              post.taskName,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textPrimary.withValues(alpha: 0.6),
-                              ),
-                            ),
-                          ],
+                      if (post.caption != null &&
+                          post.caption!.isNotEmpty) ...[
+                        Text(
+                          post.caption!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                      ),
-                      // Reaction button (bottom right)
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          GestureDetector(
-                            onTap: _sendReaction,
-                            behavior: HitTestBehavior.opaque,
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Container(
-                                width: 52,
-                                height: 52,
-                                decoration: BoxDecoration(
-                                  color: AppColors.textPrimary.withValues(alpha: 0.15),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.local_fire_department,
-                                  color: AppColors.primary,
-                                  size: 32,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Text(
-                            '${post.reactionCount}',
-                            style: TextStyle(
-                                fontSize: 13, color: AppColors.textPrimary.withValues(alpha: 0.7)),
-                          ),
-                        ],
+                        const SizedBox(height: 2),
+                      ],
+                      Text(
+                        post.taskName,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textPrimary.withValues(alpha: 0.6),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-
-              // Close button (top right)
-              Positioned(
-                top: 4,
-                right: 8,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.textPrimary, size: 28),
-                  onPressed: _goHome,
+                // Reaction button (bottom right)
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: _sendReaction,
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: AppColors.textPrimary
+                                .withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.local_fire_department,
+                            color: AppColors.primary,
+                            size: 32,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${post.reactionCount}',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textPrimary.withValues(alpha: 0.7)),
+                    ),
+                  ],
                 ),
-              ),
-
-              // ── Floating Flames Layer (setStateの影響をここだけに留める) ──
-              _FloatingFlamesLayer(key: _flamesKey),
-            ],
+              ],
+            ),
           ),
         ),
+
+        // Close button (top right)
+        Positioned(
+          top: 4,
+          right: 8,
+          child: IconButton(
+            icon: const Icon(Icons.close,
+                color: AppColors.textPrimary, size: 28),
+            onPressed: _goHome,
+          ),
+        ),
+
+        // ── Floating Flames Layer (setStateの影響をここだけに留める) ──
+        _FloatingFlamesLayer(key: _flamesKey),
       ],
     );
   }

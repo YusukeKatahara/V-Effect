@@ -44,7 +44,21 @@ class PostService {
   /// 戻り値のキー: streak, postedToday (＝1つ以上投稿済み), isAllTasksCompleted, username, tasks, friends, lastPostedDate
   Future<Map<String, dynamic>> getHomeData() async {
     final uid = _auth.currentUser!.uid;
-    final snap = await _db.collection('users').doc(uid).get();
+
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+
+    // ユーザー情報と投稿を並列で取得
+    // ※createdAtでのクエリフィルタは複合インデックスが必要なため、
+    // 既存のインデックス環境を壊さないよう、取得後にメモリ内でフィルタリングを行う
+    final results = await Future.wait([
+      _db.collection('users').doc(uid).get(),
+      _db.collection('posts').where('userId', isEqualTo: uid).get(),
+    ]);
+
+    final snap = results[0] as DocumentSnapshot;
+    final postsSnap = results[1] as QuerySnapshot;
+
     if (!snap.exists) {
       return {
         'streak': 0,
@@ -57,26 +71,18 @@ class PostService {
         'postedTasksToday': <Post>[],
       };
     }
-    final data = snap.data()!;
-    final today = DateHelper.toDateString(DateTime.now());
+    final data = snap.data() as Map<String, dynamic>;
+    final today = DateHelper.toDateString(now);
     final lastPostedDate = data['lastPostedDate'] as String?;
     final tasks = List<String>.from(data['tasks'] ?? []);
 
-    // 今日投稿したタスクを特定する (インデックス要件を避けるため、メモリ内でソートとフィルタリングを行う)
-    final now = DateTime.now();
-    final startOfToday = DateTime(now.year, now.month, now.day);
-
-    // 単純な userId フィルターのみを使用（インデックス不要、または自動作成済み）
-    final postsSnap =
-        await _db.collection('posts').where('userId', isEqualTo: uid).get();
-
+    // 今日の分だけをフィルタリング
     final postedPostsToday =
         postsSnap.docs
             .where((doc) {
-              final data = doc.data();
-              if (!data.containsKey('createdAt')) return false;
-              final createdAt = (data['createdAt'] as Timestamp).toDate();
-              // 今日の日付以降の投稿をフィルタリング
+              final d = doc.data() as Map<String, dynamic>;
+              if (!d.containsKey('createdAt')) return false;
+              final createdAt = (d['createdAt'] as Timestamp).toDate();
               return createdAt.isAfter(startOfToday) ||
                   createdAt.isAtSameMomentAs(startOfToday);
             })
@@ -272,6 +278,7 @@ class PostService {
     if (!postSnap.exists) return;
     final postData = postSnap.data()!;
     final postOwnerId = postData['userId'] as String;
+    final postTaskName = postData['taskName'] as String? ?? '投稿';
 
     final myUid = _auth.currentUser!.uid;
     if (postOwnerId == myUid) return; // 自分への投稿には通知しない
@@ -311,7 +318,7 @@ class PostService {
       'type': NotificationType.reactionReceived.name,
       'reactionCount': newCount,
       'title': '🔥 激しい炎！',
-      'body': '$myUsernameさんがあなたの投稿で$newCount回、激しい炎を燃やしてます!!',
+      'body': '$myUsernameさんが「$postTaskName」で$newCount回、激しい炎を燃やしてます!!',
       'isRead': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -372,19 +379,25 @@ class PostService {
     if (friendUids.isEmpty) return [];
 
     // Firestoreの `in` クエリは最大10件までの制限があるため、10件ごとに分割
-    List<Post> allPosts = [];
+    // 並列実行して速度を向上させる
+    final List<Future<QuerySnapshot>> futures = [];
     for (var i = 0; i < friendUids.length; i += 10) {
       final chunk = friendUids.sublist(
         i,
         i + 10 > friendUids.length ? friendUids.length : i + 10,
       );
-      final snap =
-          await _db
-              .collection('posts')
-              .where('userId', whereIn: chunk)
-              .where('expiresAt', isGreaterThan: Timestamp.now())
-              .get();
+      futures.add(
+        _db
+            .collection('posts')
+            .where('userId', whereIn: chunk)
+            .where('expiresAt', isGreaterThan: Timestamp.now())
+            .get(),
+      );
+    }
 
+    final snapshots = await Future.wait(futures);
+    List<Post> allPosts = [];
+    for (var snap in snapshots) {
       allPosts.addAll(snap.docs.map((doc) => Post.fromFirestore(doc)));
     }
 

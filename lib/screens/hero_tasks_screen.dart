@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -63,27 +64,31 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
   // ── Card Swiping ──
   late final PageController _pageController;
-  double _scrollPosition = 10000.0; // 擬似的な無限スクロールの中央からスタート
+  late final ValueNotifier<double> _scrollPositionNotifier;
 
   int get _focusedIndex {
     if (_taskItems.isEmpty) return 0;
-    return _scrollPosition.round() % _taskItems.length;
+    final len = _taskItems.length;
+    final pos = _scrollPositionNotifier.value.round();
+    return (pos % len + len) % len;
   }
 
   @override
   void initState() {
     super.initState();
     final initialPage = 10000;
+    _scrollPositionNotifier = ValueNotifier<double>(initialPage.toDouble());
     _pageController = PageController(initialPage: initialPage)
       ..addListener(() {
-        if (mounted) {
-          // スワイプが始まったら拡大状態を解除
-          if (_expandedIndex != null) {
-            setState(() => _expandedIndex = null);
+        if (mounted && _pageController.hasClients) {
+          final page = _pageController.page;
+          if (page != null && !page.isNaN) {
+            // スワイプが始まったら拡大状態を解除
+            if (_expandedIndex != null) {
+              setState(() => _expandedIndex = null);
+            }
+            _scrollPositionNotifier.value = page;
           }
-          setState(() {
-            _scrollPosition = _pageController.page ?? initialPage.toDouble();
-          });
         }
       });
     _loadData().then((_) {
@@ -388,50 +393,57 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   }
 
   Widget _buildStreakRow() {
-    final focusedTask = _taskItems.isNotEmpty ? _taskItems[_focusedIndex] : null;
-    final isCompleted = focusedTask?.isCompleted ?? false;
+    return ValueListenableBuilder<double>(
+      valueListenable: _scrollPositionNotifier,
+      builder: (context, _, __) {
+        final focusedTask =
+            _taskItems.isNotEmpty ? _taskItems[_focusedIndex] : null;
+        final isCompleted = focusedTask?.isCompleted ?? false;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 2, left: 20, right: 20),
-      child: SizedBox(
-        width: double.infinity,
-        height: 32,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
+        return Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 2, left: 20, right: 20),
+          child: SizedBox(
+            width: double.infinity,
+            height: 32,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                const StreakFlame(size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  '$_streak Day Streak',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.grey70,
-                    letterSpacing: 0.5,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const StreakFlame(size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$_streak Day Streak',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.grey70,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
+                if (isCompleted)
+                  Positioned(
+                    right: 0,
+                    child: IconButton(
+                      onPressed:
+                          () => _deleteHeroPost(focusedTask!.completedPost!.id),
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppColors.error,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ),
               ],
             ),
-            if (isCompleted)
-              Positioned(
-                right: 0,
-                child: IconButton(
-                  onPressed: () => _deleteHeroPost(focusedTask!.completedPost!.id),
-                  icon: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: AppColors.error,
-                    size: 20,
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -475,68 +487,83 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         );
         final finalCardWidth = maxCardHeight * (9 / 16);
 
-        return Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            for (final i in _sortedCardIndices())
-              _buildStackedCard(
-                index: i,
-                total: _taskItems.length,
-                cardWidth: finalCardWidth,
-                cardHeight: maxCardHeight,
-              ),
+        return ValueListenableBuilder<double>(
+          valueListenable: _scrollPositionNotifier,
+          builder: (context, scrollPos, _) {
+            final sortedIndices = _sortedCardIndices(scrollPos);
+            // 描画負荷軽減：手前にある一定数（最大8枚）のカードのみ描画
+            // ※sortedIndicesは奥から順に並んでいる（Stack用）
+            final visibleIndices =
+                sortedIndices.length > 8
+                    ? sortedIndices.sublist(sortedIndices.length - 8)
+                    : sortedIndices;
 
-            if (!_isSublimating)
-              Positioned.fill(
-                child: PageView.builder(
-                  controller: _pageController,
-                  physics: const _FrictionlessPageScrollPhysics(),
-                  itemBuilder: (context, rawIndex) {
-                    final actualIndex = rawIndex % _taskItems.length;
+            return Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                for (final i in visibleIndices)
+                  _buildStackedCard(
+                    index: i,
+                    total: _taskItems.length,
+                    cardWidth: finalCardWidth,
+                    cardHeight: maxCardHeight,
+                    scrollPos: scrollPos,
+                  ),
 
-                    return Stack(
-                      children: [
-                        // 全体検知（タップで拡大・タスク選択）
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            if (_expandedIndex != null) {
-                              setState(() => _expandedIndex = null);
-                              return;
-                            }
-                            // カードが中央にない場合はスナップして終了
-                            if (actualIndex != _focusedIndex) {
-                              _pageController.animateToPage(
-                                rawIndex,
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOutCubic,
-                              );
-                              return;
-                            }
-                            final item = _taskItems[actualIndex];
-                            if (item.isCompleted) {
-                              // タップで拡大
-                              HapticFeedback.mediumImpact();
-                              setState(() => _expandedIndex = actualIndex);
-                            } else {
-                              // 未完了ならカメラへ
-                              _selectHeroTask(actualIndex);
-                            }
-                          },
-                          child: const SizedBox.expand(),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),          ],
+                if (!_isSublimating)
+                  Positioned.fill(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      physics: const _FrictionlessPageScrollPhysics(),
+                      itemBuilder: (context, rawIndex) {
+                        final actualIndex = rawIndex % _taskItems.length;
+
+                        return Stack(
+                          children: [
+                            // 全体検知（タップで拡大・タスク選択）
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                if (_expandedIndex != null) {
+                                  setState(() => _expandedIndex = null);
+                                  return;
+                                }
+                                // カードが中央にない場合はスナップして終了
+                                if (actualIndex != _focusedIndex) {
+                                  _pageController.animateToPage(
+                                    rawIndex,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOutCubic,
+                                  );
+                                  return;
+                                }
+                                final item = _taskItems[actualIndex];
+                                if (item.isCompleted) {
+                                  // タップで拡大
+                                  HapticFeedback.mediumImpact();
+                                  setState(() => _expandedIndex = actualIndex);
+                                } else {
+                                  // 未完了ならカメラへ
+                                  _selectHeroTask(actualIndex);
+                                }
+                              },
+                              child: const SizedBox.expand(),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  List<int> _sortedCardIndices() {
+  List<int> _sortedCardIndices(double scrollPos) {
     final indices = List.generate(_taskItems.length, (i) => i);
     indices.sort((a, b) {
       if (a == _expandedIndex) return 1;
@@ -544,12 +571,12 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
       final halfLength = _taskItems.length / 2.0;
 
-      double distA = (a - _scrollPosition) % _taskItems.length;
+      double distA = (a - scrollPos) % _taskItems.length;
       if (distA > halfLength) distA -= _taskItems.length;
       if (distA < -halfLength) distA += _taskItems.length;
       final depthA = distA.abs();
 
-      double distB = (b - _scrollPosition) % _taskItems.length;
+      double distB = (b - scrollPos) % _taskItems.length;
       if (distB > halfLength) distB -= _taskItems.length;
       if (distB < -halfLength) distB += _taskItems.length;
       final depthB = distB.abs();
@@ -564,10 +591,11 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     required int total,
     required double cardWidth,
     required double cardHeight,
+    required double scrollPos,
   }) {
     final halfLength = _taskItems.length / 2.0;
 
-    double fanPosition = (index - _scrollPosition) % _taskItems.length;
+    double fanPosition = (index - scrollPos) % _taskItems.length;
     if (fanPosition > halfLength) fanPosition -= _taskItems.length;
     if (fanPosition < -halfLength) fanPosition += _taskItems.length;
 
@@ -579,9 +607,11 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     final item = _taskItems[index];
     final isExpanded = index == _expandedIndex;
 
-    final scale = isExpanded ? 1.15 : (1.0 - smoothDepth * 0.04);
-    final dimAlpha = isExpanded ? 0.0 : (smoothDepth * 0.10).clamp(0.0, 1.0);
-    final blurSigma = isExpanded ? 0.0 : (smoothDepth * 1.2).clamp(0.0, 10.0);
+    final scale =
+        isExpanded
+            ? 1.15
+            : (1.0 - smoothDepth * 0.04).clamp(0.5, 1.0);
+    final dimAlpha = isExpanded ? 0.0 : (smoothDepth * 0.10).clamp(0.0, 0.8);
 
     return AnimatedBuilder(
       animation: _sublimation,
@@ -618,24 +648,25 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           ),
         );
       },
-      child: SizedBox(
-        width: cardWidth,
-        height: cardHeight,
-        child: _TaskCard(
-          item: item,
-          index: index + 1,
-          total: total,
-          depth: smoothDepth.round(),
-          dimAlpha: dimAlpha,
-          blurSigma: blurSigma,
-          showCamera:
-              !item.isCompleted && !_isSublimating && index == _focusedIndex,
-          tierColor: _getTierColor(_streak),
-          isExpanded: isExpanded,
-          onDelete:
-              item.completedPost != null
-                  ? () => _deleteHeroPost(item.completedPost!.id)
-                  : null,
+      child: RepaintBoundary(
+        child: SizedBox(
+          width: cardWidth,
+          height: cardHeight,
+          child: _TaskCard(
+            item: item,
+            index: index + 1,
+            total: total,
+            depth: smoothDepth.round(),
+            dimAlpha: dimAlpha,
+            showCamera:
+                !item.isCompleted && !_isSublimating && index == _focusedIndex,
+            tierColor: _getTierColor(_streak),
+            isExpanded: isExpanded,
+            onDelete:
+                item.completedPost != null
+                    ? () => _deleteHeroPost(item.completedPost!.id)
+                    : null,
+          ),
         ),
       ),
     );
@@ -752,7 +783,6 @@ class _TaskCard extends StatelessWidget {
     required this.total,
     required this.depth,
     required this.dimAlpha,
-    required this.blurSigma,
     required this.showCamera,
     required this.tierColor,
     required this.isExpanded,
@@ -764,7 +794,6 @@ class _TaskCard extends StatelessWidget {
   final int total;
   final int depth;
   final double dimAlpha;
-  final double blurSigma;
   final bool showCamera;
   final Color tierColor;
   final bool isExpanded;
@@ -777,9 +806,7 @@ class _TaskCard extends StatelessWidget {
     const bgColorTop = Color(0xFF1C1D21);
     const bgColorBottom = Color(0xFF121316);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOutCubic,
+    return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         color: bgColorBottom,
@@ -797,11 +824,15 @@ class _TaskCard extends StatelessWidget {
         image:
             isCompleted && item.completedPost?.imageUrl != null
                 ? DecorationImage(
-                  image: NetworkImage(item.completedPost!.imageUrl!),
+                  image: ResizeImage(
+                    CachedNetworkImageProvider(item.completedPost!.imageUrl!),
+                    width: 540, // カード表示に十分なサイズにリサイズ
+                    height: 960,
+                  ),
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
-                    Colors.black.withValues(alpha: 
-                      isExpanded ? 0.1 : (isTop ? 0.3 : 0.6),
+                    Colors.black.withValues(
+                      alpha: isExpanded ? 0.1 : (isTop ? 0.3 : 0.6),
                     ),
                     BlendMode.darken,
                   ),
@@ -836,151 +867,158 @@ class _TaskCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: isExpanded ? 0.0 : (isTop ? 2.0 : 0.0),
-            sigmaY: isExpanded ? 0.0 : (isTop ? 2.0 : 0.0),
-          ),
-          child: Stack(
-            children: [
-              if (dimAlpha > 0 && !isExpanded)
-                Positioned.fill(
-                  child: ColoredBox(
-                    color: AppColors.black.withValues(alpha: dimAlpha),
-                  ),
-                ),
+        child: _buildCardContent(isTop),
+      ),
+    );
+  }
 
-              if (isCompleted && !isExpanded)
-                Positioned(
-                  top: 40,
-                  right: 40,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: tierColor.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: tierColor, width: 1),
+  Widget _buildCardContent(bool isTop) {
+    // BackdropFilterは負荷が高いため、トップのカードかつ非拡大時のみ適用
+    if (isTop && !isExpanded) {
+      return BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
+        child: _buildStack(),
+      );
+    }
+    return _buildStack();
+  }
+
+  Widget _buildStack() {
+    final isCompleted = item.isCompleted;
+    return Stack(
+      children: [
+        if (dimAlpha > 0 && !isExpanded)
+          Positioned.fill(
+            child: ColoredBox(
+              color: AppColors.black.withValues(alpha: dimAlpha),
+            ),
+          ),
+
+        if (isCompleted && !isExpanded)
+          Positioned(
+            top: 40,
+            right: 40,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: tierColor.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: tierColor, width: 1),
+              ),
+              child: Icon(
+                Icons.check_rounded,
+                color: tierColor,
+                size: 20,
+              ),
+            ),
+          ),
+
+        Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 1,
+                    height: 16,
+                    color: tierColor.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'QUEST ${index.toString().padLeft(2, '0')}',
+                    style: GoogleFonts.outfit(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: isCompleted ? AppColors.white : AppColors.grey50,
+                      letterSpacing: 4,
                     ),
+                  ),
+                ],
+              ),
+
+              const Spacer(),
+
+              if (!isCompleted) ...[
+                if (showCamera && depth == 0) ...[
+                  Center(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOutCubic,
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            tierColor.withValues(alpha: 0.1),
+                            Colors.transparent,
+                          ],
+                        ),
+                        border: Border.all(
+                          color: tierColor.withValues(alpha: 0.3),
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.camera_alt_outlined,
+                        color: tierColor,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ] else if (showCamera && depth != 0) ...[
+                  Center(
                     child: Icon(
-                      Icons.check_rounded,
-                      color: tierColor,
+                      Icons.camera_alt_outlined,
+                      color: AppColors.grey30.withValues(alpha: 0.3),
                       size: 20,
                     ),
                   ),
+                ],
+              ],
+
+              const Spacer(),
+
+              Text(
+                item.name,
+                style: GoogleFonts.notoSerifJp(
+                  fontSize: depth == 0 ? 22 : 16,
+                  fontWeight: FontWeight.w500,
+                  color: depth == 0 ? AppColors.white : AppColors.grey50,
+                  height: 1.4,
+                  letterSpacing: 1.5,
                 ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
 
-              Padding(
-                padding: const EdgeInsets.all(40),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 16),
+
+              if (depth == 0)
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 1,
-                          height: 16,
-                          color: tierColor.withValues(alpha: 0.6),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'QUEST ${index.toString().padLeft(2, '0')}',
-                          style: GoogleFonts.outfit(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                isCompleted
-                                    ? AppColors.white
-                                    : AppColors.grey50,
-                            letterSpacing: 4,
-                          ),
-                        ),
-                      ],
+                    Container(
+                      width: 24,
+                      height: 1,
+                      color: tierColor.withValues(alpha: 0.5),
                     ),
-
-                    const Spacer(),
-
-                    if (!isCompleted) ...[
-                      if (showCamera && isTop) ...[
-                        Center(
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 600),
-                            curve: Curves.easeOutCubic,
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  tierColor.withValues(alpha: 0.1),
-                                  Colors.transparent,
-                                ],
-                              ),
-                              border: Border.all(
-                                color: tierColor.withValues(alpha: 0.3),
-                                width: 0.5,
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.camera_alt_outlined,
-                              color: tierColor,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                      ] else if (showCamera && !isTop) ...[
-                        Center(
-                          child: Icon(
-                            Icons.camera_alt_outlined,
-                            color: AppColors.grey30.withValues(alpha: 0.3),
-                            size: 20,
-                          ),
-                        ),
-                      ],
-                    ],
-
-                    const Spacer(),
-
+                    const SizedBox(width: 8),
                     Text(
-                      item.name,
-                      style: GoogleFonts.notoSerifJp(
-                        fontSize: isTop ? 22 : 16,
-                        fontWeight: FontWeight.w500,
-                        color: isTop ? AppColors.white : AppColors.grey50,
-                        height: 1.4,
-                        letterSpacing: 1.5,
+                      isCompleted ? 'COMPLETED' : 'TARGET',
+                      style: GoogleFonts.outfit(
+                        fontSize: 8,
+                        color: tierColor.withValues(alpha: 0.7),
+                        letterSpacing: 2,
                       ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
                     ),
-
-                    const SizedBox(height: 16),
-
-                    if (isTop)
-                      Row(
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 1,
-                            color: tierColor.withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            isCompleted ? 'COMPLETED' : 'TARGET',
-                            style: GoogleFonts.outfit(
-                              fontSize: 8,
-                              color: tierColor.withValues(alpha: 0.7),
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ],
-                      ),
                   ],
                 ),
-              ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -1000,7 +1038,7 @@ class _FrictionlessPageScrollPhysics extends PageScrollPhysics {
 
   @override
   double applyPhysicsToUserOffset(ScrollMetrics position, double offset) {
-    return offset * 1.5;
+    return offset * 1.2;
   }
 
   @override

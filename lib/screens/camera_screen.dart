@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -115,17 +116,47 @@ class _CameraScreenState extends State<CameraScreen> {
       source: source,
       maxWidth: 1080,
       maxHeight: 1920,
-      imageQuality: 70,
+      imageQuality: 80, // クロップ前なので少し高めにする
       preferredCameraDevice: CameraDevice.rear,
     );
     if (photo != null && mounted) {
-      setState(() {
-        _image = photo;
-        _captureTime = DateTime.now(); // ギャラリーからの場合も現在時刻とする
-      });
+      // クロップ画面へ
+      await _cropImage(photo.path);
     } else if (_image == null && mounted) {
       // キャンセルした場合は再度メニューを出すか戻る
       _showPickerMenu();
+    }
+  }
+
+  Future<void> _cropImage(String path) async {
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: path,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'クロップ',
+          toolbarColor: AppColors.black,
+          toolbarWidgetColor: AppColors.white,
+          initAspectRatio: CropAspectRatioPreset.original,
+          lockAspectRatio: true,
+          activeControlsWidgetColor: const Color(0xFFD4AF37),
+        ),
+        IOSUiSettings(
+          title: 'クロップ',
+          aspectRatioLockEnabled: true,
+          resetAspectRatioEnabled: false,
+        ),
+        WebUiSettings(
+          context: context,
+        ),
+      ],
+      aspectRatio: const CropAspectRatio(ratioX: 9, ratioY: 16),
+    );
+
+    if (croppedFile != null && mounted) {
+      setState(() {
+        _image = XFile(croppedFile.path);
+        _captureTime = DateTime.now();
+      });
     }
   }
 
