@@ -174,6 +174,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
         userId: post.userId,
         imageUrl: post.imageUrl,
         taskName: post.taskName,
+        caption: post.caption,
         createdAt: post.createdAt,
         expiresAt: post.expiresAt,
         reactionCount: post.reactionCount + 1,
@@ -349,17 +350,19 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            if (post.caption != null && post.caption!.isNotEmpty) ...[
+                              Text(
+                                post.caption!,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                            ],
                             Text(
                               post.taskName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              post.remainingText,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textPrimary.withValues(alpha: 0.6),

@@ -58,6 +58,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _checkRestriction() {
+    // 制限を回避できるメールアドレスのリスト
+    const adminEmails = [
+      'ren0930ren0930@gmail.com',
+      'yusuke@example.com',
+    ];
+
+    final currentEmail = widget.user.email;
+    if (adminEmails.contains(currentEmail)) {
+      debugPrint('Admin/Test account: ID change restriction skipped.');
+      _isRestricted = false;
+      return;
+    }
+
     if (widget.user.lastProfileEditDate != null) {
       final lastEdit = DateTime.fromMillisecondsSinceEpoch(
         widget.user.lastProfileEditDate!,
@@ -388,13 +401,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           const SizedBox(height: 16),
                           _buildTimestampToggle(),
                           const SizedBox(height: 32),
-
-                          // Section: Support
-                          const SectionTitle(title: 'サポート'),
-                          const SizedBox(height: 12),
-                          _buildLinkItem('プライバシーポリシー', 'https://veffect.firebaseapp.com/privacy'),
-                          _buildLinkItem('利用規約', 'https://veffect.firebaseapp.com/terms'),
-                          const SizedBox(height: 48),
 
                           // Save button
                           GradientButton(

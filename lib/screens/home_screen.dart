@@ -158,6 +158,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           userId: post.userId,
           imageUrl: post.imageUrl,
           taskName: post.taskName,
+          caption: post.caption,
           createdAt: post.createdAt,
           expiresAt: post.expiresAt,
           reactionCount: post.reactionCount + 1,
@@ -639,20 +640,22 @@ class _FeedCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 12),
+                        if (post.caption != null && post.caption!.isNotEmpty) ...[
+                          Text(
+                            post.caption!,
+                            style: GoogleFonts.notoSerifJp(
+                              color: AppColors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              height: 1.3,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                        ],
                         Text(
                           post.taskName,
-                          style: GoogleFonts.notoSerifJp(
-                            color: tierColor,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            height: 1.3,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          post.remainingText,
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: AppColors.grey50,
                             letterSpacing: 0.5,
                           ),

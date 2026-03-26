@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:kana_kit/kana_kit.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_request.dart';
@@ -30,14 +31,39 @@ class FriendService {
 
   /// 名前（username）で検索します（部分一致・大文字小文字区別なし）
   Future<List<AppUser>> searchByUsername(String queryText) async {
+    final kanaKit = const KanaKit();
     final queryLower = queryText.toLowerCase();
-    final query = await _db
+    final results = <AppUser>[];
+
+    // 1. 元のクエリ（小文字）で検索
+    final originalResults = await _db
         .collection('users')
         .where('usernameLower', isGreaterThanOrEqualTo: queryLower)
         .where('usernameLower', isLessThanOrEqualTo: '$queryLower\uf8ff')
         .limit(20)
         .get();
-    return query.docs.map((doc) => AppUser.fromFirestore(doc)).toList();
+    results.addAll(originalResults.docs.map((doc) => AppUser.fromFirestore(doc)));
+
+    // 2. もしクエリに日本語が含まれる場合、ローマ字に変換して検索
+    if (kanaKit.isRomaji(queryLower) == false) {
+      final romajiQuery = kanaKit.toRomaji(queryLower);
+      if (romajiQuery != queryLower) {
+        final romajiResults = await _db
+            .collection('users')
+            .where('usernameLower', isGreaterThanOrEqualTo: romajiQuery)
+            .where('usernameLower', isLessThanOrEqualTo: '$romajiQuery\uf8ff')
+            .limit(10)
+            .get();
+        for (final doc in romajiResults.docs) {
+          final user = AppUser.fromFirestore(doc);
+          if (!results.any((u) => u.uid == user.uid)) {
+            results.add(user);
+          }
+        }
+      }
+    }
+
+    return results;
   }
 
   /// フォロー申請を送ります

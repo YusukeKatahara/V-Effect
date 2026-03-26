@@ -133,6 +133,7 @@ class PostService {
   Future<Map<String, dynamic>> createPost({
     required Uint8List imageBytes,
     required String taskName,
+    String? caption,
   }) async {
     final uid = _auth.currentUser!.uid;
 
@@ -156,6 +157,7 @@ class PostService {
       'userId': uid,
       'imageUrl': imageUrl,
       'taskName': taskName,
+      'caption': caption,
       'createdAt': Timestamp.fromDate(now),
       'expiresAt': Timestamp.fromDate(expiresAt),
       'reactionCount': 0,

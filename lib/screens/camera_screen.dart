@@ -32,6 +32,7 @@ class _CameraScreenState extends State<CameraScreen> {
   DateTime? _captureTime;
   bool _isUploading = false;
   bool _showTimestamp = true;
+  final TextEditingController _captionController = TextEditingController();
 
   String? get _taskName {
     // ルート引数 or コンストラクタ引数
@@ -47,6 +48,12 @@ class _CameraScreenState extends State<CameraScreen> {
     _loadSettings();
     // 画面を開いたら即選択メニューを表示
     WidgetsBinding.instance.addPostFrameCallback((_) => _showPickerMenu());
+  }
+
+  @override
+  void dispose() {
+    _captionController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -131,9 +138,12 @@ class _CameraScreenState extends State<CameraScreen> {
 
     try {
       final bytes = await _image!.readAsBytes();
+      final captionText = _captionController.text.trim();
+
       final result = await _postService.createPost(
         imageBytes: bytes,
         taskName: taskName,
+        caption: captionText.isNotEmpty ? captionText : null,
       );
 
       if (mounted) {
@@ -203,8 +213,27 @@ class _CameraScreenState extends State<CameraScreen> {
             ),
 
             // ── Bottom actions ──
-            if (_image != null)
+            if (_image != null) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: TextField(
+                  controller: _captionController,
+                  style: const TextStyle(color: AppColors.white),
+                  decoration: InputDecoration(
+                    hintText: '一言を添える (任意)',
+                    hintStyle: const TextStyle(color: AppColors.grey50),
+                    filled: true,
+                    fillColor: AppColors.white.withValues(alpha: 0.1),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
               _buildBottomBar(),
+            ],
           ],
         ),
       ),
