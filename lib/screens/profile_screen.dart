@@ -82,7 +82,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               top: false,
               child: Column(
                 children: [
-                  // ---ツールバー（完了ボタン）
+                   // ---ツールバー（完了ボタン）
                   Container(
                     decoration: BoxDecoration(
                       border: Border(
@@ -331,12 +331,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-          // ---── ヒーロータスク管理 ───────────────────────────
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverToBoxAdapter(child: _buildTaskSection()),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 40)),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
 
 
         ],
@@ -627,103 +626,189 @@ class _ProfileScreenState extends State<ProfileScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const _SectionTitle(title: 'ヒーロータスク'),
-            IconButton(
-              onPressed: _addTask,
-              icon: const Icon(
-                Icons.add_circle_outline_rounded,
-                color: AppColors.white,
+            Text(
+              '${_user!.tasks.length}個のタスク',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.bold,
               ),
-              visualDensity: VisualDensity.compact,
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
         if (_user!.tasks.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.border,
-                style: BorderStyle.solid,
+          _buildEmptyTaskCard()
+        else
+          Column(
+            children: [
+              ...List.generate(_user!.tasks.length, (i) => _buildQuestCard(i)),
+              _buildAddTaskSlot(),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyTaskCard() {
+    return InkWell(
+      onTap: _addTask,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        decoration: BoxDecoration(
+          color: AppColors.bgSurface.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.white.withValues(alpha: 0.05),
+              AppColors.white.withValues(alpha: 0.02),
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Icons.add_circle_outline_rounded,
+              size: 32,
+              color: AppColors.white.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '最初のタスクを追加',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            child: const Text(
-              'タスクがありません。右上の＋から追加してください。',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddTaskSlot() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: InkWell(
+        onTap: _addTask,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.white.withValues(alpha: 0.1),
+              width: 1,
             ),
-          )
-        else
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_rounded, size: 20, color: AppColors.textSecondary),
+              SizedBox(width: 8),
+              Text(
+                'タスクを追加',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuestCard(int index) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.grey15,
+              AppColors.grey10,
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Column(
-              children: List.generate(_user!.tasks.length, (i) {
-                final isLast = i == _user!.tasks.length - 1;
-                return Column(
-                  children: [
-                    InkWell(
-                      onTap: () => _editTask(i),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 24,
-                              height: 24,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.grey10,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '${i + 1}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _user!.tasks[i],
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => _deleteTask(i),
-                              icon: const Icon(
-                                Icons.remove_circle_outline_rounded,
-                                size: 20,
-                                color: AppColors.grey30,
-                              ),
-                            ),
-                          ],
+          ],
+          border: Border.all(
+            color: AppColors.white.withValues(alpha: 0.05),
+            width: 1,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _editTask(index),
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.white.withValues(alpha: 0.08),
+                      border: Border.all(
+                        color: AppColors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.white,
                         ),
                       ),
                     ),
-                    if (!isLast) const Divider(height: 1, indent: 52),
-                  ],
-                );
-              }),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      _user!.tasks[index],
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => _deleteTask(index),
+                    icon: Icon(
+                      Icons.close_rounded,
+                      size: 20,
+                      color: AppColors.white.withValues(alpha: 0.2),
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
             ),
           ),
-      ],
+        ),
+      ),
     );
   }
 }
