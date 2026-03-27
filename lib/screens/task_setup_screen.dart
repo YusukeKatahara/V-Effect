@@ -15,7 +15,7 @@ import '../widgets/premium_icon_header.dart';
 import '../widgets/section_title.dart';
 
 /// 新規登録後のヒーロータスク設定画面
-/// プロフィール写真、ヒーロータスク（1〜5個）、ヒーロータスク実行時間、起床時間を入力します
+/// プロフィール写真、ヒーロータスク、ヒーロータスク実行時間、起床時間を入力します
 /// テンプレート選択で既にヒーロータスクが1つ保存されている場合、それをプリフィルします
 class TaskSetupScreen extends StatefulWidget {
   const TaskSetupScreen({super.key});
@@ -38,7 +38,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
   File? _profileImage;
   final _picker = ImagePicker();
 
-  // ヒーロータスク入力欄（最初は1つ、最大5つまで追加可能）
+  // ヒーロータスク入力欄（最初は1つ）
   final List<TextEditingController> _taskCtrls = [TextEditingController()];
 
   // ヒーロータスク実行時間と起床時間
@@ -102,7 +102,6 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
   }
 
   void _addTaskField() {
-    if (_taskCtrls.length >= 5) return;
     setState(() => _taskCtrls.add(TextEditingController()));
   }
 
@@ -498,7 +497,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             const SizedBox(height: 24),
 
                             // ── ヒーロータスク入力欄 ──
-                            const SectionTitle(title: 'やりたいヒーロータスク（1〜5個）'),
+                            const SectionTitle(title: 'やりたいヒーロータスク'),
                             const SizedBox(height: 8),
                             ...List.generate(_taskCtrls.length, (index) {
                               return Padding(
@@ -549,7 +548,6 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                 ),
                               );
                             }),
-                            if (_taskCtrls.length < 5)
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: TextButton.icon(
