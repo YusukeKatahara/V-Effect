@@ -517,6 +517,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                       controller: _pageController,
                       physics: const _FrictionlessPageScrollPhysics(),
                       itemBuilder: (context, rawIndex) {
+                        if (_taskItems.isEmpty) return const SizedBox.shrink();
                         final actualIndex = rawIndex % _taskItems.length;
 
                         return Stack(
@@ -569,6 +570,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       if (a == _expandedIndex) return 1;
       if (b == _expandedIndex) return -1;
 
+      if (_taskItems.isEmpty) return 0;
       final halfLength = _taskItems.length / 2.0;
 
       double distA = (a - scrollPos) % _taskItems.length;

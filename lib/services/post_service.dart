@@ -448,7 +448,24 @@ class PostService {
             .get();
 
     if (otherPosts.docs.isEmpty) {
-      await _db.collection('users').doc(uid).update({'lastPostedDate': null});
+      // 今日もう投稿がない場合、過去も含めた最新の投稿を探して lastPostedDate を戻す
+      final lastPosts = await _db
+          .collection('posts')
+          .where('userId', isEqualTo: uid)
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (lastPosts.docs.isEmpty) {
+        await _db.collection('users').doc(uid).update({'lastPostedDate': null});
+      } else {
+        final lastDate =
+            (lastPosts.docs.first.data()['createdAt'] as Timestamp).toDate();
+        await _db
+            .collection('users')
+            .doc(uid)
+            .update({'lastPostedDate': DateHelper.toDateString(lastDate)});
+      }
     }
 
     // データの変更をアプリ全体に通知

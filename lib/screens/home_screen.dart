@@ -39,7 +39,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   double _scrollPosition = 10000.0; // 擬似的な無限スクロール
   int get _focusedIndex {
     if (_feedPosts.isEmpty) return 0;
-    return _scrollPosition.round() % _feedPosts.length;
+    final len = _feedPosts.length;
+    final pos = _scrollPosition.round();
+    return (pos % len + len) % len;
   }
 
   // ── リアクションアニメーション制御用 ──
@@ -460,6 +462,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 physics: const _FrictionlessPageScrollPhysics(),
                 onPageChanged: _onPageChanged,
                 itemBuilder: (context, index) {
+                  if (_feedPosts.isEmpty) return const SizedBox.shrink();
                   final actualIndex = index % _feedPosts.length;
                   final post = _feedPosts[actualIndex];
 
@@ -534,6 +537,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<int> _sortedCardIndices() {
     final indices = List.generate(_feedPosts.length, (i) => i);
     indices.sort((a, b) {
+      if (_feedPosts.isEmpty) return 0;
       final halfLength = _feedPosts.length / 2.0;
 
       double distA = (a - _scrollPosition) % _feedPosts.length;

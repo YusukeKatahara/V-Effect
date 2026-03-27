@@ -272,6 +272,47 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
     );
   }
 
+  Widget _buildEmpty(String username) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.sentiment_dissatisfied_rounded,
+            size: 64,
+            color: AppColors.textPrimary.withValues(alpha: 0.2),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            '$username さんの投稿が\nまだありません',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 40),
+          ElevatedButton(
+            onPressed: _goHome,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.bgElevated,
+              foregroundColor: AppColors.textPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+                side: const BorderSide(color: AppColors.border),
+              ),
+              elevation: 0,
+            ),
+            child: const Text('戻る'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStoryView(String username) {
     final post = _posts[_currentPostIndex];
 

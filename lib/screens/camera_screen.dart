@@ -104,7 +104,7 @@ class _CameraScreenState extends State<CameraScreen> {
     );
 
     if (source != null) {
-      _pickImage(source);
+      await _pickImage(source);
     } else if (_image == null && mounted) {
       // メニューを閉じた時に写真が未選択なら戻る
       Navigator.pop(context, false);
@@ -112,51 +112,61 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final XFile? photo = await _picker.pickImage(
-      source: source,
-      maxWidth: 1080,
-      maxHeight: 1920,
-      imageQuality: 80, // クロップ前なので少し高めにする
-      preferredCameraDevice: CameraDevice.rear,
-    );
-    if (photo != null && mounted) {
-      // クロップ画面へ
-      await _cropImage(photo.path);
-    } else if (_image == null && mounted) {
-      // キャンセルした場合は再度メニューを出すか戻る
-      _showPickerMenu();
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: source,
+        maxWidth: 1080,
+        maxHeight: 1920,
+        imageQuality: 80, // クロップ前なので少し高めにする
+        preferredCameraDevice: CameraDevice.rear,
+      );
+      if (photo != null && mounted) {
+        // クロップ画面へ
+        await _cropImage(photo.path);
+      }
+    } catch (e) {
+      debugPrint('PICK IMAGE ERROR: $e');
+    }
+
+    if (_image == null && mounted) {
+      // キャンセルした場合は再度メニューを出す
+      await _showPickerMenu();
     }
   }
 
   Future<void> _cropImage(String path) async {
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: path,
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: 'クロップ',
-          toolbarColor: AppColors.black,
-          toolbarWidgetColor: AppColors.white,
-          initAspectRatio: CropAspectRatioPreset.original,
-          lockAspectRatio: true,
-          activeControlsWidgetColor: const Color(0xFFD4AF37),
-        ),
-        IOSUiSettings(
-          title: 'クロップ',
-          aspectRatioLockEnabled: true,
-          resetAspectRatioEnabled: false,
-        ),
-        WebUiSettings(
-          context: context,
-        ),
-      ],
-      aspectRatio: const CropAspectRatio(ratioX: 9, ratioY: 16),
-    );
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'クロップ',
+            toolbarColor: AppColors.black,
+            toolbarWidgetColor: AppColors.white,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: true,
+            activeControlsWidgetColor: const Color(0xFFD4AF37),
+          ),
+          IOSUiSettings(
+            title: 'クロップ',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+          ),
+          WebUiSettings(
+            context: context,
+          ),
+        ],
+        aspectRatio: const CropAspectRatio(ratioX: 9, ratioY: 16),
+      );
 
-    if (croppedFile != null && mounted) {
-      setState(() {
-        _image = XFile(croppedFile.path);
-        _captureTime = DateTime.now();
-      });
+      if (croppedFile != null && mounted) {
+        setState(() {
+          _image = XFile(croppedFile.path);
+          _captureTime = DateTime.now();
+        });
+      }
+    } catch (e) {
+      debugPrint('CROP IMAGE ERROR: $e');
     }
   }
 
