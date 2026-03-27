@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -30,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _loading = true;
   bool _postedToday = false;
   List<Post> _feedPosts = [];
+  List<Map<String, dynamic>> _postedFriends = []; // [{uid, username, photoUrl}]
   Map<String, String> _userNames = {}; // userId -> username
   Map<String, String?> _userPhotos = {}; // userId -> photoUrl
   Map<String, int> _userStreaks = {}; // userId -> streak
@@ -51,6 +53,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late final AnimationController _flashController;
   late final Animation<double> _flashAnimation;
 
+  // ── ガード状態演出用 ──
+  late final AnimationController _pulseController;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +68,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.8), weight: 20),
       TweenSequenceItem(tween: Tween(begin: 0.8, end: 0.0), weight: 80),
     ]).animate(_flashController);
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
 
     final initialPage = 10000;
     _pageController = PageController(initialPage: initialPage)..addListener(() {
@@ -86,6 +96,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _updateSubscription?.cancel();
     _pageController.dispose();
     _flashController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -94,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final nextIndex = (index + 1) % _feedPosts.length;
 
 
-    // 次のカードの画像をプリキャッシュ
+    // 次의 카드의 画像をプリキャッシュ
     final nextPost = _feedPosts[nextIndex];
     if (nextPost.imageUrl != null) {
       precacheImage(
@@ -139,6 +150,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         streaks[f['uid']] = (f['streak'] as num?)?.toInt() ?? 0;
       }
 
+      // 投稿済みのフレンドを抽出
+      final postedFriends = <Map<String, dynamic>>[];
+      final seenUids = <String>{};
+      for (final post in posts) {
+        if (!seenUids.contains(post.userId)) {
+          seenUids.add(post.userId);
+          postedFriends.add({
+            'uid': post.userId,
+            'username': names[post.userId] ?? 'Unknown',
+            'photoUrl': photos[post.userId],
+          });
+        }
+      }
+
       if (!mounted) return;
 
       // 最初の数枚の画像をプリキャッシュ
@@ -159,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       setState(() {
         _postedToday = postedToday;
         _feedPosts = posts;
+        _postedFriends = postedFriends;
         _userNames = names;
         _userPhotos = photos;
         _userStreaks = streaks;
@@ -388,49 +414,156 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildGuardedState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.grey10,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // ── 背面プレビュー (Blur) ──
+        if (_feedPosts.isNotEmpty)
+          Positioned.fill(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Opacity(
+                opacity: 0.4,
+                child: CachedNetworkImage(
+                  imageUrl: _feedPosts.first.imageUrl!,
+                  fit: BoxFit.cover,
                 ),
               ),
-              child: const Icon(
-                Icons.lock_outline_rounded,
-                color: Color(0xFFD4AF37),
-                size: 48,
-              ),
             ),
-            const SizedBox(height: 32),
-            Text(
-              'Victory を証明しましょう',
-              style: GoogleFonts.notoSansJp(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.white,
+          ),
+
+        // ── コンテンツ ──
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 鍵アイコン + パルスアニメーション
+              AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, child) {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 100 + (20 * _pulseController.value),
+                        height: 100 + (20 * _pulseController.value),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFFD4AF37).withValues(
+                              alpha: 1.0 - _pulseController.value,
+                            ),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      child!,
+                    ],
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.grey10.withValues(alpha: 0.8),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.lock_outline_rounded,
+                    color: Color(0xFFD4AF37),
+                    size: 48,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '仲間の努力を見るには、まずあなた自身の今日の「V」を投稿する必要があります。',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.notoSansJp(
-                fontSize: 14,
-                color: AppColors.grey50,
-                height: 1.6,
+
+              const SizedBox(height: 48),
+
+              // ソーシャル・プレゼンス
+              if (_postedFriends.isNotEmpty) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      height: 32,
+                      width: (24.0 * _postedFriends.length.clamp(1, 5)) + 8,
+                      child: Stack(
+                        children: [
+                          for (int i = 0; i < min(_postedFriends.length, 5); i++)
+                            Positioned(
+                              left: i * 20.0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.black,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: AppColors.grey20,
+                                  backgroundImage: _postedFriends[i]['photoUrl'] != null
+                                      ? CachedNetworkImageProvider(_postedFriends[i]['photoUrl'])
+                                      : null,
+                                  child: _postedFriends[i]['photoUrl'] == null
+                                      ? Text(
+                                          _postedFriends[i]['username'][0].toUpperCase(),
+                                          style: const TextStyle(fontSize: 10),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '仲間の努力が届いています',
+                      style: GoogleFonts.notoSansJp(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.grey50,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              Text(
+                'Victory を証明しましょう',
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.white,
+                  letterSpacing: 1.2,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                'あなたの「V」を投稿して、\n今日という日を完成させよう。',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 14,
+                  color: AppColors.grey50,
+                  height: 1.6,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 

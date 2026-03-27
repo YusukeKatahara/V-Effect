@@ -583,8 +583,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionTitle(title: 'スケジュール'),
-        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             color: AppColors.bgSurface,
