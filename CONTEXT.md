@@ -8,11 +8,19 @@
 - **Phase:** Performance Optimization & Feature Enhancement
 - **Last Updated:** 2026-03-27
 - **Active Agent:** Antigravity (IDE)
-- **Current Task:** Planning Comprehensive UX Optimizations (Optimistic UI, Precaching, Skeletons)
+- **Current Task:** Introduced Gemini CLI (`GEMINI.md`, `.geminiignore`)
+- **Action:** Created root `GEMINI.md` with imports and `.geminiignore` for CLI context.
+
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-03-28 (Antigravity)
+- **Gemini CLI:**
+    - `GEMINI.md` をルートに作成。既存の `.agents/skills` および `CONTEXT.md` をインポートし、CLI からもプロジェクト全体の文脈を参照可能に設定。
+    - `.geminiignore` を作成し、不要なビルドファイルや機密ファイルを CLI の文脈から除外。
+
 
 ### 2026-03-27 (Antigravity)
 - **Features & UI:** 

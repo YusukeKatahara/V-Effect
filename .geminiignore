@@ -1,0 +1,46 @@
+# .geminiignore for V EFFECT (Flutter)
+
+# Dependencies
+.dart_tool/
+.packages
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# Build outputs
+build/
+android/app/build/
+ios/Runner/Assets.xcassets/
+
+# OS-specific (mostly boilerplate)
+android/
+ios/
+linux/
+macos/
+windows/
+web/
+
+# IDE files
+.idea/
+.vscode/
+
+# Secrets & Environment
+.env*
+*.key
+*.jks
+*.p12
+*.pem
+google-services.json
+GoogleService-Info.plist
+
+# Temp & Logs
+*.log
+analyze_output.txt
+diff_output.txt
+doctor_output.txt
+emulators_list.txt
+flutter_devices.txt
+flutter_emulators.txt
+run_output.txt
+build_output.txt
