@@ -594,18 +594,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             children: [
               _EditableInfoRow(
-                icon: Icons.alarm_rounded,
-                label: '起床リマインダー',
-                value: _privateData['wakeUpTime'] ?? '07:00',
-                onTap: () => _selectTime(context, true),
-                isFirst: true,
-              ),
-              const Divider(height: 1, indent: 52),
-              _EditableInfoRow(
                 icon: Icons.schedule_rounded,
-                label: 'タスクリマインダー',
+                label: 'Focus Time',
                 value: _privateData['taskTime'] ?? '08:00',
                 onTap: () => _selectTime(context, false),
+                isFirst: true,
                 isLast: true,
               ),
             ],
@@ -622,20 +615,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const _SectionTitle(title: 'ヒーロータスク'),
-            Text(
-              '${_user!.tasks.length}個のタスク',
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
+        const _SectionTitle(title: 'ヒーロータスク'),
         const SizedBox(height: 16),
         if (_user!.tasks.isEmpty)
           _buildEmptyTaskCard()
@@ -698,7 +678,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onTap: _addTask,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -706,20 +687,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 1,
             ),
           ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.add_rounded, size: 20, color: AppColors.textSecondary),
-              SizedBox(width: 8),
-              Text(
-                'タスクを追加',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          child: const Center(
+            child: Icon(
+              Icons.add_rounded,
+              size: 24,
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
       ),

@@ -66,25 +66,25 @@ abstract class NotificationMessages {
     // ── ヒーロータスクリマインダー ──
     NotificationType.taskReminder: [
       _Template(
-        title: 'ヒーロータスクの時間です',
+        title: 'Focus Time',
         body: '自分で決めたことをやる。それが一番の自信になります',
       ),
       _Template(
-        title: 'ヒーロータスクの時間です',
+        title: 'Focus Time',
         body: '完璧じゃなくていい。今日も「やった」という事実を積み上げよう',
         condition: _Condition.streakAtLeast1,
       ),
       _Template(
-        title: 'ヒーロータスクの時間です',
+        title: 'Focus Time',
         body: '{streak}日目の挑戦。続けている自分を誇ろう',
         condition: _Condition.streakAtLeast5,
       ),
       _Template(
-        title: 'ヒーロータスクの時間です',
+        title: 'Focus Time',
         body: 'まずは始めるだけ。やると決めたのはあなたです',
       ),
       _Template(
-        title: 'ヒーロータスクの時間です',
+        title: 'Focus Time',
         body: '昨日の自分にできなかったことが、今日はできるかもしれない',
         condition: _Condition.streakZero,
       ),

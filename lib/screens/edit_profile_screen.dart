@@ -520,9 +520,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildTimePickerRow() {
     return Row(
       children: [
-        Expanded(child: _buildTimeButton('起床リマインダー', _wakeUpTime, () => _pickTime(true))),
-        const SizedBox(width: 16),
-        Expanded(child: _buildTimeButton('タスクリマインダー', _taskTime, () => _pickTime(false))),
+        Expanded(
+          child: _buildTimeButton(
+            'Focus Time',
+            _taskTime,
+            () => _pickTime(false),
+          ),
+        ),
       ],
     );
   }
