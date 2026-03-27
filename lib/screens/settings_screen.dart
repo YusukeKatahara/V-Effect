@@ -249,7 +249,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: const Text('（※完全なライトモード対応は今後のアップデートで提供されます）', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             value: _isDarkMode,
             onChanged: _toggleTheme,
-            activeColor: AppColors.white,
+            activeThumbColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),
           
@@ -259,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: const Text('フォローや投稿に関する通知', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             value: _pushNotifications,
             onChanged: _togglePushNotifications,
-            activeColor: AppColors.white,
+            activeThumbColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),
 
@@ -269,7 +269,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: const Text('承認した人だけが投稿を見られるようになります', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             value: _isPrivateAccount,
             onChanged: _togglePrivateAccount,
-            activeColor: AppColors.white,
+            activeThumbColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),
 
