@@ -11,7 +11,7 @@ import '../models/post.dart';
 import '../services/post_service.dart';
 import '../services/notification_service.dart';
 import '../services/analytics_service.dart';
-import '../widgets/splash_loading.dart';
+
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<bool>? onLoadingChanged;
@@ -91,8 +91,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _onPageChanged(int index) {
     if (_feedPosts.isEmpty) return;
-    final actualIndex = index % _feedPosts.length;
     final nextIndex = (index + 1) % _feedPosts.length;
+
 
     // 次のカードの画像をプリキャッシュ
     final nextPost = _feedPosts[nextIndex];

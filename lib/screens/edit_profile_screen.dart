@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'package:url_launcher/url_launcher.dart';
+
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/user_service.dart';
@@ -327,15 +327,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  void _launchUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body: Stack(
@@ -586,12 +580,5 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildLinkItem(String title, String url) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-      trailing: const Icon(Icons.open_in_new_rounded, size: 18, color: AppColors.textMuted),
-      onTap: () => _launchUrl(url),
-    );
-  }
 }
+

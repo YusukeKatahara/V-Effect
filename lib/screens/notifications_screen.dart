@@ -281,11 +281,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           return ListView.separated(
-            padding: EdgeInsets.zero, // 全体の余白を排除
+            padding: EdgeInsets.zero,
             itemCount: notifications.length,
             separatorBuilder: (context, index) => const Divider(
               height: 1,
-              indent: 72, // アバターの横から線を引く
+              indent: 64, // アバターの横から線を引く
               color: AppColors.grey10,
             ),
             itemBuilder: (context, index) {
@@ -316,45 +316,46 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                          horizontal: 16, vertical: 10), // スリム化
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center, // 中央揃え
+                        crossAxisAlignment: CrossAxisAlignment.start, // 上揃えに変更して洗練
                         children: [
                           // 未読インジケーター (スリム化)
-                          if (isUnread)
-                            Container(
+                          Padding(
+                            padding: const EdgeInsets.only(top: 18), // テキストの高さに合わせる
+                            child: Container(
                               width: 4,
                               height: 4,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFD4AF37),
+                              decoration: BoxDecoration(
+                                color: isUnread ? const Color(0xFFD4AF37) : Colors.transparent,
                                 shape: BoxShape.circle,
                               ),
-                            )
-                          else
-                            const SizedBox(width: 4),
+                            ),
+                          ),
                           const SizedBox(width: 8),
 
-                          // アバター (少し小型化)
+                          // アバター (小型化 44 -> 38)
                           SizedBox(
-                            width: 44,
-                            height: 44,
+                            width: 38,
+                            height: 38,
                             child: _buildAvatar(notif),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
 
                           // コンテンツ
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                const SizedBox(height: 2), // アバターとの高さ調整
                                 RichText(
-                                  maxLines: 2,
+                                  maxLines: 3, // 少し余裕を持たせる
                                   overflow: TextOverflow.ellipsis,
                                   text: TextSpan(
                                     style: const TextStyle(
-                                      fontSize: 14,
+                                      fontSize: 13, // 14 -> 13
                                       color: AppColors.textPrimary,
-                                      height: 1.3,
+                                      height: 1.4,
                                     ),
                                     children: [
                                       TextSpan(

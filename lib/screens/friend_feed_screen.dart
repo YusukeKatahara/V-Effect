@@ -259,7 +259,46 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
     );
   }
 
+  Widget _buildEmpty(String username) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.local_fire_department_outlined,
+            color: AppColors.textMuted,
+            size: 64,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '$username さんの今日の投稿はまだありません',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton(
+            onPressed: _goHome,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+            child: const Text('ホームに戻る'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPhotoSkeleton() {
+
     return Container(
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(

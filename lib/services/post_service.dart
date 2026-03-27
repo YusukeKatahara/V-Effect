@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -301,14 +302,32 @@ class PostService {
     if (existing.docs.isNotEmpty) {
       final doc = existing.docs.first;
       final data = doc.data();
-      // bodyから回数をパースするか、隠しフィールドがあればそれを使う
-      // 今回は 'reactionCount' というフィールドを通知ドキュメントに追加して管理する
       final currentCount = data['reactionCount'] as int? ?? 0;
       newCount = currentCount + 1;
-
-      // 既存の通知を削除（onCreateトリガーを再発火させるため）
       await doc.reference.delete();
     }
+
+    // ランダムな文言の選択
+    final random = Random();
+    final variations = [
+      {
+        'title': '🔥 熱狂！',
+        'body': '$myUsernameさんがあなたの「$postTaskName」の達成に熱狂しています！',
+      },
+      {
+        'title': '⚡️ V-Effect 発動！',
+        'body': 'あなたの「$postTaskName」が、$myUsernameさんのモチベーションに火をつけました！',
+      },
+      {
+        'title': '🚀 リスペクト！',
+        'body': '$myUsernameさんが「$postTaskName」を頑張るあなたに特大のパワーを送りました！',
+      },
+      {
+        'title': '👏 スーパーヒーロー！',
+        'body': '$myUsernameさんから「$postTaskName」へ、$newCount回の称賛が届いています！',
+      },
+    ];
+    final selected = variations[random.nextInt(variations.length)];
 
     // 新しい通知を作成
     await _db.collection('notifications').add({
@@ -317,8 +336,8 @@ class PostService {
       'relatedId': postId,
       'type': NotificationType.reactionReceived.name,
       'reactionCount': newCount,
-      'title': '🔥 激しい炎！',
-      'body': '$myUsernameさんが「$postTaskName」で$newCount回、激しい炎を燃やしてます!!',
+      'title': selected['title'],
+      'body': selected['body'],
       'isRead': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
