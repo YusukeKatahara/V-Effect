@@ -258,6 +258,11 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       setState(() => _loading = true);
       try {
         await _postService.deletePost(postId);
+        if (mounted) {
+          setState(() {
+            _expandedIndex = null; // 拡大状態をリセット
+          });
+        }
         await _loadData();
       } catch (e) {
         debugPrint('Delete post error: $e');
@@ -599,7 +604,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                     ),
                   ],
                 ),
-                if (isCompleted)
+                if (isCompleted && _expandedIndex == _focusedIndex)
                   Positioned(
                     right: 0,
                     child: IconButton(
@@ -1020,7 +1025,6 @@ class _TaskCard extends StatelessWidget {
                 image: ResizeImage(
                   CachedNetworkImageProvider(item.completedPost!.imageUrl!),
                   width: 540,
-                  height: 960,
                 ),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
@@ -1114,40 +1118,8 @@ class _TaskCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 1,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          tierColor.withValues(alpha: 0.8),
-                          tierColor.withValues(alpha: 0.0),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'QUEST ${index.toString().padLeft(2, '0')}',
-                    style: GoogleFonts.outfit(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: isCompleted ? AppColors.white : AppColors.grey50,
-                      letterSpacing: 4,
-                      shadows: [
-                        Shadow( // テキストの微細な光輝
-                          color: AppColors.white.withValues(alpha: isCompleted ? 0.4 : 0.1),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              // QUEST表示を削除
+              const SizedBox(height: 16),
 
               const Spacer(),
 

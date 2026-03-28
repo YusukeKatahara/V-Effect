@@ -548,17 +548,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppColors.textSecondary,
+        if (label != 'ストリーク')
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
           ),
-        ),
+        // 下線を削除
+        /*
         if (onTap != null) ...[
           const SizedBox(height: 2),
           Container(width: 24, height: 1, color: AppColors.grey20),
         ],
+        */
       ],
     );
 
@@ -698,10 +702,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildQuestCard(int index) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8), // よりコンパクトに
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16), // 少し収まりの良い角丸に
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -712,52 +716,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.black.withValues(alpha: 0.3),
-              blurRadius: 10,
+              color: AppColors.black.withValues(alpha: 0.4), // 少し影を深めて奥行きを
+              blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
           border: Border.all(
-            color: AppColors.white.withValues(alpha: 0.05),
-            width: 1,
+            color: AppColors.white.withValues(alpha: 0.08), // 高級感のある細い境界線
+            width: 0.5,
           ),
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: () => _editTask(index),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // コンパクトなパディング
               child: Row(
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 26, // サイズ縮小
+                    height: 26,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.white.withValues(alpha: 0.08),
+                      color: AppColors.white.withValues(alpha: 0.05), // 主張を抑える
                       border: Border.all(
-                        color: AppColors.white.withValues(alpha: 0.1),
+                        color: AppColors.white.withValues(alpha: 0.08),
+                        width: 0.5,
                       ),
                     ),
                     child: Center(
                       child: Text(
                         '${index + 1}',
                         style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
+                          fontSize: 12, // 文字サイズ調整
+                          fontWeight: FontWeight.w700, // ボールド感は維持
                           color: AppColors.white,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Text(
                       _user!.tasks[index],
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 14, // コンパクトに
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                         letterSpacing: 0.5,
