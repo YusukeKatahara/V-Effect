@@ -10,6 +10,7 @@ import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../widgets/animated_v_logo.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -435,17 +436,39 @@ class _LoginScreenState extends State<LoginScreen>
   // フッター
   // ════════════════════════════════════════════
   Widget _buildFooter() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
       children: [
-        Text('アカウントをお持ちでないですか？',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('アカウントをお持ちでないですか？',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            TextButton(
+              onPressed: () => Navigator.pushNamed(context, AppRoutes.register),
+              child: const Text('新規登録'),
+            ),
+          ],
+        ),
         TextButton(
-          onPressed: () => Navigator.pushNamed(context, AppRoutes.register),
-          child: const Text('新規登録'),
+          onPressed: () => _launchURL('https://forms.gle/Zj29yQmSSKCZ4Kar8'),
+          child: const Text(
+            'ログインできない等のご相談・お問い合わせ',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12, decoration: TextDecoration.underline),
+          ),
         ),
       ],
     );
+  }
+
+  Future<void> _launchURL(String urlString) async {
+    final url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('リンクを開けませんでした')),
+        );
+      }
+    }
   }
 }
 

@@ -275,6 +275,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           _buildSectionHeader('サポート・法的情報'),
           ListTile(
+            title: const Text('お問い合わせ / バグ報告', style: TextStyle(color: AppColors.textPrimary)),
+            trailing: const Icon(Icons.open_in_new, color: AppColors.textMuted, size: 16),
+            onTap: () => _launchURL('https://forms.gle/Zj29yQmSSKCZ4Kar8'),
+          ),
+          ListTile(
             title: const Text('利用規約', style: TextStyle(color: AppColors.textPrimary)),
             trailing: const Icon(Icons.open_in_new, color: AppColors.textMuted, size: 16),
             onTap: () => _launchURL('https://v-effect.web.app/terms/'),
