@@ -438,50 +438,54 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 鍵アイコン + パルスアニメーション
-              AnimatedBuilder(
-                animation: _pulseController,
-                builder: (context, child) {
-                  return Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 100 + (20 * _pulseController.value),
-                        height: 100 + (20 * _pulseController.value),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFD4AF37).withValues(
-                              alpha: 1.0 - _pulseController.value,
+              // 鍵アイコン + パルスアニメーション (固定サイズでレイアウトを安定させる)
+              SizedBox(
+                width: 120,
+                height: 120,
+                child: AnimatedBuilder(
+                  animation: _pulseController,
+                  builder: (context, child) {
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 100 + (20 * _pulseController.value),
+                          height: 100 + (20 * _pulseController.value),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFD4AF37).withValues(
+                                alpha: 1.0 - _pulseController.value,
+                              ),
+                              width: 2,
                             ),
-                            width: 2,
                           ),
                         ),
+                        child!,
+                      ],
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppColors.grey10.withValues(alpha: 0.8),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
                       ),
-                      child!,
-                    ],
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppColors.grey10.withValues(alpha: 0.8),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.lock_outline_rounded,
-                    color: Color(0xFFD4AF37),
-                    size: 48,
+                    child: const Icon(
+                      Icons.lock_outline_rounded,
+                      color: Color(0xFFD4AF37),
+                      size: 48,
+                    ),
                   ),
                 ),
               ),
@@ -727,7 +731,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         transform:
             Matrix4.identity()
               ..rotateZ(rotateZ)
-              ..scaleByDouble(scale, scale, scale, 1.0),
+              ..scale(scale, scale, scale),
         child: SizedBox(
           width: cardWidth,
           height: cardHeight,

@@ -73,7 +73,6 @@ class PostService {
       };
     }
     final data = snap.data() as Map<String, dynamic>;
-    final today = DateHelper.toDateString(now);
     final lastPostedDate = data['lastPostedDate'] as String?;
     final tasks = List<String>.from(data['tasks'] ?? []);
 
@@ -92,7 +91,7 @@ class PostService {
 
     return {
       'streak': (data['streak'] as num?)?.toInt() ?? 0,
-      'postedToday': lastPostedDate == today,
+      'postedToday': postedPostsToday.isNotEmpty,
       'isAllTasksCompleted':
           tasks.isNotEmpty &&
           tasks.every((t) => postedPostsToday.any((p) => p.taskName == t)),
@@ -447,43 +446,42 @@ class PostService {
       }
     }
 
-    // 3. その日が最後の投稿だった場合、ユーザードキュメントの lastPostedDate をクリアする検討
-    final startOfToday = DateTime.now().copyWith(
-      hour: 0,
-      minute: 0,
-      second: 0,
-      millisecond: 0,
-    );
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
 
-    final otherPosts =
-        await _db
-            .collection('posts')
-            .where('userId', isEqualTo: uid)
-            .where(
-              'createdAt',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfToday),
-            )
-            .limit(1)
-            .get();
+    // 3. 今日他に投稿があるか確認（インデックス不要のため全取得してフィルタ）
+    final allUserPosts = await _db
+        .collection('posts')
+        .where('userId', isEqualTo: uid)
+        .get();
 
-    if (otherPosts.docs.isEmpty) {
+    final remainingToday = allUserPosts.docs.where((doc) {
+      if (doc.id == postId) return false;
+      final d = doc.data();
+      if (!d.containsKey('createdAt')) return false;
+      final createdAt = (d['createdAt'] as Timestamp).toDate();
+      return createdAt.isAfter(startOfToday) ||
+          createdAt.isAtSameMomentAs(startOfToday);
+    }).toList();
+
+    if (remainingToday.isEmpty) {
       // 今日もう投稿がない場合、過去も含めた最新の投稿を探して lastPostedDate を戻す
-      final lastPosts = await _db
-          .collection('posts')
-          .where('userId', isEqualTo: uid)
-          .orderBy('createdAt', descending: true)
-          .limit(1)
-          .get();
-
-      if (lastPosts.docs.isEmpty) {
+      if (allUserPosts.docs.isEmpty) {
         await _db.collection('users').doc(uid).update({'lastPostedDate': null});
       } else {
-        final lastDate =
-            (lastPosts.docs.first.data()['createdAt'] as Timestamp).toDate();
-        await _db
-            .collection('users')
-            .doc(uid)
-            .update({'lastPostedDate': DateHelper.toDateString(lastDate)});
+        // allUserPosts から最新のものを探す
+        DateTime? lastDate;
+        for (var doc in allUserPosts.docs) {
+          if (doc.id == postId) continue;
+          final d = doc.data();
+          final createdAt = (d['createdAt'] as Timestamp).toDate();
+          if (lastDate == null || createdAt.isAfter(lastDate)) {
+            lastDate = createdAt;
+          }
+        }
+        await _db.collection('users').doc(uid).update({
+          'lastPostedDate': lastDate != null ? DateHelper.toDateString(lastDate) : null
+        });
       }
     }
 

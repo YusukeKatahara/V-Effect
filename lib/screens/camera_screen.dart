@@ -12,6 +12,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../services/post_service.dart';
 import '../widgets/post_success_dialog.dart';
+import '../widgets/victory_overlay.dart';
 
 /// Hero Task 撮影画面
 ///
@@ -188,12 +189,17 @@ class _CameraScreenState extends State<CameraScreen> {
       );
 
       if (mounted) {
-        await PostSuccessDialog.show(
-          context,
-          streakDays: result['newStreak'] as int,
-          isRecordUpdating: result['isRecordUpdating'] as bool,
-        );
-        if (mounted) Navigator.pop(context, true);
+        // V-Flash (Victory Overlay)
+        await VictoryOverlay.show(context);
+        
+        if (mounted) {
+          await PostSuccessDialog.show(
+            context,
+            streakDays: result['newStreak'] as int,
+            isRecordUpdating: result['isRecordUpdating'] as bool,
+          );
+          if (mounted) Navigator.pop(context, true);
+        }
       }
     } catch (e, st) {
       debugPrint('POST UPLOAD ERROR: $e\n$st');

@@ -645,7 +645,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             transform:
                 Matrix4.identity()
                   ..rotateZ(currentAngle)
-                  ..scaleByDouble(currentScale, currentScale, currentScale, 1.0),
+                  ..scale(currentScale, currentScale, currentScale),
             child: Opacity(opacity: currentOpacity, child: child),
           ),
         );
