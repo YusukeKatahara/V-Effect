@@ -59,6 +59,11 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   // ── Sublimation ──
   late final AnimationController _sublimationController;
   late final Animation<double> _sublimation;
+  late final Animation<double> _sublimationFlash;
+  late final Animation<double> _sublimationTextOpacity;
+  late final Animation<double> _sublimationTextScale;
+  late final Animation<double> _sublimationAura;
+  late final Animation<double> _sublimationBgDim;
   int? _heroIndex; // 選ばれたHero Taskのインデックス
   bool _isSublimating = false;
 
@@ -106,11 +111,46 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
     _sublimationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 2000),
     );
     _sublimation = CurvedAnimation(
       parent: _sublimationController,
       curve: Curves.easeInOutCubic,
+    );
+    
+    _sublimationFlash = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 15),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 85),
+    ]).animate(CurvedAnimation(
+      parent: _sublimationController,
+      curve: const Interval(0.2, 0.45, curve: Curves.easeOut),
+    ));
+
+    _sublimationTextOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 20),
+    ]).animate(CurvedAnimation(
+      parent: _sublimationController,
+      curve: const Interval(0.4, 0.95),
+    ));
+
+    _sublimationTextScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.5, end: 1.1).chain(CurveTween(curve: Curves.easeOutBack)), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 1.1, end: 1.0).chain(CurveTween(curve: Curves.easeInOut)), weight: 70),
+    ]).animate(CurvedAnimation(
+      parent: _sublimationController,
+      curve: const Interval(0.4, 0.7),
+    ));
+
+    _sublimationAura = CurvedAnimation(
+      parent: _sublimationController,
+      curve: const Interval(0.25, 1.0, curve: Curves.easeOut),
+    );
+
+    _sublimationBgDim = CurvedAnimation(
+      parent: _sublimationController,
+      curve: const Interval(0.0, 0.3, curve: Curves.easeIn),
     );
 
     // データの更新通知を監視
@@ -307,14 +347,29 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     );
 
     if (posted == true && mounted) {
+      // 演出のために、一時的にアイテムを「完了」状態にする
+      final originalItem = _taskItems[index];
+      _taskItems[index] = _HeroTaskItem(
+        name: originalItem.name,
+        completedPost: Post(
+          id: 'temp',
+          userId: 'temp',
+          imageUrl: null,
+          taskName: originalItem.name,
+          createdAt: DateTime.now(),
+          expiresAt: DateTime.now().add(const Duration(hours: 24)),
+        ),
+      );
+
       setState(() {
         _heroIndex = index;
         _isSublimating = true;
         _postedToday = true;
       });
 
-      HapticFeedback.heavyImpact();
+      _playVictoryHaptics();
       await _sublimationController.forward();
+      _sublimationController.reset();
 
       if (mounted) {
         setState(() => _isSublimating = false);
@@ -322,6 +377,24 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         await _checkAndShowPostTutorial();
       }
     }
+  }
+
+  void _playVictoryHaptics() async {
+    // 0.0s Anticipation: short selection clicks
+    HapticFeedback.selectionClick();
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+    HapticFeedback.selectionClick();
+    
+    // 0.4s V-Flash: Heavy impact
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+    HapticFeedback.heavyImpact();
+    
+    // Additional impact for "Victory Text"
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
   }
 
   Color _getTierColor(int streak) {
@@ -341,6 +414,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       body: Stack(
         children: [
           _buildDeepBackground(),
+          if (_isSublimating) _buildSublimationBackgroundDim(),
+          if (_isSublimating) _buildSublimationAura(),
           SafeArea(
             child: Column(
               children: [
@@ -356,6 +431,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               ],
             ),
           ),
+          if (_isSublimating) _buildSublimationFlash(),
+          if (_isSublimating) _buildVictoryOverlay(),
         ],
       ),
     );
@@ -372,6 +449,104 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSublimationBackgroundDim() {
+    return AnimatedBuilder(
+      animation: _sublimationBgDim,
+      builder: (context, _) {
+        return Positioned.fill(
+          child: Container(
+            color: Colors.black.withValues(alpha: _sublimationBgDim.value * 0.7),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSublimationAura() {
+    return AnimatedBuilder(
+      animation: _sublimationAura,
+      builder: (context, _) {
+        final t = _sublimationAura.value;
+        final size = 200.0 + t * 400.0;
+        final opacity = (1.0 - t).clamp(0.0, 1.0) * 0.4;
+        final tierColor = _getTierColor(_streak);
+
+        return Center(
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: tierColor.withValues(alpha: opacity),
+                  blurRadius: 100,
+                  spreadRadius: 20,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSublimationFlash() {
+    return AnimatedBuilder(
+      animation: _sublimationFlash,
+      builder: (context, _) {
+        final opacity = _sublimationFlash.value;
+        if (opacity <= 0) return const SizedBox.shrink();
+        return Positioned.fill(
+          child: IgnorePointer(
+            child: Container(
+              color: Colors.white.withValues(alpha: opacity),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildVictoryOverlay() {
+    return AnimatedBuilder(
+      animation: _sublimationController,
+      builder: (context, _) {
+        final opacity = _sublimationTextOpacity.value;
+        final scale = _sublimationTextScale.value;
+        if (opacity <= 0) return const SizedBox.shrink();
+
+        return Center(
+          child: Transform.scale(
+            scale: scale,
+            child: Opacity(
+              opacity: opacity,
+              child: Text(
+                'VICTORY',
+                style: GoogleFonts.outfit(
+                  fontSize: 48,
+                  fontWeight: FontWeight.w900,
+                  color: _getTierColor(_streak),
+                  letterSpacing: 12.0,
+                  shadows: [
+                    Shadow(
+                      color: _getTierColor(_streak).withValues(alpha: 0.5),
+                      blurRadius: 20,
+                    ),
+                    const Shadow(
+                      color: Colors.white,
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -626,13 +801,22 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         if (_isSublimating && _heroIndex != null) {
           final t = _sublimation.value;
           if (index == _heroIndex) {
-            currentScale = scale + t * 0.05;
-            currentOpacity = 1.0 - t * 0.3;
+            // Hero card centers and stays briefly
+            double moveT = (t / 0.2).clamp(0.0, 1.0); // 0.4s for centering
+            double returnT = ((t - 0.75) / 0.25).clamp(0.0, 1.0); // 1.5s-2.0s for returning
+            
+            currentAngle = fanAngleRad * (1.0 - moveT) + fanAngleRad * returnT;
+            currentScale = scale + (moveT * 0.08) - (returnT * 0.08);
+            currentOpacity = 1.0;
           } else {
-            currentAngle = fanAngleRad * (1.0 + t * 1.5);
-            currentSublimateY = -t * 300 - smoothDepth * 40 * t;
-            currentOpacity = (1.0 - t * 1.2).clamp(0.0, 1.0);
-            currentScale = scale * (1.0 + t * 0.15);
+            // Other cards exit and then return
+            double exitT = ((t - 0.1) / 0.3).clamp(0.0, 1.0); // 0.2s-0.8s
+            double returnT = ((t - 0.75) / 0.25).clamp(0.0, 1.0); // 1.5s-2.0s
+            
+            currentAngle = fanAngleRad * (1.0 + exitT * 1.5 - returnT * 1.5);
+            currentSublimateY = (-exitT * 600 + returnT * 600) - (smoothDepth * 40 * exitT);
+            currentOpacity = (1.0 - exitT * 1.5 + returnT * 1.5).clamp(0.0, 1.0);
+            currentScale = scale * (1.0 + exitT * 0.15 - returnT * 0.15);
           }
         }
 
@@ -808,62 +992,71 @@ class _TaskCard extends StatelessWidget {
     const bgColorTop = Color(0xFF1C1D21);
     const bgColorBottom = Color(0xFF121316);
 
+    final borderColor = isCompleted
+        ? tierColor.withValues(alpha: isTop ? 0.6 : 0.1) // Homeフィード（他人の枠）と統一
+        : (isTop
+            ? AppColors.white.withValues(alpha: 0.12) // 軽量な白の縁
+            : AppColors.white.withValues(alpha: 0.05));
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         color: bgColorBottom,
-        gradient:
-            isCompleted
-                ? null
-                : LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    bgColorTop.withValues(alpha: isTop ? 0.85 : 0.4),
-                    bgColorBottom.withValues(alpha: isTop ? 0.75 : 0.2),
-                  ],
+        gradient: isCompleted
+            ? null
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                // リッチなグラデーションで高級感を出しつつ、重いフィルタを回避
+                colors: [
+                  bgColorTop.withValues(alpha: isTop ? 0.95 : 0.4),
+                  bgColorTop.withValues(alpha: isTop ? 0.65 : 0.3),
+                  bgColorBottom.withValues(alpha: isTop ? 0.85 : 0.2),
+                ],
+                stops: const [0.0, 0.4, 1.0],
+              ),
+        image: isCompleted && item.completedPost?.imageUrl != null
+            ? DecorationImage(
+                image: ResizeImage(
+                  CachedNetworkImageProvider(item.completedPost!.imageUrl!),
+                  width: 540,
+                  height: 960,
                 ),
-        image:
-            isCompleted && item.completedPost?.imageUrl != null
-                ? DecorationImage(
-                  image: ResizeImage(
-                    CachedNetworkImageProvider(item.completedPost!.imageUrl!),
-                    width: 540, // カード表示に十分なサイズにリサイズ
-                    height: 960,
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.black.withValues(
+                    alpha: isExpanded ? 0.1 : (isTop ? 0.3 : 0.6),
                   ),
-                  fit: BoxFit.cover,
-                  colorFilter: ColorFilter.mode(
-                    Colors.black.withValues(
-                      alpha: isExpanded ? 0.1 : (isTop ? 0.3 : 0.6),
-                    ),
-                    BlendMode.darken,
-                  ),
-                )
-                : null,
+                  BlendMode.darken,
+                ),
+              )
+            : null,
         border: Border.all(
-          color:
-              isCompleted
-                  ? tierColor.withValues(alpha: isTop ? 0.8 : 0.3)
-                  : (isTop
-                      ? tierColor.withValues(alpha: 0.3)
-                      : AppColors.white.withValues(alpha: 0.05)),
-          width: isCompleted ? 1.5 : 0.5,
+          color: borderColor,
+          width: isCompleted ? (isTop ? 1.5 : 0.5) : 0.8,
         ),
         boxShadow: [
+          // 1層目: 直下の濃い影（接地感）
           BoxShadow(
-            color: AppColors.black.withValues(alpha: isTop ? 0.4 : 0.2),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
+            color: AppColors.black.withValues(alpha: isTop ? 0.6 : 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+            spreadRadius: -2,
+          ),
+          // 2層目: 広範囲の薄い影（浮遊感・高級感）
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: isTop ? 0.4 : 0.1),
+            blurRadius: 50,
+            offset: const Offset(0, 24),
             spreadRadius: -4,
           ),
           if (isTop)
             BoxShadow(
-              color:
-                  isCompleted
-                      ? tierColor.withValues(alpha: 0.3)
-                      : tierColor.withValues(alpha: 0.03),
-              blurRadius: isCompleted ? 40 : 60,
-              spreadRadius: isCompleted ? 4 : 10,
+              color: isCompleted
+                  ? tierColor.withValues(alpha: 0.35)
+                  : tierColor.withValues(alpha: 0.04), // ほんのりとしたアンビエントグロー
+              blurRadius: isCompleted ? 50 : 80,
+              spreadRadius: isCompleted ? 4 : 2,
             ),
         ],
       ),
@@ -875,10 +1068,11 @@ class _TaskCard extends StatelessWidget {
   }
 
   Widget _buildCardContent(bool isTop) {
-    // BackdropFilterは負荷が高いため、トップのカードかつ非拡大時のみ適用
+    // 負荷軽減: 背景が真っ暗に近いので、BackdropFilterの代わりに
+    // シンプルなオーバーレイグラデーションでガラス感を模倣し、ぼかしは最小限に。
     if (isTop && !isExpanded) {
       return BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
+        filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
         child: _buildStack(),
       );
     }
@@ -925,7 +1119,16 @@ class _TaskCard extends StatelessWidget {
                   Container(
                     width: 1,
                     height: 16,
-                    color: tierColor.withValues(alpha: 0.6),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          tierColor.withValues(alpha: 0.8),
+                          tierColor.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -935,6 +1138,12 @@ class _TaskCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       color: isCompleted ? AppColors.white : AppColors.grey50,
                       letterSpacing: 4,
+                      shadows: [
+                        Shadow( // テキストの微細な光輝
+                          color: AppColors.white.withValues(alpha: isCompleted ? 0.4 : 0.1),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -952,12 +1161,22 @@ class _TaskCard extends StatelessWidget {
                       height: 64,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
+                        // ガラスボタン風の軽量なグラデーション
                         gradient: RadialGradient(
                           colors: [
-                            tierColor.withValues(alpha: 0.1),
+                            AppColors.white.withValues(alpha: 0.08),
+                            AppColors.white.withValues(alpha: 0.02),
                             Colors.transparent,
                           ],
+                          stops: const [0.3, 0.8, 1.0],
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.black.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            spreadRadius: -2,
+                          ),
+                        ],
                         border: Border.all(
                           color: tierColor.withValues(alpha: 0.3),
                           width: 0.5,
@@ -967,6 +1186,12 @@ class _TaskCard extends StatelessWidget {
                         Icons.camera_alt_outlined,
                         color: tierColor,
                         size: 24,
+                        shadows: [
+                          Shadow(
+                            color: tierColor.withValues(alpha: 0.5),
+                            blurRadius: 6,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -991,6 +1216,15 @@ class _TaskCard extends StatelessWidget {
                   color: depth == 0 ? AppColors.white : AppColors.grey50,
                   height: 1.4,
                   letterSpacing: 1.5,
+                  shadows: depth == 0
+                      ? [
+                          Shadow(
+                            color: AppColors.black.withValues(alpha: 0.8),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          )
+                        ]
+                      : null,
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
@@ -1008,7 +1242,7 @@ class _TaskCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      isCompleted ? 'COMPLETED' : 'TARGET',
+                      isCompleted ? 'DONE' : 'READY',
                       style: GoogleFonts.outfit(
                         fontSize: 8,
                         color: tierColor.withValues(alpha: 0.7),

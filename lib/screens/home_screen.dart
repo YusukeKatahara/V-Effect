@@ -727,7 +727,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Transform.translate(
       offset: Offset(offsetX, offsetY),
       child: Transform(
-        alignment: Alignment.bottomCenter,
+        alignment: Alignment.center,
         transform:
             Matrix4.identity()
               ..rotateZ(rotateZ)
@@ -818,24 +818,27 @@ class _FeedCard extends StatelessWidget {
             // 写真 (RepaintBoundary + CachedNetworkImage)
             RepaintBoundary(
               child: post.imageUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: post.imageUrl!,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 800, // カード表示なのでサイズを控えめにデコード
-                      placeholder: (ctx, url) => Container(
-                        color: AppColors.grey10,
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFFD4AF37),
-                            strokeWidth: 2,
+                  ? AspectRatio(
+                      aspectRatio: 9 / 16,
+                      child: CachedNetworkImage(
+                        imageUrl: post.imageUrl!,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 800,
+                        placeholder: (ctx, url) => Container(
+                          color: AppColors.grey10,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFD4AF37),
+                              strokeWidth: 2,
+                            ),
                           ),
                         ),
-                      ),
-                      errorWidget: (ctx, url, error) => const Center(
-                        child: Icon(
-                          Icons.broken_image,
-                          color: AppColors.grey30,
-                          size: 40,
+                        errorWidget: (ctx, url, error) => const Center(
+                          child: Icon(
+                            Icons.broken_image,
+                            color: AppColors.grey30,
+                            size: 40,
+                          ),
                         ),
                       ),
                     )
@@ -892,8 +895,7 @@ class _FeedCard extends StatelessWidget {
                                     ? ResizeImage(
                                         CachedNetworkImageProvider(
                                             userPhotoUrl!),
-                                        width: 100,
-                                        height: 100)
+                                        width: 100)
                                     : null,
                                 child: userPhotoUrl == null
                                     ? Text(

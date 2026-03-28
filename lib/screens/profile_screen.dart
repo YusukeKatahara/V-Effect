@@ -451,7 +451,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           backgroundImage: ResizeImage(
                             CachedNetworkImageProvider(_user!.photoUrl!),
                             width: 240,
-                            height: 240,
                           ),
                         )
                         : const CircleAvatar(

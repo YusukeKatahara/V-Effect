@@ -319,18 +319,40 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Photo (RepaintBoundaryで囲んで無駄な再描画を抑制)
+        // Photo with Blurred Background
         RepaintBoundary(
           child: post.imageUrl != null
-              ? CachedNetworkImage(
-                  imageUrl: post.imageUrl!,
-                  fit: BoxFit.cover,
-                  memCacheWidth: 1080, // メモリ上のデコードサイズを制限
-                  placeholder: (ctx, url) => _buildPhotoSkeleton(),
-                  errorWidget: (ctx, url, error) => const Center(
-                    child: Icon(Icons.broken_image,
-                        size: 60, color: AppColors.textMuted),
-                  ),
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Blurred background
+                    ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                      child: Opacity(
+                        opacity: 0.5,
+                        child: CachedNetworkImage(
+                          imageUrl: post.imageUrl!,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    // Centered full image
+                    Center(
+                      child: AspectRatio(
+                        aspectRatio: 9 / 16,
+                        child: CachedNetworkImage(
+                          imageUrl: post.imageUrl!,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 1080,
+                          placeholder: (ctx, url) => _buildPhotoSkeleton(),
+                          errorWidget: (ctx, url, error) => const Center(
+                            child: Icon(Icons.broken_image,
+                                size: 60, color: AppColors.textMuted),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 )
               : const Center(
                   child: Icon(Icons.image,
@@ -518,7 +540,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                           ? AppColors.primary
                           : AppColors.bgElevated,
                       backgroundImage: friend['photoUrl'] != null
-                          ? ResizeImage(CachedNetworkImageProvider(friend['photoUrl'] as String), width: 120, height: 120)
+                          ? ResizeImage(CachedNetworkImageProvider(friend['photoUrl'] as String), width: 120)
                           : null,
                       child: friend['photoUrl'] == null
                           ? Icon(
