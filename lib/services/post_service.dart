@@ -288,6 +288,19 @@ class PostService {
   Future<void> addReaction(String postId, {String? emoji}) async {
     final myUid = _auth.currentUser!.uid;
 
+    final docSnap = await _db.collection('posts').doc(postId).get();
+    if (!docSnap.exists) return;
+    final data = docSnap.data()!;
+
+    // 絵文字リアクション（+ ボタンから送信されるもの）は1回まで
+    if (emoji != null) {
+      final reactedUsers = List<String>.from(data['emojiReactedUserIds'] ?? []);
+      if (reactedUsers.contains(myUid)) {
+        debugPrint('User already reacted with emoji to this post');
+        return; // すでにリアクション済みなら何もしない
+      }
+    }
+
     final updates = <String, dynamic>{
       'reactionCount': FieldValue.increment(1),
     };
@@ -300,10 +313,8 @@ class PostService {
     await _db.collection('posts').doc(postId).update(updates);
     _analytics.logReactionSent();
 
-    // リアクション通知を送付（バックグラウンドで処理、エラーハンドリング付き）
-    _sendReactionNotification(postId, emoji: emoji).catchError((_) {
-      // 通知送信失敗はクリティカルではないので静かに無視
-    });
+    // リアクション通知を送付
+    _sendReactionNotification(postId, emoji: emoji).catchError((_) {});
   }
 
   /// リアクション通知を送信する内部メソッド

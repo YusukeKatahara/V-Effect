@@ -4,7 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../services/notification_service.dart';
-import './switch_account_bottom_sheet.dart';
+import '../config/app_colors.dart';
+import '../services/notification_service.dart';
 
 /// アプリ共通ヘッダー (V EFFECT)
 class VEffectHeader extends StatelessWidget {
@@ -12,12 +13,10 @@ class VEffectHeader extends StatelessWidget {
     super.key,
     this.leading,
     this.trailing,
-    this.onTitleTap,
   });
 
   final Widget? leading;
   final Widget? trailing;
-  final VoidCallback? onTitleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -34,29 +33,16 @@ class VEffectHeader extends StatelessWidget {
           ),
 
           // Center logo
-          GestureDetector(
-            onTap: onTitleTap ?? () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => const SwitchAccountBottomSheet(),
-              );
-            },
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'V EFFECT',
-                  style: GoogleFonts.outfit(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.white,
-                    letterSpacing: 4.0,
-                  ),
-                ),
-                const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.grey50, size: 20),
-              ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              'V EFFECT',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.white,
+                letterSpacing: 4.0,
+              ),
             ),
           ),
 

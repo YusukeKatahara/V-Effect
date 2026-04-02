@@ -8,7 +8,6 @@ import '../firebase_options.dart';
 import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
-import '../services/multi_account_service.dart';
 import '../widgets/animated_v_logo.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -113,13 +112,6 @@ class _LoginScreenState extends State<LoginScreen>
       }
 
       await _analytics.logLogin('email_or_id');
-      
-      // アカウント切り替え用に保存
-      await MultiAccountService.instance.saveCurrentAccount(
-        loginId: input,
-        password: isEmail ? null : password, // カスタムログインのみパスワードを保存
-      );
-
       await _ensureUserDocAndNavigate();
     } on FirebaseFunctionsException catch (e) {
       debugPrint('Cloud Function error: ${e.code} - ${e.message}');
@@ -147,8 +139,6 @@ class _LoginScreenState extends State<LoginScreen>
       final cred = await _authService.signInWithGoogle();
       if (cred != null) {
         await _analytics.logLogin('google');
-        // アカウント切り替え用に保存
-        await MultiAccountService.instance.saveCurrentAccount(loginId: FirebaseAuth.instance.currentUser?.email ?? FirebaseAuth.instance.currentUser?.uid ?? "google_user");
         await _ensureUserDocAndNavigate();
       } else {
         if (mounted) setState(() => _isGoogleLoading = false);
