@@ -65,19 +65,69 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildAvatar(AppNotification notif) {
+    Widget avatarBody;
     if (notif.fromUid == null) {
-      return _buildDefaultAvatar(notif);
+      avatarBody = _buildDefaultAvatar(notif);
+    } else {
+      avatarBody = FutureBuilder<AppUser?>(
+        future: _friendService.getUserByUid(notif.fromUid!),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData || snapshot.data?.photoUrl == null) {
+            return _buildDefaultAvatar(notif);
+          }
+          return CircleAvatar(
+            backgroundImage:
+                CachedNetworkImageProvider(snapshot.data!.photoUrl!),
+          );
+        },
+      );
     }
-    return FutureBuilder<AppUser?>(
-      future: _friendService.getUserByUid(notif.fromUid!),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data?.photoUrl == null) {
-          return _buildDefaultAvatar(notif);
-        }
-        return CircleAvatar(
-          backgroundImage: CachedNetworkImageProvider(snapshot.data!.photoUrl!),
-        );
-      },
+
+    // 右下の小さなバッジを構築
+    Widget? badge;
+    if (notif.emoji != null) {
+      badge = _buildBadge(notif.emoji!);
+    } else if (notif.type == NotificationType.reactionReceived) {
+      badge = _buildBadge('🔥');
+    } else if (notif.type == NotificationType.friendRequestReceived) {
+      badge = _buildBadge('👤+');
+    } else if (notif.type == NotificationType.friendTaskCompleted) {
+      badge = _buildBadge('🏆');
+    }
+
+    if (badge == null) return avatarBody;
+
+    return Stack(
+      children: [
+        avatarBody,
+        Positioned(
+          right: -2,
+          bottom: -2,
+          child: badge,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBadge(String content) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: AppColors.black,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.black, width: 1),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: const BoxDecoration(
+          color: AppColors.grey10,
+          shape: BoxShape.circle,
+        ),
+        child: Text(
+          content,
+          style: const TextStyle(fontSize: 10),
+        ),
+      ),
     );
   }
 
@@ -87,6 +137,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Icon(
         _iconForType(notif.type),
         color: _colorForType(notif.type),
+        size: 20,
       ),
     );
   }
@@ -280,14 +331,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             );
           }
 
-          return ListView.separated(
-            padding: EdgeInsets.zero,
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: notifications.length,
-            separatorBuilder: (context, index) => const Divider(
-              height: 1,
-              indent: 64, // アバターの横から線を引く
-              color: AppColors.grey10,
-            ),
             itemBuilder: (context, index) {
               final notif = notifications[index];
               final isUnread =
@@ -305,7 +351,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 onDismissed: (_) => _deleteNotification(notif.id),
                 child: Material(
                   color: isUnread
-                      ? AppColors.white.withValues(alpha: 0.03)
+                      ? AppColors.accentGold.withValues(alpha: 0.05)
                       : Colors.transparent,
                   child: InkWell(
                     onTap: () {
@@ -316,89 +362,62 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10), // スリム化
+                          horizontal: 16, vertical: 14),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start, // 上揃えに変更して洗練
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 未読インジケーター (スリム化)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 18), // テキストの高さに合わせる
-                            child: Container(
-                              width: 4,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: isUnread ? const Color(0xFFD4AF37) : Colors.transparent,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-
-                          // アバター (小型化 44 -> 38)
+                          // アバター
                           SizedBox(
-                            width: 38,
-                            height: 38,
+                            width: 44,
+                            height: 44,
                             child: _buildAvatar(notif),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 14),
 
                           // コンテンツ
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const SizedBox(height: 2), // アバターとの高さ調整
-                                RichText(
-                                  maxLines: 3, // 少し余裕を持たせる
-                                  overflow: TextOverflow.ellipsis,
-                                  text: TextSpan(
-                                    style: const TextStyle(
-                                      fontSize: 13, // 14 -> 13
-                                      color: AppColors.textPrimary,
-                                      height: 1.4,
-                                    ),
-                                    children: [
-                                      TextSpan(
-                                        text: notif.title,
-                                        style: TextStyle(
-                                          fontWeight: isUnread
-                                              ? FontWeight.bold
-                                              : FontWeight.w600,
-                                        ),
+                                _buildNotificationBody(notif, isUnread),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Text(
+                                      DateHelper.timeAgo(notif.createdAt),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textMuted,
+                                        fontWeight: FontWeight.w500,
                                       ),
-                                      const TextSpan(text: ' '),
-                                      TextSpan(
-                                        text: notif.body,
-                                        style: const TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontWeight: FontWeight.normal,
+                                    ),
+                                    if (isUnread) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        width: 4,
+                                        height: 4,
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.accentGold,
+                                          shape: BoxShape.circle,
                                         ),
                                       ),
                                     ],
-                                  ),
+                                  ],
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  DateHelper.timeAgo(notif.createdAt),
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textMuted,
-                                  ),
-                                ),
-                                
-                                // フレンド申請ボタン (コンパクト化)
+
+                                // フレンド申請ボタン (プレミアム化)
                                 if (notif.type ==
                                     NotificationType.friendRequestReceived) ...[
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 12),
                                   Row(
                                     children: [
                                       _buildCompactButton(
-                                        label: '承認',
+                                        label: '承認する',
                                         onPressed: () =>
                                             _handleFriendRequest(notif, true),
                                         isPrimary: true,
                                       ),
-                                      const SizedBox(width: 8),
+                                      const SizedBox(width: 10),
                                       _buildCompactButton(
                                         label: 'あとで',
                                         onPressed: () =>
@@ -420,6 +439,55 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             },
           );
         },
+      ),
+    );
+  }
+
+  /// 通知本文をリッチテキストで構築（特定のキーワードを太字やゴールドにする）
+  Widget _buildNotificationBody(AppNotification notif, bool isUnread) {
+    final body = notif.body;
+    List<TextSpan> spans = [];
+
+    // 特定のキーワード（ユーザー名や「タスク名」など）を抽出してスタイルを分ける
+    final regExp = RegExp(r'([^\s「」]+(?:さん|くん|ちゃん)|「[^」]+」)');
+    int lastMatchEnd = 0;
+
+    for (final match in regExp.allMatches(body)) {
+      // マッチ前の通常テキスト
+      if (match.start > lastMatchEnd) {
+        spans.add(TextSpan(text: body.substring(lastMatchEnd, match.start)));
+      }
+      // 強調テキスト
+      final matchText = match.group(0)!;
+      final isEntity = matchText.contains('さん') ||
+          matchText.contains('くん') ||
+          matchText.contains('ちゃん');
+      spans.add(TextSpan(
+        text: matchText,
+        style: TextStyle(
+          color: isEntity ? AppColors.white : AppColors.accentGold,
+          fontWeight: FontWeight.bold,
+        ),
+      ));
+      lastMatchEnd = match.end;
+    }
+
+    // 残りのテキスト
+    if (lastMatchEnd < body.length) {
+      spans.add(TextSpan(text: body.substring(lastMatchEnd)));
+    }
+
+    return RichText(
+      maxLines: 3,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: const TextStyle(
+          fontSize: 14,
+          color: AppColors.textSecondary,
+          height: 1.4,
+          fontFamily: 'Outfit',
+        ),
+        children: spans,
       ),
     );
   }

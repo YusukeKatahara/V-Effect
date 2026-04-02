@@ -7,6 +7,7 @@ import '../config/routes.dart';
 import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
+import '../services/multi_account_service.dart';
 import '../widgets/animated_v_logo.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -96,6 +97,12 @@ class _RegisterScreenState extends State<RegisterScreen>
       await cred.user?.sendEmailVerification();
       // Firestoreドキュメントを作成
       await _ensureUserDoc(cred.user!);
+      
+      // アカウント切り替え用に保存
+      await MultiAccountService.instance.saveCurrentAccount(
+        loginId: _emailCtrl.text.trim(),
+        password: _passCtrl.text.trim(),
+      );
       if (!mounted) return;
       // メール認証待ち画面へ
       Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.emailVerification, (r) => false);
@@ -120,6 +127,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       final cred = await _authService.signInWithGoogle();
       if (cred != null) {
         await _analytics.logSignUp('google');
+        // アカウント切り替え用に保存
+        await MultiAccountService.instance.saveCurrentAccount(loginId: cred.user?.email ?? cred.user?.uid ?? "google_user");
         await _ensureUserDocAndNavigate();
       } else {
         if (mounted) setState(() => _isGoogleLoading = false);
@@ -139,6 +148,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       final cred = await _authService.signInWithApple();
       if (cred != null) {
         await _analytics.logSignUp('apple');
+        // アカウント切り替え用に保存
+        await MultiAccountService.instance.saveCurrentAccount(loginId: cred.user?.email ?? cred.user?.uid ?? "apple_user");
         await _ensureUserDocAndNavigate();
       } else {
         if (mounted) setState(() => _isAppleLoading = false);

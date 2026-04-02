@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'app_task.dart';
 
 /// Firestore の users コレクションに対応するデータモデル
 class AppUser {
@@ -14,7 +15,7 @@ class AppUser {
   final String? lastPostedDate;
   final List<String> following;
   final List<String> followers;
-  final List<String> tasks;
+  final List<AppTask> tasks;
   final String? wakeUpTime;
   final String? taskTime;
   final String? occupation;
@@ -65,7 +66,9 @@ class AppUser {
       lastPostedDate: data['lastPostedDate'],
       following: List<String>.from(data['following'] ?? data['friends'] ?? []),
       followers: List<String>.from(data['followers'] ?? data['friends'] ?? []),
-      tasks: List<String>.from(data['tasks'] ?? []),
+      tasks: (data['tasks'] as List? ?? [])
+          .map((item) => AppTask.fromFirestore(item))
+          .toList(),
       wakeUpTime: data['wakeUpTime'],
       taskTime: data['taskTime'],
       occupation: data['occupation'],

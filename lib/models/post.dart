@@ -11,6 +11,7 @@ class Post {
   final DateTime expiresAt;
   final int reactionCount;
   final bool showTimestamp;
+  final List<String> emojiReactedUserIds; // 絵文字リアクションしたユーザーID
 
   const Post({
     required this.id,
@@ -22,6 +23,7 @@ class Post {
     required this.expiresAt,
     this.reactionCount = 0,
     this.showTimestamp = true,
+    this.emojiReactedUserIds = const [],
   });
 
   /// Firestore の DocumentSnapshot からモデルを生成します
@@ -34,9 +36,12 @@ class Post {
       taskName: data['taskName'] ?? '今日のヒーロータスク',
       caption: data['caption'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      expiresAt: (data['expiresAt'] as Timestamp?)?.toDate() ?? DateTime.now().add(const Duration(hours: 24)),
+      expiresAt: (data['expiresAt'] as Timestamp?)?.toDate() ??
+          DateTime.now().add(const Duration(hours: 24)),
       reactionCount: (data['reactionCount'] as num?)?.toInt() ?? 0,
       showTimestamp: data['showTimestamp'] ?? true,
+      emojiReactedUserIds:
+          List<String>.from(data['emojiReactedUserIds'] ?? []),
     );
   }
 

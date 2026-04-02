@@ -20,6 +20,7 @@ class AppNotification {
   final String? fromUid;
   final String? relatedId;
   final int reactionCount;
+  final String? emoji; // 絵文字リアクション用
   final bool isRead;
   final DateTime createdAt;
 
@@ -31,6 +32,7 @@ class AppNotification {
     required this.body,
     this.fromUid,
     this.relatedId,
+    this.emoji,
     this.reactionCount = 0,
     this.isRead = false,
     required this.createdAt,
@@ -49,6 +51,7 @@ class AppNotification {
       body: data['body'] ?? '',
       fromUid: data['fromUid'],
       relatedId: data['relatedId'],
+      emoji: data['emoji'],
       reactionCount: data['reactionCount'] as int? ?? 0,
       isRead: data['isRead'] ?? false,
       createdAt:
@@ -63,6 +66,7 @@ class AppNotification {
         'body': body,
         'fromUid': fromUid,
         'relatedId': relatedId,
+        'emoji': emoji,
         'reactionCount': reactionCount,
         'isRead': isRead,
         'createdAt': FieldValue.serverTimestamp(),

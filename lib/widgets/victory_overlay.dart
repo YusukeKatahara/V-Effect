@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/app_colors.dart';
 
 class VictoryOverlay extends StatefulWidget {
   final VoidCallback onComplete;
@@ -123,11 +124,11 @@ class _VictoryOverlayState extends State<VictoryOverlay> with TickerProviderStat
                     style: GoogleFonts.outfit(
                       fontSize: 64,
                       fontWeight: FontWeight.w900,
-                      color: const Color(0xFFD4AF37),
+                      color: AppColors.accentGold,
                       letterSpacing: 8.0,
                       shadows: [
                         Shadow(
-                          color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
+                          color: AppColors.accentGold.withValues(alpha: 0.5),
                           blurRadius: 30,
                         ),
                         Shadow(

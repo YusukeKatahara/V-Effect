@@ -38,6 +38,10 @@ class AppColors {
   static const Color error = Color(0xFFFF5252); // 唯一の例外：エラーは赤を許容
   static const Color warning = grey70;
 
+  // ── Accent Colors ────────────────────────
+  static const Color accentGold = Color(0xFFD4AF37);
+  static const Color accentGoldLight = Color(0xFFFFD700);
+
   // ── Gradients ────────────────────────────
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -48,7 +52,7 @@ class AppColors {
   static const LinearGradient bgGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [grey08, black],
+    colors: [grey10, black],
   );
 
   static const LinearGradient cardGradient = LinearGradient(

@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../models/app_task.dart';
 import '../services/analytics_service.dart';
 import '../services/user_service.dart';
 import '../widgets/premium_background.dart';
@@ -309,6 +310,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
         _taskCtrls
             .map((c) => c.text.trim())
             .where((t) => t.isNotEmpty)
+            .map((t) => AppTask(title: t))
             .toList();
 
     if (tasks.isEmpty) {

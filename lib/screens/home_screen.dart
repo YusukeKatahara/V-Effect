@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
@@ -12,6 +13,7 @@ import '../models/post.dart';
 import '../services/post_service.dart';
 import '../services/notification_service.dart';
 import '../services/analytics_service.dart';
+import '../widgets/v_effect_header.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -25,9 +27,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final PostService _postService = PostService.instance;
-  final NotificationService _notificationService = NotificationService.instance;
   StreamSubscription? _updateSubscription;
-  late final Stream<int> _notificationStream;
   bool _loading = true;
   bool _postedToday = false;
   List<Post> _feedPosts = [];
@@ -52,14 +52,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // ── V-Flash 演出用 ──
   late final AnimationController _flashController;
   late final Animation<double> _flashAnimation;
+  // ── リアクションメニュー用 ──
+  bool _reactionMenuOpen = false;
+  late final AnimationController _reactionMenuController;
+  static const _reactionEmojis = ['❤️', '🔥', '👍'];
+  final GlobalKey<_DopamineEmojiExplosionLayerState> _explosionKey = GlobalKey();
+
 
   // ── ガード状態演出用 ──
   late final AnimationController _pulseController;
 
+  // ── ロックアイコン シェイク演出用 ──
+  late final AnimationController _shakeController;
+
   @override
   void initState() {
     super.initState();
-    _notificationStream = _notificationService.getNotificationCount();
     _flashController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -73,6 +81,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
+
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _reactionMenuController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+
 
     final initialPage = 10000;
     _pageController = PageController(initialPage: initialPage)..addListener(() {
@@ -97,6 +116,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _pageController.dispose();
     _flashController.dispose();
     _pulseController.dispose();
+    _shakeController.dispose();
+    _reactionMenuController.dispose();
     super.dispose();
   }
 
@@ -202,23 +223,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _sendReaction(int index) async {
+  Future<void> _sendReaction(int index, {String? emoji}) async {
     if (_feedPosts.isEmpty) return;
+    final post = _feedPosts[index];
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
 
-    final isVFlash = Random().nextInt(100) == 0; // 1/100の確率
+    // 絵文字リアクションの1回制限チェック
+    if (emoji != null && myUid != null) {
+      if (post.emojiReactedUserIds.contains(myUid)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('絵文字リアクションは1回までです'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+        return;
+      }
+    }
+
+    final isVFlash = emoji == null && Random().nextInt(100) == 0;
 
     if (isVFlash) {
       HapticFeedback.heavyImpact();
       _flashController.forward(from: 0);
       _flamesKey.currentState?.addFlame(isGold: true);
     } else {
-      HapticFeedback.lightImpact();
-      _flamesKey.currentState?.addFlame(isGold: false);
+      // 絵文字リアクション、または通常のV Fire
+      if (emoji != null) {
+        // ドーパミン演出！
+        HapticFeedback.heavyImpact();
+        _explosionKey.currentState?.explode(emoji);
+      } else {
+        HapticFeedback.mediumImpact();
+        _flamesKey.currentState?.addFlame(isGold: false);
+      }
     }
 
-    final post = _feedPosts[index];
     // Optimistic UI update
     setState(() {
+      final updatedIds = emoji != null && myUid != null
+          ? [...post.emojiReactedUserIds, myUid]
+          : post.emojiReactedUserIds;
+
       _feedPosts = List.from(_feedPosts)
         ..[index] = Post(
           id: post.id,
@@ -229,18 +275,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           createdAt: post.createdAt,
           expiresAt: post.expiresAt,
           reactionCount: post.reactionCount + 1,
+          emojiReactedUserIds: updatedIds,
         );
     });
 
-    await _postService.addReaction(post.id);
+    try {
+      await _postService.addReaction(post.id, emoji: emoji);
+    } catch (e) {
+      debugPrint('Reaction error: $e');
+    }
   }
 
   Color _getTierColor(int streak) {
     if (streak >= 100) return const Color(0xFFE5E4E2); // Platinum
-    if (streak >= 30) return const Color(0xFFD4AF37); // Gold
+    if (streak >= 30) return AppColors.accentGoldLight;
     if (streak >= 7) return const Color(0xFFC0C0C0); // Silver
     if (streak >= 3) return const Color(0xFFCD7F32); // Bronze
-    return const Color(0xFFD4AF37); // Default Gold accent
+    return AppColors.accentGold;
   }
 
   @override
@@ -264,6 +315,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
 
+
+
           SafeArea(
             child: Column(
               children: [
@@ -280,9 +333,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
 
-          // ── Floating Flames Layer (setStateの影響を分離) ──
-          _FloatingFlamesLayer(key: _flamesKey),
-
           // ── V-Flash 演出レイヤー ──
           IgnorePointer(
             child: AnimatedBuilder(
@@ -293,6 +343,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   color: Colors.white.withValues(alpha: _flashAnimation.value),
                 );
               },
+            ),
+          ),
+
+          // ── 炎のエフェクトレイヤー (最前面) ──
+          Positioned.fill(
+            child: IgnorePointer(
+              child: _FloatingFlamesLayer(key: _flamesKey),
+            ),
+          ),
+
+          // ── ドーパミン爆発レイヤー (最前面) ──
+          Positioned.fill(
+            child: IgnorePointer(
+              child: _DopamineEmojiExplosionLayer(key: _explosionKey),
             ),
           ),
         ],
@@ -325,59 +389,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildTitleBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: IconButton(
-                icon: const Icon(
-                  Icons.search_rounded,
-                  color: AppColors.white,
-                ),
-                onPressed: () => Navigator.pushNamed(context, '/search'),
-              ),
-            ),
-          ),
-          Text(
-            'V EFFECT',
-            style: GoogleFonts.outfit(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppColors.white,
-              letterSpacing: 6.0,
-            ),
-          ),
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: StreamBuilder<int>(
-                stream: _notificationStream,
-                builder: (context, snapshot) {
-                  final count = snapshot.data ?? 0;
-                  return IconButton(
-                    icon: Badge(
-                      isLabelVisible: count > 0,
-                      label: Text('$count'),
-                      child: const Icon(
-                        Icons.notifications_outlined,
-                        color: AppColors.white,
-                      ),
-                    ),
-                    onPressed:
-                        () => Navigator.pushNamed(context, AppRoutes.notifications),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildTitleBar() =>
+      const VEffectHeader(trailing: NotificationBellIcon());
 
   Widget _buildEmptyState() {
     return Center(
@@ -439,52 +452,62 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // 鍵アイコン + パルスアニメーション (固定サイズでレイアウトを安定させる)
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, child) {
-                    return Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: 100 + (20 * _pulseController.value),
-                          height: 100 + (20 * _pulseController.value),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFD4AF37).withValues(
-                                alpha: 1.0 - _pulseController.value,
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.heavyImpact();
+                  _shakeController.forward(from: 0);
+                },
+                child: SizedBox(
+                  width: 120,
+                  height: 120,
+                  child: AnimatedBuilder(
+                    animation: Listenable.merge([_pulseController, _shakeController]),
+                    builder: (context, child) {
+                      final shakeOffset = sin(_shakeController.value * pi * 4) * 8.0;
+                      return Transform.translate(
+                        offset: Offset(shakeOffset, 0),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: 100 + (20 * _pulseController.value),
+                              height: 100 + (20 * _pulseController.value),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.accentGold.withValues(
+                                    alpha: 1.0 - _pulseController.value,
+                                  ),
+                                  width: 2,
+                                ),
                               ),
-                              width: 2,
                             ),
+                            child!,
+                          ],
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppColors.grey10.withValues(alpha: 0.8),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.accentGold.withValues(alpha: 0.5),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.accentGold.withValues(alpha: 0.2),
+                            blurRadius: 20,
+                            spreadRadius: 5,
                           ),
-                        ),
-                        child!,
-                      ],
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppColors.grey10.withValues(alpha: 0.8),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
+                        ],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.lock_outline_rounded,
-                      color: Color(0xFFD4AF37),
-                      size: 48,
+                      child: const Icon(
+                        Icons.lock_outline_rounded,
+                        color: AppColors.accentGold,
+                        size: 48,
+                      ),
                     ),
                   ),
                 ),
@@ -605,32 +628,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                   return Stack(
                     children: [
-                      // 背景全体：タップでリアクション
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => _sendReaction(_focusedIndex),
-                        child: const SizedBox.expand(),
+                      // 1. 写真エリア（上部のみ）: タップでリアクション
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 180,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            // メニューが開いているときは閉じる、そうでなければリアクション
+                            if (_reactionMenuOpen) {
+                              setState(() => _reactionMenuOpen = false);
+                              _reactionMenuController.reverse();
+                            } else {
+                              _sendReaction(actualIndex);
+                            }
+                          },
+                          child: const SizedBox.expand(),
+                        ),
                       ),
 
-                      // カード内の特定のインタラクティブエリア（プロフィール、リアクションボタンなど）
-                      // カードのサイズと位置に合わせる
+                      // 2. アバタータップエリア (アイコンのみ)
                       Center(
                         child: SizedBox(
                           width: finalCardWidth,
                           height: maxCardHeight,
                           child: Stack(
                             children: [
-                              // プロフィールエリア（アイコンと名前）へのタップ
                               Positioned(
-                                bottom: 30, // _FeedCardのPositionedと合わせる
+                                bottom: 30,
                                 left: 20,
-                                width: finalCardWidth * 0.7, // 左側の概ね3/4
-                                height: 80, // アイコンと名前を含むエリア
+                                width: 50,
+                                height: 50,
                                 child: GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () {
                                     final photoUrl = _userPhotos[post.userId];
-                                    final username = _userNames[post.userId] ?? 'User';
+                                    final username =
+                                        _userNames[post.userId] ?? 'User';
                                     Navigator.pushNamed(
                                       context,
                                       AppRoutes.userProfile,
@@ -644,16 +680,121 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 ),
                               ),
 
-                              // 右下のリアクションボタンエリア
-                              // 既に画面全体でタップを拾っているが、ここを明示的にタップした場合のフィードバック用（将来的に）
+                              // 拡張リアクション エモジピルズ
+                              if (_reactionMenuOpen)
+                                Positioned(
+                                  bottom: 62,
+                                  right: 142,
+                                  child: AnimatedOpacity(
+                                    opacity: _reactionMenuOpen ? 1.0 : 0.0,
+                                    duration: const Duration(milliseconds: 200),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.grey15
+                                            .withValues(alpha: 0.95),
+                                        borderRadius: BorderRadius.circular(30),
+                                        border: Border.all(
+                                          color: AppColors.white
+                                              .withValues(alpha: 0.1),
+                                          width: 0.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppColors.black
+                                                .withValues(alpha: 0.3),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: _reactionEmojis.map((emoji) {
+                                          return GestureDetector(
+                                            behavior: HitTestBehavior.opaque,
+                                            onTap: () {
+                                              _sendReaction(actualIndex,
+                                                  emoji: emoji);
+                                              setState(() =>
+                                                  _reactionMenuOpen = false);
+                                              _reactionMenuController.reverse();
+                                            },
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 4),
+                                              child: Text(
+                                                emoji,
+                                                style: const TextStyle(
+                                                    fontSize: 28),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              // ＋ トグルボタン
                               Positioned(
-                                bottom: 30,
-                                right: 20,
-                                width: 60,
-                                height: 80,
+                                bottom: 62, // 火炎アイコンと中心位置を完全に同期 (84px - 22px)
+                                right: 88, // V Fire(56) + 間隔(10) + 22
+                                width: 44,
+                                height: 44,
                                 child: GestureDetector(
                                   behavior: HitTestBehavior.opaque,
-                                  onTap: () => _sendReaction(_focusedIndex),
+                                  onTap: () {
+                                    setState(() =>
+                                        _reactionMenuOpen = !_reactionMenuOpen);
+                                    if (_reactionMenuOpen) {
+                                      _reactionMenuController.forward();
+                                    } else {
+                                      _reactionMenuController.reverse();
+                                    }
+                                  },
+                                  child: AnimatedBuilder(
+                                    animation: _reactionMenuController,
+                                    builder: (context, child) =>
+                                        AnimatedRotation(
+                                      turns:
+                                          _reactionMenuOpen ? 0.125 : 0.0,
+                                      duration:
+                                          const Duration(milliseconds: 220),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: AppColors.white
+                                              .withValues(alpha: 0.1),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: AppColors.white
+                                                .withValues(alpha: 0.15),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.add_rounded,
+                                          color: AppColors.white,
+                                          size: 24,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // V Fire ボタン
+                              Positioned(
+                                bottom: 56, // カウントテキスト(約20) + 間隔(6) + 基底(30)
+                                right: 20,
+                                width: 56,
+                                height: 56,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => _sendReaction(actualIndex),
                                 ),
                               ),
                             ],
@@ -828,7 +969,7 @@ class _FeedCard extends StatelessWidget {
                           color: AppColors.grey10,
                           child: const Center(
                             child: CircularProgressIndicator(
-                              color: Color(0xFFD4AF37),
+                              color: AppColors.accentGold,
                               strokeWidth: 2,
                             ),
                           ),
@@ -851,6 +992,32 @@ class _FeedCard extends StatelessWidget {
                     ),
             ),
 
+            // [New] タスク名を左上に配置
+            Positioned(
+              top: 24,
+              left: 20,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.black.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.white.withValues(alpha: 0.1),
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  post.taskName,
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.grey50,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+            ),
+
             // グラデーションオーバーレイ（下部を暗くしてテキストを読みやすく）
             Positioned(
               bottom: 0,
@@ -871,7 +1038,7 @@ class _FeedCard extends StatelessWidget {
               ),
             ),
 
-            // ユーザー情報とタスク情報
+            // ユーザー情報とタスク情報 (Zenly-style Thought Bubble)
             Positioned(
               bottom: 30,
               left: 20,
@@ -879,107 +1046,153 @@ class _FeedCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  // Zenly-style vertical stack (Bubble -> Dot -> Avatar -> Name)
                   Expanded(
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        GestureDetector(
-                          onTap: onProfileTap,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min, // 行の幅を内容に合わせる
-                            children: [
-                              CircleAvatar(
-                                radius: 16,
-                                backgroundColor: AppColors.grey20,
-                                backgroundImage: userPhotoUrl != null
-                                    ? ResizeImage(
-                                        CachedNetworkImageProvider(
-                                            userPhotoUrl!),
-                                        width: 100)
-                                    : null,
-                                child: userPhotoUrl == null
-                                    ? Text(
-                                        username[0].toUpperCase(),
-                                        style: const TextStyle(
-                                          color: AppColors.white,
-                                          fontSize: 12,
-                                        ),
-                                      )
-                                    : null,
+                        if (post.caption != null &&
+                            post.caption!.isNotEmpty) ...[
+                          // Main bubble (no tap handler — not a profile link)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            constraints: const BoxConstraints(maxWidth: 240),
+                            decoration: BoxDecoration(
+                              color: AppColors.grey15.withValues(alpha: 0.95),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: AppColors.white.withValues(alpha: 0.1),
+                                width: 0.5,
                               ),
-                              const SizedBox(width: 10),
-                              Text(
-                                username,
-                                style: GoogleFonts.outfit(
-                                  color: AppColors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 1,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.black.withValues(alpha: 0.3),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              post.caption!,
+                              style: GoogleFonts.notoSerifJp(
+                                color: AppColors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                          // Tiny thought dot
+                          Padding(
+                            padding: const EdgeInsets.only(left: 18, top: 2),
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: AppColors.grey15.withValues(alpha: 0.95),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.white.withValues(alpha: 0.1),
+                                  width: 0.5,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        if (post.caption != null && post.caption!.isNotEmpty) ...[
-                          Text(
-                            post.caption!,
-                            style: GoogleFonts.notoSerifJp(
-                              color: AppColors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              height: 1.3,
                             ),
                           ),
                           const SizedBox(height: 4),
                         ],
-                        Text(
-                          post.taskName,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.grey50,
-                            letterSpacing: 0.5,
+                        // Avatar + Username — only these trigger profile tap
+                        GestureDetector(
+                          onTap: onProfileTap,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4),
+                                child: CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: AppColors.grey20,
+                                  backgroundImage: userPhotoUrl != null
+                                      ? ResizeImage(
+                                          CachedNetworkImageProvider(userPhotoUrl!),
+                                          width: 120)
+                                      : null,
+                                  child: userPhotoUrl == null
+                                      ? Text(
+                                          username[0].toUpperCase(),
+                                          style: const TextStyle(
+                                            color: AppColors.white,
+                                            fontSize: 14,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(height: 21), // 中心を 84px (30+13+21+20) に合わせる
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4),
+                                child: Text(
+                                  username,
+                                  style: GoogleFonts.outfit(
+                                    color: AppColors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
 
-                  // リアクションボタン
+                  // リアクションボタン: [🔥] （表示専用、＋はPV層に集約）
                   if (isTop)
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        GestureDetector(
-                          onTap: onReaction,
-                          child: Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: AppColors.white.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.white.withValues(alpha: 0.1),
-                                width: 1,
+                    IgnorePointer(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // ＋ボタン用のスペースのみ確保して、二重表示を回避
+                          const SizedBox(width: 54), // 44 + 10
+                          // V Fire ボタン＋カウント（表示専用）
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: AppColors.white.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.white.withValues(alpha: 0.1),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.local_fire_department,
+                                  color: tierColor,
+                                  size: 32,
+                                ),
                               ),
-                            ),
-                            child: Icon(
-                              Icons.local_fire_department,
-                              color: tierColor,
-                              size: 32,
-                            ),
+                              const SizedBox(height: 12), // 中心を 84px (30+14+12+28) に合わせる
+                              Text(
+                                '${post.reactionCount}',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${post.reactionCount}',
-                          style: GoogleFonts.outfit(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                 ],
               ),
@@ -993,6 +1206,152 @@ class _FeedCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────
+// 拡張リアクションメニュー
+// ────────────────────────────────────────────
+class _ExpandableReactionMenu extends StatefulWidget {
+  final void Function(String emoji) onReact;
+
+  const _ExpandableReactionMenu({required this.onReact});
+
+  @override
+  State<_ExpandableReactionMenu> createState() =>
+      _ExpandableReactionMenuState();
+}
+
+class _ExpandableReactionMenuState extends State<_ExpandableReactionMenu>
+    with SingleTickerProviderStateMixin {
+  bool _isOpen = false;
+  late AnimationController _controller;
+  late Animation<double> _widthFactor;
+  late Animation<double> _opacity;
+
+  static const _emojis = ['❤️', '🔥', '👍'];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _widthFactor = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() => _isOpen = !_isOpen);
+    if (_isOpen) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  void _react(String emoji) {
+    widget.onReact(emoji);
+    setState(() => _isOpen = false);
+    _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Expanded emoji pills (slides in from the right)
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return ClipRect(
+              child: Align(
+                alignment: Alignment.centerRight,
+                widthFactor: _widthFactor.value,
+                child: Opacity(
+                  opacity: _opacity.value,
+                  child: child,
+                ),
+              ),
+            );
+          },
+          child: Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.grey15.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: AppColors.white.withValues(alpha: 0.1),
+                width: 0.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.black.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: _emojis.map((emoji) {
+                return GestureDetector(
+                  onTap: () => _react(emoji),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(
+                      emoji,
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+
+        // Toggle button
+        GestureDetector(
+          onTap: _toggle,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.white.withValues(alpha: 0.15),
+                width: 1,
+              ),
+            ),
+            child: AnimatedRotation(
+              turns: _isOpen ? 0.125 : 0.0,
+              duration: const Duration(milliseconds: 220),
+              child: const Icon(
+                Icons.add_rounded,
+                color: AppColors.white,
+                size: 24,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1117,7 +1476,7 @@ class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
       child: Icon(
         Icons.whatshot,
         color:
-            widget.isGold ? const Color(0xFFFFD700) : const Color(0xFFD4AF37),
+            widget.isGold ? AppColors.accentGoldLight : AppColors.accentGold,
         size: widget.isGold ? 64 : 44,
         shadows: [
           Shadow(
@@ -1153,4 +1512,130 @@ class _FrictionlessPageScrollPhysics extends PageScrollPhysics {
 
   @override
   double get minFlingVelocity => 20.0;
+}
+
+// ────────────────────────────────────────────
+// ドーパミン全開！絵文字爆発レイヤー
+// ────────────────────────────────────────────
+class _DopamineEmojiExplosionLayer extends StatefulWidget {
+  const _DopamineEmojiExplosionLayer({super.key});
+
+  @override
+  State<_DopamineEmojiExplosionLayer> createState() =>
+      _DopamineEmojiExplosionLayerState();
+}
+
+class _DopamineEmojiExplosionLayerState
+    extends State<_DopamineEmojiExplosionLayer> {
+  final List<Widget> _particles = [];
+  int _counter = 0;
+
+  void explode(String emoji) {
+    final newParticles = List.generate(24, (i) {
+      final id = _counter++;
+      return _DopamineParticle(
+        key: ValueKey(id),
+        emoji: emoji,
+        onComplete: () {
+          if (mounted) {
+            setState(() {
+              _particles.removeWhere((p) => p.key == ValueKey(id));
+            });
+          }
+        },
+      );
+    });
+
+    setState(() {
+      _particles.addAll(newParticles);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(children: _particles);
+  }
+}
+
+class _DopamineParticle extends StatefulWidget {
+  final String emoji;
+  final VoidCallback onComplete;
+
+  const _DopamineParticle({
+    super.key,
+    required this.emoji,
+    required this.onComplete,
+  });
+
+  @override
+  State<_DopamineParticle> createState() => _DopamineParticleState();
+}
+
+class _DopamineParticleState extends State<_DopamineParticle>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late double _vx;
+  late double _vy;
+  late double _rotation;
+  late double _rotationSpeed;
+  late Offset _position;
+  final _random = Random();
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    // 下部メニュー付近 (画面中央下寄り) から噴出
+    _position = const Offset(0, 300);
+
+    // 放射状にランダムなベクトル
+    final angle = (_random.nextDouble() * pi) + pi; // 上方向 180度
+    final speed = 8.0 + _random.nextDouble() * 12.0;
+    _vx = cos(angle) * speed;
+    _vy = sin(angle) * speed;
+
+    _rotation = _random.nextDouble() * 2 * pi;
+    _rotationSpeed = (_random.nextDouble() - 0.5) * 0.4;
+
+    _ctrl.addListener(() {
+      setState(() {
+        _position += Offset(_vx, _vy);
+        _vy += 0.4; // 重力
+        _vx *= 0.98; // 空気抵抗
+        _rotation += _rotationSpeed;
+      });
+    });
+
+    _ctrl.forward().then((_) => widget.onComplete());
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 100 - _position.dy,
+      left: MediaQuery.of(context).size.width / 2 + _position.dx - 20,
+      child: FadeTransition(
+        opacity: Tween<double>(begin: 1.0, end: 0.0).animate(
+          CurvedAnimation(parent: _ctrl, curve: const Interval(0.6, 1.0)),
+        ),
+        child: Transform.rotate(
+          angle: _rotation,
+          child: Text(
+            widget.emoji,
+            style: const TextStyle(fontSize: 32),
+          ),
+        ),
+      ),
+    );
+  }
 }

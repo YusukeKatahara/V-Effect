@@ -44,9 +44,9 @@ _TierStyle _getTierStyle(int streak) {
   } else if (streak >= 7) {
     return const _TierStyle(
       label: 'GOLD',
-      primaryColor: Color(0xFFD4AF37),
+      primaryColor: AppColors.accentGold,
       glowColor: Color(0xFFFFD700),
-      flameColor: Color(0xFFD4AF37),
+      flameColor: AppColors.accentGold,
       hasParticles: true,
       nextMilestone: 30,
       prevMilestone: 7,

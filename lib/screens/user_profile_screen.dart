@@ -4,7 +4,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
+import '../models/post.dart';
 import '../services/friend_service.dart';
+import '../services/post_service.dart';
 
 /// 他ユーザーのプロフィール閲覧画面
 ///
@@ -18,6 +20,7 @@ class UserProfileScreen extends StatefulWidget {
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
   final FriendService _friendService = FriendService.instance;
+  final PostService _postService = PostService.instance;
   final String _myUid = FirebaseAuth.instance.currentUser!.uid;
 
   String? _targetUid;
@@ -25,6 +28,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String? _initialPhotoUrl;
 
   AppUser? _user;
+  List<Post> _todayPosts = [];
   bool _loading = true;
   bool _isFollowing = false;
   bool _isMyFollower = false;
@@ -59,6 +63,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final results = await Future.wait([
         _friendService.getUserByUid(_targetUid!),
         _friendService.isFollowing(_targetUid!),
+        _postService.getFriendPostsList(_targetUid!),
       ]);
 
       // friend_requests コレクションへのアクセスが失敗しても他の処理を妨げない
@@ -72,6 +77,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       setState(() {
         _user = loadedUser;
         _isFollowing = results[1] as bool;
+        _todayPosts = results[2] as List<Post>;
         // _user.following にyusukeのUIDが含まれる = renがyusukeをフォローしている = renはyusukeのフォロワー
         _isMyFollower = loadedUser?.following.contains(_myUid) ?? false;
         _isPending = isPending;
@@ -372,7 +378,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 16, color: const Color(0xFFD4AF37)),
+              Icon(icon, size: 16, color: AppColors.accentGold),
               const SizedBox(width: 4),
             ],
             Text(
@@ -472,7 +478,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               width: 3,
               height: 16,
               decoration: BoxDecoration(
-                color: const Color(0xFFD4AF37),
+                color: AppColors.accentGold,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -527,13 +533,56 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            _user!.tasks[i],
+                            _user!.tasks[i].title,
                             style: const TextStyle(
                               fontSize: 15,
                               color: AppColors.textPrimary,
                             ),
                           ),
                         ),
+                        // 今日の投稿があれば V FIRE 数を表示
+                        ...() {
+                          final post = _todayPosts.cast<Post?>().firstWhere(
+                            (p) => p?.taskName == _user!.tasks[i].title,
+                            orElse: () => null,
+                          );
+                          if (post != null && post.reactionCount > 0) {
+                            return [
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentGold.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: AppColors.accentGold.withValues(alpha: 0.2),
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.local_fire_department,
+                                      color: AppColors.accentGold,
+                                      size: 12,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      '${post.reactionCount}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ];
+                          }
+                          return <Widget>[];
+                        }(),
                       ],
                     ),
                   ),

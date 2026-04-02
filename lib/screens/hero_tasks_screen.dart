@@ -4,24 +4,28 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../config/app_colors.dart';
 import '../models/post.dart';
+import '../models/app_task.dart';
+import '../models/app_user.dart';
 import '../services/analytics_service.dart';
 import '../services/notification_service.dart';
 import '../services/post_service.dart';
 import '../services/user_service.dart';
 import '../widgets/splash_loading.dart';
 import '../widgets/streak_flame.dart';
+import '../widgets/v_effect_header.dart';
 import 'camera_screen.dart';
 
 /// 内部管理用のタスクアイテム
 class _HeroTaskItem {
   final String name;
   final Post? completedPost;
+  final bool isOneTime;
   bool get isCompleted => completedPost != null;
-  _HeroTaskItem({required this.name, this.completedPost});
+  _HeroTaskItem({required this.name, this.completedPost, this.isOneTime = false});
 }
 
 class HeroTasksScreen extends StatefulWidget {
@@ -148,9 +152,11 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       curve: const Interval(0.25, 1.0, curve: Curves.easeOut),
     );
 
-    _sublimationBgDim = CurvedAnimation(
-      parent: _sublimationController,
-      curve: const Interval(0.0, 0.3, curve: Curves.easeIn),
+    _sublimationBgDim = Tween<double>(begin: 0.0, end: 0.95).animate(
+      CurvedAnimation(
+        parent: _sublimationController,
+        curve: const Interval(0.0, 0.35, curve: Curves.easeOut),
+      ),
     );
 
     // データの更新通知を監視
@@ -181,21 +187,41 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
       if (!mounted) return;
 
-      final allTasks =
-          (homeData['tasks'] as List<dynamic>?)?.cast<String>() ?? [];
+      final allTasks = (homeData['tasks'] as List<dynamic>?)?.cast<AppTask>() ?? [];
+      
+      // ワンタイムタスクのクリーンアップ（期限切れを削除）
+      final uid = _userService.currentUid;
+      if (uid != null) {
+        final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        if (snap.exists) {
+          final user = AppUser.fromFirestore(snap);
+          await _userService.cleanupExpiredTasks(user);
+          // クリーンアップされた可能性があるため、再ロードが必要な場合はここで再取得するか
+          // リマインドとして _loadData を再度呼ぶのもありだが、
+          // 24時間経過後に削除されるタイミングなので、ユーザーが画面を開いた瞬間に消えるので
+          // 取得済みの allTasks からフィルタリングして即時反映する
+          final now = DateTime.now();
+          allTasks.removeWhere((t) => t.isOneTime && t.completedAt != null && now.difference(t.completedAt!).inHours >= 24);
+        }
+      }
+
       final postedPosts =
           (homeData['postedTasksToday'] as List<dynamic>?)?.cast<Post>() ?? [];
 
       final List<_HeroTaskItem> items = [];
-      for (final taskName in allTasks) {
+      for (final task in allTasks) {
         Post? completedPost;
         for (final p in postedPosts) {
-          if (p.taskName == taskName) {
+          if (p.taskName == task.title) {
             completedPost = p;
             break;
           }
         }
-        items.add(_HeroTaskItem(name: taskName, completedPost: completedPost));
+        items.add(_HeroTaskItem(
+          name: task.title, 
+          completedPost: completedPost,
+          isOneTime: task.isOneTime,
+        ));
       }
 
       setState(() {
@@ -216,7 +242,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       _analytics.setStreakTier(_streak);
       _analytics.setTaskCount(_taskItems.length);
       _analytics.setFriendCount(friendUids.length);
-      _analytics.setTaskCategories(allTasks);
+      _analytics.setTaskCategories(allTasks.map((t) => t.title).toList());
 
       _notificationService
           .checkAndCreateTimeReminders(streak: _streak)
@@ -404,10 +430,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
   Color _getTierColor(int streak) {
     if (streak >= 100) return const Color(0xFFE5E4E2); // Platinum
-    if (streak >= 30) return const Color(0xFFD4AF37); // Gold
+    if (streak >= 30) return AppColors.accentGoldLight;
     if (streak >= 7) return const Color(0xFFC0C0C0); // Silver
     if (streak >= 3) return const Color(0xFFCD7F32); // Bronze
-    return const Color(0xFFD4AF37); // Default Gold accent
+    return AppColors.accentGold;
   }
 
   @override
@@ -436,8 +462,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               ],
             ),
           ),
-          if (_isSublimating) _buildSublimationFlash(),
-          if (_isSublimating) _buildVictoryOverlay(),
+          if (_isSublimating)
+            IgnorePointer(child: _buildSublimationFlash()),
+          if (_isSublimating)
+            IgnorePointer(child: _buildVictoryOverlay()),
         ],
       ),
     );
@@ -555,22 +583,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     );
   }
 
-  Widget _buildTitleBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Center(
-        child: Text(
-          'V EFFECT',
-          style: GoogleFonts.outfit(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: AppColors.white,
-            letterSpacing: 6.0,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildTitleBar() =>
+      const VEffectHeader(trailing: NotificationBellIcon());
 
   Widget _buildStreakRow() {
     return ValueListenableBuilder<double>(
@@ -691,8 +705,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                     scrollPos: scrollPos,
                   ),
 
-                if (!_isSublimating)
-                  Positioned.fill(
+                Positioned.fill(
+                  child: IgnorePointer(
+                    ignoring: _isSublimating,
                     child: PageView.builder(
                       controller: _pageController,
                       physics: const _FrictionlessPageScrollPhysics(),
@@ -736,6 +751,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                       },
                     ),
                   ),
+                ),
               ],
             );
           },
@@ -1072,14 +1088,9 @@ class _TaskCard extends StatelessWidget {
   }
 
   Widget _buildCardContent(bool isTop) {
-    // 負荷軽減: 背景が真っ暗に近いので、BackdropFilterの代わりに
-    // シンプルなオーバーレイグラデーションでガラス感を模倣し、ぼかしは最小限に。
-    if (isTop && !isExpanded) {
-      return BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
-        child: _buildStack(),
-      );
-    }
+    // パフォーマンス最適化 (iOSの発熱対策):
+    // ImageFilter.blur は非常に重い処理のため、アニメーションするカード内での使用を避け、
+    // 代わりに半透明の黒（またはグラデーション）のみを使用して、高級感のある質感を模倣します。
     return _buildStack();
   }
 
@@ -1202,6 +1213,19 @@ class _TaskCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
 
+              if (item.isOneTime && depth == 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'One-Time Task',
+                  style: GoogleFonts.outfit(
+                    fontSize: 8,
+                    color: tierColor.withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 16),
 
               if (depth == 0)
@@ -1221,6 +1245,39 @@ class _TaskCard extends StatelessWidget {
                         letterSpacing: 2,
                       ),
                     ),
+                    if (isCompleted && item.completedPost != null) ...[
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: tierColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: tierColor.withValues(alpha: 0.3),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.local_fire_department,
+                              color: tierColor,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${item.completedPost!.reactionCount}',
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
             ],
