@@ -158,8 +158,6 @@ class _LoginScreenState extends State<LoginScreen>
       final cred = await _authService.signInWithApple();
       if (cred != null) {
         await _analytics.logLogin('apple');
-        // アカウント切り替え用に保存
-        await MultiAccountService.instance.saveCurrentAccount(loginId: FirebaseAuth.instance.currentUser?.email ?? FirebaseAuth.instance.currentUser?.uid ?? "apple_user");
         await _ensureUserDocAndNavigate();
       } else {
         if (mounted) setState(() => _isAppleLoading = false);
