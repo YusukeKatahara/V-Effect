@@ -389,8 +389,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildTitleBar() =>
-      const VEffectHeader(trailing: NotificationBellIcon());
+  Widget _buildTitleBar() => VEffectHeader(
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.search_rounded, color: AppColors.white),
+              onPressed: () => Navigator.pushNamed(context, '/search'),
+            ),
+            const NotificationBellIcon(),
+          ],
+        ),
+      );
 
   Widget _buildEmptyState() {
     return Center(

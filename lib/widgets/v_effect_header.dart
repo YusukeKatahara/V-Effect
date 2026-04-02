@@ -29,7 +29,7 @@ class VEffectHeader extends StatelessWidget {
           Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
-              child: leading ?? const UserAvatarHeader(),
+              child: leading ?? const SizedBox(width: 48),
             ),
           ),
 
