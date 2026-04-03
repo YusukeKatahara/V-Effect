@@ -86,7 +86,7 @@ service cloud.firestore {
       // 【仕様】reactionCount の更新は誰でも（ログインユーザーなら）OK
       // ただし reactionCount 以外のフィールドを変更しようとしてもブロックします
       allow update: if request.auth != null
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactionCount']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactionCount', 'emojiReactedUserIds']);
 
       // 【仕様（BeRealルール）】
       // ・閲覧は「まだ24時間が経っていない（expiresAt > 今）」投稿のみ

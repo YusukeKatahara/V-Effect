@@ -476,10 +476,10 @@ class PostService {
   }
 
   /// 全フレンド（および自分）の直近の投稿（24時間以内）をまとめて取得します
-  Future<List<Post>> getAllFriendsPosts(List<String> friendUids) async {
+  Future<List<Post>> getAllFriendsPosts(List<String> friendUids, {bool includeMe = true}) async {
     final myUid = _auth.currentUser?.uid;
     final List<String> targetUids = List.from(friendUids);
-    if (myUid != null && !targetUids.contains(myUid)) {
+    if (includeMe && myUid != null && !targetUids.contains(myUid)) {
       targetUids.add(myUid);
     }
 

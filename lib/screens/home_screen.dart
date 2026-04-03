@@ -155,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       // フレンド（と自分）の投稿とユーザー情報を並列で取得
       final results = await Future.wait([
-        _postService.getAllFriendsPosts(friendUids),
+        _postService.getAllFriendsPosts(friendUids, includeMe: false),
         uidsToFetch.isNotEmpty
             ? _postService.getFriendsListFromUids(uidsToFetch)
             : Future.value(<Map<String, dynamic>>[]),
@@ -205,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
 
       setState(() {
-        _postedToday = postedToday;
+        _postedToday = homeData['postedToday'] as bool? ?? false;
         _feedPosts = posts;
         _postedFriends = postedFriends;
         _userNames = names;
