@@ -635,6 +635,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   final actualIndex = index % _feedPosts.length;
                   final post = _feedPosts[actualIndex];
 
+                  final myUid = FirebaseAuth.instance.currentUser?.uid;
+                  final alreadyReacted = myUid != null && post.emojiReactedUserIds.contains(myUid);
+
                   return Stack(
                     children: [
                       // 1. 写真エリア（上部のみ）: タップでリアクション
@@ -750,44 +753,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                               // ＋ トグルボタン
                               Positioned(
-                                bottom: 62, // 火炎アイコンと中心位置を完全に同期 (84px - 22px)
-                                right: 88, // V Fire(56) + 間隔(10) + 22
+                                bottom: 62,
+                                right: 88,
                                 width: 44,
                                 height: 44,
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () {
-                                    setState(() =>
-                                        _reactionMenuOpen = !_reactionMenuOpen);
-                                    if (_reactionMenuOpen) {
-                                      _reactionMenuController.forward();
-                                    } else {
-                                      _reactionMenuController.reverse();
-                                    }
-                                  },
-                                  child: AnimatedBuilder(
-                                    animation: _reactionMenuController,
-                                    builder: (context, child) =>
-                                        AnimatedRotation(
-                                      turns:
-                                          _reactionMenuOpen ? 0.125 : 0.0,
-                                      duration:
-                                          const Duration(milliseconds: 220),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: AppColors.white
-                                              .withValues(alpha: 0.1),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: AppColors.white
-                                                .withValues(alpha: 0.15),
-                                            width: 1,
+                                child: Opacity(
+                                  opacity: alreadyReacted ? 0.3 : 1.0,
+                                  child: AbsorbPointer(
+                                    absorbing: alreadyReacted,
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () {
+                                        setState(() =>
+                                            _reactionMenuOpen = !_reactionMenuOpen);
+                                        if (_reactionMenuOpen) {
+                                          _reactionMenuController.forward();
+                                        } else {
+                                          _reactionMenuController.reverse();
+                                        }
+                                      },
+                                      child: AnimatedBuilder(
+                                        animation: _reactionMenuController,
+                                        builder: (context, child) =>
+                                            AnimatedRotation(
+                                          turns:
+                                              _reactionMenuOpen ? 0.125 : 0.0,
+                                          duration:
+                                              const Duration(milliseconds: 220),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: AppColors.white
+                                                  .withValues(alpha: 0.1),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: AppColors.white
+                                                    .withValues(alpha: 0.15),
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: const Icon(
+                                              Icons.add_rounded,
+                                              color: AppColors.white,
+                                              size: 24,
+                                            ),
                                           ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.add_rounded,
-                                          color: AppColors.white,
-                                          size: 24,
                                         ),
                                       ),
                                     ),
@@ -1540,7 +1549,8 @@ class _DopamineEmojiExplosionLayerState
   int _counter = 0;
 
   void explode(String emoji) {
-    final newParticles = List.generate(24, (i) {
+    // パーティクル数を大幅増量 (24 -> 56)
+    final newParticles = List.generate(56, (i) {
       final id = _counter++;
       return _DopamineParticle(
         key: ValueKey(id),
@@ -1598,25 +1608,27 @@ class _DopamineParticleState extends State<_DopamineParticle>
       duration: const Duration(milliseconds: 1200),
     );
 
-    // 下部メニュー付近 (画面中央下寄り) から噴出
-    _position = const Offset(0, 300);
+    // 下部メニュー付近から噴出
+    _position = const Offset(0, 100);
 
-    // 放射状にランダムなベクトル
-    final angle = (_random.nextDouble() * pi) + pi; // 上方向 180度
-    final speed = 8.0 + _random.nextDouble() * 12.0;
+    // 放射状にランダムなベクトル (より広角・高速に)
+    final angle = (pi + 0.3) + (_random.nextDouble() * (pi - 0.6)); // 上方広角
+    final speed = 12.0 + _random.nextDouble() * 22.0; // 初速アップ
     _vx = cos(angle) * speed;
     _vy = sin(angle) * speed;
 
     _rotation = _random.nextDouble() * 2 * pi;
-    _rotationSpeed = (_random.nextDouble() - 0.5) * 0.4;
+    _rotationSpeed = (_random.nextDouble() - 0.5) * 0.6;
 
     _ctrl.addListener(() {
-      setState(() {
-        _position += Offset(_vx, _vy);
-        _vy += 0.4; // 重力
-        _vx *= 0.98; // 空気抵抗
-        _rotation += _rotationSpeed;
-      });
+      if (mounted) {
+        setState(() {
+          _position += Offset(_vx, _vy);
+          _vy += 0.5; // 重力
+          _vx *= 0.97; // 空気抵抗
+          _rotation += _rotationSpeed;
+        });
+      }
     });
 
     _ctrl.forward().then((_) => widget.onComplete());
@@ -1630,18 +1642,33 @@ class _DopamineParticleState extends State<_DopamineParticle>
 
   @override
   Widget build(BuildContext context) {
+    // サイズを大小ランダムに散らす (20px 〜 72px)
+    final randomSize = 20.0 + (_random.nextDouble() * 52.0);
+
     return Positioned(
-      bottom: 100 - _position.dy,
+      bottom: 120 - _position.dy,
       left: MediaQuery.of(context).size.width / 2 + _position.dx - 20,
       child: FadeTransition(
         opacity: Tween<double>(begin: 1.0, end: 0.0).animate(
-          CurvedAnimation(parent: _ctrl, curve: const Interval(0.6, 1.0)),
+          CurvedAnimation(parent: _ctrl, curve: const Interval(0.7, 1.0)),
         ),
-        child: Transform.rotate(
-          angle: _rotation,
-          child: Text(
-            widget.emoji,
-            style: const TextStyle(fontSize: 32),
+        child: ScaleTransition(
+          scale: TweenSequence<double>([
+            TweenSequenceItem(
+              tween: Tween(begin: 0.0, end: 1.5).chain(CurveTween(curve: Curves.elasticOut)),
+              weight: 30,
+            ),
+            TweenSequenceItem(
+              tween: Tween(begin: 1.5, end: 1.0),
+              weight: 70,
+            ),
+          ]).animate(_ctrl),
+          child: Transform.rotate(
+            angle: _rotation,
+            child: Text(
+              widget.emoji,
+              style: TextStyle(fontSize: randomSize),
+            ),
           ),
         ),
       ),
