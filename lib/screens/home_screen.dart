@@ -392,16 +392,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildTitleBar() => VEffectHeader(
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.search_rounded, color: AppColors.white),
-              onPressed: () => Navigator.pushNamed(context, '/search'),
-            ),
-            const NotificationBellIcon(),
-          ],
+        leading: IconButton(
+          icon: const Icon(Icons.search_rounded, color: AppColors.white),
+          onPressed: () => Navigator.pushNamed(context, '/search'),
         ),
+        trailing: const NotificationBellIcon(),
       );
 
   Widget _buildEmptyState() {
@@ -452,6 +447,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: CachedNetworkImage(
                   imageUrl: _feedPosts.first.imageUrl!,
                   fit: BoxFit.cover,
+                  memCacheWidth: 400, // ぼかすので低解像度で十分
                 ),
               ),
             ),
@@ -956,7 +952,7 @@ class _FeedCard extends StatelessWidget {
         color: AppColors.grey15,
         border: Border.all(
           color:
-              isTop ? tierColor.withValues(alpha: 0.6) : tierColor.withValues(alpha: 0.1),
+              isTop ? AppColors.accentGold.withValues(alpha: 0.8) : tierColor.withValues(alpha: 0.1),
           width: isTop ? 1.5 : 0.5,
         ),
         boxShadow: [
@@ -967,7 +963,7 @@ class _FeedCard extends StatelessWidget {
           ),
           if (isTop)
             BoxShadow(
-              color: tierColor.withValues(alpha: 0.15),
+              color: AppColors.accentGold.withValues(alpha: 0.15),
               blurRadius: 40,
               spreadRadius: 2,
             ),

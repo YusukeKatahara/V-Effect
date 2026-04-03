@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../config/app_colors.dart';
 import '../models/post.dart';
@@ -55,6 +57,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
   // ── Card Expansion ──
   int? _expandedIndex; // 長押しで拡大中のカードインデックス
+  final Map<String, String?> _userPhotos = {};
+  final Map<String, String> _userNames = {};
 
   // ── Zen Mode ──
   late final AnimationController _zenController;
@@ -224,6 +228,27 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         ));
       }
 
+      // リアクションしたユーザーの情報を取得
+      final Set<String> uidsToFetch = {};
+      for (final item in items) {
+        if (item.completedPost != null) {
+          uidsToFetch.addAll(item.completedPost!.emojiReactedUserIds);
+        }
+      }
+
+      final Map<String, String?> photoMap = {};
+      final Map<String, String> nameMap = {};
+
+      if (uidsToFetch.isNotEmpty) {
+        final profiles =
+            await _postService.getFriendsListFromUids(uidsToFetch.toList());
+        for (final p in profiles) {
+          final uid = p['uid'] as String;
+          photoMap[uid] = p['photoUrl'] as String?;
+          nameMap[uid] = p['username'] as String? ?? 'Unknown';
+        }
+      }
+
       setState(() {
         _streak = (homeData['streak'] as num?)?.toInt() ?? 0;
         _postedToday = homeData['postedToday'] as bool? ?? false;
@@ -231,6 +256,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             homeData['isAllTasksCompleted'] as bool? ?? false;
         _username = homeData['username'] as String? ?? '';
         _taskItems = items;
+        _userPhotos.addAll(photoMap);
+        _userNames.addAll(nameMap);
         _loading = false;
       });
       widget.onLoadingChanged?.call(false);
@@ -451,13 +478,24 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             child: Column(
               children: [
                 _buildTitleBar(),
-                if (_streak > 0 && !(_isAllTasksCompleted && !_isSublimating))
-                  _buildStreakRow(),
                 Expanded(
-                  child:
-                      _isAllTasksCompleted && !_isSublimating
-                          ? _buildZenMode()
-                          : _buildCardStack(),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: _isAllTasksCompleted && !_isSublimating
+                            ? _buildZenMode()
+                            : _buildCardStack(),
+                      ),
+                      if (_streak > 0 &&
+                          !(_isAllTasksCompleted && !_isSublimating))
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: _buildStreakRow(),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -583,8 +621,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     );
   }
 
-  Widget _buildTitleBar() =>
-      const VEffectHeader(trailing: NotificationBellIcon());
+  Widget _buildTitleBar() => const VEffectHeader(
+        trailing: NotificationBellIcon(),
+      );
 
   Widget _buildStreakRow() {
     return ValueListenableBuilder<double>(
@@ -594,47 +633,44 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             _taskItems.isNotEmpty ? _taskItems[_focusedIndex] : null;
         final isCompleted = focusedTask?.isCompleted ?? false;
 
-        return Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 2, left: 20, right: 20),
-          child: SizedBox(
-            width: double.infinity,
-            height: 32,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const StreakFlame(size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$_streak Day Streak',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.grey70,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                if (isCompleted && _expandedIndex == _focusedIndex)
-                  Positioned(
-                    right: 0,
-                    child: IconButton(
-                      onPressed:
-                          () => _deleteHeroPost(focusedTask!.completedPost!.id),
-                      icon: const Icon(
-                        Icons.delete_outline_rounded,
-                        color: AppColors.error,
-                        size: 20,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          height: 32,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const StreakFlame(size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$_streak Day Streak',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.grey70,
+                      letterSpacing: 0.5,
                     ),
                   ),
-              ],
-            ),
+                ],
+              ),
+              if (isCompleted && _expandedIndex == _focusedIndex)
+                Positioned(
+                  right: 0,
+                  child: IconButton(
+                    onPressed:
+                        () => _deleteHeroPost(focusedTask!.completedPost!.id),
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: AppColors.error,
+                      size: 20,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ),
+            ],
           ),
         );
       },
@@ -673,9 +709,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cardWidth = constraints.maxWidth * 0.72;
+        final cardWidth = constraints.maxWidth * 0.85;
         final cardHeight = cardWidth * (16 / 9);
-        final maxCardHeight = (constraints.maxHeight - 60).clamp(
+        final maxCardHeight = (constraints.maxHeight - 40).clamp(
           0.0,
           cardHeight,
         );
@@ -807,7 +843,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
     final scale =
         isExpanded
-            ? 1.15
+            ? 1.0
             : (1.0 - smoothDepth * 0.04).clamp(0.5, 1.0);
     final dimAlpha = isExpanded ? 0.0 : (smoothDepth * 0.10).clamp(0.0, 0.8);
 
@@ -846,7 +882,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         return Transform.translate(
           offset: Offset(0, currentSublimateY),
           child: Transform(
-            alignment: Alignment.bottomCenter,
+            alignment: Alignment.center,
             transform:
                 Matrix4.identity()
                   ..rotateZ(currentAngle)
@@ -869,6 +905,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                 !item.isCompleted && !_isSublimating && index == _focusedIndex,
             tierColor: _getTierColor(_streak),
             isExpanded: isExpanded,
+            userPhotos: _userPhotos,
             onDelete:
                 item.completedPost != null
                     ? () => _deleteHeroPost(item.completedPost!.id)
@@ -880,7 +917,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   }
 
   Widget _buildZenMode() {
-    return AnimatedBuilder(
+    return RepaintBoundary(
+      child: AnimatedBuilder(
       animation: _zenGlow,
       builder: (context, _) {
         final glow = _zenGlow.value;
@@ -939,7 +977,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               ),
               Text(
                 'Day Streak',
-                style: GoogleFonts.outfit(
+                                style: GoogleFonts.outfit(
                   fontSize: 16,
                   fontWeight: FontWeight.w400,
                   color: AppColors.grey50,
@@ -979,11 +1017,23 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           ),
         );
       },
-    );
+    ),  // AnimatedBuilder
+    );  // RepaintBoundary
   }
 }
 
 class _TaskCard extends StatelessWidget {
+  final _HeroTaskItem item;
+  final int index;
+  final int total;
+  final int depth;
+  final double dimAlpha;
+  final bool showCamera;
+  final Color tierColor;
+  final bool isExpanded;
+  final Map<String, String?> userPhotos;
+  final VoidCallback? onDelete;
+
   const _TaskCard({
     required this.item,
     required this.index,
@@ -993,18 +1043,9 @@ class _TaskCard extends StatelessWidget {
     required this.showCamera,
     required this.tierColor,
     required this.isExpanded,
+    required this.userPhotos,
     this.onDelete,
   });
-
-  final _HeroTaskItem item;
-  final int index;
-  final int total;
-  final int depth;
-  final double dimAlpha;
-  final bool showCamera;
-  final Color tierColor;
-  final bool isExpanded;
-  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1014,9 +1055,11 @@ class _TaskCard extends StatelessWidget {
     const bgColorBottom = Color(0xFF121316);
 
     final borderColor = isCompleted
-        ? tierColor.withValues(alpha: isTop ? 0.6 : 0.1) // Homeフィード（他人の枠）と統一
+        ? (isTop
+            ? AppColors.accentGold.withValues(alpha: 0.8)
+            : tierColor.withValues(alpha: 0.1))
         : (isTop
-            ? AppColors.white.withValues(alpha: 0.12) // 軽量な白の縁
+            ? AppColors.white.withValues(alpha: 0.12)
             : AppColors.white.withValues(alpha: 0.05));
 
     return Container(
@@ -1028,7 +1071,6 @@ class _TaskCard extends StatelessWidget {
             : LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                // リッチなグラデーションで高級感を出しつつ、重いフィルタを回避
                 colors: [
                   bgColorTop.withValues(alpha: isTop ? 0.95 : 0.4),
                   bgColorTop.withValues(alpha: isTop ? 0.65 : 0.3),
@@ -1056,14 +1098,12 @@ class _TaskCard extends StatelessWidget {
           width: isCompleted ? (isTop ? 1.5 : 0.5) : 0.8,
         ),
         boxShadow: [
-          // 1層目: 直下の濃い影（接地感）
           BoxShadow(
             color: AppColors.black.withValues(alpha: isTop ? 0.6 : 0.2),
             blurRadius: 20,
             offset: const Offset(0, 10),
             spreadRadius: -2,
           ),
-          // 2層目: 広範囲の薄い影（浮遊感・高級感）
           BoxShadow(
             color: AppColors.black.withValues(alpha: isTop ? 0.4 : 0.1),
             blurRadius: 50,
@@ -1073,8 +1113,8 @@ class _TaskCard extends StatelessWidget {
           if (isTop)
             BoxShadow(
               color: isCompleted
-                  ? tierColor.withValues(alpha: 0.35)
-                  : tierColor.withValues(alpha: 0.04), // ほんのりとしたアンビエントグロー
+                  ? AppColors.accentGold.withValues(alpha: 0.35)
+                  : tierColor.withValues(alpha: 0.04),
               blurRadius: isCompleted ? 50 : 80,
               spreadRadius: isCompleted ? 4 : 2,
             ),
@@ -1082,16 +1122,9 @@ class _TaskCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: _buildCardContent(isTop),
+        child: _buildStack(),
       ),
     );
-  }
-
-  Widget _buildCardContent(bool isTop) {
-    // パフォーマンス最適化 (iOSの発熱対策):
-    // ImageFilter.blur は非常に重い処理のため、アニメーションするカード内での使用を避け、
-    // 代わりに半透明の黒（またはグラデーション）のみを使用して、高級感のある質感を模倣します。
-    return _buildStack();
   }
 
   Widget _buildStack() {
@@ -1105,187 +1138,481 @@ class _TaskCard extends StatelessWidget {
             ),
           ),
 
-        if (isCompleted && !isExpanded)
-          Positioned(
-            top: 40,
-            right: 40,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: tierColor.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-                border: Border.all(color: tierColor, width: 1),
-              ),
+        // テキスト上部エリア（カメラは別レイヤー）
+        Padding(
+          padding: const EdgeInsets.fromLTRB(40, 40, 40, 120),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isCompleted && depth == 0) ...[
+                Text(
+                  item.name,
+                  style: GoogleFonts.notoSerifJp(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.white,
+                    height: 1.4,
+                    letterSpacing: 1.5,
+                    shadows: [
+                      Shadow(
+                        color: AppColors.black.withValues(alpha: 0.8),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      )
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(width: 16, height: 1, color: AppColors.accentGold),
+                    const SizedBox(width: 8),
+                    Text(
+                      'DONE',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10,
+                        color: AppColors.accentGold,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 3,
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                Text(
+                  item.name,
+                  style: GoogleFonts.notoSerifJp(
+                    fontSize: depth == 0 ? 22 : 16,
+                    fontWeight: FontWeight.w500,
+                    color: depth == 0 ? AppColors.white : AppColors.grey50,
+                    height: 1.4,
+                    letterSpacing: 1.5,
+                    shadows: depth == 0
+                        ? [
+                            Shadow(
+                              color: AppColors.black.withValues(alpha: 0.8),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            )
+                          ]
+                        : null,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (depth == 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        width: 16,
+                        height: 1,
+                        color: AppColors.accentGold.withValues(alpha: 0.8),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        item.isOneTime ? 'ONE-TIME' : 'READY',
+                        style: GoogleFonts.outfit(
+                          fontSize: 10,
+                          color: AppColors.accentGold,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ],
+          ),
+        ),
+
+        // カメラボタン：ど真ん中に絶対配置
+        if (!isCompleted && showCamera && depth == 0)
+          Positioned.fill(
+            child: Center(
+              child: _PulseCameraButton(tierColor: tierColor),
+            ),
+          ),
+
+        // depth!=0 の場合の小さいカメラアイコン（中央）
+        if (!isCompleted && showCamera && depth != 0)
+          const Positioned.fill(
+            child: Center(
               child: Icon(
-                Icons.check_rounded,
-                color: tierColor,
+                Icons.camera_alt_outlined,
+                color: AppColors.grey30,
                 size: 20,
               ),
             ),
           ),
 
-        Padding(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // QUEST表示を削除
-              const SizedBox(height: 16),
-
-              const Spacer(),
-
-              if (!isCompleted) ...[
-                if (showCamera && depth == 0) ...[
-                  Center(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 600),
-                      curve: Curves.easeOutCubic,
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        // ガラスボタン風の軽量なグラデーション
-                        gradient: RadialGradient(
-                          colors: [
-                            AppColors.white.withValues(alpha: 0.08),
-                            AppColors.white.withValues(alpha: 0.02),
-                            Colors.transparent,
-                          ],
-                          stops: const [0.3, 0.8, 1.0],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.black.withValues(alpha: 0.2),
-                            blurRadius: 8,
-                            spreadRadius: -2,
-                          ),
-                        ],
-                        border: Border.all(
-                          color: tierColor.withValues(alpha: 0.3),
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.camera_alt_outlined,
-                        color: tierColor,
-                        size: 24,
-                        shadows: [
-                          Shadow(
-                            color: tierColor.withValues(alpha: 0.5),
-                            blurRadius: 6,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ] else if (showCamera && depth != 0) ...[
-                  Center(
-                    child: Icon(
-                      Icons.camera_alt_outlined,
-                      color: AppColors.grey30.withValues(alpha: 0.3),
-                      size: 20,
-                    ),
-                  ),
-                ],
-              ],
-
-              const Spacer(),
-
-              Text(
-                item.name,
-                style: GoogleFonts.notoSerifJp(
-                  fontSize: depth == 0 ? 22 : 16,
-                  fontWeight: FontWeight.w500,
-                  color: depth == 0 ? AppColors.white : AppColors.grey50,
-                  height: 1.4,
-                  letterSpacing: 1.5,
-                  shadows: depth == 0
-                      ? [
-                          Shadow(
-                            color: AppColors.black.withValues(alpha: 0.8),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          )
-                        ]
-                      : null,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              if (item.isOneTime && depth == 0) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'One-Time Task',
-                  style: GoogleFonts.outfit(
-                    fontSize: 8,
-                    color: tierColor.withValues(alpha: 0.6),
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 16),
-
-              if (depth == 0)
-                Row(
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 1,
-                      color: tierColor.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      isCompleted ? 'DONE' : 'READY',
-                      style: GoogleFonts.outfit(
-                        fontSize: 8,
-                        color: tierColor.withValues(alpha: 0.7),
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    if (isCompleted && item.completedPost != null) ...[
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: tierColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: tierColor.withValues(alpha: 0.3),
-                            width: 0.5,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.local_fire_department,
-                              color: tierColor,
-                              size: 14,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${item.completedPost!.reactionCount}',
-                              style: GoogleFonts.outfit(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.white,
+        // ──── ホーム画面と同じ配置 ────
+        // V FIRE ボタン (右下に絶対配置)
+        if (isCompleted && depth == 0)
+          Positioned(
+            bottom: 30,
+            right: 20,
+            child: IgnorePointer(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // リアクションアバター (V FIREの左並び)
+                  if (item.completedPost != null &&
+                      item.completedPost!.emojiReactedUserIds.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 10, bottom: 9),
+                      child: Row(
+                        children: [
+                          for (int i = 0;
+                              i <
+                                  min(
+                                    item.completedPost!.emojiReactedUserIds
+                                        .length,
+                                    5,
+                                  );
+                              i++)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Container(
+                                    width: 30,
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color:
+                                            AppColors.white.withValues(alpha: 0.25),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: AppColors.grey10,
+                                      backgroundImage: userPhotos[item
+                                                  .completedPost!
+                                                  .emojiReactedUserIds[i]] !=
+                                              null
+                                          ? CachedNetworkImageProvider(
+                                            userPhotos[item
+                                                .completedPost!
+                                                .emojiReactedUserIds[i]]!,
+                                          )
+                                          : null,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: -5,
+                                    bottom: -5,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(1),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.black,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: AppColors.grey10,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        '💖',
+                                        style: TextStyle(fontSize: 9),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                        ],
+                      ),
+                    ),
+                  // V FIRE ボタン本体
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: AppColors.white.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.accentGold.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.local_fire_department,
+                          color: AppColors.accentGold,
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '${item.completedPost?.reactionCount ?? 0}',
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.white,
                         ),
                       ),
                     ],
-                  ],
-                ),
-            ],
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
       ],
     );
   }
+}
+
+// ────────────────────────────────────────────
+// ドーパミン刺激カメラボタン（呼吸 + ゴールドシマー）
+// ────────────────────────────────────────────
+class _PulseCameraButton extends StatefulWidget {
+  const _PulseCameraButton({required this.tierColor});
+  final Color tierColor;
+
+  @override
+  State<_PulseCameraButton> createState() => _PulseCameraButtonState();
+}
+
+class _PulseCameraButtonState extends State<_PulseCameraButton>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
+  late final AnimationController _breatheController;
+  late final AnimationController _shimmerController;
+  late final AnimationController _textController;
+  late final Animation<double> _breathe;
+  late final Animation<double> _shimmerAngle;
+  late final Animation<double> _textOpacity;
+
+  bool _isVisible = true;
+  bool _isAppForeground = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // 呼吸：2.4秒でふわっと大きく → 戻る
+    _breatheController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+
+    _breathe = CurvedAnimation(
+      parent: _breatheController,
+      curve: Curves.easeInOut,
+    );
+
+    // ゴールドシマー：3秒で一周
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
+
+    _shimmerAngle = Tween<double>(begin: 0, end: 2 * 3.14159265).animate(
+      _shimmerController,
+    );
+
+    // TAP TO IGNITE テキスト：1.8秒ごとにフェード
+    _textController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+
+    _textOpacity = CurvedAnimation(
+      parent: _textController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final isFg = state == AppLifecycleState.resumed;
+    if (_isAppForeground == isFg) return;
+    _isAppForeground = isFg;
+    _syncTickers();
+  }
+
+  void _handleVisibilityChanged(VisibilityInfo info) {
+    if (!mounted) return;
+    final visible = info.visibleFraction > 0.01;
+    if (_isVisible == visible) return;
+    _isVisible = visible;
+    _syncTickers();
+  }
+
+  void _syncTickers() {
+    final shouldRun = _isVisible && _isAppForeground;
+    if (shouldRun) {
+      if (!_breatheController.isAnimating) {
+        _breatheController.repeat(reverse: true);
+      }
+      if (!_shimmerController.isAnimating) {
+        _shimmerController.repeat();
+      }
+      if (!_textController.isAnimating) {
+        _textController.repeat(reverse: true);
+      }
+    } else {
+      _breatheController.stop();
+      _shimmerController.stop();
+      _textController.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _breatheController.dispose();
+    _shimmerController.dispose();
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return VisibilityDetector(
+      key: const Key('pulse_camera_button'),
+      onVisibilityChanged: _handleVisibilityChanged,
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_breathe, _shimmerAngle, _textOpacity]),
+          builder: (context, _) {
+            final breath = _breathe.value; // 0..1
+            final outerSize = 96.0 + breath * 24; // 96 → 120
+            final innerSize = 72.0 + breath * 8;  // 72 → 80
+            final glowAlpha = 0.10 + breath * 0.18;
+            final iconAlpha = 0.7 + breath * 0.3;
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: outerSize,
+                  height: outerSize,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // 背光オーラ
+                      Container(
+                        width: outerSize,
+                        height: outerSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.accentGold.withValues(alpha: glowAlpha),
+                              blurRadius: 40 + breath * 20,
+                              spreadRadius: 4 + breath * 8,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // ゴールドシマーボーダー
+                      CustomPaint(
+                        size: Size(innerSize, innerSize),
+                        painter: _GoldShimmerPainter(
+                          angle: _shimmerAngle.value,
+                          breath: breath,
+                        ),
+                      ),
+
+                      // 内側サークル＋アイコン
+                      Container(
+                        width: innerSize,
+                        height: innerSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.white.withValues(alpha: 0.05 + breath * 0.04),
+                        ),
+                        child: Icon(
+                          Icons.camera_alt_outlined,
+                          color: AppColors.white.withValues(alpha: iconAlpha),
+                          size: 28,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // TAP TO IGNITE
+                Opacity(
+                  opacity: 0.35 + _textOpacity.value * 0.55,
+                  child: Text(
+                    'TAP  TO  IGNITE',
+                    style: GoogleFonts.outfit(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.accentGold,
+                      letterSpacing: 4,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ゴールドの光がぐるりと走るカスタムペインター
+class _GoldShimmerPainter extends CustomPainter {
+  const _GoldShimmerPainter({required this.angle, required this.breath});
+  final double angle;
+  final double breath;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final radius = size.width / 2;
+    final center = Offset(radius, radius);
+
+    // ベースの薄いゴールドリング
+    final basePaint = Paint()
+      ..color = AppColors.accentGold.withValues(alpha: 0.2 + breath * 0.1)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(center, radius - 0.5, basePaint);
+
+    // シマー光点（弧）
+    final shimmerPaint = Paint()
+      ..shader = SweepGradient(
+        center: Alignment.center,
+        startAngle: angle - 0.6,
+        endAngle: angle + 0.6,
+        colors: [
+          AppColors.accentGold.withValues(alpha: 0),
+          AppColors.accentGold.withValues(alpha: 0.9),
+          AppColors.accentGold.withValues(alpha: 0),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: radius))
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius - 1),
+      angle - 0.55,
+      1.1,
+      false,
+      shimmerPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GoldShimmerPainter old) =>
+      old.angle != angle || old.breath != breath;
 }
 
 class _FrictionlessPageScrollPhysics extends PageScrollPhysics {
