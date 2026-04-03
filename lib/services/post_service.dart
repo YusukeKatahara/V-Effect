@@ -475,24 +475,29 @@ class PostService {
     return snap.data()?['username'] ?? '';
   }
 
-  /// 全フレンドの直近の投稿（24時間以内）をまとめて取得します
+  /// 全フレンド（および自分）の直近の投稿（24時間以内）をまとめて取得します
   Future<List<Post>> getAllFriendsPosts(List<String> friendUids) async {
-    if (friendUids.isEmpty) return [];
+    final myUid = _auth.currentUser?.uid;
+    final List<String> targetUids = List.from(friendUids);
+    if (myUid != null && !targetUids.contains(myUid)) {
+      targetUids.add(myUid);
+    }
+
+    if (targetUids.isEmpty) return [];
 
     // Firestoreの `in` クエリは最大10件までの制限があるため、10件ごとに分割
-    // 並列実行して速度を向上させる
     final List<Future<QuerySnapshot>> futures = [];
-    for (var i = 0; i < friendUids.length; i += 10) {
-      final chunk = friendUids.sublist(
+    for (var i = 0; i < targetUids.length; i += 10) {
+      final chunk = targetUids.sublist(
         i,
-        i + 10 > friendUids.length ? friendUids.length : i + 10,
+        i + 10 > targetUids.length ? targetUids.length : i + 10,
       );
       futures.add(
         _db
             .collection('posts')
             .where('userId', whereIn: chunk)
             .where('expiresAt', isGreaterThan: Timestamp.now())
-            .get(),
+            .get(const GetOptions(source: Source.serverAndCache)),
       );
     }
 

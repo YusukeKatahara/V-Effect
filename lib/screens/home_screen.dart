@@ -147,14 +147,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       final homeData = await _postService.getHomeData();
       final friendUids =
           (homeData['friends'] as List<dynamic>?)?.cast<String>() ?? [];
+      final myUid = FirebaseAuth.instance.currentUser?.uid;
+      final uidsToFetch = List<String>.from(friendUids);
+      if (myUid != null && !uidsToFetch.contains(myUid)) {
+        uidsToFetch.add(myUid);
+      }
 
-      final postedToday = homeData['postedToday'] as bool? ?? false;
-
-      // フレンドの投稿とフレンド情報を並列で取得
+      // フレンド（と自分）の投稿とユーザー情報を並列で取得
       final results = await Future.wait([
         _postService.getAllFriendsPosts(friendUids),
-        friendUids.isNotEmpty
-            ? _postService.getFriendsListFromUids(friendUids)
+        uidsToFetch.isNotEmpty
+            ? _postService.getFriendsListFromUids(uidsToFetch)
             : Future.value(<Map<String, dynamic>>[]),
       ]);
 
