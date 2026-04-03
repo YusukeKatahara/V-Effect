@@ -751,14 +751,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   ),
                                 ),
 
-                              // ＋ トグルボタン
+                              // ＋ または ✓ トグルボタン
                               Positioned(
                                 bottom: 62,
                                 right: 88,
                                 width: 44,
                                 height: 44,
                                 child: Opacity(
-                                  opacity: alreadyReacted ? 0.3 : 1.0,
+                                  opacity: alreadyReacted ? 0.7 : 1.0,
                                   child: AbsorbPointer(
                                     absorbing: alreadyReacted,
                                     child: GestureDetector(
@@ -786,13 +786,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                                   .withValues(alpha: 0.1),
                                               shape: BoxShape.circle,
                                               border: Border.all(
-                                                color: AppColors.white
-                                                    .withValues(alpha: 0.15),
+                                                color: alreadyReacted 
+                                                  ? AppColors.white.withValues(alpha: 0.4)
+                                                  : AppColors.white.withValues(alpha: 0.15),
                                                 width: 1,
                                               ),
                                             ),
-                                            child: const Icon(
-                                              Icons.add_rounded,
+                                            child: Icon(
+                                              alreadyReacted ? Icons.check_rounded : Icons.add_rounded,
                                               color: AppColors.white,
                                               size: 24,
                                             ),
