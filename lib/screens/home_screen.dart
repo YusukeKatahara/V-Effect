@@ -15,6 +15,7 @@ import '../services/analytics_service.dart';
 import '../widgets/v_effect_header.dart';
 import '../widgets/weekly_review_banner.dart';
 import 'weekly_review_screen.dart';
+import '../widgets/reaction_avatars.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<bool>? onLoadingChanged;
@@ -232,8 +233,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final myUid = FirebaseAuth.instance.currentUser?.uid;
 
     // 絵文字リアクションの1回制限チェック
+    // V FIRE (emoji == null) は無制限だが、絵文字 (emoji != null) は1回まで。
+    // かつ、既にV FIREを送っていても、絵文字がまだなら上書き送信を許可する。
     if (emoji != null && myUid != null) {
-      if (post.emojiReactedUserIds.contains(myUid)) {
+      final currentReaction = post.userReactions[myUid];
+      // 既に何らかの「🔥以外の絵文字」を送っている場合は制限
+      if (currentReaction != null && currentReaction != '🔥') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('絵文字リアクションは1回までです'),
@@ -727,14 +732,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           // 拡張リアクション エモジピルズ
                           if (_reactionMenuOpen)
                             Positioned(
-                              bottom: 110, // お互いに被らないよう、ボタンより上に配置
-                              right: 30,
+                              bottom: 62, // トグルボタンと高さを合わせる
+                              right: 140, // トグルボタン(88) + 幅(44) + 余白(8) = 140 から左へ展開
                               child: AnimatedOpacity(
                                 opacity: _reactionMenuOpen ? 1.0 : 0.0,
                                 duration: const Duration(milliseconds: 200),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 8),
+                                      horizontal: 10, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: AppColors.grey15
                                         .withValues(alpha: 0.95),
@@ -771,7 +776,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                           child: Text(
                                             emoji,
                                             style:
-                                                const TextStyle(fontSize: 28),
+                                                const TextStyle(fontSize: 24),
                                           ),
                                         ),
                                       );
@@ -849,6 +854,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               onTap: () => _sendReaction(actualIndex),
                             ),
                           ),
+
+                          // 以前表示していたリアクションアバター群は、ユーザー要望により削除
                         ],
                       ),
                     ),
@@ -934,6 +941,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             onReaction: () => _sendReaction(index),
             isTop: index == _focusedIndex,
             tierColor: tierColor,
+            userPhotos: _userPhotos,
             onProfileTap: () {
               Navigator.pushNamed(
                 context,
@@ -964,6 +972,7 @@ class _FeedCard extends StatelessWidget {
     required this.onReaction,
     required this.isTop,
     required this.tierColor,
+    required this.userPhotos,
     this.onProfileTap,
   });
 
@@ -974,6 +983,7 @@ class _FeedCard extends StatelessWidget {
   final VoidCallback onReaction;
   final bool isTop;
   final Color tierColor;
+  final Map<String, String?> userPhotos;
   final VoidCallback? onProfileTap;
 
   @override
@@ -1180,7 +1190,7 @@ class _FeedCard extends StatelessWidget {
                                       : null,
                                 ),
                               ),
-                              const SizedBox(height: 21), // 中心を 84px (30+13+21+20) に合わせる
+                              const SizedBox(height: 8), // 間隔を詰める
                               Padding(
                                 padding: const EdgeInsets.only(left: 4),
                                 child: Text(
@@ -1207,6 +1217,7 @@ class _FeedCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
+                          // 以前表示していたリアクションアバター群は、ユーザー要望により削除
                           // ＋ボタン用のスペースのみ確保して、二重表示を回避
                           const SizedBox(width: 54), // 44 + 10
                           // V Fire ボタン＋カウント（表示専用）
@@ -1230,7 +1241,7 @@ class _FeedCard extends StatelessWidget {
                                   size: 32,
                                 ),
                               ),
-                              const SizedBox(height: 12), // 中心を 84px (30+14+12+28) に合わせる
+                              const SizedBox(height: 6),
                               Text(
                                 '${post.reactionCount}',
                                 style: GoogleFonts.outfit(
@@ -1707,3 +1718,5 @@ class _DopamineParticleState extends State<_DopamineParticle>
     );
   }
 }
+
+

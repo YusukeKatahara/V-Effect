@@ -137,19 +137,30 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
               child: Row(
                 children: List.generate(widget.posts.length + 1, (i) {
                   // 最後の一つはサマリー画面用
-                  final bool isPassed = _showSummary
-                      ? true
-                      : (i <= _currentPostIndex);
+                  final bool isPassed = _showSummary ? true : (i < _currentPostIndex);
+                  final bool isCurrent = !_showSummary && (i == _currentPostIndex);
 
                   return Expanded(
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
                       margin: const EdgeInsets.symmetric(horizontal: 2),
-                      height: 3,
+                      height: isCurrent ? 4 : 3,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(2),
-                        color: isPassed
-                            ? AppColors.textPrimary
-                            : AppColors.textPrimary.withValues(alpha: 0.24),
+                        color: isCurrent
+                            ? AppColors.accentGold
+                            : (isPassed
+                                ? AppColors.white
+                                : AppColors.white.withValues(alpha: 0.2)),
+                        boxShadow: isCurrent
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.accentGold.withValues(alpha: 0.6),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                )
+                              ]
+                            : null,
                       ),
                     ),
                   );
@@ -213,8 +224,20 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
             style: const TextStyle(
               fontSize: 48,
               fontWeight: FontWeight.w900,
-              letterSpacing: 8,
+              letterSpacing: 10,
               color: AppColors.white,
+              shadows: [
+                Shadow(
+                  color: Colors.black54,
+                  offset: Offset(0, 4),
+                  blurRadius: 12,
+                ),
+                Shadow(
+                  color: Colors.black26,
+                  offset: Offset(0, 2),
+                  blurRadius: 4,
+                ),
+              ],
             ),
           ),
         ),
@@ -224,29 +247,66 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
           bottom: 40,
           left: 24,
           right: 24,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                post.taskName,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.accentGold,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppColors.white.withValues(alpha: 0.15),
+                    width: 0.5,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.local_fire_department_rounded,
+                          color: AppColors.accentGold,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            post.taskName,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 1,
+                      width: 40,
+                      color: AppColors.accentGold.withValues(alpha: 0.4),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      DateFormat('MMM dd').format(post.createdAt).toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.accentGold,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                DateFormat('MM/dd').format(post.createdAt),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                  letterSpacing: 2,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
 

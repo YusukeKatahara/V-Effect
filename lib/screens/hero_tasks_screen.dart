@@ -20,6 +20,7 @@ import '../widgets/splash_loading.dart';
 import '../widgets/streak_flame.dart';
 import '../widgets/v_effect_header.dart';
 import 'camera_screen.dart';
+import '../widgets/reaction_avatars.dart';
 
 /// 内部管理用のタスクアイテム
 class _HeroTaskItem {
@@ -233,6 +234,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       for (final item in items) {
         if (item.completedPost != null) {
           uidsToFetch.addAll(item.completedPost!.emojiReactedUserIds);
+          uidsToFetch.addAll(item.completedPost!.userReactions.keys);
         }
       }
 
@@ -630,43 +632,47 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             _taskItems.isNotEmpty ? _taskItems[_focusedIndex] : null;
         final isCompleted = focusedTask?.isCompleted ?? false;
 
-        return Container(
-          height: 32,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const StreakFlame(size: 18),
-                  const SizedBox(width: 6),
-                  Text(
-                    '$_streak Day Streak',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.grey70,
-                      letterSpacing: 0.5,
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SizedBox(
+            height: 32,
+            width: double.infinity,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const StreakFlame(size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$_streak Day Streak',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.grey70,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              if (isCompleted && _expandedIndex == _focusedIndex)
-                Positioned(
-                  right: 0,
-                  child: IconButton(
-                    onPressed:
-                        () => _deleteHeroPost(focusedTask!.completedPost!.id),
-                    icon: const Icon(
-                      Icons.delete_outline_rounded,
-                      color: AppColors.error,
-                      size: 20,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
+                  ],
                 ),
-            ],
+                if (isCompleted && _expandedIndex == _focusedIndex)
+                  Positioned(
+                    right: 0,
+                    child: IconButton(
+                      onPressed:
+                          () => _deleteHeroPost(focusedTask!.completedPost!.id),
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppColors.error,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ),
+              ],
+            ),
           ),
         );
       },
@@ -1253,133 +1259,65 @@ class _TaskCard extends StatelessWidget {
             ),
           ),
 
-        // ──── ホーム画面と同じ配置 ────
-        // V FIRE ボタン (右下に絶対配置)
-        if (isCompleted && depth == 0)
+        // ──── ホーム画面と同じ配置 (固定座標方式に変更) ────
+        if (isCompleted && depth == 0) ...[
+          // V FIRE ボタン (本体 + カウントテキスト)
           Positioned(
             bottom: 30,
             right: 20,
             child: IgnorePointer(
-              child: Row(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // リアクションアバター (V FIREの左並び)
-                  if (item.completedPost != null &&
-                      item.completedPost!.emojiReactedUserIds.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 12, bottom: 24),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (int i = 0;
-                              i <
-                                  min(
-                                    item.completedPost!.emojiReactedUserIds
-                                        .length,
-                                    5,
-                                  );
-                              i++)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 4),
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: AppColors.white.withValues(alpha: 0.3),
-                                        width: 1.5,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.black.withValues(alpha: 0.4),
-                                          blurRadius: 4,
-                                        ),
-                                      ],
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 13,
-                                      backgroundColor: AppColors.grey20,
-                                      backgroundImage: userPhotos[item
-                                                  .completedPost!
-                                                  .emojiReactedUserIds[i]] !=
-                                              null
-                                          ? CachedNetworkImageProvider(
-                                            userPhotos[item
-                                                .completedPost!
-                                                .emojiReactedUserIds[i]]!,
-                                          )
-                                          : null,
-                                      child: userPhotos[item.completedPost!.emojiReactedUserIds[i]] == null
-                                          ? const Icon(Icons.person, size: 14, color: AppColors.grey50)
-                                          : null,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    right: -4,
-                                    bottom: -4,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(1.5),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.black,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: AppColors.grey15,
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        '🔥', // 火をつけてくれた仲間
-                                        style: TextStyle(fontSize: 8),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.accentGold.withValues(alpha: 0.3),
+                        width: 1,
                       ),
                     ),
-                  // V FIRE ボタン本体
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: AppColors.white.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.accentGold.withValues(alpha: 0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.local_fire_department,
-                          color: AppColors.accentGold,
-                          size: 32,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${item.completedPost?.reactionCount ?? 0}',
-                        style: GoogleFonts.outfit(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ],
+                    child: Icon(
+                      Icons.local_fire_department,
+                      color: AppColors.accentGold,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${item.completedPost?.reactionCount ?? 0}',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.white,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
+
+          // リアクションアバター (V FIREの左横)
+          if (item.completedPost != null &&
+              (item.completedPost!.reactionCount > 0))
+            Positioned(
+              bottom: 68, // VFIRE(56) + (56-34)/2 で縦中央揃え
+              right: 88,  // VFIRE(56+20) + 余白(12) = 88
+              child: IgnorePointer(
+                child: ReactionAvatarsStack(
+                  userReactions: item.completedPost!.userReactions,
+                  reactorUids: item.completedPost!.emojiReactedUserIds,
+                  userPhotos: userPhotos,
+                  reactionCount: item.completedPost!.reactionCount,
+                  avatarSize: 34,
+                  overlapOffset: 22,
+                ),
+              ),
+            ),
+        ],
       ],
     );
   }

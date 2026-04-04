@@ -292,12 +292,14 @@ class PostService {
     if (!docSnap.exists) return;
     final data = docSnap.data()!;
 
-    // 絵文字リアクション（+ ボタンから送信されるもの）は1回まで
+    // 絵文字リアクションの上書き・追加許可
+    // 既に 🔥 (V FIRE) 以外の絵文字を送っている場合は重複を避ける
     if (emoji != null) {
-      final reactedUsers = List<String>.from(data['emojiReactedUserIds'] ?? []);
-      if (reactedUsers.contains(myUid)) {
-        debugPrint('User already reacted with emoji to this post');
-        return; // すでにリアクション済みなら何もしない
+      final userReactions = data['userReactions'] as Map<String, dynamic>? ?? {};
+      final currentEmoji = userReactions[myUid] as String?;
+      if (currentEmoji != null && currentEmoji != '🔥') {
+        debugPrint('User already reacted with an actual emoji to this post');
+        return;
       }
     }
 
@@ -305,6 +307,8 @@ class PostService {
       'reactionCount': FieldValue.increment(1),
       // 全てのリアクション（V Fire / Emoji問わず）でリアクターとしてUIDを記録（アバター表示用）
       'emojiReactedUserIds': FieldValue.arrayUnion([myUid]),
+      // 誰がどの絵文字を選んだかを個別に記録（バッジ表示用）
+      'userReactions.$myUid': emoji ?? '🔥',
     };
 
     await _db.collection('posts').doc(postId).update(updates);
