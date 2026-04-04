@@ -414,6 +414,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           userId: 'temp',
           imageUrl: null,
           taskName: originalItem.name,
+          reactionCount: 0,
+          emojiReactedUserIds: const [],
           createdAt: DateTime.now(),
           expiresAt: DateTime.now().add(const Duration(hours: 24)),
         ),
@@ -478,24 +480,19 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             child: Column(
               children: [
                 _buildTitleBar(),
-                Expanded(
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: _isAllTasksCompleted && !_isSublimating
-                            ? _buildZenMode()
-                            : _buildCardStack(),
-                      ),
-                      if (_streak > 0 &&
-                          !(_isAllTasksCompleted && !_isSublimating))
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: _buildStreakRow(),
-                        ),
-                    ],
+                SizedBox(
+                  height: 76, // 固定高さで全画面統一
+                  child: Center(
+                    child: (_streak > 0 &&
+                            !(_isAllTasksCompleted && !_isSublimating))
+                        ? _buildStreakRow()
+                        : const SizedBox.shrink(),
                   ),
+                ),
+                Expanded(
+                  child: _isAllTasksCompleted && !_isSublimating
+                      ? _buildZenMode()
+                      : _buildCardStack(),
                 ),
               ],
             ),
@@ -634,7 +631,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         final isCompleted = focusedTask?.isCompleted ?? false;
 
         return Container(
-          margin: const EdgeInsets.symmetric(vertical: 4),
           height: 32,
           child: Stack(
             alignment: Alignment.center,
@@ -751,38 +747,46 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                         if (_taskItems.isEmpty) return const SizedBox.shrink();
                         final actualIndex = rawIndex % _taskItems.length;
 
-                        return Stack(
-                          children: [
-                            // 全体検知（タップで拡大・タスク選択）
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                if (_expandedIndex != null) {
-                                  setState(() => _expandedIndex = null);
-                                  return;
-                                }
-                                // カードが中央にない場合はスナップして終了
-                                if (actualIndex != _focusedIndex) {
-                                  _pageController.animateToPage(
-                                    rawIndex,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeOutCubic,
-                                  );
-                                  return;
-                                }
-                                final item = _taskItems[actualIndex];
-                                if (item.isCompleted) {
-                                  // タップで拡大
-                                  HapticFeedback.mediumImpact();
-                                  setState(() => _expandedIndex = actualIndex);
-                                } else {
-                                  // 未完了ならカメラへ
-                                  _selectHeroTask(actualIndex);
-                                }
-                              },
-                              child: const SizedBox.expand(),
+                        return Center(
+                          child: SizedBox(
+                            width: finalCardWidth,
+                            height: maxCardHeight,
+                            child: Stack(
+                              children: [
+                                // 全体検知（タップで拡大・タスク選択）
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    if (_expandedIndex != null) {
+                                      setState(() => _expandedIndex = null);
+                                      return;
+                                    }
+                                    // カードが中央にない場合はスナップして終了
+                                    if (actualIndex != _focusedIndex) {
+                                      _pageController.animateToPage(
+                                        rawIndex,
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        curve: Curves.easeOutCubic,
+                                      );
+                                      return;
+                                    }
+                                    final item = _taskItems[actualIndex];
+                                    if (item.isCompleted) {
+                                      // タップで拡大
+                                      HapticFeedback.mediumImpact();
+                                      setState(
+                                          () => _expandedIndex = actualIndex);
+                                    } else {
+                                      // 未完了ならカメラへ
+                                      _selectHeroTask(actualIndex);
+                                    }
+                                  },
+                                  child: const SizedBox.expand(),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         );
                       },
                     ),
@@ -841,11 +845,12 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     final item = _taskItems[index];
     final isExpanded = index == _expandedIndex;
 
-    final scale =
-        isExpanded
-            ? 1.0
-            : (1.0 - smoothDepth * 0.04).clamp(0.5, 1.0);
-    final dimAlpha = isExpanded ? 0.0 : (smoothDepth * 0.10).clamp(0.0, 0.8);
+    // 通常時は0.9倍、拡大時はホームと同じ1.0倍
+    final baseScale = isExpanded ? 1.0 : 0.9;
+    final scale = isExpanded
+        ? 1.0
+        : (baseScale - smoothDepth * 0.04).clamp(0.4, baseScale);
+    final dimAlpha = isExpanded ? 0.0 : (smoothDepth * 0.15).clamp(0.0, 0.85);
 
     return AnimatedBuilder(
       animation: _sublimation,
@@ -863,7 +868,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             double returnT = ((t - 0.75) / 0.25).clamp(0.0, 1.0); // 1.5s-2.0s for returning
             
             currentAngle = fanAngleRad * (1.0 - moveT) + fanAngleRad * returnT;
-            currentScale = scale + (moveT * 0.08) - (returnT * 0.08);
+            // 0.9倍から1.08倍程度まで一気に拡大することで達成感を強調
+            currentScale = scale + (moveT * (1.08 - scale)) - (returnT * (1.08 - scale));
             currentOpacity = 1.0;
           } else {
             // Other cards exit and then return
@@ -1262,8 +1268,9 @@ class _TaskCard extends StatelessWidget {
                   if (item.completedPost != null &&
                       item.completedPost!.emojiReactedUserIds.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(right: 10, bottom: 9),
+                      padding: const EdgeInsets.only(right: 12, bottom: 24),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           for (int i = 0;
                               i <
@@ -1274,24 +1281,29 @@ class _TaskCard extends StatelessWidget {
                                   );
                               i++)
                             Padding(
-                              padding: const EdgeInsets.only(right: 6),
+                              padding: const EdgeInsets.only(right: 4),
                               child: Stack(
                                 clipBehavior: Clip.none,
                                 children: [
                                   Container(
-                                    width: 30,
-                                    height: 30,
+                                    width: 28,
+                                    height: 28,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                        color:
-                                            AppColors.white.withValues(alpha: 0.25),
-                                        width: 1,
+                                        color: AppColors.white.withValues(alpha: 0.3),
+                                        width: 1.5,
                                       ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.black.withValues(alpha: 0.4),
+                                          blurRadius: 4,
+                                        ),
+                                      ],
                                     ),
                                     child: CircleAvatar(
-                                      radius: 14,
-                                      backgroundColor: AppColors.grey10,
+                                      radius: 13,
+                                      backgroundColor: AppColors.grey20,
                                       backgroundImage: userPhotos[item
                                                   .completedPost!
                                                   .emojiReactedUserIds[i]] !=
@@ -1302,24 +1314,27 @@ class _TaskCard extends StatelessWidget {
                                                 .emojiReactedUserIds[i]]!,
                                           )
                                           : null,
+                                      child: userPhotos[item.completedPost!.emojiReactedUserIds[i]] == null
+                                          ? const Icon(Icons.person, size: 14, color: AppColors.grey50)
+                                          : null,
                                     ),
                                   ),
                                   Positioned(
-                                    right: -5,
-                                    bottom: -5,
+                                    right: -4,
+                                    bottom: -4,
                                     child: Container(
-                                      padding: const EdgeInsets.all(1),
+                                      padding: const EdgeInsets.all(1.5),
                                       decoration: BoxDecoration(
                                         color: AppColors.black,
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                          color: AppColors.grey10,
+                                          color: AppColors.grey15,
                                           width: 1,
                                         ),
                                       ),
                                       child: const Text(
-                                        '💖',
-                                        style: TextStyle(fontSize: 9),
+                                        '🔥', // 火をつけてくれた仲間
+                                        style: TextStyle(fontSize: 8),
                                       ),
                                     ),
                                   ),
@@ -1383,12 +1398,8 @@ class _PulseCameraButton extends StatefulWidget {
 
 class _PulseCameraButtonState extends State<_PulseCameraButton>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  late final AnimationController _breatheController;
   late final AnimationController _shimmerController;
-  late final AnimationController _textController;
-  late final Animation<double> _breathe;
   late final Animation<double> _shimmerAngle;
-  late final Animation<double> _textOpacity;
 
   bool _isVisible = true;
   bool _isAppForeground = true;
@@ -1398,17 +1409,6 @@ class _PulseCameraButtonState extends State<_PulseCameraButton>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // 呼吸：2.4秒でふわっと大きく → 戻る
-    _breatheController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2400),
-    )..repeat(reverse: true);
-
-    _breathe = CurvedAnimation(
-      parent: _breatheController,
-      curve: Curves.easeInOut,
-    );
-
     // ゴールドシマー：3秒で一周
     _shimmerController = AnimationController(
       vsync: this,
@@ -1417,17 +1417,6 @@ class _PulseCameraButtonState extends State<_PulseCameraButton>
 
     _shimmerAngle = Tween<double>(begin: 0, end: 2 * 3.14159265).animate(
       _shimmerController,
-    );
-
-    // TAP TO IGNITE テキスト：1.8秒ごとにフェード
-    _textController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    )..repeat(reverse: true);
-
-    _textOpacity = CurvedAnimation(
-      parent: _textController,
-      curve: Curves.easeInOut,
     );
   }
 
@@ -1450,28 +1439,18 @@ class _PulseCameraButtonState extends State<_PulseCameraButton>
   void _syncTickers() {
     final shouldRun = _isVisible && _isAppForeground;
     if (shouldRun) {
-      if (!_breatheController.isAnimating) {
-        _breatheController.repeat(reverse: true);
-      }
       if (!_shimmerController.isAnimating) {
         _shimmerController.repeat();
       }
-      if (!_textController.isAnimating) {
-        _textController.repeat(reverse: true);
-      }
     } else {
-      _breatheController.stop();
       _shimmerController.stop();
-      _textController.stop();
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _breatheController.dispose();
     _shimmerController.dispose();
-    _textController.dispose();
     super.dispose();
   }
 
@@ -1482,82 +1461,59 @@ class _PulseCameraButtonState extends State<_PulseCameraButton>
       onVisibilityChanged: _handleVisibilityChanged,
       child: RepaintBoundary(
         child: AnimatedBuilder(
-          animation: Listenable.merge([_breathe, _shimmerAngle, _textOpacity]),
+          animation: _shimmerAngle,
           builder: (context, _) {
-            final breath = _breathe.value; // 0..1
-            final outerSize = 96.0 + breath * 24; // 96 → 120
-            final innerSize = 72.0 + breath * 8;  // 72 → 80
-            final glowAlpha = 0.10 + breath * 0.18;
-            final iconAlpha = 0.7 + breath * 0.3;
+            const innerSize = 76.0;
+            const outerSize = 104.0;
+            const glowAlpha = 0.12;
+            const iconAlpha = 0.85;
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: outerSize,
-                  height: outerSize,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // 背光オーラ
-                      Container(
-                        width: outerSize,
-                        height: outerSize,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.accentGold.withValues(alpha: glowAlpha),
-                              blurRadius: 40 + breath * 20,
-                              spreadRadius: 4 + breath * 8,
-                            ),
-                          ],
+            return SizedBox(
+              width: outerSize,
+              height: outerSize,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 背光オーラ（静止）
+                  Container(
+                    width: outerSize,
+                    height: outerSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.accentGold.withValues(alpha: glowAlpha),
+                          blurRadius: 40,
+                          spreadRadius: 4,
                         ),
-                      ),
-
-                      // ゴールドシマーボーダー
-                      CustomPaint(
-                        size: Size(innerSize, innerSize),
-                        painter: _GoldShimmerPainter(
-                          angle: _shimmerAngle.value,
-                          breath: breath,
-                        ),
-                      ),
-
-                      // 内側サークル＋アイコン
-                      Container(
-                        width: innerSize,
-                        height: innerSize,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.white.withValues(alpha: 0.05 + breath * 0.04),
-                        ),
-                        child: Icon(
-                          Icons.camera_alt_outlined,
-                          color: AppColors.white.withValues(alpha: iconAlpha),
-                          size: 28,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // TAP TO IGNITE
-                Opacity(
-                  opacity: 0.35 + _textOpacity.value * 0.55,
-                  child: Text(
-                    'TAP  TO  IGNITE',
-                    style: GoogleFonts.outfit(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.accentGold,
-                      letterSpacing: 4,
+                      ],
                     ),
                   ),
-                ),
-              ],
+
+                  // ゴールドシマーボーダー
+                  CustomPaint(
+                    size: const Size(innerSize, innerSize),
+                    painter: _GoldShimmerPainter(
+                      angle: _shimmerAngle.value,
+                    ),
+                  ),
+
+                  // 内側サークル＋アイコン
+                  Container(
+                    width: innerSize,
+                    height: innerSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.white.withValues(alpha: 0.06),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_outlined,
+                      color: AppColors.white,
+                      size: 28,
+                    ),
+                  ),
+                ],
+              ),
             );
           },
         ),
@@ -1568,9 +1524,8 @@ class _PulseCameraButtonState extends State<_PulseCameraButton>
 
 // ゴールドの光がぐるりと走るカスタムペインター
 class _GoldShimmerPainter extends CustomPainter {
-  const _GoldShimmerPainter({required this.angle, required this.breath});
+  const _GoldShimmerPainter({required this.angle});
   final double angle;
-  final double breath;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1579,7 +1534,7 @@ class _GoldShimmerPainter extends CustomPainter {
 
     // ベースの薄いゴールドリング
     final basePaint = Paint()
-      ..color = AppColors.accentGold.withValues(alpha: 0.2 + breath * 0.1)
+      ..color = AppColors.accentGold.withValues(alpha: 0.25)
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
     canvas.drawCircle(center, radius - 0.5, basePaint);
@@ -1611,8 +1566,7 @@ class _GoldShimmerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_GoldShimmerPainter old) =>
-      old.angle != angle || old.breath != breath;
+  bool shouldRepaint(_GoldShimmerPainter old) => old.angle != angle;
 }
 
 class _FrictionlessPageScrollPhysics extends PageScrollPhysics {

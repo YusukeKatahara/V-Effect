@@ -13,7 +13,8 @@ import '../models/post.dart';
 import '../services/post_service.dart';
 import '../services/analytics_service.dart';
 import '../widgets/v_effect_header.dart';
-
+import '../widgets/weekly_review_banner.dart';
+import 'weekly_review_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<bool>? onLoadingChanged;
@@ -288,6 +289,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _openWeeklyReview() async {
+    setState(() => _loading = true);
+    try {
+      final posts = await _postService.getWeeklyReviewPosts();
+      final streak = await _postService.getStreak();
+      if (!mounted) return;
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WeeklyReviewScreen(posts: posts, currentStreak: streak),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('読み込みに失敗しました')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   Color _getTierColor(int streak) {
     if (streak >= 100) return const Color(0xFFE5E4E2); // Platinum
     if (streak >= 30) return AppColors.accentGoldLight;
@@ -323,13 +348,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: Column(
               children: [
                 _buildTitleBar(),
+                SizedBox(
+                  height: 76, // 固定高さで全画面統一
+                  child: Center(
+                    child: (DateTime.now().weekday == DateTime.saturday ||
+                            DateTime.now().weekday == DateTime.sunday)
+                        ? WeeklyReviewBanner(onTap: _openWeeklyReview)
+                        : const SizedBox.shrink(),
+                  ),
+                ),
                 Expanded(
-                  child:
-                      !_postedToday
-                          ? _buildGuardedState()
-                          : (_feedPosts.isEmpty
-                              ? _buildEmptyState()
-                              : _buildCardStack()),
+                  child: !_postedToday
+                      ? _buildGuardedState()
+                      : (_feedPosts.isEmpty
+                          ? _buildEmptyState()
+                          : _buildCardStack()),
                 ),
               ],
             ),
@@ -635,191 +668,190 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   final post = _feedPosts[actualIndex];
 
                   final myUid = FirebaseAuth.instance.currentUser?.uid;
-                  final alreadyReacted = myUid != null && post.emojiReactedUserIds.contains(myUid);
+                  final alreadyReacted =
+                      myUid != null && post.emojiReactedUserIds.contains(myUid);
 
-                  return Stack(
-                    children: [
-                      // 1. 写真エリア（上部のみ）: タップでリアクション
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 180,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            // メニューが開いているときは閉じる、そうでなければリアクション
-                            if (_reactionMenuOpen) {
-                              setState(() => _reactionMenuOpen = false);
-                              _reactionMenuController.reverse();
-                            } else {
-                              _sendReaction(actualIndex);
-                            }
-                          },
-                          child: const SizedBox.expand(),
-                        ),
-                      ),
+                  return Center(
+                    child: SizedBox(
+                      width: finalCardWidth,
+                      height: maxCardHeight,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // 1. 写真エリア（上部タップ域）: タップでリアクション
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 180,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                // メニューが開いているときは閉じる、そうでなければリアクション
+                                if (_reactionMenuOpen) {
+                                  setState(() => _reactionMenuOpen = false);
+                                  _reactionMenuController.reverse();
+                                } else {
+                                  _sendReaction(actualIndex);
+                                }
+                              },
+                              child: const SizedBox.expand(),
+                            ),
+                          ),
 
-                      // 2. アバタータップエリア (アイコンのみ)
-                      Center(
-                        child: SizedBox(
-                          width: finalCardWidth,
-                          height: maxCardHeight,
-                          child: Stack(
-                            children: [
-                              Positioned(
-                                bottom: 30,
-                                left: 20,
-                                width: 50,
-                                height: 50,
+                          // 2. アバタータップエリア (アイコンのみ)
+                          Positioned(
+                            bottom: 30,
+                            left: 20,
+                            width: 50,
+                            height: 50,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                final photoUrl = _userPhotos[post.userId];
+                                final username =
+                                    _userNames[post.userId] ?? 'User';
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.userProfile,
+                                  arguments: {
+                                    'uid': post.userId,
+                                    'username': username,
+                                    'photoUrl': photoUrl,
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+
+                          // 拡張リアクション エモジピルズ
+                          if (_reactionMenuOpen)
+                            Positioned(
+                              bottom: 110, // お互いに被らないよう、ボタンより上に配置
+                              right: 30,
+                              child: AnimatedOpacity(
+                                opacity: _reactionMenuOpen ? 1.0 : 0.0,
+                                duration: const Duration(milliseconds: 200),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.grey15
+                                        .withValues(alpha: 0.95),
+                                    borderRadius: BorderRadius.circular(30),
+                                    border: Border.all(
+                                      color: AppColors.white
+                                          .withValues(alpha: 0.1),
+                                      width: 0.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.black
+                                            .withValues(alpha: 0.3),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: _reactionEmojis.map((emoji) {
+                                      return GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: () {
+                                          _sendReaction(actualIndex,
+                                              emoji: emoji);
+                                          setState(() =>
+                                              _reactionMenuOpen = false);
+                                          _reactionMenuController.reverse();
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 4),
+                                          child: Text(
+                                            emoji,
+                                            style:
+                                                const TextStyle(fontSize: 28),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          // ＋ または ✓ トグルボタン
+                          Positioned(
+                            bottom: 62,
+                            right: 88,
+                            width: 44,
+                            height: 44,
+                            child: Opacity(
+                              opacity: alreadyReacted ? 0.7 : 1.0,
+                              child: AbsorbPointer(
+                                absorbing: alreadyReacted,
                                 child: GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () {
-                                    final photoUrl = _userPhotos[post.userId];
-                                    final username =
-                                        _userNames[post.userId] ?? 'User';
-                                    Navigator.pushNamed(
-                                      context,
-                                      AppRoutes.userProfile,
-                                      arguments: {
-                                        'uid': post.userId,
-                                        'username': username,
-                                        'photoUrl': photoUrl,
-                                      },
-                                    );
+                                    setState(() => _reactionMenuOpen =
+                                        !_reactionMenuOpen);
+                                    if (_reactionMenuOpen) {
+                                      _reactionMenuController.forward();
+                                    } else {
+                                      _reactionMenuController.reverse();
+                                    }
                                   },
-                                ),
-                              ),
-
-                              // 拡張リアクション エモジピルズ
-                              if (_reactionMenuOpen)
-                                Positioned(
-                                  bottom: 62,
-                                  right: 142,
-                                  child: AnimatedOpacity(
-                                    opacity: _reactionMenuOpen ? 1.0 : 0.0,
-                                    duration: const Duration(milliseconds: 200),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 14, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.grey15
-                                            .withValues(alpha: 0.95),
-                                        borderRadius: BorderRadius.circular(30),
-                                        border: Border.all(
+                                  child: AnimatedBuilder(
+                                    animation: _reactionMenuController,
+                                    builder: (context, child) =>
+                                        AnimatedRotation(
+                                      turns: _reactionMenuOpen ? 0.125 : 0.0,
+                                      duration:
+                                          const Duration(milliseconds: 220),
+                                      child: Container(
+                                        decoration: BoxDecoration(
                                           color: AppColors.white
                                               .withValues(alpha: 0.1),
-                                          width: 0.5,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: alreadyReacted
+                                                ? AppColors.white
+                                                    .withValues(alpha: 0.4)
+                                                : AppColors.white
+                                                    .withValues(alpha: 0.15),
+                                            width: 1,
+                                          ),
                                         ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: AppColors.black
-                                                .withValues(alpha: 0.3),
-                                            blurRadius: 12,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: _reactionEmojis.map((emoji) {
-                                          return GestureDetector(
-                                            behavior: HitTestBehavior.opaque,
-                                            onTap: () {
-                                              _sendReaction(actualIndex,
-                                                  emoji: emoji);
-                                              setState(() =>
-                                                  _reactionMenuOpen = false);
-                                              _reactionMenuController.reverse();
-                                            },
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 4),
-                                              child: Text(
-                                                emoji,
-                                                style: const TextStyle(
-                                                    fontSize: 28),
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                              // ＋ または ✓ トグルボタン
-                              Positioned(
-                                bottom: 62,
-                                right: 88,
-                                width: 44,
-                                height: 44,
-                                child: Opacity(
-                                  opacity: alreadyReacted ? 0.7 : 1.0,
-                                  child: AbsorbPointer(
-                                    absorbing: alreadyReacted,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: () {
-                                        setState(() =>
-                                            _reactionMenuOpen = !_reactionMenuOpen);
-                                        if (_reactionMenuOpen) {
-                                          _reactionMenuController.forward();
-                                        } else {
-                                          _reactionMenuController.reverse();
-                                        }
-                                      },
-                                      child: AnimatedBuilder(
-                                        animation: _reactionMenuController,
-                                        builder: (context, child) =>
-                                            AnimatedRotation(
-                                          turns:
-                                              _reactionMenuOpen ? 0.125 : 0.0,
-                                          duration:
-                                              const Duration(milliseconds: 220),
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: AppColors.white
-                                                  .withValues(alpha: 0.1),
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: alreadyReacted 
-                                                  ? AppColors.white.withValues(alpha: 0.4)
-                                                  : AppColors.white.withValues(alpha: 0.15),
-                                                width: 1,
-                                              ),
-                                            ),
-                                            child: Icon(
-                                              alreadyReacted ? Icons.check_rounded : Icons.add_rounded,
-                                              color: AppColors.white,
-                                              size: 24,
-                                            ),
-                                          ),
+                                        child: Icon(
+                                          alreadyReacted
+                                              ? Icons.check_rounded
+                                              : Icons.add_rounded,
+                                          color: AppColors.white,
+                                          size: 24,
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-
-                              // V Fire ボタン
-                              Positioned(
-                                bottom: 56, // カウントテキスト(約20) + 間隔(6) + 基底(30)
-                                right: 20,
-                                width: 56,
-                                height: 56,
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => _sendReaction(actualIndex),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+
+                          // V Fire ボタン
+                          Positioned(
+                            bottom: 56, // カウントテキスト(約20) + 間隔(6) + 基底(30)
+                            right: 20,
+                            width: 56,
+                            height: 56,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _sendReaction(actualIndex),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   );
                 },
               ),

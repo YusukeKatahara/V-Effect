@@ -303,12 +303,9 @@ class PostService {
 
     final updates = <String, dynamic>{
       'reactionCount': FieldValue.increment(1),
+      // 全てのリアクション（V Fire / Emoji問わず）でリアクターとしてUIDを記録（アバター表示用）
+      'emojiReactedUserIds': FieldValue.arrayUnion([myUid]),
     };
-
-    if (emoji != null) {
-      // 絵文字リアクション済みリストに追加 (1回制限用)
-      updates['emojiReactedUserIds'] = FieldValue.arrayUnion([myUid]);
-    }
 
     await _db.collection('posts').doc(postId).update(updates);
     _analytics.logReactionSent();
@@ -457,6 +454,28 @@ class PostService {
             .get();
     return snap.docs.map((doc) => Post.fromFirestore(doc)).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  /// 今週（直近7日間）の自分の投稿を取得します（WEEKLY REVIEW用）
+  Future<List<Post>> getWeeklyReviewPosts() async {
+    final uid = _auth.currentUser!.uid;
+    // 7日前の日付を計算
+    final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
+    
+    // インデックス作成の手間を省くため、いったん自ユーザーの全投稿を取得してからDart側でフィルタリング
+    // （将来的に投稿数が膨大になる場合は、複合インデックスを用いたクエリへの変更を検討）
+    final snap = await _db
+        .collection('posts')
+        .where('userId', isEqualTo: uid)
+        .get();
+
+    final posts = snap.docs
+        .map((doc) => Post.fromFirestore(doc))
+        .where((post) => post.createdAt.isAfter(sevenDaysAgo))
+        .toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt)); // 古い順に再生するため、昇順ソート
+
+    return posts;
   }
 
   /// 自分のヒーロータスクリストを取得します

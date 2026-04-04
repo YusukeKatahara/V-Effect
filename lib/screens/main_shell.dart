@@ -66,36 +66,37 @@ class _MainShellState extends State<MainShell> {
       top: false,
       child: Center(
         child: Container(
-          margin: const EdgeInsets.only(bottom: 20),
-          height: 64,
+          margin: const EdgeInsets.only(bottom: 12),
+          height: 60,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(30),
             border: Border.all(
-              color: AppColors.white.withValues(alpha: 0.08),
+              color: AppColors.white.withValues(alpha: 0.12),
               width: 0.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.black.withValues(alpha: 0.4),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+                color: AppColors.black.withValues(alpha: 0.5),
+                blurRadius: 24,
+                spreadRadius: -4,
+                offset: const Offset(0, 12),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(30),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.white.withValues(alpha: 0.05),
+                  color: AppColors.white.withValues(alpha: 0.06),
                   gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                     colors: [
-                      AppColors.white.withValues(alpha: 0.08),
-                      AppColors.white.withValues(alpha: 0.02),
+                      AppColors.white.withValues(alpha: 0.1),
+                      AppColors.white.withValues(alpha: 0.03),
                     ],
                   ),
                 ),
