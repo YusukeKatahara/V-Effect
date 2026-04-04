@@ -269,9 +269,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // Optimistic UI update
     setState(() {
-      final updatedIds = emoji != null && myUid != null
-          ? [...post.emojiReactedUserIds, myUid]
+      final updatedIds = myUid != null
+          ? (post.emojiReactedUserIds.contains(myUid)
+              ? post.emojiReactedUserIds
+              : [...post.emojiReactedUserIds, myUid])
           : post.emojiReactedUserIds;
+
+      final newUserReactions = Map<String, String>.from(post.userReactions);
+      if (myUid != null) {
+        newUserReactions[myUid] = emoji ?? '🔥';
+      }
 
       _feedPosts = List.from(_feedPosts)
         ..[index] = Post(
@@ -284,6 +291,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           expiresAt: post.expiresAt,
           reactionCount: post.reactionCount + 1,
           emojiReactedUserIds: updatedIds,
+          userReactions: newUserReactions,
         );
     });
 
@@ -1217,9 +1225,20 @@ class _FeedCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          // 以前表示していたリアクションアバター群は、ユーザー要望により削除
-                          // ＋ボタン用のスペースのみ確保して、二重表示を回避
-                          const SizedBox(width: 54), // 44 + 10
+                          // リアクションアバター
+                          if (post.reactionCount > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 11), // 縦中央寄せ調整
+                              child: ReactionAvatarsStack(
+                                userReactions: post.userReactions,
+                                reactorUids: post.emojiReactedUserIds,
+                                userPhotos: userPhotos,
+                                reactionCount: post.reactionCount,
+                                avatarSize: 34,
+                                overlapOffset: 22,
+                              ),
+                            ),
+                          const SizedBox(width: 12),
                           // V Fire ボタン＋カウント（表示専用）
                           Column(
                             mainAxisSize: MainAxisSize.min,

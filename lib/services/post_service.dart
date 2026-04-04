@@ -314,6 +314,9 @@ class PostService {
     await _db.collection('posts').doc(postId).update(updates);
     _analytics.logReactionSent();
 
+    // データの変更をアプリ全体に通知
+    _updateController.add(null);
+
     // リアクション通知を送付
     _sendReactionNotification(postId, emoji: emoji).catchError((_) {});
   }
