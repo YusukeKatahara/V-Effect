@@ -73,8 +73,17 @@ class PostService {
       };
     }
     final data = snap.data() as Map<String, dynamic>;
-    final lastPostedDate = data['lastPostedDate'] as String?;
-    final tasks = List<String>.from(data['tasks'] ?? []);
+    final rawLastPostedDate = data['lastPostedDate'];
+    final lastPostedDate = rawLastPostedDate is String ? rawLastPostedDate : rawLastPostedDate?.toString();
+
+    final dynamic rawTasks = data['tasks'];
+    List<String> tasks = [];
+    if (rawTasks is List) {
+      tasks = rawTasks.map((e) => e.toString()).toList();
+    } else if (rawTasks is Map) {
+      tasks = rawTasks.keys.map((k) => k.toString()).toList();
+    }
+
 
     // 今日の分だけをフィルタリング
     final postedPostsToday =
@@ -97,7 +106,13 @@ class PostService {
           tasks.every((t) => postedPostsToday.any((p) => p.taskName == t)),
       'username': data['username'] as String? ?? '',
       'tasks': tasks,
-      'friends': List<String>.from(data['following'] ?? data['friends'] ?? []),
+      'friends': (() {
+        final dynamic f = data['following'] ?? data['friends'];
+        if (f is List) return f.map((e) => e.toString()).toList();
+        if (f is Map) return f.keys.map((k) => k.toString()).toList();
+        return <String>[];
+      })(),
+
       'lastPostedDate': lastPostedDate,
       'postedTasksToday': postedPostsToday,
     };
@@ -126,10 +141,11 @@ class PostService {
       final data = doc.data();
       return {
         'uid': doc.id,
-        'username': data['username'] ?? '',
-        'userId': data['userId'] ?? '',
-        'photoUrl': data['photoUrl'] as String?,
-        'hasPostedToday': data['lastPostedDate'] == today,
+        'username': data['username']?.toString() ?? '',
+        'userId': data['userId']?.toString() ?? '',
+        'photoUrl': data['photoUrl'] is String ? data['photoUrl'] as String : data['photoUrl']?.toString(),
+        'hasPostedToday': data['lastPostedDate']?.toString() == today,
+
       };
     }).toList();
   }
@@ -200,8 +216,15 @@ class PostService {
   Future<void> _sendPostNotifications(String uid) async {
     final userSnap = await _db.collection('users').doc(uid).get();
     if (!userSnap.exists) return;
-    final username = userSnap.data()?['username'] ?? 'フレンド';
-    final friends = List<String>.from(userSnap.data()?['following'] ?? userSnap.data()?['friends'] ?? []);
+    final username = userSnap.data()?['username']?.toString() ?? 'フレンド';
+    final dynamic rawFriends = userSnap.data()?['following'] ?? userSnap.data()?['friends'];
+    List<String> friends = [];
+    if (rawFriends is List) {
+      friends = rawFriends.map((e) => e.toString()).toList();
+    } else if (rawFriends is Map) {
+      friends = rawFriends.keys.map((k) => k.toString()).toList();
+    }
+
 
     for (final friendUid in friends) {
       await _notificationService.createNotification(
@@ -235,7 +258,15 @@ class PostService {
     } else {
       final uid = _auth.currentUser!.uid;
       final userSnap = await _db.collection('users').doc(uid).get();
-      friends = List<String>.from(userSnap.data()?['following'] ?? userSnap.data()?['friends'] ?? []);
+      final dynamic rawFriends = userSnap.data()?['following'] ?? userSnap.data()?['friends'];
+      if (rawFriends is List) {
+        friends = rawFriends.map((e) => e.toString()).toList();
+      } else if (rawFriends is Map) {
+        friends = rawFriends.keys.map((k) => k.toString()).toList();
+      } else {
+        friends = [];
+      }
+
     }
 
     if (friends.isEmpty) {
@@ -347,7 +378,14 @@ class PostService {
   Future<List<Map<String, dynamic>>> getFriendsList() async {
     final uid = _auth.currentUser!.uid;
     final userSnap = await _db.collection('users').doc(uid).get();
-    final friendUids = List<String>.from(userSnap.data()?['following'] ?? userSnap.data()?['friends'] ?? []);
+    final dynamic rawFriends = userSnap.data()?['following'] ?? userSnap.data()?['friends'];
+    List<String> friendUids = [];
+    if (rawFriends is List) {
+      friendUids = rawFriends.map((e) => e.toString()).toList();
+    } else if (rawFriends is Map) {
+      friendUids = rawFriends.keys.map((k) => k.toString()).toList();
+    }
+
     return getFriendsListFromUids(friendUids);
   }
 

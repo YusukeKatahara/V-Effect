@@ -52,27 +52,52 @@ class AppUser {
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+
+    // Helper to safely get String from potential Map or non-string (avoid crash if Firestore has dirty data)
+    String? _safeString(dynamic value) {
+      if (value == null) return null;
+      if (value is String) return value;
+      return value.toString();
+    }
+
+    // Helper to extract UIDs from either a List or a Map (legacy format support)
+    List<String> _extractUids(String fieldName1, [String? fieldName2]) {
+      final raw = data[fieldName1] ?? (fieldName2 != null ? data[fieldName2] : null);
+      if (raw == null) return [];
+      if (raw is List) {
+        return raw.map((e) => e.toString()).toList();
+      }
+      if (raw is Map) {
+        // Legacy format: { "uid1": true, "uid2": true }
+        return raw.keys.map((k) => k.toString()).toList();
+      }
+      return [];
+    }
+
     return AppUser(
       uid: doc.id,
-      email: data['email'],
-      username: data['username'],
-      userId: data['userId'],
-      displayName: data['displayName'],
-      birthDate: data['birthDate'],
-      gender: data['gender'],
-      photoUrl: data['photoUrl'],
+      email: _safeString(data['email']),
+      username: _safeString(data['username']),
+      userId: _safeString(data['userId']),
+      displayName: _safeString(data['displayName']),
+      birthDate: _safeString(data['birthDate']),
+      gender: _safeString(data['gender']),
+      photoUrl: _safeString(data['photoUrl']),
       streak: (data['streak'] as num?)?.toInt() ?? 0,
-      lastPostedDate: data['lastPostedDate'],
-      following: List<String>.from(data['following'] ?? data['friends'] ?? []),
-      followers: List<String>.from(data['followers'] ?? data['friends'] ?? []),
-      tasks: List<String>.from(data['tasks'] ?? []),
-      wakeUpTime: data['wakeUpTime'],
-      taskTime: data['taskTime'],
-      occupation: data['occupation'],
+      lastPostedDate: _safeString(data['lastPostedDate']),
+      following: _extractUids('following', 'friends'),
+      followers: _extractUids('followers', 'friends'),
+      tasks: _extractUids('tasks'),
+      wakeUpTime: _safeString(data['wakeUpTime']),
+      taskTime: _safeString(data['taskTime']),
+      occupation: _safeString(data['occupation']),
       profileCompleted: data['profileCompleted'] ?? false,
       templateCompleted: data['templateCompleted'] ?? false,
       onboardingCompleted: data['onboardingCompleted'] ?? false,
-      lastProfileEditDate: data['lastProfileEditDate'],
+      lastProfileEditDate: data['lastProfileEditDate'] is num
+          ? (data['lastProfileEditDate'] as num).toInt()
+          : null,
+
       pushNotifications: data['pushNotifications'] ?? true,
       isPrivateAccount: data['isPrivateAccount'] ?? false,
     );

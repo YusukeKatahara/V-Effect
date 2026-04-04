@@ -268,7 +268,14 @@ class FriendService {
     final myUid = _auth.currentUser!.uid;
     return _db.collection('users').doc(myUid).snapshots().asyncMap((snap) async {
       if (!snap.exists) return [];
-      final uids = List<String>.from(snap.data()?['following'] ?? snap.data()?['friends'] ?? []);
+      final dynamic rawFollowing = snap.data()?['following'] ?? snap.data()?['friends'];
+      List<String> uids = [];
+      if (rawFollowing is List) {
+        uids = rawFollowing.map((e) => e.toString()).toList();
+      } else if (rawFollowing is Map) {
+        uids = rawFollowing.keys.map((k) => k.toString()).toList();
+      }
+
       if (uids.isEmpty) return [];
 
       final usersSnap = await _db
@@ -284,7 +291,14 @@ class FriendService {
     final myUid = _auth.currentUser!.uid;
     return _db.collection('users').doc(myUid).snapshots().asyncMap((snap) async {
       if (!snap.exists) return [];
-      final uids = List<String>.from(snap.data()?['followers'] ?? []);
+      final dynamic rawFollowers = snap.data()?['followers'];
+      List<String> uids = [];
+      if (rawFollowers is List) {
+        uids = rawFollowers.map((e) => e.toString()).toList();
+      } else if (rawFollowers is Map) {
+        uids = rawFollowers.keys.map((k) => k.toString()).toList();
+      }
+
       if (uids.isEmpty) return [];
 
       final usersSnap = await _db
@@ -321,9 +335,15 @@ class FriendService {
   Future<bool> isFollowing(String targetUid) async {
     final myUid = _auth.currentUser!.uid;
     final snap = await _db.collection('users').doc(myUid).get();
-    final following = List<String>.from(
-      snap.data()?['following'] ?? snap.data()?['friends'] ?? [],
-    );
+    final data = snap.data();
+    final dynamic rawFollowing = data?['following'] ?? data?['friends'];
+    List<String> following = [];
+    if (rawFollowing is List) {
+      following = rawFollowing.map((e) => e.toString()).toList();
+    } else if (rawFollowing is Map) {
+      following = rawFollowing.keys.map((k) => k.toString()).toList();
+    }
+
     return following.contains(targetUid);
   }
 
@@ -331,7 +351,14 @@ class FriendService {
   Future<bool> isFollower(String targetUid) async {
     final myUid = _auth.currentUser!.uid;
     final snap = await _db.collection('users').doc(myUid).get();
-    final followers = List<String>.from(snap.data()?['followers'] ?? []);
+    final rawFollowers = snap.data()?['followers'];
+    List<String> followers = [];
+    if (rawFollowers is List) {
+      followers = rawFollowers.map((e) => e.toString()).toList();
+    } else if (rawFollowers is Map) {
+      followers = rawFollowers.keys.map((k) => k.toString()).toList();
+    }
+
     return followers.contains(targetUid);
   }
 

@@ -576,7 +576,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           Switch(
             value: _showTimestamp,
             onChanged: (v) => setState(() => _showTimestamp = v),
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
           ),
         ],
       ),

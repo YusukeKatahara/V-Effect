@@ -47,7 +47,9 @@ class StreakService {
     }
 
     final data = userSnap.data()!;
-    final lastPostedDate = data['lastPostedDate'] as String?;
+    final rawLastPostedDate = data['lastPostedDate'];
+    final lastPostedDate = rawLastPostedDate is String ? rawLastPostedDate : rawLastPostedDate?.toString();
+
     final currentStreak = (data['streak'] as num?)?.toInt() ?? 0;
     final maxStreak = (data['maxStreak'] as num?)?.toInt() ?? 0;
 
