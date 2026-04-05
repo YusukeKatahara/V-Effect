@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -146,7 +146,7 @@ class _CameraScreenState extends State<CameraScreen> {
             toolbarWidgetColor: AppColors.white,
             initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: true,
-            activeControlsWidgetColor: const Color(0xFFD4AF37),
+            activeControlsWidgetColor: AppColors.accentGold,
           ),
           IOSUiSettings(
             title: 'クロップ',
@@ -365,81 +365,77 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Widget _buildBottomBar() {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.black.withValues(alpha: 0.0),
-                AppColors.black.withValues(alpha: 0.8),
-              ],
+    // 最適化: 重いBackdropFilterを削除し、透過グラデーションのみでガラス感を表現
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.black.withValues(alpha: 0.0),
+            AppColors.black.withValues(alpha: 0.8),
+          ],
+        ),
+      ),
+      child: Row(
+        children: [
+          // Retake
+          GestureDetector(
+            onTap: _isUploading ? null : _showPickerMenu,
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.grey15,
+                border: Border.all(color: AppColors.grey20),
+              ),
+              child: const Icon(Icons.refresh_rounded,
+                  color: AppColors.grey70, size: 22),
             ),
           ),
-          child: Row(
-            children: [
-              // Retake
-              GestureDetector(
-                onTap: _isUploading ? null : _showPickerMenu,
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.grey15,
-                    border: Border.all(color: AppColors.grey20),
-                  ),
-                  child: const Icon(Icons.refresh_rounded,
-                      color: AppColors.grey70, size: 22),
-                ),
-              ),
-              const Spacer(),
+          const Spacer(),
 
-              // Post button
-              GestureDetector(
-                onTap: _isUploading ? null : _uploadPost,
-                child: Container(
-                  height: 52,
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  decoration: BoxDecoration(
-                    color: _isUploading ? AppColors.grey15 : AppColors.white,
-                    borderRadius: BorderRadius.circular(26),
-                    boxShadow: _isUploading
-                        ? []
-                        : [
-                            BoxShadow(
-                              color: AppColors.white.withValues(alpha: 0.15),
-                              blurRadius: 24,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                  ),
-                  child: Center(
-                    child: _isUploading
-                        ? const SizedBox(
-                            width: 22, height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppColors.grey50))
-                        : Text(
-                            '投稿する',
-                            style: GoogleFonts.notoSansJp(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.black,
-                            ),
-                          ),
-                  ),
-                ),
+          // Post button
+          GestureDetector(
+            onTap: _isUploading ? null : _uploadPost,
+            child: Container(
+              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              decoration: BoxDecoration(
+                color: _isUploading ? AppColors.grey15 : AppColors.white,
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: _isUploading
+                    ? []
+                    : [
+                        BoxShadow(
+                          color: AppColors.white.withValues(alpha: 0.15),
+                          blurRadius: 24,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
               ),
-              const Spacer(),
-              const SizedBox(width: 48), // balance retake button
-            ],
+              child: Center(
+                child: _isUploading
+                    ? const SizedBox(
+                        width: 22, height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.grey50))
+                    : Text(
+                        '投稿する',
+                        style: GoogleFonts.notoSansJp(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.black,
+                        ),
+                      ),
+              ),
+            ),
           ),
-        ),
+          const Spacer(),
+          const SizedBox(width: 48), // balance retake button
+        ],
       ),
     );
   }

@@ -3,7 +3,10 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'push_notification_service.dart';
+import '../models/app_task.dart';
+import '../models/app_user.dart';
 
 /// ユーザープロフィール・ヒーロータスク設定の読み書きを担当するサービス
 class UserService {
@@ -81,7 +84,7 @@ class UserService {
     final uid = _auth.currentUser!.uid;
     await _db.collection('users').doc(uid).set(
       {
-        'tasks': [taskName],
+        'tasks': [AppTask(title: taskName).toFirestore()],
         'templateCompleted': true,
         'onboardingCompleted': true,
       },
@@ -92,7 +95,7 @@ class UserService {
   /// ヒーロータスク設定を保存します（新規登録フロー Step2）
   /// tasks は公開、wakeUpTime/taskTime は非公開
   Future<void> saveTaskSettings({
-    required List<String> tasks,
+    required List<AppTask> tasks,
     required String wakeUpTime,
     required String taskTime,
     String? photoUrl,
@@ -102,7 +105,7 @@ class UserService {
 
     // 公開情報
     final publicData = <String, dynamic>{
-      'tasks': tasks,
+      'tasks': tasks.map((t) => t.toFirestore()).toList(),
       'onboardingCompleted': true,
     };
     if (photoUrl != null) {
@@ -164,7 +167,7 @@ class UserService {
     String? wakeUpTime,
     String? taskTime,
     String? photoUrl,
-    List<String>? tasks,
+    List<AppTask>? tasks,
     bool? showTimestamp,
     bool updateEditDate = false,
   }) async {
@@ -179,7 +182,9 @@ class UserService {
     }
     if (userId != null) publicData['userId'] = userId;
     if (photoUrl != null) publicData['photoUrl'] = photoUrl;
-    if (tasks != null) publicData['tasks'] = tasks;
+    if (tasks != null) {
+      publicData['tasks'] = tasks.map((t) => t.toFirestore()).toList();
+    }
     if (updateEditDate) {
       publicData['lastProfileEditDate'] = DateTime.now().millisecondsSinceEpoch;
     }
@@ -239,6 +244,25 @@ class UserService {
       if (focusTimeNotifications != null) {
         await PushNotificationService().syncScheduledReminders();
       }
+    }
+  }
+
+  /// 完了から24時間経過したワンタイムタスクを自動削除する共通処理
+  Future<void> cleanupExpiredTasks(AppUser user) async {
+    final now = DateTime.now();
+    final expiredTasks = user.tasks.where((task) {
+      if (!task.isOneTime || task.completedAt == null) return false;
+      return now.difference(task.completedAt!).inHours >= 24;
+    }).toList();
+
+    if (expiredTasks.isNotEmpty) {
+      final updatedTasks = user.tasks.where((task) {
+        if (!task.isOneTime || task.completedAt == null) return true;
+        return now.difference(task.completedAt!).inHours < 24;
+      }).toList();
+
+      await updateProfile(tasks: updatedTasks);
+      debugPrint('${expiredTasks.length}個のワンタイムタスクを期限切れのため削除しました');
     }
   }
 }

@@ -96,6 +96,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       await cred.user?.sendEmailVerification();
       // Firestoreドキュメントを作成
       await _ensureUserDoc(cred.user!);
+      
       if (!mounted) return;
       // メール認証待ち画面へ
       Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.emailVerification, (r) => false);

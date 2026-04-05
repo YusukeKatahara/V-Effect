@@ -11,6 +11,8 @@ class Post {
   final DateTime expiresAt;
   final int reactionCount;
   final bool showTimestamp;
+  final List<String> emojiReactedUserIds; // リアクションしたユーザーID
+  final Map<String, String> userReactions; // uid -> 絵文字 (個別リアクション記録)
 
   const Post({
     required this.id,
@@ -22,11 +24,19 @@ class Post {
     required this.expiresAt,
     this.reactionCount = 0,
     this.showTimestamp = true,
+    this.emojiReactedUserIds = const [],
+    this.userReactions = const {},
   });
 
   /// Firestore の DocumentSnapshot からモデルを生成します
   factory Post.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    // userReactions は {uid: emoji} の形式で保存
+    final rawReactions = data['userReactions'] as Map<String, dynamic>?;
+    final userReactions = rawReactions?.map(
+          (key, value) => MapEntry(key, value.toString()),
+        ) ??
+        {};
     return Post(
       id: doc.id,
       userId: data['userId'] ?? '',
@@ -34,9 +44,12 @@ class Post {
       taskName: data['taskName'] ?? '今日のヒーロータスク',
       caption: data['caption'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      expiresAt: (data['expiresAt'] as Timestamp?)?.toDate() ?? DateTime.now().add(const Duration(hours: 24)),
+      expiresAt: (data['expiresAt'] as Timestamp?)?.toDate() ??
+          DateTime.now().add(const Duration(hours: 24)),
       reactionCount: (data['reactionCount'] as num?)?.toInt() ?? 0,
       showTimestamp: data['showTimestamp'] ?? true,
+      emojiReactedUserIds: List<String>.from(data['emojiReactedUserIds'] ?? []),
+      userReactions: userReactions,
     );
   }
 

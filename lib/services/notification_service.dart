@@ -48,28 +48,38 @@ class NotificationService {
 
   Stream<List<AppNotification>> getMyNotifications() {
     final myUid = _auth.currentUser!.uid;
+    final threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
+
     return _db
         .collection('notifications')
         .where('toUid', isEqualTo: myUid)
         .snapshots()
         .map((snap) {
-          final list = snap.docs
-              .map((doc) => AppNotification.fromFirestore(doc))
-              .toList();
-          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return list;
-        });
+      final list = snap.docs
+          .map((doc) => AppNotification.fromFirestore(doc))
+          .where((n) => n.createdAt.isAfter(threeDaysAgo)) // 3日以内のみ
+          .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
   }
 
   /// 未読の通知件数をリアルタイムで取得します
   Stream<int> getNotificationCount() {
     final myUid = _auth.currentUser!.uid;
+    final threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
+
     return _db
         .collection('notifications')
         .where('toUid', isEqualTo: myUid)
         .where('isRead', isEqualTo: false)
         .snapshots()
-        .map((snap) => snap.docs.length);
+        .map((snap) {
+      return snap.docs
+          .map((doc) => AppNotification.fromFirestore(doc))
+          .where((n) => n.createdAt.isAfter(threeDaysAgo))
+          .length;
+    });
   }
 
   /// 全ての未読通知を既読にします

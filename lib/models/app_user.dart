@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'app_task.dart';
 
 /// Firestore の users コレクションに対応するデータモデル
 class AppUser {
@@ -14,7 +15,7 @@ class AppUser {
   final String? lastPostedDate;
   final List<String> following;
   final List<String> followers;
-  final List<String> tasks;
+  final List<AppTask> tasks;
   final String? wakeUpTime;
   final String? taskTime;
   final String? occupation;
@@ -55,26 +56,10 @@ class AppUser {
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
-    // Helper to safely get String from potential Map or non-string (avoid crash if Firestore has dirty data)
     String? safeString(dynamic value) {
       if (value == null) return null;
       if (value is String) return value;
       return value.toString();
-    }
-
-    // Helper to extract tasks, handling both String and Map (with title field)
-    List<String> extractTasks() {
-      final raw = data['tasks'];
-      if (raw == null) return [];
-      if (raw is List) {
-        return raw.map((e) {
-          if (e is Map) {
-            return (e['title'] ?? e['name'] ?? e.toString()).toString();
-          }
-          return e.toString();
-        }).toList();
-      }
-      return [];
     }
 
     // Helper to extract UIDs from either a List or a Map (legacy format support)
@@ -104,7 +89,9 @@ class AppUser {
       lastPostedDate: safeString(data['lastPostedDate']),
       following: extractUids('following', 'friends'),
       followers: extractUids('followers', 'friends'),
-      tasks: extractTasks(),
+      tasks: (data['tasks'] as List? ?? [])
+          .map((item) => AppTask.fromFirestore(item))
+          .toList(),
       wakeUpTime: safeString(data['wakeUpTime']),
       taskTime: safeString(data['taskTime']),
       occupation: safeString(data['occupation']),

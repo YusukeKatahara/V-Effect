@@ -4,24 +4,31 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import 'dart:ui';
+import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../config/app_colors.dart';
 import '../models/post.dart';
+import '../models/app_task.dart';
+import '../models/app_user.dart';
 import '../services/analytics_service.dart';
 import '../services/notification_service.dart';
 import '../services/post_service.dart';
 import '../services/user_service.dart';
 import '../widgets/splash_loading.dart';
 import '../widgets/streak_flame.dart';
+import '../widgets/v_effect_header.dart';
 import 'camera_screen.dart';
+import '../widgets/reaction_avatars.dart';
 
 /// 内部管理用のタスクアイテム
 class _HeroTaskItem {
   final String name;
   final Post? completedPost;
+  final bool isOneTime;
   bool get isCompleted => completedPost != null;
-  _HeroTaskItem({required this.name, this.completedPost});
+  _HeroTaskItem({required this.name, this.completedPost, this.isOneTime = false});
 }
 
 class HeroTasksScreen extends StatefulWidget {
@@ -51,6 +58,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
   // ── Card Expansion ──
   int? _expandedIndex; // 長押しで拡大中のカードインデックス
+  final Map<String, String?> _userPhotos = {};
+  final Map<String, String> _userNames = {};
 
   // ── Zen Mode ──
   late final AnimationController _zenController;
@@ -148,9 +157,11 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       curve: const Interval(0.25, 1.0, curve: Curves.easeOut),
     );
 
-    _sublimationBgDim = CurvedAnimation(
-      parent: _sublimationController,
-      curve: const Interval(0.0, 0.3, curve: Curves.easeIn),
+    _sublimationBgDim = Tween<double>(begin: 0.0, end: 0.95).animate(
+      CurvedAnimation(
+        parent: _sublimationController,
+        curve: const Interval(0.0, 0.35, curve: Curves.easeOut),
+      ),
     );
 
     // データの更新通知を監視
@@ -181,21 +192,63 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
       if (!mounted) return;
 
-      final allTasks =
-          (homeData['tasks'] as List<dynamic>?)?.cast<String>() ?? [];
+      final allTasks = (homeData['tasks'] as List<dynamic>?)?.cast<AppTask>() ?? [];
+      
+      // ワンタイムタスクのクリーンアップ（期限切れを削除）
+      final uid = _userService.currentUid;
+      if (uid != null) {
+        final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        if (snap.exists) {
+          final user = AppUser.fromFirestore(snap);
+          await _userService.cleanupExpiredTasks(user);
+          // クリーンアップされた可能性があるため、再ロードが必要な場合はここで再取得するか
+          // リマインドとして _loadData を再度呼ぶのもありだが、
+          // 24時間経過後に削除されるタイミングなので、ユーザーが画面を開いた瞬間に消えるので
+          // 取得済みの allTasks からフィルタリングして即時反映する
+          final now = DateTime.now();
+          allTasks.removeWhere((t) => t.isOneTime && t.completedAt != null && now.difference(t.completedAt!).inHours >= 24);
+        }
+      }
+
       final postedPosts =
           (homeData['postedTasksToday'] as List<dynamic>?)?.cast<Post>() ?? [];
 
       final List<_HeroTaskItem> items = [];
-      for (final taskName in allTasks) {
+      for (final task in allTasks) {
         Post? completedPost;
         for (final p in postedPosts) {
-          if (p.taskName == taskName) {
+          if (p.taskName == task.title) {
             completedPost = p;
             break;
           }
         }
-        items.add(_HeroTaskItem(name: taskName, completedPost: completedPost));
+        items.add(_HeroTaskItem(
+          name: task.title, 
+          completedPost: completedPost,
+          isOneTime: task.isOneTime,
+        ));
+      }
+
+      // リアクションしたユーザーの情報を取得
+      final Set<String> uidsToFetch = {};
+      for (final item in items) {
+        if (item.completedPost != null) {
+          uidsToFetch.addAll(item.completedPost!.emojiReactedUserIds);
+          uidsToFetch.addAll(item.completedPost!.userReactions.keys);
+        }
+      }
+
+      final Map<String, String?> photoMap = {};
+      final Map<String, String> nameMap = {};
+
+      if (uidsToFetch.isNotEmpty) {
+        final profiles =
+            await _postService.getFriendsListFromUids(uidsToFetch.toList());
+        for (final p in profiles) {
+          final uid = p['uid'] as String;
+          photoMap[uid] = p['photoUrl'] as String?;
+          nameMap[uid] = p['username'] as String? ?? 'Unknown';
+        }
       }
 
       setState(() {
@@ -205,6 +258,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             homeData['isAllTasksCompleted'] as bool? ?? false;
         _username = homeData['username'] as String? ?? '';
         _taskItems = items;
+        _userPhotos.addAll(photoMap);
+        _userNames.addAll(nameMap);
         _loading = false;
       });
       widget.onLoadingChanged?.call(false);
@@ -216,7 +271,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       _analytics.setStreakTier(_streak);
       _analytics.setTaskCount(_taskItems.length);
       _analytics.setFriendCount(friendUids.length);
-      _analytics.setTaskCategories(allTasks);
+      _analytics.setTaskCategories(allTasks.map((t) => t.title).toList());
 
       _notificationService
           .checkAndCreateTimeReminders(streak: _streak)
@@ -361,6 +416,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           userId: 'temp',
           imageUrl: null,
           taskName: originalItem.name,
+          reactionCount: 0,
+          emojiReactedUserIds: const [],
           createdAt: DateTime.now(),
           expiresAt: DateTime.now().add(const Duration(hours: 24)),
         ),
@@ -404,10 +461,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
   Color _getTierColor(int streak) {
     if (streak >= 100) return const Color(0xFFE5E4E2); // Platinum
-    if (streak >= 30) return const Color(0xFFD4AF37); // Gold
+    if (streak >= 30) return AppColors.accentGoldLight;
     if (streak >= 7) return const Color(0xFFC0C0C0); // Silver
     if (streak >= 3) return const Color(0xFFCD7F32); // Bronze
-    return const Color(0xFFD4AF37); // Default Gold accent
+    return AppColors.accentGold;
   }
 
   @override
@@ -425,19 +482,27 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             child: Column(
               children: [
                 _buildTitleBar(),
-                if (_streak > 0 && !(_isAllTasksCompleted && !_isSublimating))
-                  _buildStreakRow(),
+                SizedBox(
+                  height: 76, // 固定高さで全画面統一
+                  child: Center(
+                    child: (_streak > 0 &&
+                            !(_isAllTasksCompleted && !_isSublimating))
+                        ? _buildStreakRow()
+                        : const SizedBox.shrink(),
+                  ),
+                ),
                 Expanded(
-                  child:
-                      _isAllTasksCompleted && !_isSublimating
-                          ? _buildZenMode()
-                          : _buildCardStack(),
+                  child: _isAllTasksCompleted && !_isSublimating
+                      ? _buildZenMode()
+                      : _buildCardStack(),
                 ),
               ],
             ),
           ),
-          if (_isSublimating) _buildSublimationFlash(),
-          if (_isSublimating) _buildVictoryOverlay(),
+          if (_isSublimating)
+            IgnorePointer(child: _buildSublimationFlash()),
+          if (_isSublimating)
+            IgnorePointer(child: _buildVictoryOverlay()),
         ],
       ),
     );
@@ -555,22 +620,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     );
   }
 
-  Widget _buildTitleBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Center(
-        child: Text(
-          'V EFFECT',
-          style: GoogleFonts.outfit(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: AppColors.white,
-            letterSpacing: 6.0,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildTitleBar() => const VEffectHeader(
+        trailing: NotificationBellIcon(),
+      );
 
   Widget _buildStreakRow() {
     return ValueListenableBuilder<double>(
@@ -581,10 +633,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         final isCompleted = focusedTask?.isCompleted ?? false;
 
         return Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 2, left: 20, right: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: SizedBox(
-            width: double.infinity,
             height: 32,
+            width: double.infinity,
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -659,9 +711,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cardWidth = constraints.maxWidth * 0.72;
+        final cardWidth = constraints.maxWidth * 0.85;
         final cardHeight = cardWidth * (16 / 9);
-        final maxCardHeight = (constraints.maxHeight - 60).clamp(
+        final maxCardHeight = (constraints.maxHeight - 40).clamp(
           0.0,
           cardHeight,
         );
@@ -691,8 +743,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                     scrollPos: scrollPos,
                   ),
 
-                if (!_isSublimating)
-                  Positioned.fill(
+                Positioned.fill(
+                  child: IgnorePointer(
+                    ignoring: _isSublimating,
                     child: PageView.builder(
                       controller: _pageController,
                       physics: const _FrictionlessPageScrollPhysics(),
@@ -700,42 +753,51 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                         if (_taskItems.isEmpty) return const SizedBox.shrink();
                         final actualIndex = rawIndex % _taskItems.length;
 
-                        return Stack(
-                          children: [
-                            // 全体検知（タップで拡大・タスク選択）
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                if (_expandedIndex != null) {
-                                  setState(() => _expandedIndex = null);
-                                  return;
-                                }
-                                // カードが中央にない場合はスナップして終了
-                                if (actualIndex != _focusedIndex) {
-                                  _pageController.animateToPage(
-                                    rawIndex,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeOutCubic,
-                                  );
-                                  return;
-                                }
-                                final item = _taskItems[actualIndex];
-                                if (item.isCompleted) {
-                                  // タップで拡大
-                                  HapticFeedback.mediumImpact();
-                                  setState(() => _expandedIndex = actualIndex);
-                                } else {
-                                  // 未完了ならカメラへ
-                                  _selectHeroTask(actualIndex);
-                                }
-                              },
-                              child: const SizedBox.expand(),
+                        return Center(
+                          child: SizedBox(
+                            width: finalCardWidth,
+                            height: maxCardHeight,
+                            child: Stack(
+                              children: [
+                                // 全体検知（タップで拡大・タスク選択）
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    if (_expandedIndex != null) {
+                                      setState(() => _expandedIndex = null);
+                                      return;
+                                    }
+                                    // カードが中央にない場合はスナップして終了
+                                    if (actualIndex != _focusedIndex) {
+                                      _pageController.animateToPage(
+                                        rawIndex,
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        curve: Curves.easeOutCubic,
+                                      );
+                                      return;
+                                    }
+                                    final item = _taskItems[actualIndex];
+                                    if (item.isCompleted) {
+                                      // タップで拡大
+                                      HapticFeedback.mediumImpact();
+                                      setState(
+                                          () => _expandedIndex = actualIndex);
+                                    } else {
+                                      // 未完了ならカメラへ
+                                      _selectHeroTask(actualIndex);
+                                    }
+                                  },
+                                  child: const SizedBox.expand(),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         );
                       },
                     ),
                   ),
+                ),
               ],
             );
           },
@@ -789,11 +851,12 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     final item = _taskItems[index];
     final isExpanded = index == _expandedIndex;
 
-    final scale =
-        isExpanded
-            ? 1.15
-            : (1.0 - smoothDepth * 0.04).clamp(0.5, 1.0);
-    final dimAlpha = isExpanded ? 0.0 : (smoothDepth * 0.10).clamp(0.0, 0.8);
+    // 通常時は0.9倍、拡大時はホームと同じ1.0倍
+    final baseScale = isExpanded ? 1.0 : 0.9;
+    final scale = isExpanded
+        ? 1.0
+        : (baseScale - smoothDepth * 0.04).clamp(0.4, baseScale);
+    final dimAlpha = isExpanded ? 0.0 : (smoothDepth * 0.15).clamp(0.0, 0.85);
 
     return AnimatedBuilder(
       animation: _sublimation,
@@ -811,7 +874,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             double returnT = ((t - 0.75) / 0.25).clamp(0.0, 1.0); // 1.5s-2.0s for returning
             
             currentAngle = fanAngleRad * (1.0 - moveT) + fanAngleRad * returnT;
-            currentScale = scale + (moveT * 0.08) - (returnT * 0.08);
+            // 0.9倍から1.08倍程度まで一気に拡大することで達成感を強調
+            currentScale = scale + (moveT * (1.08 - scale)) - (returnT * (1.08 - scale));
             currentOpacity = 1.0;
           } else {
             // Other cards exit and then return
@@ -830,7 +894,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         return Transform.translate(
           offset: Offset(0, currentSublimateY),
           child: Transform(
-            alignment: Alignment.bottomCenter,
+            alignment: Alignment.center,
             transform:
                 Matrix4.identity()
                   ..rotateZ(currentAngle)
@@ -853,6 +917,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                 !item.isCompleted && !_isSublimating && index == _focusedIndex,
             tierColor: _getTierColor(_streak),
             isExpanded: isExpanded,
+            userPhotos: _userPhotos,
             onDelete:
                 item.completedPost != null
                     ? () => _deleteHeroPost(item.completedPost!.id)
@@ -864,7 +929,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   }
 
   Widget _buildZenMode() {
-    return AnimatedBuilder(
+    return RepaintBoundary(
+      child: AnimatedBuilder(
       animation: _zenGlow,
       builder: (context, _) {
         final glow = _zenGlow.value;
@@ -923,7 +989,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               ),
               Text(
                 'Day Streak',
-                style: GoogleFonts.outfit(
+                                style: GoogleFonts.outfit(
                   fontSize: 16,
                   fontWeight: FontWeight.w400,
                   color: AppColors.grey50,
@@ -963,11 +1029,23 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           ),
         );
       },
-    );
+    ),  // AnimatedBuilder
+    );  // RepaintBoundary
   }
 }
 
 class _TaskCard extends StatelessWidget {
+  final _HeroTaskItem item;
+  final int index;
+  final int total;
+  final int depth;
+  final double dimAlpha;
+  final bool showCamera;
+  final Color tierColor;
+  final bool isExpanded;
+  final Map<String, String?> userPhotos;
+  final VoidCallback? onDelete;
+
   const _TaskCard({
     required this.item,
     required this.index,
@@ -977,18 +1055,9 @@ class _TaskCard extends StatelessWidget {
     required this.showCamera,
     required this.tierColor,
     required this.isExpanded,
+    required this.userPhotos,
     this.onDelete,
   });
-
-  final _HeroTaskItem item;
-  final int index;
-  final int total;
-  final int depth;
-  final double dimAlpha;
-  final bool showCamera;
-  final Color tierColor;
-  final bool isExpanded;
-  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -998,9 +1067,11 @@ class _TaskCard extends StatelessWidget {
     const bgColorBottom = Color(0xFF121316);
 
     final borderColor = isCompleted
-        ? tierColor.withValues(alpha: isTop ? 0.6 : 0.1) // Homeフィード（他人の枠）と統一
+        ? (isTop
+            ? AppColors.accentGold.withValues(alpha: 0.8)
+            : tierColor.withValues(alpha: 0.1))
         : (isTop
-            ? AppColors.white.withValues(alpha: 0.12) // 軽量な白の縁
+            ? AppColors.white.withValues(alpha: 0.12)
             : AppColors.white.withValues(alpha: 0.05));
 
     return Container(
@@ -1012,7 +1083,6 @@ class _TaskCard extends StatelessWidget {
             : LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                // リッチなグラデーションで高級感を出しつつ、重いフィルタを回避
                 colors: [
                   bgColorTop.withValues(alpha: isTop ? 0.95 : 0.4),
                   bgColorTop.withValues(alpha: isTop ? 0.65 : 0.3),
@@ -1040,14 +1110,12 @@ class _TaskCard extends StatelessWidget {
           width: isCompleted ? (isTop ? 1.5 : 0.5) : 0.8,
         ),
         boxShadow: [
-          // 1層目: 直下の濃い影（接地感）
           BoxShadow(
             color: AppColors.black.withValues(alpha: isTop ? 0.6 : 0.2),
             blurRadius: 20,
             offset: const Offset(0, 10),
             spreadRadius: -2,
           ),
-          // 2層目: 広範囲の薄い影（浮遊感・高級感）
           BoxShadow(
             color: AppColors.black.withValues(alpha: isTop ? 0.4 : 0.1),
             blurRadius: 50,
@@ -1057,8 +1125,8 @@ class _TaskCard extends StatelessWidget {
           if (isTop)
             BoxShadow(
               color: isCompleted
-                  ? tierColor.withValues(alpha: 0.35)
-                  : tierColor.withValues(alpha: 0.04), // ほんのりとしたアンビエントグロー
+                  ? AppColors.accentGold.withValues(alpha: 0.35)
+                  : tierColor.withValues(alpha: 0.04),
               blurRadius: isCompleted ? 50 : 80,
               spreadRadius: isCompleted ? 4 : 2,
             ),
@@ -1066,21 +1134,9 @@ class _TaskCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: _buildCardContent(isTop),
+        child: _buildStack(),
       ),
     );
-  }
-
-  Widget _buildCardContent(bool isTop) {
-    // 負荷軽減: 背景が真っ暗に近いので、BackdropFilterの代わりに
-    // シンプルなオーバーレイグラデーションでガラス感を模倣し、ぼかしは最小限に。
-    if (isTop && !isExpanded) {
-      return BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
-        child: _buildStack(),
-      );
-    }
-    return _buildStack();
   }
 
   Widget _buildStack() {
@@ -1094,141 +1150,361 @@ class _TaskCard extends StatelessWidget {
             ),
           ),
 
-        if (isCompleted && !isExpanded)
-          Positioned(
-            top: 40,
-            right: 40,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: tierColor.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-                border: Border.all(color: tierColor, width: 1),
-              ),
+        // テキスト上部エリア（カメラは別レイヤー）
+        Padding(
+          padding: const EdgeInsets.fromLTRB(40, 40, 40, 120),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isCompleted && depth == 0) ...[
+                Text(
+                  item.name,
+                  style: GoogleFonts.notoSerifJp(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.white,
+                    height: 1.4,
+                    letterSpacing: 1.5,
+                    shadows: [
+                      Shadow(
+                        color: AppColors.black.withValues(alpha: 0.8),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      )
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(width: 16, height: 1, color: AppColors.accentGold),
+                    const SizedBox(width: 8),
+                    Text(
+                      'DONE',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10,
+                        color: AppColors.accentGold,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 3,
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                Text(
+                  item.name,
+                  style: GoogleFonts.notoSerifJp(
+                    fontSize: depth == 0 ? 22 : 16,
+                    fontWeight: FontWeight.w500,
+                    color: depth == 0 ? AppColors.white : AppColors.grey50,
+                    height: 1.4,
+                    letterSpacing: 1.5,
+                    shadows: depth == 0
+                        ? [
+                            Shadow(
+                              color: AppColors.black.withValues(alpha: 0.8),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            )
+                          ]
+                        : null,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (depth == 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        width: 16,
+                        height: 1,
+                        color: AppColors.accentGold.withValues(alpha: 0.8),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        item.isOneTime ? 'ONE-TIME' : 'READY',
+                        style: GoogleFonts.outfit(
+                          fontSize: 10,
+                          color: AppColors.accentGold,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ],
+          ),
+        ),
+
+        // カメラボタン：ど真ん中に絶対配置
+        if (!isCompleted && showCamera && depth == 0)
+          Positioned.fill(
+            child: Center(
+              child: _PulseCameraButton(tierColor: tierColor),
+            ),
+          ),
+
+        // depth!=0 の場合の小さいカメラアイコン（中央）
+        if (!isCompleted && showCamera && depth != 0)
+          const Positioned.fill(
+            child: Center(
               child: Icon(
-                Icons.check_rounded,
-                color: tierColor,
+                Icons.camera_alt_outlined,
+                color: AppColors.grey30,
                 size: 20,
               ),
             ),
           ),
 
-        Padding(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // QUEST表示を削除
-              const SizedBox(height: 16),
-
-              const Spacer(),
-
-              if (!isCompleted) ...[
-                if (showCamera && depth == 0) ...[
-                  Center(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 600),
-                      curve: Curves.easeOutCubic,
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        // ガラスボタン風の軽量なグラデーション
-                        gradient: RadialGradient(
-                          colors: [
-                            AppColors.white.withValues(alpha: 0.08),
-                            AppColors.white.withValues(alpha: 0.02),
-                            Colors.transparent,
-                          ],
-                          stops: const [0.3, 0.8, 1.0],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.black.withValues(alpha: 0.2),
-                            blurRadius: 8,
-                            spreadRadius: -2,
-                          ),
-                        ],
-                        border: Border.all(
-                          color: tierColor.withValues(alpha: 0.3),
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.camera_alt_outlined,
-                        color: tierColor,
-                        size: 24,
-                        shadows: [
-                          Shadow(
-                            color: tierColor.withValues(alpha: 0.5),
-                            blurRadius: 6,
-                          ),
-                        ],
+        // ──── ホーム画面と同じ配置 (固定座標方式に変更) ────
+        if (isCompleted && depth == 0) ...[
+          // V FIRE ボタン (本体 + カウントテキスト)
+          Positioned(
+            bottom: 30,
+            right: 20,
+            child: IgnorePointer(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.accentGold.withValues(alpha: 0.3),
+                        width: 1,
                       ),
                     ),
-                  ),
-                ] else if (showCamera && depth != 0) ...[
-                  Center(
                     child: Icon(
-                      Icons.camera_alt_outlined,
-                      color: AppColors.grey30.withValues(alpha: 0.3),
-                      size: 20,
+                      Icons.local_fire_department,
+                      color: AppColors.accentGold,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${item.completedPost?.reactionCount ?? 0}',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.white,
                     ),
                   ),
                 ],
-              ],
-
-              const Spacer(),
-
-              Text(
-                item.name,
-                style: GoogleFonts.notoSerifJp(
-                  fontSize: depth == 0 ? 22 : 16,
-                  fontWeight: FontWeight.w500,
-                  color: depth == 0 ? AppColors.white : AppColors.grey50,
-                  height: 1.4,
-                  letterSpacing: 1.5,
-                  shadows: depth == 0
-                      ? [
-                          Shadow(
-                            color: AppColors.black.withValues(alpha: 0.8),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          )
-                        ]
-                      : null,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
               ),
-
-              const SizedBox(height: 16),
-
-              if (depth == 0)
-                Row(
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 1,
-                      color: tierColor.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      isCompleted ? 'DONE' : 'READY',
-                      style: GoogleFonts.outfit(
-                        fontSize: 8,
-                        color: tierColor.withValues(alpha: 0.7),
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ],
-                ),
-            ],
+            ),
           ),
-        ),
+
+          // リアクションアバター (V FIREの左横)
+          if (item.completedPost != null &&
+              (item.completedPost!.reactionCount > 0))
+            Positioned(
+              bottom: 68, // VFIRE(56) + (56-34)/2 で縦中央揃え
+              right: 88,  // VFIRE(56+20) + 余白(12) = 88
+              child: IgnorePointer(
+                child: ReactionAvatarsStack(
+                  userReactions: item.completedPost!.userReactions,
+                  reactorUids: item.completedPost!.emojiReactedUserIds,
+                  userPhotos: userPhotos,
+                  reactionCount: item.completedPost!.reactionCount,
+                  avatarSize: 34,
+                  overlapOffset: 22,
+                ),
+              ),
+            ),
+        ],
       ],
     );
   }
+}
+
+// ────────────────────────────────────────────
+// ドーパミン刺激カメラボタン（呼吸 + ゴールドシマー）
+// ────────────────────────────────────────────
+class _PulseCameraButton extends StatefulWidget {
+  const _PulseCameraButton({required this.tierColor});
+  final Color tierColor;
+
+  @override
+  State<_PulseCameraButton> createState() => _PulseCameraButtonState();
+}
+
+class _PulseCameraButtonState extends State<_PulseCameraButton>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
+  late final AnimationController _shimmerController;
+  late final Animation<double> _shimmerAngle;
+
+  bool _isVisible = true;
+  bool _isAppForeground = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // ゴールドシマー：3秒で一周
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
+
+    _shimmerAngle = Tween<double>(begin: 0, end: 2 * 3.14159265).animate(
+      _shimmerController,
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final isFg = state == AppLifecycleState.resumed;
+    if (_isAppForeground == isFg) return;
+    _isAppForeground = isFg;
+    _syncTickers();
+  }
+
+  void _handleVisibilityChanged(VisibilityInfo info) {
+    if (!mounted) return;
+    final visible = info.visibleFraction > 0.01;
+    if (_isVisible == visible) return;
+    _isVisible = visible;
+    _syncTickers();
+  }
+
+  void _syncTickers() {
+    final shouldRun = _isVisible && _isAppForeground;
+    if (shouldRun) {
+      if (!_shimmerController.isAnimating) {
+        _shimmerController.repeat();
+      }
+    } else {
+      _shimmerController.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return VisibilityDetector(
+      key: const Key('pulse_camera_button'),
+      onVisibilityChanged: _handleVisibilityChanged,
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: _shimmerAngle,
+          builder: (context, _) {
+            const innerSize = 76.0;
+            const outerSize = 104.0;
+            const glowAlpha = 0.12;
+            const iconAlpha = 0.85;
+
+            return SizedBox(
+              width: outerSize,
+              height: outerSize,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 背光オーラ（静止）
+                  Container(
+                    width: outerSize,
+                    height: outerSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.accentGold.withValues(alpha: glowAlpha),
+                          blurRadius: 40,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ゴールドシマーボーダー
+                  CustomPaint(
+                    size: const Size(innerSize, innerSize),
+                    painter: _GoldShimmerPainter(
+                      angle: _shimmerAngle.value,
+                    ),
+                  ),
+
+                  // 内側サークル＋アイコン
+                  Container(
+                    width: innerSize,
+                    height: innerSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.white.withValues(alpha: 0.06),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_outlined,
+                      color: AppColors.white,
+                      size: 28,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ゴールドの光がぐるりと走るカスタムペインター
+class _GoldShimmerPainter extends CustomPainter {
+  const _GoldShimmerPainter({required this.angle});
+  final double angle;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final radius = size.width / 2;
+    final center = Offset(radius, radius);
+
+    // ベースの薄いゴールドリング
+    final basePaint = Paint()
+      ..color = AppColors.accentGold.withValues(alpha: 0.25)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(center, radius - 0.5, basePaint);
+
+    // シマー光点（弧）
+    final shimmerPaint = Paint()
+      ..shader = SweepGradient(
+        center: Alignment.center,
+        startAngle: angle - 0.6,
+        endAngle: angle + 0.6,
+        colors: [
+          AppColors.accentGold.withValues(alpha: 0),
+          AppColors.accentGold.withValues(alpha: 0.9),
+          AppColors.accentGold.withValues(alpha: 0),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: radius))
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius - 1),
+      angle - 0.55,
+      1.1,
+      false,
+      shimmerPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GoldShimmerPainter old) => old.angle != angle;
 }
 
 class _FrictionlessPageScrollPhysics extends PageScrollPhysics {
