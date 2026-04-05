@@ -731,7 +731,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         transform:
             Matrix4.identity()
               ..rotateZ(rotateZ)
-              ..scale(scale, scale, scale),
+              ..scaleByDouble(scale, scale, scale, 1.0),
         child: SizedBox(
           width: cardWidth,
           height: cardHeight,

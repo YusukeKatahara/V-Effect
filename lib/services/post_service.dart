@@ -79,7 +79,12 @@ class PostService {
     final dynamic rawTasks = data['tasks'];
     List<String> tasks = [];
     if (rawTasks is List) {
-      tasks = rawTasks.map((e) => e.toString()).toList();
+      tasks = rawTasks.map((e) {
+        if (e is Map) {
+          return (e['title'] ?? e['name'] ?? e.toString()).toString();
+        }
+        return e.toString();
+      }).toList();
     } else if (rawTasks is Map) {
       tasks = rawTasks.keys.map((k) => k.toString()).toList();
     }
@@ -345,7 +350,7 @@ class PostService {
         'body': '$myUsernameさんがあなたの「$postTaskName」の達成に熱狂しています！',
       },
       {
-        'title': '⚡️ V-Effect 発動！',
+        'title': '⚡️ V EFFECT 発動！',
         'body': 'あなたの「$postTaskName」が、$myUsernameさんのモチベーションに火をつけました！',
       },
       {

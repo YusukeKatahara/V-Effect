@@ -3,6 +3,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'analytics_service.dart';
 
 /// バックグラウンドメッセージハンドラー（トップレベル関数である必要がある）
@@ -50,6 +53,11 @@ class PushNotificationService {
       return;
     }
 
+    // タイムゾーンの初期化
+    tz.initializeTimeZones();
+    final String timeZoneName = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timeZoneName));
+
     // バックグラウンドハンドラーの登録
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
@@ -76,7 +84,47 @@ class PushNotificationService {
     // トークン更新時にも保存
     _messaging.onTokenRefresh.listen((_) => saveFcmToken());
 
+    // 初期化時にスケジュールを同期
+    await syncScheduledReminders();
+
     _initialized = true;
+  }
+
+  /// Firestore から設定を取得してローカル通知スケジュールを同期する
+  Future<void> syncScheduledReminders() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      // Fetch public settings
+      final publicSnap = await _db.collection('users').doc(user.uid).get();
+      bool focusTimeEnabled = true;
+      if (publicSnap.exists) {
+        focusTimeEnabled = publicSnap.data()?['focusTimeNotifications'] ?? true;
+      }
+
+      // Fetch private details (times)
+      final privateSnap = await _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('private')
+          .doc('data')
+          .get();
+
+      if (privateSnap.exists) {
+        final data = privateSnap.data()!;
+        final wakeUpTime = data['wakeUpTime'] as String?;
+        final taskTime = data['taskTime'] as String?;
+
+        await updateScheduledReminders(
+          wakeUpTime: wakeUpTime,
+          taskTime: taskTime,
+          focusTimeEnabled: focusTimeEnabled,
+        );
+      }
+    } catch (e) {
+      debugPrint('スケジュール同期エラー: $e');
+    }
   }
 
   /// 通知権限をリクエスト
@@ -164,6 +212,99 @@ class PushNotificationService {
       });
     } catch (e) {
       debugPrint('FCMトークン削除エラー: $e');
+    }
+  }
+
+  /// 毎日決まった時刻に通知をスケジュールする
+  /// [id] 通知を識別する一意のID
+  /// [timeStr] "HH:MM" 形式
+  Future<void> scheduleDailyNotification({
+    required int id,
+    required String title,
+    required String body,
+    required String timeStr,
+  }) async {
+    if (kIsWeb) return;
+
+    final parts = timeStr.split(':');
+    if (parts.length != 2) return;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return;
+
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+    // 既に今日の設定時刻を過ぎている場合は明日にスケジュール
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    await _localNotifications.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledDate,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channel.id,
+          _channel.name,
+          channelDescription: _channel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: const DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+    debugPrint('通知スケジュール完了: $id ($timeStr)');
+  }
+
+  /// 特定のIDのスケジュール通知を解除する
+  Future<void> cancelNotification(int id) async {
+    if (kIsWeb) return;
+    await _localNotifications.cancel(id);
+  }
+
+  /// 起床時間とヒーロータスク時間のローカル通知スケジュールを更新する
+  Future<void> updateScheduledReminders({
+    String? wakeUpTime,
+    String? taskTime,
+    bool focusTimeEnabled = true,
+  }) async {
+    if (kIsWeb) return;
+
+    // 起床時間 (ID: 1001)
+    if (wakeUpTime != null && wakeUpTime.isNotEmpty) {
+      await scheduleDailyNotification(
+        id: 1001,
+        title: '起床時間です',
+        body: '新しい一日。昨日の自分を超えるチャンスです',
+        timeStr: wakeUpTime,
+      );
+    } else {
+      await cancelNotification(1001);
+    }
+
+    // フォーカス時間 (ID: 1002)
+    if (focusTimeEnabled && taskTime != null && taskTime.isNotEmpty) {
+      await scheduleDailyNotification(
+        id: 1002,
+        title: 'Focus Time',
+        body: '自分で決めたことをやる。それが一番の自信になります',
+        timeStr: taskTime,
+      );
+    } else {
+      await cancelNotification(1002);
     }
   }
 }

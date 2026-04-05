@@ -23,6 +23,7 @@ class AppUser {
   final bool onboardingCompleted;
   final int? lastProfileEditDate;
   final bool pushNotifications;
+  final bool focusTimeNotifications;
   final bool isPrivateAccount;
 
   const AppUser({
@@ -47,6 +48,7 @@ class AppUser {
     this.onboardingCompleted = false,
     this.lastProfileEditDate,
     this.pushNotifications = true,
+    this.focusTimeNotifications = true,
     this.isPrivateAccount = false,
   });
 
@@ -54,14 +56,29 @@ class AppUser {
     final data = doc.data() as Map<String, dynamic>;
 
     // Helper to safely get String from potential Map or non-string (avoid crash if Firestore has dirty data)
-    String? _safeString(dynamic value) {
+    String? safeString(dynamic value) {
       if (value == null) return null;
       if (value is String) return value;
       return value.toString();
     }
 
+    // Helper to extract tasks, handling both String and Map (with title field)
+    List<String> extractTasks() {
+      final raw = data['tasks'];
+      if (raw == null) return [];
+      if (raw is List) {
+        return raw.map((e) {
+          if (e is Map) {
+            return (e['title'] ?? e['name'] ?? e.toString()).toString();
+          }
+          return e.toString();
+        }).toList();
+      }
+      return [];
+    }
+
     // Helper to extract UIDs from either a List or a Map (legacy format support)
-    List<String> _extractUids(String fieldName1, [String? fieldName2]) {
+    List<String> extractUids(String fieldName1, [String? fieldName2]) {
       final raw = data[fieldName1] ?? (fieldName2 != null ? data[fieldName2] : null);
       if (raw == null) return [];
       if (raw is List) {
@@ -76,21 +93,21 @@ class AppUser {
 
     return AppUser(
       uid: doc.id,
-      email: _safeString(data['email']),
-      username: _safeString(data['username']),
-      userId: _safeString(data['userId']),
-      displayName: _safeString(data['displayName']),
-      birthDate: _safeString(data['birthDate']),
-      gender: _safeString(data['gender']),
-      photoUrl: _safeString(data['photoUrl']),
+      email: safeString(data['email']),
+      username: safeString(data['username']),
+      userId: safeString(data['userId']),
+      displayName: safeString(data['displayName']),
+      birthDate: safeString(data['birthDate']),
+      gender: safeString(data['gender']),
+      photoUrl: safeString(data['photoUrl']),
       streak: (data['streak'] as num?)?.toInt() ?? 0,
-      lastPostedDate: _safeString(data['lastPostedDate']),
-      following: _extractUids('following', 'friends'),
-      followers: _extractUids('followers', 'friends'),
-      tasks: _extractUids('tasks'),
-      wakeUpTime: _safeString(data['wakeUpTime']),
-      taskTime: _safeString(data['taskTime']),
-      occupation: _safeString(data['occupation']),
+      lastPostedDate: safeString(data['lastPostedDate']),
+      following: extractUids('following', 'friends'),
+      followers: extractUids('followers', 'friends'),
+      tasks: extractTasks(),
+      wakeUpTime: safeString(data['wakeUpTime']),
+      taskTime: safeString(data['taskTime']),
+      occupation: safeString(data['occupation']),
       profileCompleted: data['profileCompleted'] ?? false,
       templateCompleted: data['templateCompleted'] ?? false,
       onboardingCompleted: data['onboardingCompleted'] ?? false,
@@ -99,6 +116,7 @@ class AppUser {
           : null,
 
       pushNotifications: data['pushNotifications'] ?? true,
+      focusTimeNotifications: data['focusTimeNotifications'] ?? true,
       isPrivateAccount: data['isPrivateAccount'] ?? false,
     );
   }

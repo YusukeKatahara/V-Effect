@@ -81,7 +81,7 @@ struct VEffectWidget: Widget {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             VEffectWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("V-EFFECT")
+        .configurationDisplayName("V EFFECT")
         .description("現在のストリークを確認できます。")
         .supportedFamilies([.systemSmall])
     }

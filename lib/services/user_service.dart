@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'push_notification_service.dart';
 
 /// ユーザープロフィール・ヒーロータスク設定の読み書きを担当するサービス
 class UserService {
@@ -69,6 +70,9 @@ class UserService {
     );
 
     await batch.commit();
+
+    // ローカル通知スケジュールを更新
+    await PushNotificationService().syncScheduledReminders();
   }
 
   /// テンプレートヒーロータスク選択を保存します（新規登録フロー: テンプレート選択ステップ）
@@ -121,6 +125,9 @@ class UserService {
     );
 
     await batch.commit();
+
+    // ローカル通知スケジュールを更新
+    await PushNotificationService().syncScheduledReminders();
   }
 
   /// ユーザーIDが既に使われていないかチェックします
@@ -202,6 +209,9 @@ class UserService {
 
     await batch.commit();
 
+    // ローカル通知スケジュールを更新（設定変更を考慮するため syncScheduledReminders を使用）
+    await PushNotificationService().syncScheduledReminders();
+
     // タスクが変更された場合、HeroTasksScreen など購読者に通知
     if (tasks != null) {
       _updateController.add(null);
@@ -211,6 +221,7 @@ class UserService {
   /// アプリの設定（通知・プライバシー）を更新します
   Future<void> updateSettings({
     bool? pushNotifications,
+    bool? focusTimeNotifications,
     bool? isPrivateAccount,
   }) async {
     final uid = _auth.currentUser?.uid;
@@ -218,10 +229,16 @@ class UserService {
 
     final data = <String, dynamic>{};
     if (pushNotifications != null) data['pushNotifications'] = pushNotifications;
+    if (focusTimeNotifications != null) data['focusTimeNotifications'] = focusTimeNotifications;
     if (isPrivateAccount != null) data['isPrivateAccount'] = isPrivateAccount;
 
     if (data.isNotEmpty) {
       await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
+      
+      // Focus Time 通知設定が変更された場合はスケジュールを更新
+      if (focusTimeNotifications != null) {
+        await PushNotificationService().syncScheduledReminders();
+      }
     }
   }
 }

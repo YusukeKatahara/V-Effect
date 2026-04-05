@@ -21,7 +21,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = true;
   bool _pushNotifications = true;
-  bool _isPrivateAccount = false;
+  bool _focusTimeNotifications = true;
   String _appVersion = '';
 
   @override
@@ -39,7 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     
     // Load remote settings from Firestore
     bool remotePush = true;
-    bool remotePrivate = false;
+    bool remoteFocusTime = true;
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
@@ -48,7 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final data = doc.data();
           if (data != null) {
             if (data.containsKey('pushNotifications')) remotePush = data['pushNotifications'];
-            if (data.containsKey('isPrivateAccount')) remotePrivate = data['isPrivateAccount'];
+            if (data.containsKey('focusTimeNotifications')) remoteFocusTime = data['focusTimeNotifications'];
           }
         }
       }
@@ -60,7 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _isDarkMode = localDarkMode;
         _pushNotifications = remotePush;
-        _isPrivateAccount = remotePrivate;
+        _focusTimeNotifications = remoteFocusTime;
       });
     }
   }
@@ -99,16 +99,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _togglePrivateAccount(bool value) async {
-    setState(() => _isPrivateAccount = value);
+  Future<void> _toggleFocusTimeNotifications(bool value) async {
+    setState(() => _focusTimeNotifications = value);
     try {
-      await UserService.instance.updateSettings(isPrivateAccount: value);
+      await UserService.instance.updateSettings(focusTimeNotifications: value);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('設定の保存に失敗しました')),
         );
-        setState(() => _isPrivateAccount = !value); // revert
+        setState(() => _focusTimeNotifications = !value); // revert
       }
     }
   }
@@ -249,7 +249,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: const Text('（※完全なライトモード対応は今後のアップデートで提供されます）', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             value: _isDarkMode,
             onChanged: _toggleTheme,
-            activeColor: AppColors.white,
+            activeThumbColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),
           
@@ -259,17 +259,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: const Text('フォローや投稿に関する通知', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             value: _pushNotifications,
             onChanged: _togglePushNotifications,
-            activeColor: AppColors.white,
+            activeThumbColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),
-
-          _buildSectionHeader('プライバシー'),
           SwitchListTile(
-            title: const Text('非公開アカウント', style: TextStyle(color: AppColors.textPrimary)),
-            subtitle: const Text('承認した人だけが投稿を見られるようになります', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-            value: _isPrivateAccount,
-            onChanged: _togglePrivateAccount,
-            activeColor: AppColors.white,
+            title: const Text('Focus Time 通知', style: TextStyle(color: AppColors.textPrimary)),
+            subtitle: const Text('自分で決めた目標時間のリマインダー', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            value: _focusTimeNotifications,
+            onChanged: _toggleFocusTimeNotifications,
+            activeThumbColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),
 
