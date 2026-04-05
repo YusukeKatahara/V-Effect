@@ -74,29 +74,10 @@ class PostService {
       };
     }
     final data = snap.data() as Map<String, dynamic>;
-<<<<<<< HEAD
-    final rawLastPostedDate = data['lastPostedDate'];
-    final lastPostedDate = rawLastPostedDate is String ? rawLastPostedDate : rawLastPostedDate?.toString();
-
-    final dynamic rawTasks = data['tasks'];
-    List<String> tasks = [];
-    if (rawTasks is List) {
-      tasks = rawTasks.map((e) {
-        if (e is Map) {
-          return (e['title'] ?? e['name'] ?? e.toString()).toString();
-        }
-        return e.toString();
-      }).toList();
-    } else if (rawTasks is Map) {
-      tasks = rawTasks.keys.map((k) => k.toString()).toList();
-    }
-
-=======
     final lastPostedDate = data['lastPostedDate'] as String?;
     final tasks = (data['tasks'] as List? ?? [])
         .map((item) => AppTask.fromFirestore(item))
         .toList();
->>>>>>> origin/test/v-streak-dev
 
     // 今日の分だけをフィルタリング
     final postedPostsToday =
@@ -627,19 +608,23 @@ class PostService {
     }).toList();
 
     if (remainingToday.isEmpty) {
-      // 今日もう投稿がない場合、過去も含めた最新の投稿を探して lastPostedDate と streak を戻す
       final userSnap = await _db.collection('users').doc(uid).get();
       final userData = userSnap.data()!;
       final currentStreak = (userData['streak'] as num?)?.toInt() ?? 0;
-      
-      if (allUserPosts.docs.length <= 1) {
-        // これが最後の1件だった場合
+      final lastPostedDateStr = userData['lastPostedDate'] as String?;
+      final todayStr = DateHelper.toDateString(now);
+
+      if (lastPostedDateStr == todayStr) {
+        // 今日すでに投稿完了フラグが立っている場合は、削除してもストリークを保護する。
+        // 「その日に投稿した」という実績は維持し、lastPostedDate / streak を変更しない。
+      } else if (allUserPosts.docs.length <= 1) {
+        // これが最後の1件かつ今日の投稿でない場合（通常は発生しないが念のため）
         await _db.collection('users').doc(uid).update({
           'lastPostedDate': null,
           'streak': 0,
         });
       } else {
-        // 他に過去の投稿がある場合
+        // 今日以外の投稿を削除した場合：直近の投稿日に合わせて更新
         DateTime? lastDate;
         for (var doc in allUserPosts.docs) {
           if (doc.id == postId) continue;
@@ -649,12 +634,10 @@ class PostService {
             lastDate = createdAt;
           }
         }
-        
+
         final lastDateStr = lastDate != null ? DateHelper.toDateString(lastDate) : null;
-        
-        // 今日の分を消すので、ストリークを1減らす（ただし0未満にはしない）
         final newStreak = (currentStreak > 0) ? currentStreak - 1 : 0;
-        
+
         await _db.collection('users').doc(uid).update({
           'lastPostedDate': lastDateStr,
           'streak': newStreak,
