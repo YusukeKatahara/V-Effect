@@ -285,40 +285,50 @@ class PostService {
   }
 
   /// 投稿にリアクションをつけます
+  /// 投稿にリアクションをつけます
   Future<void> addReaction(String postId, {String? emoji}) async {
     final myUid = _auth.currentUser!.uid;
+    final docRef = _db.collection('posts').doc(postId);
 
-    final docSnap = await _db.collection('posts').doc(postId).get();
-    if (!docSnap.exists) return;
-    final data = docSnap.data()!;
+    try {
+      await _db.runTransaction((transaction) async {
+        final docSnap = await transaction.get(docRef);
+        if (!docSnap.exists) return;
 
-    // 絵文字リアクションの上書き・追加許可
-    // 既に 🔥 (V FIRE) 以外の絵文字を送っている場合は重複を避ける
-    if (emoji != null) {
-      final userReactions = data['userReactions'] as Map<String, dynamic>? ?? {};
-      final currentEmoji = userReactions[myUid] as String?;
-      if (currentEmoji != null && currentEmoji != '🔥') {
-        debugPrint('User already reacted with an actual emoji to this post');
-        return;
-      }
+        final data = docSnap.data()!;
+        final userReactions = (data['userReactions'] as Map?)?.cast<String, dynamic>() ?? {};
+        final emojiReactedUserIds = List<String>.from(data['emojiReactedUserIds'] ?? []);
+
+        final updates = <String, dynamic>{};
+
+        if (emoji != null) {
+          // 絵文字処理: 1人1回まで。VFIREとの独立化の過程で 🔥 が入っている場合のみ上書きを許可
+          final currentEmoji = userReactions[myUid];
+          if (currentEmoji != null && currentEmoji != '🔥') return;
+
+          final newUserReactions = Map<String, dynamic>.from(userReactions);
+          newUserReactions[myUid] = emoji;
+          updates['userReactions'] = newUserReactions;
+          
+          if (!emojiReactedUserIds.contains(myUid)) {
+            updates['emojiReactedUserIds'] = FieldValue.arrayUnion([myUid]);
+          }
+        } else {
+          // VFIRE処理: 回数無制限、絵文字ステートやアバター用リストには干渉しない
+          updates['reactionCount'] = FieldValue.increment(1);
+        }
+
+        if (updates.isNotEmpty) {
+          transaction.update(docRef, updates);
+        }
+      });
+
+      _analytics.logReactionSent();
+      _updateController.add(null);
+      _sendReactionNotification(postId, emoji: emoji).catchError((_) {});
+    } catch (e) {
+      debugPrint('Reaction update failed with transaction: $e');
     }
-
-    final updates = <String, dynamic>{
-      'reactionCount': FieldValue.increment(1),
-      // 全てのリアクション（V Fire / Emoji問わず）でリアクターとしてUIDを記録（アバター表示用）
-      'emojiReactedUserIds': FieldValue.arrayUnion([myUid]),
-      // 誰がどの絵文字を選んだかを個別に記録（バッジ表示用）
-      'userReactions.$myUid': emoji ?? '🔥',
-    };
-
-    await _db.collection('posts').doc(postId).update(updates);
-    _analytics.logReactionSent();
-
-    // データの変更をアプリ全体に通知
-    _updateController.add(null);
-
-    // リアクション通知を送付
-    _sendReactionNotification(postId, emoji: emoji).catchError((_) {});
   }
 
   /// リアクション通知を送信する内部メソッド
@@ -523,7 +533,7 @@ class PostService {
             .collection('posts')
             .where('userId', whereIn: chunk)
             .where('expiresAt', isGreaterThan: Timestamp.now())
-            .get(const GetOptions(source: Source.serverAndCache)),
+            .get(const GetOptions(source: Source.server)),
       );
     }
 

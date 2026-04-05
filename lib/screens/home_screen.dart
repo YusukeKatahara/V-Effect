@@ -232,11 +232,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final post = _feedPosts[index];
     final myUid = FirebaseAuth.instance.currentUser?.uid;
 
-    // 全リアクション（V FIRE / 絵文字問わず）を1回までに制限
-    if (myUid != null) {
+    // 絵文字リアクションは1回までに制限するが、V FIRE（通常の炎）は何回でもタップ可能にする
+    if (myUid != null && emoji != null) {
       final currentReaction = post.userReactions[myUid];
-      if (currentReaction != null) {
-        debugPrint('User already reacted to this post');
+      if (currentReaction != null && currentReaction != '🔥') {
+        debugPrint('User already reacted with an emoji to this post');
         return;
       }
     }
@@ -261,15 +261,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // Optimistic UI update
     setState(() {
-      final updatedIds = myUid != null
-          ? (post.emojiReactedUserIds.contains(myUid)
-              ? post.emojiReactedUserIds
-              : [...post.emojiReactedUserIds, myUid])
-          : post.emojiReactedUserIds;
-
       final newUserReactions = Map<String, String>.from(post.userReactions);
+      final updatedIds = List<String>.from(post.emojiReactedUserIds);
+      int newReactionCount = post.reactionCount;
+
       if (myUid != null) {
-        newUserReactions[myUid] = emoji ?? '🔥';
+        if (emoji != null) {
+          // 絵文字: 既に別の絵文字がある場合は反映しないが、🔥 の場合は上書きを許可
+          final currentEmoji = newUserReactions[myUid];
+          if (currentEmoji == null || currentEmoji == '🔥') {
+            newUserReactions[myUid] = emoji;
+            if (!updatedIds.contains(myUid)) updatedIds.add(myUid);
+          }
+        } else {
+          // VFIRE: 炎のカウントのみを加算し、絵文字（userReactions）は絶対にいじらない
+          newReactionCount++;
+        }
       }
 
       _feedPosts = List.from(_feedPosts)
@@ -281,7 +288,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           caption: post.caption,
           createdAt: post.createdAt,
           expiresAt: post.expiresAt,
-          reactionCount: post.reactionCount + 1,
+          reactionCount: newReactionCount,
+          showTimestamp: post.showTimestamp,
           emojiReactedUserIds: updatedIds,
           userReactions: newUserReactions,
         );
@@ -673,8 +681,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   final post = _feedPosts[actualIndex];
 
                   final myUid = FirebaseAuth.instance.currentUser?.uid;
-                  final alreadyReacted =
-                      myUid != null && post.emojiReactedUserIds.contains(myUid);
+                  // 絵文字（VFIREの'🔥'以外）を送った場合のみチェックマークにする
+                  final myReaction = myUid != null ? post.userReactions[myUid] : null;
+                  final alreadyReacted = myUid != null && (myReaction != null && myReaction != '🔥');
 
                   return Center(
                     child: SizedBox(
@@ -1216,20 +1225,7 @@ class _FeedCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // [修正] リアクションアバターを非表示化（HeroTasksScreenへ移動）
-
-                        // 拡張リアクションメニュー（＋ または チェック）
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 15), // 炎(56)と水平中心を合わせるための微調整
-                          child: _ExpandableReactionMenu(
-                            onReact: (emoji) => onReaction(emoji: emoji),
-                            onReacted: () {
-                              final myUid = FirebaseAuth.instance.currentUser?.uid;
-                              return myUid != null && post.userReactions.containsKey(myUid);
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
+                        // [修正] リアクションアバターと拡張メニューを非表示化（PageViewレイヤーかHeroTasksScreenで管理）
 
                         // V Fire ボタン＋カウント（表示専用）
                         Column(
@@ -1284,179 +1280,6 @@ class _FeedCard extends StatelessWidget {
   }
 }
 
-// ────────────────────────────────────────────
-// 拡張リアクションメニュー
-// ────────────────────────────────────────────
-class _ExpandableReactionMenu extends StatefulWidget {
-  final void Function(String emoji) onReact;
-  final bool Function()? onReacted;
-
-  const _ExpandableReactionMenu({required this.onReact, this.onReacted});
-
-  @override
-  State<_ExpandableReactionMenu> createState() =>
-      _ExpandableReactionMenuState();
-}
-
-class _ExpandableReactionMenuState extends State<_ExpandableReactionMenu>
-    with SingleTickerProviderStateMixin {
-  bool _isOpen = false;
-  late AnimationController _controller;
-  late Animation<double> _widthFactor;
-  late Animation<double> _opacity;
-
-  static const _emojis = ['❤️', '🔥', '👍'];
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 220),
-    );
-    _widthFactor = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    );
-    _opacity = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _toggle() {
-    setState(() => _isOpen = !_isOpen);
-    if (_isOpen) {
-      _controller.forward();
-    } else {
-      _controller.reverse();
-    }
-  }
-
-  void _react(String emoji) {
-    widget.onReact(emoji);
-    setState(() => _isOpen = false);
-    _controller.reverse();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Expanded emoji pills (slides in from the right)
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return ClipRect(
-              child: Align(
-                alignment: Alignment.centerRight,
-                widthFactor: _widthFactor.value,
-                child: Opacity(
-                  opacity: _opacity.value,
-                  child: child,
-                ),
-              ),
-            );
-          },
-          child: Container(
-            margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.grey15.withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: AppColors.white.withValues(alpha: 0.1),
-                width: 0.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.black.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: _emojis.map((emoji) {
-                return GestureDetector(
-                  onTap: () => _react(emoji),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Text(
-                      emoji,
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-
-        // Toggle or Checkmark
-        Builder(
-          builder: (context) {
-            final myUid = FirebaseAuth.instance.currentUser?.uid;
-            final isReacted = myUid != null && widget.onReacted != null ? widget.onReacted!() : false;
-
-            if (isReacted) {
-              return Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.accentGold.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.accentGold.withValues(alpha: 0.4),
-                    width: 1,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.check_rounded,
-                  color: AppColors.accentGold,
-                  size: 24,
-                ),
-              );
-            }
-
-            return GestureDetector(
-              onTap: _toggle,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.white.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.white.withValues(alpha: 0.15),
-                    width: 1,
-                  ),
-                ),
-                child: AnimatedRotation(
-                  turns: _isOpen ? 0.125 : 0.0,
-                  duration: const Duration(milliseconds: 220),
-                  child: const Icon(
-                    Icons.add_rounded,
-                    color: AppColors.white,
-                    size: 24,
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
 
 // ────────────────────────────────────────────
 // リアクション層の分離

@@ -191,8 +191,11 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
     _flamesKey.currentState?.addFlame();
 
     final post = _posts[_currentPostIndex];
-    // Optimistic UI update (immediately increase count locally)
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+
+    // Optimistic UI update
     setState(() {
+      // VFIREはカウントのみを加算し、絵文字の状態はいじらない独立モデル
       _posts = List.from(_posts)..[_currentPostIndex] = Post(
         id: post.id,
         userId: post.userId,
@@ -202,10 +205,17 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
         createdAt: post.createdAt,
         expiresAt: post.expiresAt,
         reactionCount: post.reactionCount + 1,
+        showTimestamp: post.showTimestamp,
+        emojiReactedUserIds: post.emojiReactedUserIds,
+        userReactions: post.userReactions,
       );
     });
 
-    await _postService.addReaction(post.id);
+    try {
+      await _postService.addReaction(post.id);
+    } catch (e) {
+      debugPrint('Reaction error: $e');
+    }
   }
 
 
