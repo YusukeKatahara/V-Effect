@@ -232,19 +232,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final post = _feedPosts[index];
     final myUid = FirebaseAuth.instance.currentUser?.uid;
 
-    // 絵文字リアクションの1回制限チェック
-    // V FIRE (emoji == null) は無制限だが、絵文字 (emoji != null) は1回まで。
-    // かつ、既にV FIREを送っていても、絵文字がまだなら上書き送信を許可する。
-    if (emoji != null && myUid != null) {
+    // 全リアクション（V FIRE / 絵文字問わず）を1回までに制限
+    if (myUid != null) {
       final currentReaction = post.userReactions[myUid];
-      // 既に何らかの「🔥以外の絵文字」を送っている場合は制限
-      if (currentReaction != null && currentReaction != '🔥') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('絵文字リアクションは1回までです'),
-            duration: Duration(seconds: 1),
-          ),
-        );
+      if (currentReaction != null) {
+        debugPrint('User already reacted to this post');
         return;
       }
     }
@@ -946,7 +938,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             username: username,
             userPhotoUrl: photoUrl,
             dimAlpha: dimAlpha,
-            onReaction: () => _sendReaction(index),
+            onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
             isTop: index == _focusedIndex,
             tierColor: tierColor,
             userPhotos: _userPhotos,
@@ -988,7 +980,7 @@ class _FeedCard extends StatelessWidget {
   final String username;
   final String? userPhotoUrl;
   final double dimAlpha;
-  final VoidCallback onReaction;
+  final Function({String? emoji}) onReaction;
   final bool isTop;
   final Color tierColor;
   final Map<String, String?> userPhotos;
@@ -1218,32 +1210,47 @@ class _FeedCard extends StatelessWidget {
                     ),
                   ),
 
-                  // リアクションボタン: [🔥] （表示専用、＋はPV層に集約）
+                  // リアクションボタン: [アバター] [＋/チェック] [🔥]
                   if (isTop)
-                    IgnorePointer(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          // リアクションアバター
-                          if (post.reactionCount > 0)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 11), // 縦中央寄せ調整
-                              child: ReactionAvatarsStack(
-                                userReactions: post.userReactions,
-                                reactorUids: post.emojiReactedUserIds,
-                                userPhotos: userPhotos,
-                                reactionCount: post.reactionCount,
-                                avatarSize: 34,
-                                overlapOffset: 22,
-                              ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        // リアクションアバター
+                        if (post.reactionCount > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 11),
+                            child: ReactionAvatarsStack(
+                              userReactions: post.userReactions,
+                              reactorUids: post.emojiReactedUserIds,
+                              userPhotos: userPhotos,
+                              reactionCount: post.reactionCount,
+                              avatarSize: 34,
+                              overlapOffset: 22,
                             ),
-                          const SizedBox(width: 12),
-                          // V Fire ボタン＋カウント（表示専用）
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
+                          ),
+                        const SizedBox(width: 12),
+
+                        // 拡張リアクションメニュー（＋ または チェック）
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 15), // 炎(56)と水平中心を合わせるための微調整
+                          child: _ExpandableReactionMenu(
+                            onReact: (emoji) => onReaction(emoji: emoji),
+                            onReacted: () {
+                              final myUid = FirebaseAuth.instance.currentUser?.uid;
+                              return myUid != null && post.userReactions.containsKey(myUid);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // V Fire ボタン＋カウント（表示専用）
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: onReaction,
+                              child: Container(
                                 width: 56,
                                 height: 56,
                                 decoration: BoxDecoration(
@@ -1260,19 +1267,19 @@ class _FeedCard extends StatelessWidget {
                                   size: 32,
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '${post.reactionCount}',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.white,
-                                ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${post.reactionCount}',
+                              style: GoogleFonts.outfit(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.white,
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -1295,8 +1302,9 @@ class _FeedCard extends StatelessWidget {
 // ────────────────────────────────────────────
 class _ExpandableReactionMenu extends StatefulWidget {
   final void Function(String emoji) onReact;
+  final bool Function()? onReacted;
 
-  const _ExpandableReactionMenu({required this.onReact});
+  const _ExpandableReactionMenu({required this.onReact, this.onReacted});
 
   @override
   State<_ExpandableReactionMenu> createState() =>
@@ -1406,30 +1414,57 @@ class _ExpandableReactionMenuState extends State<_ExpandableReactionMenu>
           ),
         ),
 
-        // Toggle button
-        GestureDetector(
-          onTap: _toggle,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.white.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.white.withValues(alpha: 0.15),
-                width: 1,
+        // Toggle or Checkmark
+        Builder(
+          builder: (context) {
+            final myUid = FirebaseAuth.instance.currentUser?.uid;
+            final isReacted = myUid != null && widget.onReacted != null ? widget.onReacted!() : false;
+
+            if (isReacted) {
+              return Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.accentGold.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.accentGold.withValues(alpha: 0.4),
+                    width: 1,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: AppColors.accentGold,
+                  size: 24,
+                ),
+              );
+            }
+
+            return GestureDetector(
+              onTap: _toggle,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.white.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.white.withValues(alpha: 0.15),
+                    width: 1,
+                  ),
+                ),
+                child: AnimatedRotation(
+                  turns: _isOpen ? 0.125 : 0.0,
+                  duration: const Duration(milliseconds: 220),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    color: AppColors.white,
+                    size: 24,
+                  ),
+                ),
               ),
-            ),
-            child: AnimatedRotation(
-              turns: _isOpen ? 0.125 : 0.0,
-              duration: const Duration(milliseconds: 220),
-              child: const Icon(
-                Icons.add_rounded,
-                color: AppColors.white,
-                size: 24,
-              ),
-            ),
-          ),
+            );
+          },
         ),
       ],
     );
