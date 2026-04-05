@@ -1216,20 +1216,7 @@ class _FeedCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // リアクションアバター
-                        if (post.reactionCount > 0)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 11),
-                            child: ReactionAvatarsStack(
-                              userReactions: post.userReactions,
-                              reactorUids: post.emojiReactedUserIds,
-                              userPhotos: userPhotos,
-                              reactionCount: post.reactionCount,
-                              avatarSize: 34,
-                              overlapOffset: 22,
-                            ),
-                          ),
-                        const SizedBox(width: 12),
+                        // [修正] リアクションアバターを非表示化（HeroTasksScreenへ移動）
 
                         // 拡張リアクションメニュー（＋ または チェック）
                         Padding(
