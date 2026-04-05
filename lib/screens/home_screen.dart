@@ -16,17 +16,19 @@ import '../widgets/v_effect_header.dart';
 import '../widgets/weekly_review_banner.dart';
 import 'weekly_review_screen.dart';
 import '../widgets/reaction_avatars.dart';
+import '../providers/home_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   final ValueChanged<bool>? onLoadingChanged;
 
   const HomeScreen({super.key, this.onLoadingChanged});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
   final PostService _postService = PostService.instance;
   StreamSubscription? _updateSubscription;
   bool _loading = true;
@@ -36,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Map<String, String> _userNames = {}; // userId -> username
   Map<String, String?> _userPhotos = {}; // userId -> photoUrl
   Map<String, int> _userStreaks = {}; // userId -> streak
+  HomeData? _lastHomeData;
 
   // ── Card Swiping ──
   late final PageController _pageController;
@@ -234,8 +237,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // 絵文字リアクションは1回までに制限するが、V FIRE（通常の炎）は何回でもタップ可能にする
     if (myUid != null && emoji != null) {
-      final currentReaction = post.userReactions[myUid];
-      if (currentReaction != null && currentReaction != '🔥') {
+      if (post.hasUserReacted(myUid)) {
         debugPrint('User already reacted with an emoji to this post');
         return;
       }
@@ -297,8 +299,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     try {
       await _postService.addReaction(post.id, emoji: emoji);
+      // 通信成功後に真のバックエンドの状態と同期するため、Providerを無効化して再取得を促す
+      ref.invalidate(homeDataProvider);
     } catch (e) {
       debugPrint('Reaction error: $e');
+      // エラー時は必要に応じてエラーダイアログを表示したり、
+      // invalidate して楽観的更新をキャンセル（真の状態に戻す）したりすることを検討
+      ref.invalidate(homeDataProvider);
     }
   }
 
@@ -336,79 +343,109 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return _buildHomeSkeleton();
+    final homeAsync = ref.watch(homeDataProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.black,
-      body: Stack(
-        children: [
-          // ── 背景 ──
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.grey08, AppColors.black],
-                ),
-              ),
-            ),
+    return homeAsync.when(
+      loading: () => _buildHomeSkeleton(),
+      error: (err, stack) => Scaffold(
+        backgroundColor: AppColors.black,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.accentGold, size: 48),
+              const SizedBox(height: 16),
+              Text('エラーが発生しました: $err', style: const TextStyle(color: Colors.white)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(homeDataProvider),
+                child: const Text('再試行'),
+              )
+            ],
           ),
+        ),
+      ),
+      data: (homeData) {
+        // 同期的にローカルメンバ変数を更新し、既存のウィジェットビルド関数が正常に動くようにする
+        // 楽観的更新を行っている間（_feedPostsをローカルでsetStateしている間）は無条件で上書きしない
+        if (_lastHomeData != homeData) {
+          _postedToday = homeData.postedToday;
+          _feedPosts = List.from(homeData.feedPosts);
+          _postedFriends = homeData.postedFriends;
+          _lastHomeData = homeData;
+        }
 
-
-
-          SafeArea(
-            child: Column(
-              children: [
-                _buildTitleBar(),
-                SizedBox(
-                  height: 76, // 固定高さで全画面統一
-                  child: Center(
-                    child: (DateTime.now().weekday == DateTime.saturday ||
-                            DateTime.now().weekday == DateTime.sunday)
-                        ? WeeklyReviewBanner(onTap: _openWeeklyReview)
-                        : const SizedBox.shrink(),
+        return Scaffold(
+          backgroundColor: AppColors.black,
+          body: Stack(
+            children: [
+              // ── 背景 ──
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [AppColors.grey08, AppColors.black],
+                    ),
                   ),
                 ),
-                Expanded(
-                  child: !_postedToday
-                      ? _buildGuardedState()
-                      : (_feedPosts.isEmpty
-                          ? _buildEmptyState()
-                          : _buildCardStack()),
+              ),
+
+              SafeArea(
+                child: Column(
+                  children: [
+                    _buildTitleBar(),
+                    SizedBox(
+                      height: 76, 
+                      child: Center(
+                        child: (DateTime.now().weekday == DateTime.saturday ||
+                                DateTime.now().weekday == DateTime.sunday)
+                            ? WeeklyReviewBanner(onTap: _openWeeklyReview)
+                            : const SizedBox.shrink(),
+                      ),
+                    ),
+                    Expanded(
+                      child: !homeData.postedToday
+                          ? _buildGuardedState()
+                          : (homeData.feedPosts.isEmpty
+                              ? _buildEmptyState()
+                              : _buildCardStack()),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          // ── V-Flash 演出レイヤー ──
-          IgnorePointer(
-            child: AnimatedBuilder(
-              animation: _flashAnimation,
-              builder: (context, _) {
-                if (_flashAnimation.value == 0) return const SizedBox.shrink();
-                return Container(
-                  color: Colors.white.withValues(alpha: _flashAnimation.value),
-                );
-              },
-            ),
-          ),
+              // ── V-Flash 演出レイヤー ──
+              IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _flashAnimation,
+                  builder: (context, _) {
+                    if (_flashAnimation.value == 0) return const SizedBox.shrink();
+                    return Container(
+                      color: Colors.white.withValues(alpha: _flashAnimation.value),
+                    );
+                  },
+                ),
+              ),
 
-          // ── 炎のエフェクトレイヤー (最前面) ──
-          Positioned.fill(
-            child: IgnorePointer(
-              child: _FloatingFlamesLayer(key: _flamesKey),
-            ),
-          ),
+              // ── 炎のエフェクトレイヤー (最前面) ──
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: _FloatingFlamesLayer(key: _flamesKey),
+                ),
+              ),
 
-          // ── ドーパミン爆発レイヤー (最前面) ──
-          Positioned.fill(
-            child: IgnorePointer(
-              child: _DopamineEmojiExplosionLayer(key: _explosionKey),
-            ),
+              // ── ドーパミン爆発レイヤー (最前面) ──
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: _DopamineEmojiExplosionLayer(key: _explosionKey),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -682,8 +719,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                   final myUid = FirebaseAuth.instance.currentUser?.uid;
                   // 絵文字（VFIREの'🔥'以外）を送った場合のみチェックマークにする
-                  final myReaction = myUid != null ? post.userReactions[myUid] : null;
-                  final alreadyReacted = myUid != null && (myReaction != null && myReaction != '🔥');
+                  final alreadyReacted = post.hasUserReacted(myUid);
 
                   return Center(
                     child: SizedBox(

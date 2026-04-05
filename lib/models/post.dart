@@ -53,6 +53,30 @@ class Post {
     );
   }
 
+  /// Firestore 保存用の Map を生成します
+  Map<String, dynamic> toFirestore() {
+    return {
+      'userId': userId,
+      'imageUrl': imageUrl,
+      'taskName': taskName,
+      'caption': caption,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'expiresAt': Timestamp.fromDate(expiresAt),
+      'reactionCount': reactionCount,
+      'showTimestamp': showTimestamp,
+      'emojiReactedUserIds': emojiReactedUserIds,
+      'userReactions': userReactions,
+    };
+  }
+
+  /// 指定したユーザーがこの投稿に絵文字リアクション済みかどうかを判定します
+  /// (VFIRE '🔥' は含みません)
+  bool hasUserReacted(String? uid) {
+    if (uid == null) return false;
+    final reaction = userReactions[uid];
+    return reaction != null && reaction != '🔥';
+  }
+
   /// 期限までの残り時間を日本語テキストで返します
   String get remainingText {
     final remaining = expiresAt.difference(DateTime.now());

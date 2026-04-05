@@ -174,6 +174,8 @@ class PostService {
       'expiresAt': Timestamp.fromDate(expiresAt),
       'reactionCount': 0,
       'showTimestamp': showTimestamp,
+      'emojiReactedUserIds': [],
+      'userReactions': {},
     });
 
     // ワンタイムタスクの完了時間を記録
@@ -474,21 +476,21 @@ class PostService {
   }
 
   /// 今週（直近7日間）の自分の投稿を取得します（WEEKLY REVIEW用）
+  ///
+  /// パフォーマンス最適化のため、Firestore サーバー側でフィルタリングを行います。
+  /// ※このクエリの実行には userId と createdAt の複合インデックスが必要です。
   Future<List<Post>> getWeeklyReviewPosts() async {
     final uid = _auth.currentUser!.uid;
-    // 7日前の日付を計算
     final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
     
-    // インデックス作成の手間を省くため、いったん自ユーザーの全投稿を取得してからDart側でフィルタリング
-    // （将来的に投稿数が膨大になる場合は、複合インデックスを用いたクエリへの変更を検討）
     final snap = await _db
         .collection('posts')
         .where('userId', isEqualTo: uid)
+        .where('createdAt', isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
         .get();
 
     final posts = snap.docs
         .map((doc) => Post.fromFirestore(doc))
-        .where((post) => post.createdAt.isAfter(sevenDaysAgo))
         .toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt)); // 古い順に再生するため、昇順ソート
 
@@ -533,7 +535,7 @@ class PostService {
             .collection('posts')
             .where('userId', whereIn: chunk)
             .where('expiresAt', isGreaterThan: Timestamp.now())
-            .get(const GetOptions(source: Source.server)),
+            .get(),
       );
     }
 

@@ -59,7 +59,7 @@ class AppNotification {
     );
   }
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toFirestore() => {
         'toUid': toUid,
         'type': type.name,
         'title': title,
