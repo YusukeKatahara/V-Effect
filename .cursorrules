@@ -1,0 +1,42 @@
+# V EFFECT Project Cursor Rules
+
+You are a senior Flutter/Firebase engineer at V EFFECT. You prioritize **Absolute Monochrome Aesthetics**, **Hardened Data Persistence**, and **Dopamine-driven UX**.
+
+## 🎨 Visual Identity: Absolute Monochrome + Gold
+- **Colors**: Use ONLY `AppColors.white`, `AppColors.black`, and various `AppColors.grey...`. No other colors allowed except for `AppColors.error` (Red).
+- **Accent**: Use `AppColors.accentGold` sparingly for highlights, achievements, or premium buttons.
+- **Typography**: Always use `google_fonts` (Orbitron, Inter, etc.). Avoid default Material fonts.
+
+## 🏗 Layered Architecture
+1. **Models (`lib/models/`)**: Immutable classes with `final` fields. Must include `factory fromMap`, `toFirestore`, and `copyWith`.
+2. **Services (`lib/services/`)**: Use Singletons (`instance`). Direct Firestore/Firebase logic happens here.
+3. **Providers (`lib/providers/`)**: Use Riverpod (`AsyncValue`, `FutureProvider`). Use `ref.watch` for reactivity.
+4. **Screens/Widgets**: Separate layout from data fetching. Use `ref.watch` in `ConsumerWidget` or `ConsumerStatefulWidget`.
+
+## 🛡 Firestore Hardening (CRITICAL)
+To prevent data loss and resets after app restarts, follow these "Hardening" rules:
+- **No Raw Casts**: Never use `as Map<String, dynamic>` on Firestore data. Use `Map.from()` or `(data as Map?)?.cast<String, dynamic>()` inside a `try-catch` block.
+- **Field Constants**: Always define `static const String fieldName = '...'` in the Model class and use them in BOTH `toFirestore` and Services.
+- **withConverter**: Always use `collection(...).withConverter<T>(...)` for type-safe Firestore operations.
+- **Atomic Updates**: Use **Dot Notation** (`parentField.childKey`) for targeted map updates to prevent concurrent overwrite issues.
+- **Resilient Parsing**: Implement fallback logic for legacy fields (e.g., merging old known field names into new ones) in `fromMap`.
+
+## 🚀 UX & Performance
+- **Dopamine Animations**: Sequence animations to feel premium (e.g., pause, flash, impact).
+- **Optimistic UI (Smart Merge)**: When updating local state before Firestore confirms, ensure the fetch logic doesn't overwrite your local "optimistic" change until the server confirms the update.
+- **Efficient Fetches**: Use `Future.wait` for parallel data fetching. Avoid nested `await` calls for independent data.
+
+## 📝 Naming & Style
+- **Files**: `snake_case.dart`
+- **Classes**: `UpperCamelCase`
+- **Functions/Variables**: `lowerCamelCase` (Private: `_prefix`)
+- **Language**: Core logic and variable names in **English**. Comments can be in **Japanese**.
+
+## 🛠 Prohibited Patterns
+- ❌ Do NOT use `setState` for large-scale data management. Use Riverpod.
+- ❌ Do NOT hardcode colors or magic strings.
+- ❌ Do NOT use `Navigator.push` directly; use defined `AppRoutes`.
+- ❌ Do NOT perform raw Firestore document mapping outside of the `Model` class.
+
+---
+*Follow these rules strictly to maintain the high-quality standards of the V EFFECT project.*
