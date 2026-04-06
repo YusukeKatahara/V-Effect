@@ -33,6 +33,12 @@ class PostService {
   final NotificationService _notificationService = NotificationService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
 
+  CollectionReference<Post> get _postsRef =>
+      _db.collection('posts').withConverter<Post>(
+            fromFirestore: (snapshot, _) => Post.fromFirestore(snapshot),
+            toFirestore: (post, _) => post.toFirestore(),
+          );
+
   /// アプリ全体にデータ更新（投稿作成・削除）を通知するためのストリーム
   final _updateController = StreamController<void>.broadcast();
   Stream<void> get updateStream => _updateController.stream;
@@ -51,15 +57,13 @@ class PostService {
     final startOfToday = DateTime(now.year, now.month, now.day);
 
     // ユーザー情報と投稿を並列で取得
-    // ※createdAtでのクエリフィルタは複合インデックスが必要なため、
-    // 既存のインデックス環境を壊さないよう、取得後にメモリ内でフィルタリングを行う
     final results = await Future.wait([
       _db.collection('users').doc(uid).get(),
-      _db.collection('posts').where('userId', isEqualTo: uid).get(),
+      _postsRef.where(Post.fieldUserId, isEqualTo: uid).get(),
     ]);
 
     final snap = results[0] as DocumentSnapshot;
-    final postsSnap = results[1] as QuerySnapshot;
+    final postsSnap = results[1] as QuerySnapshot<Post>;
 
     if (!snap.exists) {
       return {
@@ -82,14 +86,11 @@ class PostService {
     // 今日の分だけをフィルタリング
     final postedPostsToday =
         postsSnap.docs
-            .where((doc) {
-              final d = doc.data() as Map<String, dynamic>;
-              if (!d.containsKey('createdAt')) return false;
-              final createdAt = (d['createdAt'] as Timestamp).toDate();
-              return createdAt.isAfter(startOfToday) ||
-                  createdAt.isAtSameMomentAs(startOfToday);
+            .map((doc) => doc.data())
+            .where((post) {
+               return post.createdAt.isAfter(startOfToday) ||
+                   post.createdAt.isAtSameMomentAs(startOfToday);
             })
-            .map((doc) => Post.fromFirestore(doc))
             .toList();
 
     return {
@@ -165,18 +166,21 @@ class PostService {
     final userPrivateSnap = await _db.collection('users').doc(uid).collection('private').doc('data').get();
     final showTimestamp = userPrivateSnap.data()?['showTimestamp'] ?? true;
 
-    await _db.collection('posts').add({
-      'userId': uid,
-      'imageUrl': imageUrl,
-      'taskName': taskName,
-      'caption': caption,
-      'createdAt': Timestamp.fromDate(now),
-      'expiresAt': Timestamp.fromDate(expiresAt),
-      'reactionCount': 0,
-      'showTimestamp': showTimestamp,
-      'emojiReactedUserIds': [],
-      'userReactions': {},
-    });
+    final newPost = Post(
+      id: '', // Firestore will generate
+      userId: uid,
+      imageUrl: imageUrl,
+      taskName: taskName,
+      caption: caption,
+      createdAt: now,
+      expiresAt: expiresAt,
+      reactionCount: 0,
+      showTimestamp: showTimestamp,
+      emojiReactedUserIds: const [],
+      userReactions: const {},
+    );
+
+    await _postsRef.add(newPost);
 
     // ワンタイムタスクの完了時間を記録
     final tasks = (userData['tasks'] as List? ?? [])
@@ -273,69 +277,96 @@ class PostService {
 
     final limitedFriends = friends.take(10).toList();
 
-    yield* _db
-        .collection('posts')
-        .where('userId', whereIn: limitedFriends)
-        .where('expiresAt', isGreaterThan: Timestamp.now())
+    yield* _postsRef
+        .where(Post.fieldUserId, whereIn: limitedFriends)
+        .where(Post.fieldExpiresAt, isGreaterThan: Timestamp.now())
         .snapshots()
         .map((snap) {
-          final posts =
-              snap.docs.map((doc) => Post.fromFirestore(doc)).toList()
-                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          final posts = snap.docs.map((doc) => doc.data()).toList()
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return posts;
         });
   }
 
   /// 投稿にリアクションをつけます
   /// 投稿にリアクションをつけます
-  Future<void> addReaction(String postId, {String? emoji}) async {
+  /// 投稿に絵文字リアクションをつけます（1人1回制限）
+  Future<void> addEmojiReaction(String postId, String emoji) async {
     final myUid = _auth.currentUser!.uid;
-    final docRef = _db.collection('posts').doc(postId);
+    final docRef = _postsRef.doc(postId);
 
     try {
       await _db.runTransaction((transaction) async {
         final docSnap = await transaction.get(docRef);
         if (!docSnap.exists) return;
 
-        final data = docSnap.data()!;
-        final userReactions = (data['userReactions'] as Map?)?.cast<String, dynamic>() ?? {};
-        final emojiReactedUserIds = List<String>.from(data['emojiReactedUserIds'] ?? []);
+        final post = docSnap.data()!;
+        final userReactions = Map<String, String>.from(post.userReactions);
+        final emojiReactedUserIds = List<String>.from(post.emojiReactedUserIds);
 
-        final updates = <String, dynamic>{};
+        // すでに別の絵文字がある場合は反映しないが、🔥 の場合は上書きを許可
+        final currentEmoji = userReactions[myUid];
+        if (currentEmoji != null && currentEmoji != '🔥') return;
 
-        if (emoji != null) {
-          // 絵文字処理: 1人1回まで。VFIREとの独立化の過程で 🔥 が入っている場合のみ上書きを許可
-          final currentEmoji = userReactions[myUid];
-          if (currentEmoji != null && currentEmoji != '🔥') return;
-
-          final newUserReactions = Map<String, dynamic>.from(userReactions);
-          newUserReactions[myUid] = emoji;
-          updates['userReactions'] = newUserReactions;
-          
-          if (!emojiReactedUserIds.contains(myUid)) {
-            updates['emojiReactedUserIds'] = FieldValue.arrayUnion([myUid]);
-          }
-        } else {
-          // VFIRE処理: 回数無制限、絵文字ステートやアバター用リストには干渉しない
-          updates['reactionCount'] = FieldValue.increment(1);
+        userReactions[myUid] = emoji;
+        if (!emojiReactedUserIds.contains(myUid)) {
+          emojiReactedUserIds.add(myUid);
         }
 
-        if (updates.isNotEmpty) {
-          transaction.update(docRef, updates);
-        }
+        // 堅牢化：ドット記法を使用して、特定のフィールドのみを確実に更新する
+        // これにより、マップ全体を上書きする際のリスクを最小限に抑える
+        transaction.update(docRef, {
+          '${Post.fieldUserReactions}.$myUid': emoji,
+          Post.fieldEmojiReactedUserIds: emojiReactedUserIds,
+        });
       });
 
       _analytics.logReactionSent();
       _updateController.add(null);
       _sendReactionNotification(postId, emoji: emoji).catchError((_) {});
     } catch (e) {
-      debugPrint('Reaction update failed with transaction: $e');
+      debugPrint('Emoji reaction failed: $e');
+    }
+  }
+
+  /// 投稿の VFIRE (炎) カウントを増やします（連打対応の高速アトミック操作）
+  Future<void> incrementFlameCount(String postId, int count) async {
+    if (count <= 0) return;
+    final docRef = _db.collection('posts').doc(postId);
+
+    try {
+      // トランザクション不使用：アトミックなインクリメントのみを行う
+      await docRef.update({
+        'reactionCount': FieldValue.increment(count),
+      });
+
+      _analytics.logReactionSent();
+      _updateController.add(null);
+      
+      // 通知は1回にまとめて送信
+      _sendReactionNotification(postId, flameIncrement: count).catchError((_) {});
+    } catch (e) {
+      debugPrint('Flame increment failed: $e');
+    }
+  }
+
+  /// 指定した postId に対する addReaction は非推奨になりました。
+  /// addEmojiReaction または incrementFlameCount を使用してください。
+  @Deprecated('Use addEmojiReaction or incrementFlameCount instead')
+  Future<void> addReaction(String postId, {String? emoji}) async {
+    if (emoji != null) {
+      return addEmojiReaction(postId, emoji);
+    } else {
+      return incrementFlameCount(postId, 1);
     }
   }
 
   /// リアクション通知を送信する内部メソッド
-  /// 同じ投稿に対して同じユーザーからの通知がある場合は、回数を増やして更新する
-  Future<void> _sendReactionNotification(String postId, {String? emoji}) async {
+  Future<void> _sendReactionNotification(
+    String postId, {
+    String? emoji,
+    int flameIncrement = 0,
+  }) async {
     final postSnap = await _db.collection('posts').doc(postId).get();
     if (!postSnap.exists) return;
     final postData = postSnap.data()!;
@@ -380,6 +411,9 @@ class PostService {
       sendPush = true;
     } else {
       // V Fireリアクション：重複チェックしてカウントを増やす（プッシュなし）
+      // flameIncrement 分を既存の通知に加算する
+      final int addedCount = flameIncrement > 0 ? flameIncrement : 1;
+
       // 同じ投稿・同じ送信者のV Fireリアクションが既にあるかチェック
       final existing = await _db
           .collection('notifications')
@@ -393,8 +427,10 @@ class PostService {
       if (existing.docs.isNotEmpty) {
         final doc = existing.docs.first;
         final data = doc.data();
-        reactionCount = (data['reactionCount'] as int? ?? 0) + 1;
+        reactionCount = (data['reactionCount'] as int? ?? 0) + addedCount;
         await doc.reference.delete();
+      } else {
+        reactionCount = addedCount;
       }
 
       // ランダムな文言の選択
@@ -466,12 +502,11 @@ class PostService {
   /// 特定フレンドの24h以内の投稿を一括取得します（ストーリー表示用）
   Future<List<Post>> getFriendPostsList(String friendUid) async {
     final snap =
-        await _db
-            .collection('posts')
-            .where('userId', isEqualTo: friendUid)
-            .where('expiresAt', isGreaterThan: Timestamp.now())
+        await _postsRef
+            .where(Post.fieldUserId, isEqualTo: friendUid)
+            .where(Post.fieldExpiresAt, isGreaterThan: Timestamp.now())
             .get();
-    return snap.docs.map((doc) => Post.fromFirestore(doc)).toList()
+    return snap.docs.map((doc) => doc.data()).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
@@ -483,14 +518,13 @@ class PostService {
     final uid = _auth.currentUser!.uid;
     final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
     
-    final snap = await _db
-        .collection('posts')
-        .where('userId', isEqualTo: uid)
-        .where('createdAt', isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
+    final snap = await _postsRef
+        .where(Post.fieldUserId, isEqualTo: uid)
+        .where(Post.fieldCreatedAt, isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
         .get();
 
     final posts = snap.docs
-        .map((doc) => Post.fromFirestore(doc))
+        .map((doc) => doc.data())
         .toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt)); // 古い順に再生するため、昇順ソート
 

@@ -39,6 +39,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   Map<String, String?> _userPhotos = {}; // userId -> photoUrl
   Map<String, int> _userStreaks = {}; // userId -> streak
   HomeData? _lastHomeData;
+  final Set<String> _reactingPostIds = {}; // 通信中の投稿IDを追跡
+
+  // ── VFIRE デバウンス用 ──
+  Timer? _flameDebounceTimer;
+  int _pendingFlameCount = 0;
+  String? _pendingFlamePostId;
 
   // ── Card Swiping ──
   late final PageController _pageController;
@@ -122,6 +128,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     _pulseController.dispose();
     _shakeController.dispose();
     _reactionMenuController.dispose();
+    _flameDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -235,24 +242,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     final post = _feedPosts[index];
     final myUid = FirebaseAuth.instance.currentUser?.uid;
 
-    // 絵文字リアクションは1回までに制限するが、V FIRE（通常の炎）は何回でもタップ可能にする
-    if (myUid != null && emoji != null) {
-      if (post.hasUserReacted(myUid)) {
-        debugPrint('User already reacted with an emoji to this post');
+    if (myUid == null) return;
+
+    // 絵文字リアクションは1回までに制限
+    if (emoji != null) {
+      if (post.hasEmojiReacted(myUid) || _reactingPostIds.contains(post.id)) {
+        debugPrint('User already reacted or reaction is in progress');
         return;
       }
     }
 
     final isVFlash = emoji == null && Random().nextInt(100) == 0;
 
+    // 演出の実行（これはタップごとに即座に行う）
     if (isVFlash) {
       HapticFeedback.heavyImpact();
       _flashController.forward(from: 0);
       _flamesKey.currentState?.addFlame(isGold: true);
     } else {
-      // 絵文字リアクション、または通常のV Fire
       if (emoji != null) {
-        // ドーパミン演出！
         HapticFeedback.heavyImpact();
         _explosionKey.currentState?.explode(emoji);
       } else {
@@ -261,52 +269,83 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       }
     }
 
-    // Optimistic UI update
+    // 1. Optimistic UI update (ローカル状態を即座に反映)
     setState(() {
-      final newUserReactions = Map<String, String>.from(post.userReactions);
-      final updatedIds = List<String>.from(post.emojiReactedUserIds);
-      int newReactionCount = post.reactionCount;
-
-      if (myUid != null) {
-        if (emoji != null) {
-          // 絵文字: 既に別の絵文字がある場合は反映しないが、🔥 の場合は上書きを許可
-          final currentEmoji = newUserReactions[myUid];
-          if (currentEmoji == null || currentEmoji == '🔥') {
-            newUserReactions[myUid] = emoji;
-            if (!updatedIds.contains(myUid)) updatedIds.add(myUid);
-          }
-        } else {
-          // VFIRE: 炎のカウントのみを加算し、絵文字（userReactions）は絶対にいじらない
-          newReactionCount++;
+      if (emoji != null) {
+        // 絵文字リアクション：1回のみ
+        final newUserReactions = Map<String, String>.from(post.userReactions);
+        final currentEmoji = newUserReactions[myUid];
+        if (currentEmoji == null || currentEmoji == '🔥') {
+          newUserReactions[myUid] = emoji;
+          final updatedIds = List<String>.from(post.emojiReactedUserIds);
+          if (!updatedIds.contains(myUid)) updatedIds.add(myUid);
+          
+          _feedPosts = List.from(_feedPosts)
+            ..[index] = post.copyWith(
+              userReactions: newUserReactions,
+              emojiReactedUserIds: updatedIds,
+            );
         }
+      } else {
+        // VFIRE: カウントを増やす
+        _feedPosts = List.from(_feedPosts)
+            ..[index] = post.copyWith(reactionCount: post.reactionCount + 1);
       }
-
-      _feedPosts = List.from(_feedPosts)
-        ..[index] = Post(
-          id: post.id,
-          userId: post.userId,
-          imageUrl: post.imageUrl,
-          taskName: post.taskName,
-          caption: post.caption,
-          createdAt: post.createdAt,
-          expiresAt: post.expiresAt,
-          reactionCount: newReactionCount,
-          showTimestamp: post.showTimestamp,
-          emojiReactedUserIds: updatedIds,
-          userReactions: newUserReactions,
-        );
     });
 
-    try {
-      await _postService.addReaction(post.id, emoji: emoji);
-      // 通信成功後に真のバックエンドの状態と同期するため、Providerを無効化して再取得を促す
-      ref.invalidate(homeDataProvider);
-    } catch (e) {
-      debugPrint('Reaction error: $e');
-      // エラー時は必要に応じてエラーダイアログを表示したり、
-      // invalidate して楽観的更新をキャンセル（真の状態に戻す）したりすることを検討
-      ref.invalidate(homeDataProvider);
+    // 2. 通信処理
+    if (emoji != null) {
+      // 絵文字は即座に送信
+      try {
+        _reactingPostIds.add(post.id);
+        await _postService.addEmojiReaction(post.id, emoji);
+        ref.invalidate(homeDataProvider);
+      } catch (e) {
+        debugPrint('Emoji reaction error: $e');
+        ref.invalidate(homeDataProvider);
+      } finally {
+        _cleanupReactionLock(post.id);
+      }
+    } else {
+      // VFIRE はデバウンス（1秒間タップが止まるまで待機）
+      _pendingFlameCount++;
+      _pendingFlamePostId = post.id;
+      _reactingPostIds.add(post.id); // 連打中もガードールを維持
+
+      _flameDebounceTimer?.cancel();
+      _flameDebounceTimer = Timer(const Duration(seconds: 1), () async {
+        final countToSend = _pendingFlameCount;
+        final postIdToSend = _pendingFlamePostId;
+        
+        // バッファをリセット
+        _pendingFlameCount = 0;
+        _pendingFlamePostId = null;
+
+        if (postIdToSend != null && countToSend > 0) {
+          try {
+            await _postService.incrementFlameCount(postIdToSend, countToSend);
+            ref.invalidate(homeDataProvider);
+          } catch (e) {
+            debugPrint('Flame sync error: $e');
+            ref.invalidate(homeDataProvider);
+          } finally {
+            _cleanupReactionLock(postIdToSend);
+          }
+        }
+      });
     }
+  }
+
+  void _cleanupReactionLock(String postId) {
+    // Smart Merge により、引数ベース（500ms）の強制ロック解除は原則不要となりました
+    // 一定時間（3秒）経っても同期されない場合のフェイルセーフとしてのみ機能させます
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _reactingPostIds.remove(postId);
+        });
+      }
+    });
   }
 
   Future<void> _openWeeklyReview() async {
@@ -370,9 +409,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
         // 楽観的更新を行っている間（_feedPostsをローカルでsetStateしている間）は無条件で上書きしない
         if (_lastHomeData != homeData) {
           _postedToday = homeData.postedToday;
-          _feedPosts = List.from(homeData.feedPosts);
           _postedFriends = homeData.postedFriends;
           _lastHomeData = homeData;
+
+          final myUid = FirebaseAuth.instance.currentUser?.uid;
+          final newPosts = <Post>[];
+          final List<String> idsToRemove = [];
+
+          for (final fetchedPost in homeData.feedPosts) {
+            if (_reactingPostIds.contains(fetchedPost.id)) {
+              // 通信中または反映待ちの投稿
+              final localPost = _feedPosts.firstWhere(
+                (p) => p.id == fetchedPost.id,
+                orElse: () => fetchedPost,
+              );
+
+              // Smart Merge:
+              // 自分が絵文字を送った場合、最新データにその絵文字が反映されるまでローカルデータを優先
+              final localHasEmoji = localPost.hasEmojiReacted(myUid);
+              final fetchedHasEmoji = fetchedPost.hasEmojiReacted(myUid);
+
+              if (localHasEmoji && !fetchedHasEmoji) {
+                // まだデータが届いていないのでローカル（チェックマーク状態）を維持
+                newPosts.add(localPost);
+              } else {
+                // 反映されたか、そもそも絵文字ではない（炎のみの更新など）場合は最新データを採用
+                newPosts.add(fetchedPost);
+                // setState中には呼べないので、ループ外で削除候補に入れる
+                idsToRemove.add(fetchedPost.id);
+              }
+            } else {
+              newPosts.add(fetchedPost);
+            }
+          }
+          _feedPosts = newPosts;
+          
+          if (idsToRemove.isNotEmpty) {
+            // 微小なディレイを置いて安全にロックを解除
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  for (final id in idsToRemove) {
+                    _reactingPostIds.remove(id);
+                  }
+                });
+              }
+            });
+          }
         }
 
         return Scaffold(
@@ -719,7 +802,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
                   final myUid = FirebaseAuth.instance.currentUser?.uid;
                   // 絵文字（VFIREの'🔥'以外）を送った場合のみチェックマークにする
-                  final alreadyReacted = post.hasUserReacted(myUid);
+                  final alreadyReacted = post.hasEmojiReacted(myUid);
 
                   return Center(
                     child: SizedBox(
@@ -806,22 +889,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: _reactionEmojis.map((emoji) {
-                                      return GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: () {
-                                          _sendReaction(actualIndex,
-                                              emoji: emoji);
-                                          setState(() =>
-                                              _reactionMenuOpen = false);
-                                          _reactionMenuController.reverse();
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 4),
-                                          child: Text(
-                                            emoji,
-                                            style:
-                                                const TextStyle(fontSize: 24),
+                                      return Opacity(
+                                        opacity: alreadyReacted ? 0.4 : 1.0,
+                                        child: AbsorbPointer(
+                                          absorbing: alreadyReacted,
+                                          child: GestureDetector(
+                                            behavior: HitTestBehavior.opaque,
+                                            onTap: () {
+                                              _sendReaction(actualIndex,
+                                                  emoji: emoji);
+                                              setState(() =>
+                                                  _reactionMenuOpen = false);
+                                              _reactionMenuController.reverse();
+                                            },
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 10, vertical: 4),
+                                              child: Text(
+                                                emoji,
+                                                style:
+                                                    const TextStyle(fontSize: 24),
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       );

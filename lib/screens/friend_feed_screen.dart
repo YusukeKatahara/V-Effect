@@ -45,6 +45,11 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   bool _loading = true;
   Timer? _autoTimer;
 
+  // ── VFIRE デバウンス用 ──
+  Timer? _flameDebounceTimer;
+  int _pendingFlameCount = 0;
+  String? _pendingFlamePostId;
+
   // ── フレンドアイコン行のスクロール制御 ──
   final ScrollController _iconScrollController = ScrollController();
   static const double _iconItemWidth = 52.0; // 44px avatar + 4px padding × 2
@@ -64,6 +69,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   @override
   void dispose() {
     _autoTimer?.cancel();
+    _flameDebounceTimer?.cancel();
     _iconScrollController.dispose();
     super.dispose();
   }
@@ -186,36 +192,40 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   Future<void> _sendReaction() async {
     if (_posts.isEmpty) return;
     
-    // ドーパミン誘発：軽いバイブレーションと炎アニメーション
+    // ドーパミン誘発：軽いバイブレーションと炎アニメーション (即座)
     HapticFeedback.lightImpact();
     _flamesKey.currentState?.addFlame();
 
     final post = _posts[_currentPostIndex];
-    final myUid = FirebaseAuth.instance.currentUser?.uid;
-
-    // Optimistic UI update
+    
+    // 1. Optimistic UI update
     setState(() {
-      // VFIREはカウントのみを加算し、絵文字の状態はいじらない独立モデル
-      _posts = List.from(_posts)..[_currentPostIndex] = Post(
-        id: post.id,
-        userId: post.userId,
-        imageUrl: post.imageUrl,
-        taskName: post.taskName,
-        caption: post.caption,
-        createdAt: post.createdAt,
-        expiresAt: post.expiresAt,
+      _posts = List.from(_posts)..[_currentPostIndex] = post.copyWith(
         reactionCount: post.reactionCount + 1,
-        showTimestamp: post.showTimestamp,
-        emojiReactedUserIds: post.emojiReactedUserIds,
-        userReactions: post.userReactions,
       );
     });
 
-    try {
-      await _postService.addReaction(post.id);
-    } catch (e) {
-      debugPrint('Reaction error: $e');
-    }
+    // 2. デバウンス処理
+    _pendingFlameCount++;
+    _pendingFlamePostId = post.id;
+
+    _flameDebounceTimer?.cancel();
+    _flameDebounceTimer = Timer(const Duration(seconds: 1), () async {
+      final countToSend = _pendingFlameCount;
+      final postIdToSend = _pendingFlamePostId;
+      
+      // バッファリセット
+      _pendingFlameCount = 0;
+      _pendingFlamePostId = null;
+
+      if (postIdToSend != null && countToSend > 0) {
+        try {
+          await _postService.incrementFlameCount(postIdToSend, countToSend);
+        } catch (e) {
+          debugPrint('Flame sync error: $e');
+        }
+      }
+    });
   }
 
 

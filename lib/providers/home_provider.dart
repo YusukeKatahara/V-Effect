@@ -24,6 +24,40 @@ class HomeData {
     required this.feedPosts,
     required this.postedFriends,
   });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HomeData &&
+          runtimeType == other.runtimeType &&
+          streak == other.streak &&
+          postedToday == other.postedToday &&
+          isAllTasksCompleted == other.isAllTasksCompleted &&
+          username == other.username &&
+          _listEquals(tasks, other.tasks) &&
+          _listEquals(followingUids, other.followingUids) &&
+          _listEquals(feedPosts, other.feedPosts) &&
+          _listEquals(postedFriends, other.postedFriends);
+
+  @override
+  int get hashCode =>
+      streak.hashCode ^
+      postedToday.hashCode ^
+      isAllTasksCompleted.hashCode ^
+      username.hashCode ^
+      tasks.hashCode ^
+      followingUids.hashCode ^
+      feedPosts.hashCode ^
+      postedFriends.hashCode;
+
+  bool _listEquals(List? a, List? b) {
+    if (a == null) return b == null;
+    if (b == null || a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 }
 
 final homeDataProvider = FutureProvider<HomeData>((ref) async {
