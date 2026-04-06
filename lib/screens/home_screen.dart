@@ -16,17 +16,19 @@ import '../widgets/v_effect_header.dart';
 import '../widgets/weekly_review_banner.dart';
 import 'weekly_review_screen.dart';
 import '../widgets/reaction_avatars.dart';
+import '../providers/home_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   final ValueChanged<bool>? onLoadingChanged;
 
   const HomeScreen({super.key, this.onLoadingChanged});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
   final PostService _postService = PostService.instance;
   StreamSubscription? _updateSubscription;
   bool _loading = true;
@@ -36,6 +38,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Map<String, String> _userNames = {}; // userId -> username
   Map<String, String?> _userPhotos = {}; // userId -> photoUrl
   Map<String, int> _userStreaks = {}; // userId -> streak
+  HomeData? _lastHomeData;
+  final Set<String> _reactingPostIds = {}; // 通信中の投稿IDを追跡
+
+  // ── VFIRE デバウンス用 ──
+  Timer? _flameDebounceTimer;
+  int _pendingFlameCount = 0;
+  String? _pendingFlamePostId;
 
   // ── Card Swiping ──
   late final PageController _pageController;
@@ -119,6 +128,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _pulseController.dispose();
     _shakeController.dispose();
     _reactionMenuController.dispose();
+    _flameDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -232,33 +242,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final post = _feedPosts[index];
     final myUid = FirebaseAuth.instance.currentUser?.uid;
 
-    // 絵文字リアクションの1回制限チェック
-    // V FIRE (emoji == null) は無制限だが、絵文字 (emoji != null) は1回まで。
-    // かつ、既にV FIREを送っていても、絵文字がまだなら上書き送信を許可する。
-    if (emoji != null && myUid != null) {
-      final currentReaction = post.userReactions[myUid];
-      // 既に何らかの「🔥以外の絵文字」を送っている場合は制限
-      if (currentReaction != null && currentReaction != '🔥') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('絵文字リアクションは1回までです'),
-            duration: Duration(seconds: 1),
-          ),
-        );
+    if (myUid == null) return;
+
+    // 絵文字リアクションは1回までに制限
+    if (emoji != null) {
+      if (post.hasEmojiReacted(myUid) || _reactingPostIds.contains(post.id)) {
+        debugPrint('User already reacted or reaction is in progress');
         return;
       }
     }
 
     final isVFlash = emoji == null && Random().nextInt(100) == 0;
 
+    // 演出の実行（これはタップごとに即座に行う）
     if (isVFlash) {
       HapticFeedback.heavyImpact();
       _flashController.forward(from: 0);
       _flamesKey.currentState?.addFlame(isGold: true);
     } else {
-      // 絵文字リアクション、または通常のV Fire
       if (emoji != null) {
-        // ドーパミン演出！
         HapticFeedback.heavyImpact();
         _explosionKey.currentState?.explode(emoji);
       } else {
@@ -267,39 +269,83 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
     }
 
-    // Optimistic UI update
+    // 1. Optimistic UI update (ローカル状態を即座に反映)
     setState(() {
-      final updatedIds = myUid != null
-          ? (post.emojiReactedUserIds.contains(myUid)
-              ? post.emojiReactedUserIds
-              : [...post.emojiReactedUserIds, myUid])
-          : post.emojiReactedUserIds;
-
-      final newUserReactions = Map<String, String>.from(post.userReactions);
-      if (myUid != null) {
-        newUserReactions[myUid] = emoji ?? '🔥';
+      if (emoji != null) {
+        // 絵文字リアクション：1回のみ
+        final newUserReactions = Map<String, String>.from(post.userReactions);
+        final currentEmoji = newUserReactions[myUid];
+        if (currentEmoji == null || currentEmoji == '🔥') {
+          newUserReactions[myUid] = emoji;
+          final updatedIds = List<String>.from(post.emojiReactedUserIds);
+          if (!updatedIds.contains(myUid)) updatedIds.add(myUid);
+          
+          _feedPosts = List.from(_feedPosts)
+            ..[index] = post.copyWith(
+              userReactions: newUserReactions,
+              emojiReactedUserIds: updatedIds,
+            );
+        }
+      } else {
+        // VFIRE: カウントを増やす
+        _feedPosts = List.from(_feedPosts)
+            ..[index] = post.copyWith(reactionCount: post.reactionCount + 1);
       }
-
-      _feedPosts = List.from(_feedPosts)
-        ..[index] = Post(
-          id: post.id,
-          userId: post.userId,
-          imageUrl: post.imageUrl,
-          taskName: post.taskName,
-          caption: post.caption,
-          createdAt: post.createdAt,
-          expiresAt: post.expiresAt,
-          reactionCount: post.reactionCount + 1,
-          emojiReactedUserIds: updatedIds,
-          userReactions: newUserReactions,
-        );
     });
 
-    try {
-      await _postService.addReaction(post.id, emoji: emoji);
-    } catch (e) {
-      debugPrint('Reaction error: $e');
+    // 2. 通信処理
+    if (emoji != null) {
+      // 絵文字は即座に送信
+      try {
+        _reactingPostIds.add(post.id);
+        await _postService.addEmojiReaction(post.id, emoji);
+        ref.invalidate(homeDataProvider);
+      } catch (e) {
+        debugPrint('Emoji reaction error: $e');
+        ref.invalidate(homeDataProvider);
+      } finally {
+        _cleanupReactionLock(post.id);
+      }
+    } else {
+      // VFIRE はデバウンス（1秒間タップが止まるまで待機）
+      _pendingFlameCount++;
+      _pendingFlamePostId = post.id;
+      _reactingPostIds.add(post.id); // 連打中もガードールを維持
+
+      _flameDebounceTimer?.cancel();
+      _flameDebounceTimer = Timer(const Duration(seconds: 1), () async {
+        final countToSend = _pendingFlameCount;
+        final postIdToSend = _pendingFlamePostId;
+        
+        // バッファをリセット
+        _pendingFlameCount = 0;
+        _pendingFlamePostId = null;
+
+        if (postIdToSend != null && countToSend > 0) {
+          try {
+            await _postService.incrementFlameCount(postIdToSend, countToSend);
+            ref.invalidate(homeDataProvider);
+          } catch (e) {
+            debugPrint('Flame sync error: $e');
+            ref.invalidate(homeDataProvider);
+          } finally {
+            _cleanupReactionLock(postIdToSend);
+          }
+        }
+      });
     }
+  }
+
+  void _cleanupReactionLock(String postId) {
+    // Smart Merge により、引数ベース（500ms）の強制ロック解除は原則不要となりました
+    // 一定時間（3秒）経っても同期されない場合のフェイルセーフとしてのみ機能させます
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _reactingPostIds.remove(postId);
+        });
+      }
+    });
   }
 
   Future<void> _openWeeklyReview() async {
@@ -336,79 +382,153 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return _buildHomeSkeleton();
+    final homeAsync = ref.watch(homeDataProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.black,
-      body: Stack(
-        children: [
-          // ── 背景 ──
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.grey08, AppColors.black],
-                ),
-              ),
-            ),
+    return homeAsync.when(
+      loading: () => _buildHomeSkeleton(),
+      error: (err, stack) => Scaffold(
+        backgroundColor: AppColors.black,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.accentGold, size: 48),
+              const SizedBox(height: 16),
+              Text('エラーが発生しました: $err', style: const TextStyle(color: Colors.white)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(homeDataProvider),
+                child: const Text('再試行'),
+              )
+            ],
           ),
+        ),
+      ),
+      data: (homeData) {
+        // 同期的にローカルメンバ変数を更新し、既存のウィジェットビルド関数が正常に動くようにする
+        // 楽観的更新を行っている間（_feedPostsをローカルでsetStateしている間）は無条件で上書きしない
+        if (_lastHomeData != homeData) {
+          _postedToday = homeData.postedToday;
+          _postedFriends = homeData.postedFriends;
+          _lastHomeData = homeData;
 
+          final myUid = FirebaseAuth.instance.currentUser?.uid;
+          final newPosts = <Post>[];
+          final List<String> idsToRemove = [];
 
+          for (final fetchedPost in homeData.feedPosts) {
+            if (_reactingPostIds.contains(fetchedPost.id)) {
+              // 通信中または反映待ちの投稿
+              final localPost = _feedPosts.firstWhere(
+                (p) => p.id == fetchedPost.id,
+                orElse: () => fetchedPost,
+              );
 
-          SafeArea(
-            child: Column(
-              children: [
-                _buildTitleBar(),
-                SizedBox(
-                  height: 76, // 固定高さで全画面統一
-                  child: Center(
-                    child: (DateTime.now().weekday == DateTime.saturday ||
-                            DateTime.now().weekday == DateTime.sunday)
-                        ? WeeklyReviewBanner(onTap: _openWeeklyReview)
-                        : const SizedBox.shrink(),
+              // Smart Merge:
+              // 自分が絵文字を送った場合、最新データにその絵文字が反映されるまでローカルデータを優先
+              final localHasEmoji = localPost.hasEmojiReacted(myUid);
+              final fetchedHasEmoji = fetchedPost.hasEmojiReacted(myUid);
+
+              if (localHasEmoji && !fetchedHasEmoji) {
+                // まだデータが届いていないのでローカル（チェックマーク状態）を維持
+                newPosts.add(localPost);
+              } else {
+                // 反映されたか、そもそも絵文字ではない（炎のみの更新など）場合は最新データを採用
+                newPosts.add(fetchedPost);
+                // setState中には呼べないので、ループ外で削除候補に入れる
+                idsToRemove.add(fetchedPost.id);
+              }
+            } else {
+              newPosts.add(fetchedPost);
+            }
+          }
+          _feedPosts = newPosts;
+          
+          if (idsToRemove.isNotEmpty) {
+            // 微小なディレイを置いて安全にロックを解除
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  for (final id in idsToRemove) {
+                    _reactingPostIds.remove(id);
+                  }
+                });
+              }
+            });
+          }
+        }
+
+        return Scaffold(
+          backgroundColor: AppColors.black,
+          body: Stack(
+            children: [
+              // ── 背景 ──
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [AppColors.grey08, AppColors.black],
+                    ),
                   ),
                 ),
-                Expanded(
-                  child: !_postedToday
-                      ? _buildGuardedState()
-                      : (_feedPosts.isEmpty
-                          ? _buildEmptyState()
-                          : _buildCardStack()),
+              ),
+
+              SafeArea(
+                child: Column(
+                  children: [
+                    _buildTitleBar(),
+                    SizedBox(
+                      height: 76, 
+                      child: Center(
+                        child: (DateTime.now().weekday == DateTime.saturday ||
+                                DateTime.now().weekday == DateTime.sunday)
+                            ? WeeklyReviewBanner(onTap: _openWeeklyReview)
+                            : const SizedBox.shrink(),
+                      ),
+                    ),
+                    Expanded(
+                      child: !homeData.postedToday
+                          ? _buildGuardedState()
+                          : (homeData.feedPosts.isEmpty
+                              ? _buildEmptyState()
+                              : _buildCardStack()),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          // ── V-Flash 演出レイヤー ──
-          IgnorePointer(
-            child: AnimatedBuilder(
-              animation: _flashAnimation,
-              builder: (context, _) {
-                if (_flashAnimation.value == 0) return const SizedBox.shrink();
-                return Container(
-                  color: Colors.white.withValues(alpha: _flashAnimation.value),
-                );
-              },
-            ),
-          ),
+              // ── V-Flash 演出レイヤー ──
+              IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _flashAnimation,
+                  builder: (context, _) {
+                    if (_flashAnimation.value == 0) return const SizedBox.shrink();
+                    return Container(
+                      color: Colors.white.withValues(alpha: _flashAnimation.value),
+                    );
+                  },
+                ),
+              ),
 
-          // ── 炎のエフェクトレイヤー (最前面) ──
-          Positioned.fill(
-            child: IgnorePointer(
-              child: _FloatingFlamesLayer(key: _flamesKey),
-            ),
-          ),
+              // ── 炎のエフェクトレイヤー (最前面) ──
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: _FloatingFlamesLayer(key: _flamesKey),
+                ),
+              ),
 
-          // ── ドーパミン爆発レイヤー (最前面) ──
-          Positioned.fill(
-            child: IgnorePointer(
-              child: _DopamineEmojiExplosionLayer(key: _explosionKey),
-            ),
+              // ── ドーパミン爆発レイヤー (最前面) ──
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: _DopamineEmojiExplosionLayer(key: _explosionKey),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -681,8 +801,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   final post = _feedPosts[actualIndex];
 
                   final myUid = FirebaseAuth.instance.currentUser?.uid;
-                  final alreadyReacted =
-                      myUid != null && post.emojiReactedUserIds.contains(myUid);
+                  // 絵文字（VFIREの'🔥'以外）を送った場合のみチェックマークにする
+                  final alreadyReacted = post.hasEmojiReacted(myUid);
 
                   return Center(
                     child: SizedBox(
@@ -769,22 +889,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: _reactionEmojis.map((emoji) {
-                                      return GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: () {
-                                          _sendReaction(actualIndex,
-                                              emoji: emoji);
-                                          setState(() =>
-                                              _reactionMenuOpen = false);
-                                          _reactionMenuController.reverse();
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 4),
-                                          child: Text(
-                                            emoji,
-                                            style:
-                                                const TextStyle(fontSize: 24),
+                                      return Opacity(
+                                        opacity: alreadyReacted ? 0.4 : 1.0,
+                                        child: AbsorbPointer(
+                                          absorbing: alreadyReacted,
+                                          child: GestureDetector(
+                                            behavior: HitTestBehavior.opaque,
+                                            onTap: () {
+                                              _sendReaction(actualIndex,
+                                                  emoji: emoji);
+                                              setState(() =>
+                                                  _reactionMenuOpen = false);
+                                              _reactionMenuController.reverse();
+                                            },
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 10, vertical: 4),
+                                              child: Text(
+                                                emoji,
+                                                style:
+                                                    const TextStyle(fontSize: 24),
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       );
@@ -946,7 +1072,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             username: username,
             userPhotoUrl: photoUrl,
             dimAlpha: dimAlpha,
-            onReaction: () => _sendReaction(index),
+            onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
             isTop: index == _focusedIndex,
             tierColor: tierColor,
             userPhotos: _userPhotos,
@@ -988,7 +1114,7 @@ class _FeedCard extends StatelessWidget {
   final String username;
   final String? userPhotoUrl;
   final double dimAlpha;
-  final VoidCallback onReaction;
+  final Function({String? emoji}) onReaction;
   final bool isTop;
   final Color tierColor;
   final Map<String, String?> userPhotos;
@@ -1218,32 +1344,21 @@ class _FeedCard extends StatelessWidget {
                     ),
                   ),
 
-                  // リアクションボタン: [🔥] （表示専用、＋はPV層に集約）
+                  // リアクションボタン: [アバター] [＋/チェック] [🔥]
                   if (isTop)
-                    IgnorePointer(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          // リアクションアバター
-                          if (post.reactionCount > 0)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 11), // 縦中央寄せ調整
-                              child: ReactionAvatarsStack(
-                                userReactions: post.userReactions,
-                                reactorUids: post.emojiReactedUserIds,
-                                userPhotos: userPhotos,
-                                reactionCount: post.reactionCount,
-                                avatarSize: 34,
-                                overlapOffset: 22,
-                              ),
-                            ),
-                          const SizedBox(width: 12),
-                          // V Fire ボタン＋カウント（表示専用）
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        // [修正] リアクションアバターと拡張メニューを非表示化（PageViewレイヤーかHeroTasksScreenで管理）
+
+                        // V Fire ボタン＋カウント（表示専用）
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: onReaction,
+                              child: Container(
                                 width: 56,
                                 height: 56,
                                 decoration: BoxDecoration(
@@ -1260,19 +1375,19 @@ class _FeedCard extends StatelessWidget {
                                   size: 32,
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '${post.reactionCount}',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.white,
-                                ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${post.reactionCount}',
+                              style: GoogleFonts.outfit(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.white,
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -1290,151 +1405,6 @@ class _FeedCard extends StatelessWidget {
   }
 }
 
-// ────────────────────────────────────────────
-// 拡張リアクションメニュー
-// ────────────────────────────────────────────
-class _ExpandableReactionMenu extends StatefulWidget {
-  final void Function(String emoji) onReact;
-
-  const _ExpandableReactionMenu({required this.onReact});
-
-  @override
-  State<_ExpandableReactionMenu> createState() =>
-      _ExpandableReactionMenuState();
-}
-
-class _ExpandableReactionMenuState extends State<_ExpandableReactionMenu>
-    with SingleTickerProviderStateMixin {
-  bool _isOpen = false;
-  late AnimationController _controller;
-  late Animation<double> _widthFactor;
-  late Animation<double> _opacity;
-
-  static const _emojis = ['❤️', '🔥', '👍'];
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 220),
-    );
-    _widthFactor = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    );
-    _opacity = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _toggle() {
-    setState(() => _isOpen = !_isOpen);
-    if (_isOpen) {
-      _controller.forward();
-    } else {
-      _controller.reverse();
-    }
-  }
-
-  void _react(String emoji) {
-    widget.onReact(emoji);
-    setState(() => _isOpen = false);
-    _controller.reverse();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Expanded emoji pills (slides in from the right)
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return ClipRect(
-              child: Align(
-                alignment: Alignment.centerRight,
-                widthFactor: _widthFactor.value,
-                child: Opacity(
-                  opacity: _opacity.value,
-                  child: child,
-                ),
-              ),
-            );
-          },
-          child: Container(
-            margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.grey15.withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: AppColors.white.withValues(alpha: 0.1),
-                width: 0.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.black.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: _emojis.map((emoji) {
-                return GestureDetector(
-                  onTap: () => _react(emoji),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Text(
-                      emoji,
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-
-        // Toggle button
-        GestureDetector(
-          onTap: _toggle,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.white.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.white.withValues(alpha: 0.15),
-                width: 1,
-              ),
-            ),
-            child: AnimatedRotation(
-              turns: _isOpen ? 0.125 : 0.0,
-              duration: const Duration(milliseconds: 220),
-              child: const Icon(
-                Icons.add_rounded,
-                color: AppColors.white,
-                size: 24,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 // ────────────────────────────────────────────
 // リアクション層の分離

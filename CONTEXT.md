@@ -5,16 +5,24 @@
 ---
 
 ## 🔄 Current Status (現在の状況)
-- **Phase:** Performance Optimization & Feature Enhancement
-- **Last Updated:** 2026-03-28
-- **Active Agent:** Gemini CLI
-- **Current Task:** Implemented Premium Victory Animation (The V-Flash)
-- **Action:** Refined hero task completion sequence with high-end animations and haptics.
+- **Phase:** Performance Optimization & Feature Enhancement (Data Hardening Focus)
+- **Last Updated:** 2026-04-06
+- **Activeエージェント:** Antigravity
+- **Current Task:** Established Comprehensive Coding Guidelines & Hardened Data Layer
+- **Action:** Formulated project-wide coding standards in SKILL.md and implemented Firestore hardening for reaction persistence.
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-04-06 (Antigravity)
+- **Data Hardening & Persistence:**
+    - Firestore `withConverter<Post>` による型安全なデータ層を構築。
+    - パース例外を許容する `resilient parsing` と、ドット記法による `atomic updates` を実装。
+    - リアクション情報を Map と List の冗長チェックで判定する仕組みを導入。
+- **Coding Guidelines Establishment:**
+    - `.agents/skills/coding-rules/SKILL.md` を全面的に刷新。レイヤードアーキテクチャ、データ層の硬化、モノクロームデザイン言語を明文化。
 
 ### 2026-03-28 (Gemini CLI)
 - **Premium Victory Animation:**
@@ -74,9 +82,12 @@
 
 ---
 
-## 💎 Project Core Theme (プロジェクトの核)
+- **Victory at All Costs**: 達成感の最大化。
 
-- **勝ち癖を習慣化する**: 
-  - 毎日何かしらのタスク（Victory）をこなし、その積み重ねによって自分に自信をつける。
-  - 小さな勝利を継続することで、人生における「勝ち癖」を身につけることが本アプリの究極の目的。
-  - そのため、UI/UX は「達成感の最大化」と「継続のしやすさ」を最優先する。
+---
+
+## 🏗 Coding Guidelines Reference
+詳細な技術規約は以下を参照してください。
+- [Coding Guidelines](file:///Users/rennlikeu/Desktop/V-Effect/.agents/skills/coding-rules/SKILL.md)
+
+エージェントはコード生成・修正時、常にこの規約に沿っているか確認すること。

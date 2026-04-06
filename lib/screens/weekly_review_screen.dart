@@ -13,22 +13,30 @@ import '../config/app_colors.dart';
 import '../models/post.dart';
 
 
+import '../providers/weekly_review_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 /// 今週の振り返りをストーリー形式で表示する画面
-class WeeklyReviewScreen extends StatefulWidget {
-  final List<Post> posts;
-  final int currentStreak;
+class WeeklyReviewScreen extends ConsumerStatefulWidget {
+  final List<Post>? posts;
+  final int? currentStreak;
 
   const WeeklyReviewScreen({
     super.key,
-    required this.posts,
-    required this.currentStreak,
+    this.posts,
+    this.currentStreak,
   });
 
   @override
-  State<WeeklyReviewScreen> createState() => _WeeklyReviewScreenState();
+  ConsumerState<WeeklyReviewScreen> createState() => _WeeklyReviewScreenState();
 }
 
-class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
+class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
+  // 表示用データ（Provider または 引数から取得）
+  List<Post> _posts = [];
+  int _currentStreak = 0;
+  bool _isDataInitialized = false;
+
   int _currentPostIndex = 0;
   bool _showSummary = false;
   Timer? _autoTimer;
@@ -39,10 +47,16 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.posts.isNotEmpty) {
-      _startAutoTimer();
-    } else {
-      _showSummary = true;
+    // 引数がある場合は即座に初期化
+    if (widget.posts != null && widget.currentStreak != null) {
+      _posts = widget.posts!;
+      _currentStreak = widget.currentStreak!;
+      _isDataInitialized = true;
+      if (_posts.isNotEmpty) {
+        _startAutoTimer();
+      } else {
+        _showSummary = true;
+      }
     }
   }
 
@@ -62,7 +76,7 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
   }
 
   void _goNext() {
-    if (_currentPostIndex < widget.posts.length - 1) {
+    if (_currentPostIndex < _posts.length - 1) {
       setState(() => _currentPostIndex++);
       _resetAutoTimer();
     } else {
@@ -76,7 +90,7 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
     if (_showSummary) {
       setState(() {
         _showSummary = false;
-        _currentPostIndex = widget.posts.length - 1;
+        _currentPostIndex = _posts.length - 1;
       });
       _resetAutoTimer();
     } else if (_currentPostIndex > 0) {
@@ -110,7 +124,7 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
       // share_plusでシェア
       await Share.shareXFiles(
         [XFile(path)],
-        text: '今週も${widget.posts.length}回のヒーロータスクを完遂！\n現在のストリーク: ${widget.currentStreak}日 🔥\n#VEffect',
+        text: '今週も${_posts.length}回のヒーロータスクを完遂！\n現在のストリーク: $_currentStreak日 🔥\n#VEffect',
       );
     } catch (e) {
       debugPrint('Share error: $e');
@@ -126,6 +140,36 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 引数がない場合は Provider からデータを取得
+    if (!_isDataInitialized) {
+      final reviewAsync = ref.watch(weeklyReviewProvider);
+      return reviewAsync.when(
+        loading: () => const Scaffold(backgroundColor: AppColors.bgBase, body: Center(child: CircularProgressIndicator())),
+        error: (err, stack) => Scaffold(
+          backgroundColor: AppColors.bgBase,
+          body: Center(child: Text('読み込みエラー: $err', style: const TextStyle(color: Colors.white))),
+        ),
+        data: (data) {
+          _posts = data.posts;
+          _currentStreak = data.streak;
+          // データの初回反映時のみタイマーを開始
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_isDataInitialized) {
+              setState(() {
+                _isDataInitialized = true;
+                if (_posts.isNotEmpty) {
+                  _startAutoTimer();
+                } else {
+                  _showSummary = true;
+                }
+              });
+            }
+          });
+          return const Scaffold(backgroundColor: AppColors.bgBase, body: Center(child: CircularProgressIndicator()));
+        },
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body: SafeArea(
@@ -135,7 +179,7 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
-                children: List.generate(widget.posts.length + 1, (i) {
+                children: List.generate(_posts.length + 1, (i) {
                   // 最後の一つはサマリー画面用
                   final bool isPassed = _showSummary ? true : (i < _currentPostIndex);
                   final bool isCurrent = !_showSummary && (i == _currentPostIndex);
@@ -179,9 +223,9 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
   }
 
   Widget _buildStoryView() {
-    if (widget.posts.isEmpty) return const SizedBox.shrink();
+    if (_posts.isEmpty) return const SizedBox.shrink();
     
-    final post = widget.posts[_currentPostIndex];
+    final post = _posts[_currentPostIndex];
     final weekdayStr = DateFormat('EEEE').format(post.createdAt).toUpperCase();
 
     return Stack(
@@ -393,9 +437,9 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
                         const SizedBox(height: 48),
                         
                         // 実績データ
-                        _buildStatCard('🔥 今週の完了数', '${widget.posts.length}', 'TASKS'),
+                        _buildStatCard('🔥 今週の完了数', '${_posts.length}', 'TASKS'),
                         const SizedBox(height: 16),
-                        _buildStatCard('👑 現在のストリーク', '${widget.currentStreak}', 'DAYS'),
+                        _buildStatCard('👑 現在のストリーク', '$_currentStreak', 'DAYS'),
                         
                         const Spacer(),
                         

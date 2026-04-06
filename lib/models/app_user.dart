@@ -107,4 +107,31 @@ class AppUser {
       isPrivateAccount: data['isPrivateAccount'] ?? false,
     );
   }
+
+  /// Firestore 保存用の Map を生成します
+  Map<String, dynamic> toFirestore() {
+    return {
+      'email': email,
+      'username': username,
+      'userId': userId,
+      'displayName': displayName,
+      'birthDate': birthDate,
+      'gender': gender,
+      'photoUrl': photoUrl,
+      'streak': streak,
+      'lastPostedDate': lastPostedDate,
+      'following': following,
+      'followers': followers,
+      'tasks': tasks.map((t) => t.toFirestore()).toList(),
+      'wakeUpTime': wakeUpTime,
+      'taskTime': taskTime,
+      'occupation': occupation,
+      'profileCompleted': profileCompleted,
+      'templateCompleted': templateCompleted,
+      'onboardingCompleted': onboardingCompleted,
+      'lastProfileEditDate': lastProfileEditDate,
+      'pushNotifications': pushNotifications,
+      'isPrivateAccount': isPrivateAccount,
+    };
+  }
 }
