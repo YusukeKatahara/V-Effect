@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -1404,7 +1403,6 @@ class _PulseCameraButtonState extends State<_PulseCameraButton>
             const innerSize = 76.0;
             const outerSize = 104.0;
             const glowAlpha = 0.12;
-            const iconAlpha = 0.85;
 
             return SizedBox(
               width: outerSize,

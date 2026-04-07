@@ -310,45 +310,24 @@ class PostService {
         });
   }
 
-  /// 投稿にリアクションをつけます
-  /// 投稿にリアクションをつけます
   /// 投稿に絵文字リアクションをつけます（1人1回制限）
+  ///
+  /// Transaction の代わりに通常 update + FieldValue.arrayUnion を使用。
+  /// オフライン時もローカルキャッシュに即時反映され、復帰後に自動同期される。
+  /// 失敗時は例外を呼び出し元に伝播し、楽観的更新のロールバックを可能にする。
   Future<void> addEmojiReaction(String postId, String emoji) async {
     final myUid = _auth.currentUser!.uid;
     final docRef = _postsRef.doc(postId);
 
-    try {
-      await _db.runTransaction((transaction) async {
-        final docSnap = await transaction.get(docRef);
-        if (!docSnap.exists) return;
+    // ドット記法でマップの自分のキーだけを更新し、他ユーザーの反応を上書きしない
+    await docRef.update({
+      '${Post.fieldUserReactions}.$myUid': emoji,
+      Post.fieldEmojiReactedUserIds: FieldValue.arrayUnion([myUid]),
+    });
 
-        final post = docSnap.data()!;
-        final userReactions = Map<String, String>.from(post.userReactions);
-        final emojiReactedUserIds = List<String>.from(post.emojiReactedUserIds);
-
-        // すでに別の絵文字がある場合は反映しないが、🔥 の場合は上書きを許可
-        final currentEmoji = userReactions[myUid];
-        if (currentEmoji != null && currentEmoji != '🔥') return;
-
-        userReactions[myUid] = emoji;
-        if (!emojiReactedUserIds.contains(myUid)) {
-          emojiReactedUserIds.add(myUid);
-        }
-
-        // 堅牢化：ドット記法を使用して、特定のフィールドのみを確実に更新する
-        // これにより、マップ全体を上書きする際のリスクを最小限に抑える
-        transaction.update(docRef, {
-          '${Post.fieldUserReactions}.$myUid': emoji,
-          Post.fieldEmojiReactedUserIds: emojiReactedUserIds,
-        });
-      });
-
-      _analytics.logReactionSent();
-      _updateController.add(null);
-      _sendReactionNotification(postId, emoji: emoji).catchError((_) {});
-    } catch (e) {
-      debugPrint('Emoji reaction failed: $e');
-    }
+    _analytics.logReactionSent();
+    _updateController.add(null);
+    _sendReactionNotification(postId, emoji: emoji).catchError((_) {});
   }
 
   /// 投稿の VFIRE (炎) カウントを増やします（連打対応の高速アトミック操作）
