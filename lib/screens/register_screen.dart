@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../config/firebase_config.dart';
 
 import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
@@ -93,7 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       );
       await _analytics.logSignUp('email');
       // 認証メールを送信
-      await cred.user?.sendEmailVerification();
+      await cred.user?.sendEmailVerification(FirebaseConfig.actionCodeSettings);
       // Firestoreドキュメントを作成
       await _ensureUserDoc(cred.user!);
       

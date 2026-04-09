@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "FD438J3939.com.veffect.app.vEffect",
+        "paths": ["*"]
+      }
+    ]
+  }
+}

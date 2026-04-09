@@ -32,6 +32,8 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="veffect.firebaseapp.com"/>
+                <data android:scheme="https" android:host="v-effect.firebaseapp.com"/>
+                <data android:scheme="https" android:host="v-effect.app"/>
             </intent-filter>
         </activity>
 

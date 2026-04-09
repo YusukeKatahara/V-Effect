@@ -10,6 +10,7 @@ import 'config/routes.dart';
 import 'config/theme.dart';
 import 'services/analytics_service.dart';
 import 'services/push_notification_service.dart';
+import 'services/deep_link_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +38,7 @@ void main() async {
 
     // 他のサービス初期化（FirebaseAppが必要なもの）
     await PushNotificationService().initialize();
+    await DeepLinkService().initialize();
 
     // テーマ設定の反映
     final isDarkMode = prefs.getBool('isDarkMode') ?? true;
@@ -75,6 +77,7 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    DeepLinkService().dispose();
     super.dispose();
   }
 
