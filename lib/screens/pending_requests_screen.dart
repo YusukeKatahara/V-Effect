@@ -19,7 +19,7 @@ class PendingRequestsScreen extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
         title: const Text(
-          'フォロー申請',
+          'フォローリクエスト',
           style: TextStyle(color: AppColors.textPrimary),
         ),
       ),
@@ -33,7 +33,7 @@ class PendingRequestsScreen extends StatelessWidget {
           if (requests.isEmpty) {
             return const Center(
               child: Text(
-                '申請はありません',
+                'リクエストはありません',
                 style: TextStyle(color: AppColors.textSecondary),
               ),
             );
@@ -41,13 +41,14 @@ class PendingRequestsScreen extends StatelessWidget {
           return ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: requests.length,
-            separatorBuilder: (_, __) => const Divider(
-              color: AppColors.border,
-              height: 1,
-              indent: 72,
-            ),
-            itemBuilder: (context, index) =>
-                _RequestTile(request: requests[index]),
+            separatorBuilder:
+                (_, __) => const Divider(
+                  color: AppColors.border,
+                  height: 1,
+                  indent: 72,
+                ),
+            itemBuilder:
+                (context, index) => _RequestTile(request: requests[index]),
           );
         },
       ),
@@ -72,9 +73,9 @@ class _RequestTileState extends State<_RequestTile> {
       await FriendService.instance.acceptRequest(widget.request);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('承認に失敗しました: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('承認に失敗しました: $e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -87,9 +88,9 @@ class _RequestTileState extends State<_RequestTile> {
       await FriendService.instance.rejectRequest(widget.request);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('拒否に失敗しました: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('拒否に失敗しました: $e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -101,11 +102,12 @@ class _RequestTileState extends State<_RequestTile> {
     final req = widget.request;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      onTap: () => Navigator.pushNamed(
-        context,
-        '/user-profile',
-        arguments: req.fromUid,
-      ),
+      onTap:
+          () => Navigator.pushNamed(
+            context,
+            '/user-profile',
+            arguments: req.fromUid,
+          ),
       leading: _Avatar(uid: req.fromUid),
       title: Text(
         req.fromUsername,
@@ -118,28 +120,21 @@ class _RequestTileState extends State<_RequestTile> {
         '@${req.fromUserId}',
         style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
       ),
-      trailing: _loading
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _ActionButton(
-                  label: '承認',
-                  filled: true,
-                  onTap: _accept,
-                ),
-                const SizedBox(width: 8),
-                _ActionButton(
-                  label: '拒否',
-                  filled: false,
-                  onTap: _reject,
-                ),
-              ],
-            ),
+      trailing:
+          _loading
+              ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+              : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ActionButton(label: '承認', filled: true, onTap: _accept),
+                  const SizedBox(width: 8),
+                  _ActionButton(label: '拒否', filled: false, onTap: _reject),
+                ],
+              ),
     );
   }
 }
@@ -160,20 +155,26 @@ class _Avatar extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: AppColors.bgElevated,
-            image: photoUrl != null
-                ? DecorationImage(
-                    image: ResizeImage(
-                      CachedNetworkImageProvider(photoUrl),
-                      width: 100,
-                      height: 100,
-                    ),
-                    fit: BoxFit.cover,
-                  )
-                : null,
+            image:
+                photoUrl != null
+                    ? DecorationImage(
+                      image: ResizeImage(
+                        CachedNetworkImageProvider(photoUrl),
+                        width: 100,
+                        height: 100,
+                      ),
+                      fit: BoxFit.cover,
+                    )
+                    : null,
           ),
-          child: photoUrl == null
-              ? const Icon(Icons.person, color: AppColors.textMuted, size: 22)
-              : null,
+          child:
+              photoUrl == null
+                  ? const Icon(
+                    Icons.person,
+                    color: AppColors.textMuted,
+                    size: 22,
+                  )
+                  : null,
         );
       },
     );

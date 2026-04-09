@@ -22,25 +22,29 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _emailCtrl = TextEditingController();
-  final _passCtrl  = TextEditingController();
+  final _passCtrl = TextEditingController();
   final _authService = AuthService();
   final _analytics = AnalyticsService.instance;
   bool _isEmailLoading = false;
   bool _isGoogleLoading = false;
   bool _isAppleLoading = false;
 
-  bool get _isLoadingAny => _isEmailLoading || _isGoogleLoading || _isAppleLoading;
+  bool get _isLoadingAny =>
+      _isEmailLoading || _isGoogleLoading || _isAppleLoading;
 
   bool _obscurePass = true;
 
   late final AnimationController _fadeCtrl;
-  late final Animation<double>   _fadeAnim;
+  late final Animation<double> _fadeAnim;
 
   @override
   void initState() {
     super.initState();
-    _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _fadeAnim  = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+    _fadeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _fadeCtrl.forward();
   }
 
@@ -64,7 +68,9 @@ class _LoginScreenState extends State<LoginScreen>
         'onboardingCompleted': false,
       });
     }
-    PushNotificationService().saveFcmToken().catchError((e) => debugPrint('FCM token save error: $e'));
+    PushNotificationService().saveFcmToken().catchError(
+      (e) => debugPrint('FCM token save error: $e'),
+    );
 
     if (!mounted) return;
 
@@ -115,18 +121,20 @@ class _LoginScreenState extends State<LoginScreen>
       await _ensureUserDocAndNavigate();
     } on FirebaseFunctionsException catch (e) {
       debugPrint('Cloud Function error: ${e.code} - ${e.message}');
-      scaffold?.showSnackBar(const SnackBar(content: Text('ユーザーIDまたはパスワードが間違っています。')));
+      scaffold?.showSnackBar(
+        const SnackBar(content: Text('ユーザーIDまたはパスワードが間違っています')),
+      );
       if (mounted) setState(() => _isEmailLoading = false);
     } on FirebaseAuthException catch (e) {
-      String msg = 'ログインに失敗しました。';
-      if (e.code == 'user-not-found') msg = 'ユーザーが見つかりません。';
-      if (e.code == 'wrong-password')  msg = 'パスワードが間違っています。';
-      if (e.code == 'invalid-credential') msg = 'メールアドレスまたはパスワードが間違っています。';
+      String msg = 'ログインに失敗しました';
+      if (e.code == 'user-not-found') msg = 'ユーザーが見つかりません';
+      if (e.code == 'wrong-password') msg = 'パスワードが間違っています';
+      if (e.code == 'invalid-credential') msg = 'メールアドレスまたはパスワードが間違っています';
       scaffold?.showSnackBar(SnackBar(content: Text(msg)));
       if (mounted) setState(() => _isEmailLoading = false);
     } catch (e) {
       debugPrint('Login error: $e');
-      scaffold?.showSnackBar(const SnackBar(content: Text('ログインに失敗しました。')));
+      scaffold?.showSnackBar(const SnackBar(content: Text('ログインに失敗しました')));
       if (mounted) setState(() => _isEmailLoading = false);
     }
   }
@@ -145,7 +153,9 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } catch (e) {
       debugPrint('Google sign-in error: $e');
-      scaffold?.showSnackBar(const SnackBar(content: Text('Googleでのログインに失敗しました。')));
+      scaffold?.showSnackBar(
+        const SnackBar(content: Text('Googleでのログインに失敗しました')),
+      );
       if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
@@ -164,12 +174,12 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } catch (e) {
       debugPrint('Apple sign-in error: $e');
-      scaffold?.showSnackBar(const SnackBar(content: Text('Appleでのログインに失敗しました。')));
+      scaffold?.showSnackBar(
+        const SnackBar(content: Text('Appleでのログインに失敗しました')),
+      );
       if (mounted) setState(() => _isAppleLoading = false);
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -265,8 +275,8 @@ class _LoginScreenState extends State<LoginScreen>
         const AnimatedVLogo(size: 88),
         const SizedBox(height: 20),
         ShaderMask(
-          shaderCallback: (bounds) =>
-              const LinearGradient(
+          shaderCallback:
+              (bounds) => const LinearGradient(
                 colors: [Color(0xFFFFFFFF), Color(0xFFCCCCCC)],
               ).createShader(bounds),
           child: const Text(
@@ -320,7 +330,9 @@ class _LoginScreenState extends State<LoginScreen>
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               icon: Icon(
-                _obscurePass ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                _obscurePass
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
                 color: AppColors.textMuted,
               ),
               onPressed: () => setState(() => _obscurePass = !_obscurePass),
@@ -333,7 +345,8 @@ class _LoginScreenState extends State<LoginScreen>
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
-            onPressed: () => Navigator.pushNamed(context, AppRoutes.forgotPassword),
+            onPressed:
+                () => Navigator.pushNamed(context, AppRoutes.forgotPassword),
             child: const Text('パスワードをお忘れですか？'),
           ),
         ),
@@ -343,43 +356,46 @@ class _LoginScreenState extends State<LoginScreen>
         _isEmailLoading
             ? const _LoadingButton()
             : SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: _isLoadingAny ? [] : [
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: _isLoadingAny ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      foregroundColor: AppColors.black,
-                      disabledForegroundColor: AppColors.textMuted,
-                      minimumSize: const Size(double.infinity, 54),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+              width: double.infinity,
+              height: 54,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow:
+                      _isLoadingAny
+                          ? []
+                          : [
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _isLoadingAny ? null : _login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: AppColors.black,
+                    disabledForegroundColor: AppColors.textMuted,
+                    minimumSize: const Size(double.infinity, 54),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Text(
-                      'ログイン',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                      ),
+                  ),
+                  child: const Text(
+                    'ログイン',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ),
               ),
+            ),
       ],
     );
   }
@@ -395,7 +411,10 @@ class _LoginScreenState extends State<LoginScreen>
             const Expanded(child: Divider()),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text('または', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              child: Text(
+                'または',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+              ),
             ),
             const Expanded(child: Divider()),
           ],
@@ -407,15 +426,21 @@ class _LoginScreenState extends State<LoginScreen>
           onPressed: _isLoadingAny ? null : _signInWithGoogle,
           isLoading: _isGoogleLoading,
           icon: CachedNetworkImage(
-            imageUrl: 'https://developers.google.com/identity/images/g-logo.png',
+            imageUrl:
+                'https://developers.google.com/identity/images/g-logo.png',
             height: 22,
-            placeholder: (context, url) => const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 1),
-            ),
-            errorWidget: (context, url, error) =>
-                const Icon(Icons.g_mobiledata, size: 24, color: AppColors.textPrimary),
+            placeholder:
+                (context, url) => const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 1),
+                ),
+            errorWidget:
+                (context, url, error) => const Icon(
+                  Icons.g_mobiledata,
+                  size: 24,
+                  color: AppColors.textPrimary,
+                ),
           ),
           label: 'Googleでログイン',
         ),
@@ -441,8 +466,10 @@ class _LoginScreenState extends State<LoginScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('アカウントをお持ちでないですか？',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            Text(
+              'アカウントをお持ちでないですか？',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
             TextButton(
               onPressed: () => Navigator.pushNamed(context, AppRoutes.register),
               child: const Text('新規登録'),
@@ -453,7 +480,11 @@ class _LoginScreenState extends State<LoginScreen>
           onPressed: () => _launchURL('https://forms.gle/Zj29yQmSSKCZ4Kar8'),
           child: const Text(
             'ログインできない等のご相談・お問い合わせ',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 12, decoration: TextDecoration.underline),
+            style: TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 12,
+              decoration: TextDecoration.underline,
+            ),
           ),
         ),
       ],
@@ -464,9 +495,9 @@ class _LoginScreenState extends State<LoginScreen>
     final url = Uri.parse(urlString);
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('リンクを開けませんでした')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('リンクを開けませんでした')));
       }
     }
   }
@@ -495,20 +526,24 @@ class _SocialButton extends StatelessWidget {
       height: 50,
       child: OutlinedButton(
         onPressed: onPressed,
-        child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  icon,
-                  const SizedBox(width: 10),
-                  Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-                ],
-              ),
+        child:
+            isLoading
+                ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    icon,
+                    const SizedBox(width: 10),
+                    Text(
+                      label,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
       ),
     );
   }

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
 
-
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/user_service.dart';
@@ -59,10 +58,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void _checkRestriction() {
     // 制限を回避できるメールアドレスのリスト
-    const adminEmails = [
-      'ren0930ren0930@gmail.com',
-      'yusuke@example.com',
-    ];
+    const adminEmails = ['ren0930ren0930@gmail.com', 'yusuke@example.com'];
 
     final currentEmail = widget.user.email;
     if (adminEmails.contains(currentEmail)) {
@@ -219,7 +215,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final newUserId = _userIdCtrl.text.trim();
     final newUsername = _usernameCtrl.text.trim();
-    final wakeUpTimeStr = _wakeUpTime != null ? _formatTimeOfDay(_wakeUpTime!) : null;
+    final wakeUpTimeStr =
+        _wakeUpTime != null ? _formatTimeOfDay(_wakeUpTime!) : null;
     final taskTimeStr = _taskTime != null ? _formatTimeOfDay(_taskTime!) : null;
 
     bool isRestrictedFieldsChanged = false;
@@ -267,7 +264,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.black,
                   ),
-                  child: const Text('変更する'),
+                  child: const Text('変更'),
                 ),
               ],
             ),
@@ -310,9 +307,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('設定を保存しました！')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('設定を保存しました！')));
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -329,7 +326,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body: Stack(
@@ -372,8 +368,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          if (_isRestricted)
-                            _buildRestrictionWarning(),
+                          if (_isRestricted) _buildRestrictionWarning(),
 
                           // Photo upload
                           _buildPhotoPicker(),
@@ -400,7 +395,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           GradientButton(
                             onPressed: _saveProfile,
                             isLoading: _isSaving,
-                            child: const Text('保存する'),
+                            child: const Text('保存'),
                           ),
                           const SizedBox(height: 40),
                         ],
@@ -423,9 +418,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       decoration: BoxDecoration(
         color: AppColors.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.error.withValues(alpha: 0.4),
-        ),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
@@ -449,9 +442,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 3),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.5),
+              width: 3,
+            ),
             boxShadow: [
-              BoxShadow(color: Colors.white.withValues(alpha: 0.12), blurRadius: 16, spreadRadius: 2),
+              BoxShadow(
+                color: Colors.white.withValues(alpha: 0.12),
+                blurRadius: 16,
+                spreadRadius: 2,
+              ),
             ],
           ),
           child: Stack(
@@ -459,25 +459,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               CircleAvatar(
                 radius: 50,
                 backgroundColor: AppColors.bgElevated,
-                backgroundImage: _newProfileImage != null
-                    ? FileImage(_newProfileImage!) as ImageProvider
-                    : (_currentPhotoUrl != null
-                        ? ResizeImage(
-                          CachedNetworkImageProvider(_currentPhotoUrl!),
-                          width: 300,
+                backgroundImage:
+                    _newProfileImage != null
+                        ? FileImage(_newProfileImage!) as ImageProvider
+                        : (_currentPhotoUrl != null
+                            ? ResizeImage(
+                              CachedNetworkImageProvider(_currentPhotoUrl!),
+                              width: 300,
+                            )
+                            : null),
+                child:
+                    (_newProfileImage == null && _currentPhotoUrl == null)
+                        ? const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: AppColors.textMuted,
                         )
-                        : null),
-                child: (_newProfileImage == null && _currentPhotoUrl == null)
-                    ? const Icon(Icons.person, size: 50, color: AppColors.textMuted)
-                    : null,
+                        : null,
               ),
               Positioned(
                 bottom: 0,
                 right: 0,
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-                  child: const Icon(Icons.camera_alt, color: AppColors.black, size: 20),
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    color: AppColors.black,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -487,7 +500,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon) {
+  Widget _buildTextField(
+    TextEditingController ctrl,
+    String label,
+    IconData icon,
+  ) {
     return TextFormField(
       controller: ctrl,
       style: const TextStyle(color: AppColors.textPrimary),
@@ -495,7 +512,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         labelText: label,
         prefixIcon: Icon(icon, color: AppColors.textMuted),
       ),
-      validator: (v) => (v == null || v.trim().isEmpty) ? '$labelを入力してください' : null,
+      validator:
+          (v) => (v == null || v.trim().isEmpty) ? '$labelを入力してください' : null,
     );
   }
 
@@ -503,7 +521,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return TextFormField(
       controller: _userIdCtrl,
       enabled: !_isRestricted,
-      style: TextStyle(color: _isRestricted ? AppColors.textMuted : AppColors.textPrimary),
+      style: TextStyle(
+        color: _isRestricted ? AppColors.textMuted : AppColors.textPrimary,
+      ),
       decoration: const InputDecoration(
         labelText: 'ユーザーID',
         prefixIcon: Icon(Icons.alternate_email, color: AppColors.textMuted),
@@ -520,11 +540,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Row(
       children: [
         Expanded(
-          child: _buildTimeButton(
-            'Focus Time',
-            _taskTime,
-            () => _pickTime(false),
-          ),
+          child: _buildTimeButton('V Alert', _taskTime, () => _pickTime(false)),
         ),
       ],
     );
@@ -541,11 +557,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 4),
           Text(
             time != null ? _formatTimeOfDay(time) : '--:--',
-            style: const TextStyle(fontSize: 16, color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 16,
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -568,8 +591,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('写真のタイムスタンプ', style: TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-                Text('投稿写真に時刻を表示します', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                Text(
+                  '写真のタイムスタンプ',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  '投稿写真に時刻を表示します',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           ),
@@ -582,6 +618,4 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
   }
-
 }
-

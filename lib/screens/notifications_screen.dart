@@ -76,8 +76,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             return _buildDefaultAvatar(notif);
           }
           return CircleAvatar(
-            backgroundImage:
-                CachedNetworkImageProvider(snapshot.data!.photoUrl!),
+            backgroundImage: CachedNetworkImageProvider(
+              snapshot.data!.photoUrl!,
+            ),
           );
         },
       );
@@ -98,14 +99,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (badge == null) return avatarBody;
 
     return Stack(
-      children: [
-        avatarBody,
-        Positioned(
-          right: -2,
-          bottom: -2,
-          child: badge,
-        ),
-      ],
+      children: [avatarBody, Positioned(right: -2, bottom: -2, child: badge)],
     );
   }
 
@@ -123,10 +117,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           color: AppColors.grey10,
           shape: BoxShape.circle,
         ),
-        child: Text(
-          content,
-          style: const TextStyle(fontSize: 10),
-        ),
+        child: Text(content, style: const TextStyle(fontSize: 10)),
       ),
     );
   }
@@ -147,9 +138,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       await _notificationService.deleteNotification(id);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('削除に失敗しました。もう一度お試しください。')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('削除に失敗しました。もう一度お試しください。')));
       }
     }
   }
@@ -157,26 +148,37 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _deleteAll() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('通知を全て削除',
-            style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('全ての通知を削除しますか？',
-            style: TextStyle(color: AppColors.textSecondary)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('キャンセル',
-                style: TextStyle(color: AppColors.textMuted)),
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: AppColors.bgElevated,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              '通知を全て削除',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            content: const Text(
+              '全ての通知を削除しますか？',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text(
+                  'キャンセル',
+                  style: TextStyle(color: AppColors.textMuted),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text(
+                  '削除',
+                  style: TextStyle(color: AppColors.error),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('削除する',
-                style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
     );
     if (confirmed != true) return;
 
@@ -184,15 +186,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       await _notificationService.deleteAllNotifications();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('削除に失敗しました。もう一度お試しください。')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('削除に失敗しました。もう一度お試しください。')));
       }
     }
   }
 
-  Future<void> _handleFriendRequest(
-      AppNotification notif, bool accept) async {
+  Future<void> _handleFriendRequest(AppNotification notif, bool accept) async {
     if (notif.relatedId == null) return;
 
     setState(() => _isProcessing = true);
@@ -213,15 +214,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(accept ? 'フレンド申請を承認しました！' : 'フレンド申請を拒否しました。')),
+          SnackBar(
+            content: Text(accept ? 'フォローリクエストを承認しました！' : 'フォローリクエストを拒否しました。'),
+          ),
         );
       }
     } catch (e) {
       debugPrint('承認エラー: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('承認に失敗しました。もう一度お試しください。')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('承認に失敗しました。もう一度お試しください。')));
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -241,10 +244,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         elevation: 0,
         minimumSize: const Size(80, 32),
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        side: isPrimary ? BorderSide.none : const BorderSide(color: AppColors.grey10),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        side:
+            isPrimary
+                ? BorderSide.none
+                : const BorderSide(color: AppColors.grey10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       child: Text(
         label,
@@ -275,8 +279,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
-              child: Text('エラーが発生しました: ${snapshot.error}',
-                  style: const TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                'エラーが発生しました: ${snapshot.error}',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
             );
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -284,7 +290,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           final notifications = snapshot.data ?? [];
-          
+
           // データ受信時に一度だけ既読処理を行う（初期の未読状態をキャッシュ）
           if (!_hasMarkedRead && notifications.isNotEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -318,8 +324,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.notifications_off_outlined,
-                        size: 32, color: AppColors.textMuted),
+                    child: const Icon(
+                      Icons.notifications_off_outlined,
+                      size: 32,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -350,19 +359,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
                 onDismissed: (_) => _deleteNotification(notif.id),
                 child: Material(
-                  color: isUnread
-                      ? AppColors.accentGold.withValues(alpha: 0.05)
-                      : Colors.transparent,
+                  color:
+                      isUnread
+                          ? AppColors.accentGold.withValues(alpha: 0.05)
+                          : Colors.transparent,
                   child: InkWell(
                     onTap: () {
                       if (notif.fromUid != null) {
-                        Navigator.pushNamed(context, '/user-profile',
-                            arguments: notif.fromUid);
+                        Navigator.pushNamed(
+                          context,
+                          '/user-profile',
+                          arguments: notif.fromUid,
+                        );
                       }
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -412,16 +427,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   Row(
                                     children: [
                                       _buildCompactButton(
-                                        label: '承認する',
-                                        onPressed: () =>
-                                            _handleFriendRequest(notif, true),
+                                        label: '承認',
+                                        onPressed:
+                                            () => _handleFriendRequest(
+                                              notif,
+                                              true,
+                                            ),
                                         isPrimary: true,
                                       ),
                                       const SizedBox(width: 10),
                                       _buildCompactButton(
                                         label: 'あとで',
-                                        onPressed: () =>
-                                            _handleFriendRequest(notif, false),
+                                        onPressed:
+                                            () => _handleFriendRequest(
+                                              notif,
+                                              false,
+                                            ),
                                         isPrimary: false,
                                       ),
                                     ],
@@ -459,16 +480,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
       // 強調テキスト
       final matchText = match.group(0)!;
-      final isEntity = matchText.contains('さん') ||
+      final isEntity =
+          matchText.contains('さん') ||
           matchText.contains('くん') ||
           matchText.contains('ちゃん');
-      spans.add(TextSpan(
-        text: matchText,
-        style: TextStyle(
-          color: isEntity ? AppColors.white : AppColors.accentGold,
-          fontWeight: FontWeight.bold,
+      spans.add(
+        TextSpan(
+          text: matchText,
+          style: TextStyle(
+            color: isEntity ? AppColors.white : AppColors.accentGold,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-      ));
+      );
       lastMatchEnd = match.end;
     }
 

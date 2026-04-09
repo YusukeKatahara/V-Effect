@@ -19,11 +19,11 @@ class NotificationContext {
 
 /// テンプレートが選ばれるための条件
 enum _Condition {
-  none,           // 常に候補
+  none, // 常に候補
   streakAtLeast1, // streak >= 1
   streakAtLeast5, // streak >= 5
-  streakZero,     // streak == 0
-  earlyWake,      // 起床時間の1時間前までにアプリを開いている
+  streakZero, // streak == 0
+  earlyWake, // 起床時間の1時間前までにアプリを開いている
 }
 
 /// NotificationType ごとのメッセージテンプレートを一元管理するクラス
@@ -39,10 +39,7 @@ abstract class NotificationMessages {
   static const Map<NotificationType, List<_Template>> _templates = {
     // ── 起床リマインダー ──
     NotificationType.wakeUpReminder: [
-      _Template(
-        title: '起床時間です',
-        body: '新しい一日。昨日の自分を超えるチャンスです',
-      ),
+      _Template(title: '起床時間です', body: '新しい一日。昨日の自分を超えるチャンスです'),
       _Template(
         title: '起床時間です',
         body: '{streak}日間、自分との約束を守り続けています',
@@ -53,22 +50,13 @@ abstract class NotificationMessages {
         body: '今日もあなたが決めた時間に目覚めた。それだけで一歩前進です',
         condition: _Condition.earlyWake,
       ),
-      _Template(
-        title: '起床時間です',
-        body: '今日の自分は、まだ何も描かれていないキャンバス。どんな一日にしますか？',
-      ),
-      _Template(
-        title: '起床時間です',
-        body: '毎朝起きると決めたのはあなた自身。その決意が力になります',
-      ),
+      _Template(title: '起床時間です', body: '今日の自分は、まだ何も描かれていないキャンバス。どんな一日にしますか？'),
+      _Template(title: '起床時間です', body: '毎朝起きると決めたのはあなた自身。その決意が力になります'),
     ],
 
     // ── ヒーロータスクリマインダー ──
     NotificationType.taskReminder: [
-      _Template(
-        title: 'Focus Time',
-        body: '自分で決めたことをやる。それが一番の自信になります',
-      ),
+      _Template(title: 'Focus Time', body: '自分で決めたことをやる。それが一番の自信になります'),
       _Template(
         title: 'Focus Time',
         body: '完璧じゃなくていい。今日も「やった」という事実を積み上げよう',
@@ -79,10 +67,7 @@ abstract class NotificationMessages {
         body: '{streak}日目の挑戦。続けている自分を誇ろう',
         condition: _Condition.streakAtLeast5,
       ),
-      _Template(
-        title: 'Focus Time',
-        body: 'まずは始めるだけ。やると決めたのはあなたです',
-      ),
+      _Template(title: 'Focus Time', body: 'まずは始めるだけ。やると決めたのはあなたです'),
       _Template(
         title: 'Focus Time',
         body: '昨日の自分にできなかったことが、今日はできるかもしれない',
@@ -92,26 +77,11 @@ abstract class NotificationMessages {
 
     // ── フレンドのヒーロータスク完了 ──
     NotificationType.friendTaskCompleted: [
-      _Template(
-        title: '仲間の一歩',
-        body: '{username}さんも今日の自分に勝ちました',
-      ),
-      _Template(
-        title: '仲間の一歩',
-        body: '{username}さんが今日も一歩を刻みました。同じ道を歩く仲間がいます',
-      ),
-      _Template(
-        title: '仲間の一歩',
-        body: '{username}さんが自分との約束を果たしました',
-      ),
-      _Template(
-        title: '仲間の一歩',
-        body: '{username}さんも戦っています。あなたは一人じゃない',
-      ),
-      _Template(
-        title: '仲間の一歩',
-        body: '{username}さんが今日の勝利を手にしました',
-      ),
+      _Template(title: '仲間の一歩', body: '{username}さんも今日の自分に勝ちました'),
+      _Template(title: '仲間の一歩', body: '{username}さんが今日も一歩を刻みました。同じ道を歩く仲間がいます'),
+      _Template(title: '仲間の一歩', body: '{username}さんが自分との約束を果たしました'),
+      _Template(title: '仲間の一歩', body: '{username}さんも戦っています。あなたは一人じゃない'),
+      _Template(title: '仲間の一歩', body: '{username}さんが今日の勝利を手にしました'),
     ],
 
     // ── リアクション受信 ──
@@ -124,16 +94,10 @@ abstract class NotificationMessages {
 
     // ── フレンドリクエスト（機能的通知：単一テンプレート） ──
     NotificationType.friendRequestReceived: [
-      _Template(
-        title: 'フレンドリクエスト',
-        body: '{username} さんからフレンドリクエストが届きました',
-      ),
+      _Template(title: 'フォローリクエスト', body: '{username} さんからフォローリクエストが届きました'),
     ],
     NotificationType.friendRequestAccepted: [
-      _Template(
-        title: 'リクエスト承認',
-        body: '{username} さんがフレンドリクエストを承認しました',
-      ),
+      _Template(title: 'リクエスト承認', body: '{username} さんがフォローリクエストを承認しました'),
     ],
   };
 
@@ -152,12 +116,16 @@ abstract class NotificationMessages {
     }
 
     // 条件を満たすテンプレートだけに絞り込む
-    final eligible = allTemplates.where((t) => _meetsCondition(t, context)).toList();
+    final eligible =
+        allTemplates.where((t) => _meetsCondition(t, context)).toList();
 
     // 条件付きがすべて外れた場合は無条件のもののみにフォールバック
-    final candidates = eligible.isNotEmpty
-        ? eligible
-        : allTemplates.where((t) => t.condition == _Condition.none).toList();
+    final candidates =
+        eligible.isNotEmpty
+            ? eligible
+            : allTemplates
+                .where((t) => t.condition == _Condition.none)
+                .toList();
 
     if (candidates.isEmpty) {
       return NotificationContent(title: type.name, body: '');
