@@ -518,17 +518,38 @@ class PostService {
     final uid = _auth.currentUser!.uid;
     final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
     
-    final snap = await _postsRef
-        .where(Post.fieldUserId, isEqualTo: uid)
-        .where(Post.fieldCreatedAt, isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
-        .get();
+    try {
+      // 1. 最適化クエリ（要：複合インデックス）
+      final snap = await _postsRef
+          .where(Post.fieldUserId, isEqualTo: uid)
+          .where(Post.fieldCreatedAt, isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
+          .get();
 
-    final posts = snap.docs
-        .map((doc) => doc.data())
-        .toList()
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt)); // 古い順に再生するため、昇順ソート
-
-    return posts;
+      return snap.docs
+          .map((doc) => doc.data())
+          .toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    } on FirebaseException catch (e) {
+      // 2. フォールバック（インデックス不足時など）
+      if (e.code == 'failed-precondition' || e.code == 'invalid-argument') {
+        debugPrint('⚠️ WeeklyReview: Composite index missing or query failed. Falling back to local filtering. Error: ${e.message}');
+        
+        // userId だけで取得（単一インデックスのみで可能）し、メモリ上で日付フィルタリング
+        final snap = await _postsRef
+            .where(Post.fieldUserId, isEqualTo: uid)
+            .get();
+        
+        return snap.docs
+            .map((doc) => doc.data())
+            .where((p) => p.createdAt.isAfter(sevenDaysAgo))
+            .toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      }
+      rethrow;
+    } catch (e) {
+      debugPrint('WeeklyReview unexpected error: $e');
+      rethrow;
+    }
   }
 
   /// 自分のヒーロータスクリストを取得します

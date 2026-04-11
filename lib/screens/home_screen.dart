@@ -30,8 +30,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
   final PostService _postService = PostService.instance;
-  StreamSubscription? _updateSubscription;
-  bool _loading = true;
   bool _postedToday = false;
   List<Post> _feedPosts = [];
   List<Map<String, dynamic>> _postedFriends = []; // [{uid, username, photoUrl}]
@@ -112,17 +110,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       }
     });
 
-    // データの更新通知を監視
-    _updateSubscription = _postService.updateStream.listen((_) {
-      if (mounted) _loadData();
-    });
-
-    _loadData();
+    // データの読み込みは homeDataProvider (Riverpod) が担当するため
+    // 手動の _loadData() は廃止
   }
 
   @override
   void dispose() {
-    _updateSubscription?.cancel();
     _pageController.dispose();
     _flashController.dispose();
     _pulseController.dispose();
@@ -134,10 +127,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
   void _onPageChanged(int index) {
     if (_feedPosts.isEmpty) return;
+    
+    // 次のカードの画像をプリキャッシュ
     final nextIndex = (index + 1) % _feedPosts.length;
-
-
-    // 次의 카드의 画像をプリキャッシュ
     final nextPost = _feedPosts[nextIndex];
     if (nextPost.imageUrl != null) {
       precacheImage(
@@ -152,89 +144,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     setState(() {
       _scrollPosition = index.toDouble();
     });
-  }
-
-  Future<void> _loadData() async {
-    try {
-      final homeData = await _postService.getHomeData();
-      final friendUids =
-          (homeData['friends'] as List<dynamic>?)?.cast<String>() ?? [];
-      final myUid = FirebaseAuth.instance.currentUser?.uid;
-      final uidsToFetch = List<String>.from(friendUids);
-      if (myUid != null && !uidsToFetch.contains(myUid)) {
-        uidsToFetch.add(myUid);
-      }
-
-      // フレンド（と自分）の投稿とユーザー情報を並列で取得
-      final results = await Future.wait([
-        _postService.getAllFriendsPosts(friendUids, includeMe: false),
-        uidsToFetch.isNotEmpty
-            ? _postService.getFriendsListFromUids(uidsToFetch)
-            : Future.value(<Map<String, dynamic>>[]),
-      ]);
-
-      final posts = results[0] as List<Post>;
-      final friendStatuses = results[1] as List<Map<String, dynamic>>;
-
-      final names = <String, String>{};
-      final photos = <String, String?>{};
-      final streaks = <String, int>{};
-      for (final f in friendStatuses) {
-        names[f['uid']] = f['username'] as String;
-        photos[f['uid']] = f['photoUrl'] as String?;
-        streaks[f['uid']] = (f['streak'] as num?)?.toInt() ?? 0;
-      }
-
-      // 投稿済みのフレンドを抽出
-      final postedFriends = <Map<String, dynamic>>[];
-      final seenUids = <String>{};
-      for (final post in posts) {
-        if (!seenUids.contains(post.userId)) {
-          seenUids.add(post.userId);
-          postedFriends.add({
-            'uid': post.userId,
-            'username': names[post.userId] ?? 'Unknown',
-            'photoUrl': photos[post.userId],
-          });
-        }
-      }
-
-      if (!mounted) return;
-
-      // 最初の数枚の画像をプリキャッシュ
-      if (posts.isNotEmpty) {
-        for (var i = 0; i < min(posts.length, 3); i++) {
-          if (posts[i].imageUrl != null) {
-            precacheImage(
-              ResizeImage(
-                CachedNetworkImageProvider(posts[i].imageUrl!),
-                width: 800,
-              ),
-              context,
-            );
-          }
-        }
-      }
-
-      setState(() {
-        _postedToday = homeData['postedToday'] as bool? ?? false;
-        _feedPosts = posts;
-        _postedFriends = postedFriends;
-        _userNames = names;
-        _userPhotos = photos;
-        _userStreaks = streaks;
-        _loading = false;
-      });
-      widget.onLoadingChanged?.call(false);
-
-      AnalyticsService.instance.logFriendFeedViewed(); // フィード閲覧として記録
-    } catch (e) {
-      debugPrint('Feed load error: $e');
-      if (mounted) {
-        setState(() => _loading = false);
-        widget.onLoadingChanged?.call(false);
-      }
-    }
   }
 
   Future<void> _sendReaction(int index, {String? emoji}) async {
@@ -310,7 +219,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       // VFIRE はデバウンス（1秒間タップが止まるまで待機）
       _pendingFlameCount++;
       _pendingFlamePostId = post.id;
-      _reactingPostIds.add(post.id); // 連打中もガードールを維持
+      _reactingPostIds.add(post.id); // 連打中もガードレールを維持
 
       _flameDebounceTimer?.cancel();
       _flameDebounceTimer = Timer(const Duration(seconds: 1), () async {
@@ -337,8 +246,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   }
 
   void _cleanupReactionLock(String postId) {
-    // Smart Merge により、引数ベース（500ms）の強制ロック解除は原則不要となりました
-    // 一定時間（3秒）経っても同期されない場合のフェイルセーフとしてのみ機能させます
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
@@ -349,7 +256,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   }
 
   Future<void> _openWeeklyReview() async {
-    setState(() => _loading = true);
+    // 画面遷移中もホームのローディング通知を送る
+    widget.onLoadingChanged?.call(true);
     try {
       final posts = await _postService.getWeeklyReviewPosts();
       final streak = await _postService.getStreak();
@@ -361,14 +269,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           builder: (context) => WeeklyReviewScreen(posts: posts, currentStreak: streak),
         ),
       );
-    } catch (e) {
+    } on FirebaseException catch (e, stack) {
+      debugPrint('WeeklyReview Load Error (Firebase): ${e.code}\n$e\n$stack');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('読み込みに失敗しました')),
+          SnackBar(content: Text('振り返りデータの取得に失敗しました (${e.code})')),
+        );
+      }
+    } catch (e, stack) {
+      debugPrint('WeeklyReview Load Error (Unexpected): $e\n$stack');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('予期せぬエラーが発生しました')),
         );
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) widget.onLoadingChanged?.call(false);
     }
   }
 
@@ -405,11 +321,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
         ),
       ),
       data: (homeData) {
-        // 同期的にローカルメンバ変数を更新し、既存のウィジェットビルド関数が正常に動くようにする
-        // 楽観的更新を行っている間（_feedPostsをローカルでsetStateしている間）は無条件で上書きしない
+        // UIスレッドでの実行を保証し、ローカル状態を同期
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.onLoadingChanged?.call(false);
+        });
+
         if (_lastHomeData != homeData) {
           _postedToday = homeData.postedToday;
           _postedFriends = homeData.postedFriends;
+          _userNames = homeData.userNames;
+          _userPhotos = homeData.userPhotos;
+          _userStreaks = homeData.userStreaks;
           _lastHomeData = homeData;
 
           final myUid = FirebaseAuth.instance.currentUser?.uid;
@@ -435,17 +357,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
               } else {
                 // 反映されたか、そもそも絵文字ではない（炎のみの更新など）場合は最新データを採用
                 newPosts.add(fetchedPost);
-                // setState中には呼べないので、ループ外で削除候補に入れる
                 idsToRemove.add(fetchedPost.id);
               }
             } else {
               newPosts.add(fetchedPost);
             }
           }
+          
           _feedPosts = newPosts;
           
           if (idsToRemove.isNotEmpty) {
-            // 微小なディレイを置いて安全にロックを解除
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 setState(() {

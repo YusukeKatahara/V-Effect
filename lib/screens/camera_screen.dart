@@ -14,20 +14,23 @@ import '../services/post_service.dart';
 import '../widgets/post_success_dialog.dart';
 import '../widgets/victory_overlay.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/home_provider.dart';
+
 /// Hero Task 撮影画面
 ///
 /// [heroTaskName] が渡された場合、ヒーロータスク名は固定表示されます。
 /// 投稿成功時は `Navigator.pop(context, true)` で結果を返します。
-class CameraScreen extends StatefulWidget {
+class CameraScreen extends ConsumerStatefulWidget {
   const CameraScreen({super.key, this.heroTaskName});
 
   final String? heroTaskName;
 
   @override
-  State<CameraScreen> createState() => _CameraScreenState();
+  ConsumerState<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen> {
+class _CameraScreenState extends ConsumerState<CameraScreen> {
   final ImagePicker _picker = ImagePicker();
   final PostService _postService = PostService.instance;
   XFile? _image;
@@ -187,6 +190,9 @@ class _CameraScreenState extends State<CameraScreen> {
         taskName: taskName,
         caption: captionText.isNotEmpty ? captionText : null,
       );
+
+      // Provider を明示的に更新（データの整合性を保証するためのガードレール）
+      ref.invalidate(homeDataProvider);
 
       if (mounted) {
         // V-Flash (Victory Overlay)
