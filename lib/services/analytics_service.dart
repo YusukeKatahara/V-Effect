@@ -190,6 +190,11 @@ class AnalyticsService {
     await _analytics.logEvent(name: 'friend_removed');
   }
 
+  /// ユーザーをブロック
+  Future<void> logUserBlocked() async {
+    await _analytics.logEvent(name: 'user_blocked');
+  }
+
   /// フレンドフィード閲覧
   Future<void> logFriendFeedViewed() async {
     await _analytics.logEvent(name: 'friend_feed_viewed');

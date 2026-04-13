@@ -72,6 +72,19 @@ service cloud.firestore {
     }
 
     // ────────────────────────────────────────
+    // reports コレクション
+    // ────────────────────────────────────────
+    match /reports/{reportId} {
+      // 通報作成: 自分自身の通報のみ
+      allow create: if request.auth != null
+        && request.resource.data.reporterUid == request.auth.uid;
+
+      // 通報読み取り: 自分が送った通報のみ（重複チェック用クエリ）
+      allow read: if request.auth != null
+        && resource.data.reporterUid == request.auth.uid;
+    }
+
+    // ────────────────────────────────────────
     // posts コレクション
     // ────────────────────────────────────────
     match /posts/{postId} {

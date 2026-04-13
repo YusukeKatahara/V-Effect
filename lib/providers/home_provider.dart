@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/post.dart';
 import '../models/app_task.dart';
+import '../services/block_service.dart';
 import '../services/post_service.dart';
 
 /// ホーム画面に表示する主要なデータを一括管理・提供するProvider
@@ -65,11 +66,17 @@ final homeDataProvider = FutureProvider<HomeData>((ref) async {
   
   // 1. 基本的なホームデータ（自分のステータス、タスク、フレンドUID）を取得
   final homeDataMap = await postService.getHomeData();
-  final friendUids = (homeDataMap['friends'] as List<dynamic>?)?.cast<String>() ?? [];
-  
+  final allFriendUids = (homeDataMap['friends'] as List<dynamic>?)?.cast<String>() ?? [];
+
+  // ブロックしたユーザーをフィードから除外
+  final blockedUids = await BlockService.instance.getBlockedUids();
+  final friendUids = allFriendUids
+      .where((uid) => !blockedUids.contains(uid))
+      .toList();
+
   // 2. フィード投稿を取得
   final feedPosts = await postService.getAllFriendsPosts(friendUids, includeMe: false);
-  
+
   // 3. フレンドの詳細情報（名前や写真）を取得
   final friendStatuses = await postService.getFriendsListFromUids(friendUids);
   

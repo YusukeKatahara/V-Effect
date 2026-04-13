@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../models/post.dart';
+import '../services/block_service.dart';
 import '../services/friend_service.dart';
 import '../services/post_service.dart';
 
@@ -34,6 +35,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool _isMyFollower = false;
   bool _isPending = false;
   bool _isProcessing = false;
+  bool _isBlocked = false;
+  bool _isBlockProcessing = false;
   bool _initialized = false;
 
   @override
@@ -64,6 +67,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         _friendService.getUserByUid(_targetUid!),
         _friendService.isFollowing(_targetUid!),
         _postService.getFriendPostsList(_targetUid!),
+        BlockService.instance.isBlocked(_targetUid!),
       ]);
 
       // friend_requests コレクションへのアクセスが失敗しても他の処理を妨げない
@@ -81,6 +85,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         // _user.following にyusukeのUIDが含まれる = renがyusukeをフォローしている = renはyusukeのフォロワー
         _isMyFollower = loadedUser?.following.contains(_myUid) ?? false;
         _isPending = isPending;
+        _isBlocked = results[3] as bool;
         _loading = false;
       });
     } catch (e) {
@@ -124,7 +129,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _isPending = oldPending;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('操作に失敗しました: $e')),
+          const SnackBar(content: Text('フォローリクエストを送信できませんでした')),
         );
       }
     } finally {
@@ -145,9 +150,236 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  // ── ブロック・通報 ────────────────────────────────────
+
+  void _showOptionsMenu() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.bgSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(
+                  _isBlocked
+                      ? Icons.lock_open_rounded
+                      : Icons.block_rounded,
+                  color: _isBlocked ? AppColors.textPrimary : AppColors.error,
+                ),
+                title: Text(
+                  _isBlocked ? 'ブロックを解除' : 'ブロック',
+                  style: TextStyle(
+                    color: _isBlocked
+                        ? AppColors.textPrimary
+                        : AppColors.error,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _handleBlock();
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.flag_rounded,
+                  color: AppColors.textSecondary,
+                ),
+                title: const Text(
+                  '通報',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showReportDialog();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleBlock() {
+    if (_isBlocked) {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.bgSurface,
+          title: const Text(
+            'ブロックを解除',
+            style: TextStyle(color: AppColors.textPrimary),
+          ),
+          content: const Text(
+            'このユーザーのブロックを解除しますか？',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(
+                'キャンセル',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _performUnblock();
+              },
+              child: const Text(
+                '解除する',
+                style: TextStyle(color: AppColors.textPrimary),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.bgSurface,
+          title: const Text(
+            'ブロック',
+            style: TextStyle(color: AppColors.error),
+          ),
+          content: const Text(
+            'このユーザーをブロックします。フォロー関係も解除されます。',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(
+                'キャンセル',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _performBlock();
+              },
+              child: const Text(
+                'ブロック',
+                style: TextStyle(color: AppColors.error),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> _performBlock() async {
+    if (_targetUid == null) return;
+    setState(() => _isBlockProcessing = true);
+    try {
+      await BlockService.instance.blockUser(_targetUid!);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ブロックに失敗しました')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isBlockProcessing = false);
+    }
+  }
+
+  Future<void> _performUnblock() async {
+    if (_targetUid == null) return;
+    setState(() => _isBlockProcessing = true);
+    try {
+      await BlockService.instance.unblockUser(_targetUid!);
+      if (mounted) setState(() => _isBlocked = false);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ブロック解除に失敗しました')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isBlockProcessing = false);
+    }
+  }
+
+  void _showReportDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSurface,
+        title: const Text(
+          '通報する理由を選択',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _reportOption(ctx, 'スパム', 'spam'),
+            _reportOption(ctx, 'ハラスメント', 'harassment'),
+            _reportOption(ctx, '不適切なコンテンツ', 'inappropriate'),
+            _reportOption(ctx, 'その他', 'other'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'キャンセル',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reportOption(BuildContext ctx, String label, String reason) {
+    return ListTile(
+      title: Text(label, style: const TextStyle(color: AppColors.textPrimary)),
+      onTap: () {
+        Navigator.pop(ctx);
+        _performReport(reason);
+      },
+    );
+  }
+
+  Future<void> _performReport(String reason) async {
+    if (_targetUid == null) return;
+    try {
+      await BlockService.instance.reportUser(_targetUid!, reason);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('通報しました。ご協力ありがとうございます。')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        final msg = e.toString().contains('already_reported')
+            ? '7日以内に同じユーザーへの通報があります'
+            : '通報に失敗しました';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg)),
+        );
+      }
+    }
+  }
+
+  // ── Build ────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final title = _user?.username ?? _initialUsername ?? '';
+    final isOtherUser = _targetUid != _myUid && _targetUid != null;
 
     return Scaffold(
       backgroundColor: AppColors.bgBase,
@@ -159,6 +391,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           title,
           style: const TextStyle(color: AppColors.textPrimary),
         ),
+        actions: [
+          if (isOtherUser)
+            _isBlockProcessing
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.more_vert),
+                    onPressed: _showOptionsMenu,
+                  ),
+        ],
       ),
       body: _user == null && _loading
           ? _buildSkeleton()

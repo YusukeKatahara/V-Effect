@@ -6,6 +6,7 @@ import '../models/friend_request.dart';
 import '../models/app_notification.dart';
 import '../models/app_user.dart';
 import 'analytics_service.dart';
+import 'block_service.dart';
 import 'notification_service.dart';
 
 /// フォロー・フォロワー・検索を担当するサービス
@@ -92,6 +93,13 @@ class FriendService {
 
     // 既に申請中かチェック
     if (await hasPendingRequest(targetUid)) return;
+
+    // ブロックチェック（自分 → 相手、または相手 → 自分のいずれか）
+    final isBlocked = await BlockService.instance.isBlocked(targetUid);
+    final isBlockedBy = await BlockService.instance.isBlockedBy(targetUid);
+    if (isBlocked || isBlockedBy) {
+      throw Exception('blocked');
+    }
 
     // 自分のユーザー情報を取得
     final mySnap = await _db.collection('users').doc(myUid).get();
