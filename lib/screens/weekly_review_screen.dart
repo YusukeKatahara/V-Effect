@@ -11,8 +11,6 @@ import 'dart:io';
 
 import '../config/app_colors.dart';
 import '../models/post.dart';
-
-
 import '../providers/weekly_review_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,38 +29,51 @@ class WeeklyReviewScreen extends ConsumerStatefulWidget {
   ConsumerState<WeeklyReviewScreen> createState() => _WeeklyReviewScreenState();
 }
 
-class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
-  // 表示用データ（Provider または 引数から取得）
+class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
+    with SingleTickerProviderStateMixin {
+  // 表示用データ
   List<Post> _posts = [];
   int _currentStreak = 0;
   bool _isDataInitialized = false;
 
-  int _currentPostIndex = 0;
-  bool _showSummary = false;
+  late PageController _pageController;
   Timer? _autoTimer;
-  
   final GlobalKey _summaryKey = GlobalKey();
   bool _isSharing = false;
+
+  // ひっぱり（Pull-to-dismiss）用の状態
+  double _dragOffset = 0;
+  late AnimationController _snapBackController;
+  late Animation<double> _snapBackAnimation;
 
   @override
   void initState() {
     super.initState();
-    // 引数がある場合は即座に初期化
     if (widget.posts != null && widget.currentStreak != null) {
       _posts = widget.posts!;
       _currentStreak = widget.currentStreak!;
       _isDataInitialized = true;
-      if (_posts.isNotEmpty) {
-        _startAutoTimer();
-      } else {
-        _showSummary = true;
-      }
     }
+    _pageController = PageController(initialPage: 0);
+    if (_isDataInitialized && _posts.isNotEmpty) {
+      _startAutoTimer();
+    }
+
+    _snapBackController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _snapBackAnimation = _snapBackController.drive(Tween<double>(begin: 0, end: 0));
+    _snapBackController.addListener(() {
+      setState(() => _dragOffset = _snapBackAnimation.value);
+    });
   }
 
   @override
   void dispose() {
     _autoTimer?.cancel();
+    _pageController.dispose();
+    _snapBackController.dispose();
     super.dispose();
   }
 
@@ -76,52 +87,53 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
   }
 
   void _goNext() {
-    if (_currentPostIndex < _posts.length - 1) {
-      setState(() => _currentPostIndex++);
-      _resetAutoTimer();
-    } else {
-      _autoTimer?.cancel();
-      setState(() => _showSummary = true);
-      HapticFeedback.mediumImpact(); // サマリー表示時にブルッとさせる
+    if (_pageController.hasClients) {
+      final nextPage = _pageController.page!.round() + 1;
+      final totalPages = _posts.length + 1;
+      if (nextPage < totalPages) {
+        _pageController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        _autoTimer?.cancel();
+      }
     }
   }
 
   void _goPrev() {
-    if (_showSummary) {
-      setState(() {
-        _showSummary = false;
-        _currentPostIndex = _posts.length - 1;
-      });
-      _resetAutoTimer();
-    } else if (_currentPostIndex > 0) {
-      setState(() => _currentPostIndex--);
-      _resetAutoTimer();
-    } else {
-      // 最初の投稿で左タップしたら閉じる
-      Navigator.pop(context);
+    if (_pageController.hasClients) {
+      final prevPage = _pageController.page!.round() - 1;
+      if (prevPage >= 0) {
+        _pageController.animateToPage(
+          prevPage,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        Navigator.pop(context);
+      }
     }
   }
 
   Future<void> _shareSummary() async {
     if (_isSharing) return;
     setState(() => _isSharing = true);
-    
+
     try {
-      // RepaintBoundaryから画像を生成
       final boundary = _summaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return;
-      
+
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
 
-      // 一時フォルダに保存
       final directory = await getTemporaryDirectory();
       final path = '${directory.path}/weekly_review.png';
       final file = File(path);
       await file.writeAsBytes(pngBytes);
 
-      // share_plusでシェア
       await Share.shareXFiles(
         [XFile(path)],
         text: '今週も${_posts.length}回のヒーロータスクを完遂！\n現在のストリーク: $_currentStreak日 🔥\n#VEffect',
@@ -140,7 +152,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 引数がない場合は Provider からデータを取得
     if (!_isDataInitialized) {
       final reviewAsync = ref.watch(weeklyReviewProvider);
       return reviewAsync.when(
@@ -152,15 +163,12 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
         data: (data) {
           _posts = data.posts;
           _currentStreak = data.streak;
-          // データの初回反映時のみタイマーを開始
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && !_isDataInitialized) {
               setState(() {
                 _isDataInitialized = true;
                 if (_posts.isNotEmpty) {
                   _startAutoTimer();
-                } else {
-                  _showSummary = true;
                 }
               });
             }
@@ -170,68 +178,113 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.bgBase,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Progress bar ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: List.generate(_posts.length + 1, (i) {
-                  // 最後の一つはサマリー画面用
-                  final bool isPassed = _showSummary ? true : (i < _currentPostIndex);
-                  final bool isCurrent = !_showSummary && (i == _currentPostIndex);
+    final int currentPage = _pageController.hasClients ? _pageController.page?.round() ?? 0 : 0;
+    final int totalPages = _posts.length + 1;
 
-                  return Expanded(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      height: isCurrent ? 4 : 3,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(2),
-                        color: isCurrent
-                            ? AppColors.accentGold
-                            : (isPassed
-                                ? AppColors.white
-                                : AppColors.white.withValues(alpha: 0.2)),
-                        boxShadow: isCurrent
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.accentGold.withValues(alpha: 0.6),
-                                  blurRadius: 8,
-                                  spreadRadius: 1,
-                                )
-                              ]
-                            : null,
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: GestureDetector(
+          onVerticalDragUpdate: (details) {
+            if (_snapBackController.isAnimating) return;
+            setState(() {
+              _dragOffset = (_dragOffset + details.delta.dy).clamp(0, 500);
+            });
+          },
+          onVerticalDragEnd: (details) {
+            if (_dragOffset > 150 || (details.primaryVelocity != null && details.primaryVelocity! > 1000)) {
+              Navigator.pop(context);
+            } else {
+              _snapBackAnimation = _snapBackController.drive(
+                Tween<double>(begin: _dragOffset, end: 0).chain(CurveTween(curve: Curves.easeOutBack)),
+              );
+              _snapBackController.forward(from: 0);
+            }
+          },
+          child: Transform.translate(
+            offset: Offset(0, _dragOffset),
+            child: Transform.scale(
+              scale: (1.0 - (_dragOffset / 2000)).clamp(0.85, 1.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(_dragOffset > 10 ? 32 : 0),
+                child: Container(
+                  color: AppColors.bgBase,
+                  child: Column(
+                    children: [
+                      // Progress bar
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        child: Row(
+                          children: List.generate(totalPages, (i) {
+                            final bool isPassed = i < currentPage;
+                            final bool isCurrent = i == currentPage;
+
+                            return Expanded(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                margin: const EdgeInsets.symmetric(horizontal: 2),
+                                height: isCurrent ? 4 : 3,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(2),
+                                  color: isCurrent
+                                      ? AppColors.accentGold
+                                      : (isPassed
+                                          ? AppColors.white
+                                          : AppColors.white.withValues(alpha: 0.2)),
+                                  boxShadow: isCurrent
+                                      ? [
+                                          BoxShadow(
+                                            color: AppColors.accentGold.withValues(alpha: 0.6),
+                                            blurRadius: 8,
+                                            spreadRadius: 1,
+                                          )
+                                        ]
+                                      : null,
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
                       ),
-                    ),
-                  );
-                }),
+                      // Main Content
+                      Expanded(
+                        child: PageView.builder(
+                          controller: _pageController,
+                          itemCount: totalPages,
+                          onPageChanged: (index) {
+                            setState(() {});
+                            if (index >= _posts.length) {
+                              _autoTimer?.cancel();
+                              HapticFeedback.mediumImpact();
+                            } else {
+                              _resetAutoTimer();
+                            }
+                          },
+                          itemBuilder: (context, index) {
+                            if (index < _posts.length) {
+                              return _buildStoryView(_posts[index]);
+                            } else {
+                              return _buildSummaryView();
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-
-            // ── Main Content ──
-            Expanded(
-              child: _showSummary ? _buildSummaryView() : _buildStoryView(),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStoryView() {
-    if (_posts.isEmpty) return const SizedBox.shrink();
-    
-    final post = _posts[_currentPostIndex];
+  Widget _buildStoryView(Post post) {
     final weekdayStr = DateFormat('EEEE').format(post.createdAt).toUpperCase();
-
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Photo Background
         if (post.imageUrl != null)
           CachedNetworkImage(
             imageUrl: post.imageUrl!,
@@ -239,8 +292,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
             placeholder: (ctx, url) => const Center(child: CircularProgressIndicator()),
             errorWidget: (ctx, url, err) => const Center(child: Icon(Icons.broken_image)),
           ),
-
-        // グラデーションオーバーレイ（下部と上部）
         Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -256,8 +307,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
             ),
           ),
         ),
-
-        // 曜日タイポグラフィ
         Positioned(
           top: 40,
           left: 20,
@@ -271,22 +320,12 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
               letterSpacing: 10,
               color: AppColors.white,
               shadows: [
-                Shadow(
-                  color: Colors.black54,
-                  offset: Offset(0, 4),
-                  blurRadius: 12,
-                ),
-                Shadow(
-                  color: Colors.black26,
-                  offset: Offset(0, 2),
-                  blurRadius: 4,
-                ),
+                Shadow(color: Colors.black54, offset: Offset(0, 4), blurRadius: 12),
+                Shadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 4),
               ],
             ),
           ),
         ),
-
-        // タスク名と日付
         Positioned(
           bottom: 40,
           left: 24,
@@ -300,10 +339,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: AppColors.white.withValues(alpha: 0.15),
-                    width: 0.5,
-                  ),
+                  border: Border.all(color: AppColors.white.withValues(alpha: 0.15), width: 0.5),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -311,11 +347,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.local_fire_department_rounded,
-                          color: AppColors.accentGold,
-                          size: 20,
-                        ),
+                        const Icon(Icons.local_fire_department_rounded, color: AppColors.accentGold, size: 20),
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
@@ -332,11 +364,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      height: 1,
-                      width: 40,
-                      color: AppColors.accentGold.withValues(alpha: 0.4),
-                    ),
+                    Container(height: 1, width: 40, color: AppColors.accentGold.withValues(alpha: 0.4)),
                     const SizedBox(height: 12),
                     Text(
                       DateFormat('MMM dd').format(post.createdAt).toUpperCase(),
@@ -353,28 +381,13 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
             ),
           ),
         ),
-
         // Tap zones
         Row(
           children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: _goPrev,
-                behavior: HitTestBehavior.translucent,
-                child: const SizedBox.expand(),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: _goNext,
-                behavior: HitTestBehavior.translucent,
-                child: const SizedBox.expand(),
-              ),
-            ),
+            Expanded(child: GestureDetector(onTap: _goPrev, behavior: HitTestBehavior.translucent, child: const SizedBox.expand())),
+            Expanded(child: GestureDetector(onTap: _goNext, behavior: HitTestBehavior.translucent, child: const SizedBox.expand())),
           ],
         ),
-
-        // 閉じるボタン
         Positioned(
           top: 0,
           right: 8,
@@ -391,7 +404,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // サマリー用の背景（シェア時にキャプチャされる部分）
         Center(
           child: RepaintBoundary(
             key: _summaryKey,
@@ -409,14 +421,11 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
               ),
               child: Stack(
                 children: [
-                  // 背景の装飾
                   Positioned(
                     top: -50,
                     right: -50,
                     child: Icon(Icons.workspace_premium, size: 200, color: AppColors.white.withValues(alpha: 0.05)),
                   ),
-                  
-                  // メインコンテンツ
                   Padding(
                     padding: const EdgeInsets.all(32),
                     child: Column(
@@ -435,15 +444,10 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                           ),
                         ),
                         const SizedBox(height: 48),
-                        
-                        // 実績データ
                         _buildStatCard('🔥 今週の完了数', '${_posts.length}', 'TASKS'),
                         const SizedBox(height: 16),
                         _buildStatCard('👑 現在のストリーク', '$_currentStreak', 'DAYS'),
-                        
                         const Spacer(),
-                        
-                        // アピールテキスト
                         const Text(
                           'Keep the winning streak alive.',
                           textAlign: TextAlign.center,
@@ -472,28 +476,12 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
             ),
           ),
         ),
-
-        // Tap zones (to go back only)
         Row(
           children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: _goPrev,
-                behavior: HitTestBehavior.translucent,
-                child: const SizedBox.expand(),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {}, // 最後のページでは右タップは無効（閉じるボタンかシェアボタンを押させる）
-                behavior: HitTestBehavior.translucent,
-                child: const SizedBox.expand(),
-              ),
-            ),
+            Expanded(child: GestureDetector(onTap: _goPrev, behavior: HitTestBehavior.translucent, child: const SizedBox.expand())),
+            Expanded(child: GestureDetector(onTap: () {}, behavior: HitTestBehavior.translucent, child: const SizedBox.expand())),
           ],
         ),
-
-        // ボタン類（UIの一部。シェア時にはキャプチャされないように外に置く）
         Positioned(
           bottom: 32,
           left: 32,
@@ -503,10 +491,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
             icon: _isSharing 
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bgBase))
                 : const Icon(Icons.share, color: AppColors.bgBase),
-            label: Text(
-              _isSharing ? '準備中...' : 'SNSへシェア',
-              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase),
-            ),
+            label: Text(_isSharing ? '準備中...' : 'SNSへシェア', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accentGold,
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -514,7 +499,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
             ),
           ),
         ),
-
         Positioned(
           top: 0,
           right: 8,
@@ -538,37 +522,15 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.white,
-                  height: 1.0,
-                ),
-              ),
+              Text(value, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.white, height: 1.0)),
               const SizedBox(width: 4),
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  unit,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.accentGold,
-                  ),
-                ),
+                child: Text(unit, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.accentGold)),
               ),
             ],
           ),

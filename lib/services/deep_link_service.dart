@@ -17,7 +17,7 @@ class DeepLinkService {
     _appLinks = AppLinks();
 
     // アプリが完全に終了している状態からの起動時のリンクを取得
-    final initialUri = await _appLinks.getInitialAppLink();
+    final initialUri = await _appLinks.getInitialLink();
     if (initialUri != null) {
       _handleLink(initialUri);
     }

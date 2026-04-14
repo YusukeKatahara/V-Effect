@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../models/post.dart';
 import '../models/app_notification.dart';
 import '../utils/date_helper.dart';
@@ -154,6 +155,17 @@ class PostService {
     // Web互換のため、putData(Uint8List) を使用
     await ref.putData(imageBytes, SettableMetadata(contentType: 'image/jpeg'));
     final imageUrl = await ref.getDownloadURL();
+
+    // 🚀 【爆速化】ローカルキャッシュに先回りして保存 (Optimistic Cache Seeding)
+    try {
+      await DefaultCacheManager().putFile(
+        imageUrl,
+        imageBytes,
+        fileExtension: 'jpg',
+      );
+    } catch (e) {
+      debugPrint('CACHE SEEDING ERROR: $e');
+    }
 
     // Step2: Firestoreに投稿データを保存
     final now = DateTime.now();
