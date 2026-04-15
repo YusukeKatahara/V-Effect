@@ -81,7 +81,21 @@ class PushNotificationService {
 
   /// 通知権限をリクエスト
   Future<void> _requestPermission() async {
-    await _messaging.requestPermission(alert: true, badge: true, sound: true);
+    final settings = await _messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+    debugPrint('通知権限の状態: ${settings.authorizationStatus}');
+
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      // iOS でフォアグラウンド通知を表示するための設定
+      await _messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
   }
 
   /// ローカル通知プラグインの初期化
@@ -142,8 +156,22 @@ class PushNotificationService {
     if (user == null) return;
 
     try {
+      // iOS の場合は APNs トークンの取得状況を確認（デバッグ用）
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final apnsToken = await _messaging.getAPNSToken();
+        debugPrint('APNs Token: $apnsToken');
+        if (apnsToken == null) {
+          debugPrint('警告: iOS で APNs トークンが取得できていません。実機かつ正しく設定されている必要があります。');
+        }
+      }
+
       final token = await _messaging.getToken();
-      if (token == null) return;
+      if (token == null) {
+        debugPrint('FCMトークンが取得できませんでした');
+        return;
+      }
+
+      debugPrint('FCM Token: $token');
 
       await _db.collection('users').doc(user.uid).set({
         'fcmToken': token,

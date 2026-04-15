@@ -15,16 +15,21 @@ import 'services/deep_link_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Step1: Firebase の初期化（重複初期化エラーは握り潰す）
   try {
-    // 起動時の初期化を並列実行
-    final results = await Future.wait([
-      Firebase.initializeApp(
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
-      ),
-      SharedPreferences.getInstance(),
-    ]);
+      );
+    }
+  } catch (e) {
+    // ホットリスタート時などの重複エラー（[core/duplicate-app]）は無視して続行
+    debugPrint('Firebase初期化スキップ（既に起動済み）: $e');
+  }
 
-    final prefs = results[1] as SharedPreferences;
+  // Step2: Firebase App が確実に存在する状態で後続を初期化
+  try {
+    final prefs = await SharedPreferences.getInstance();
 
     // Firebase 初期化直後に必要な設定
     if (!kIsWeb) {
@@ -46,8 +51,9 @@ void main() async {
         isDarkMode ? ThemeMode.dark : ThemeMode.light;
 
   } catch (e) {
-    debugPrint('Firebase連携エラー: $e');
+    debugPrint('サービス初期化エラー: $e');
   }
+
 
   runApp(const ProviderScope(child: VEffectApp()));
 }
