@@ -1,14 +1,10 @@
 [
   {
-    "relation": [
-      "delegate_permission/common.handle_all_urls"
-    ],
+    "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
       "package_name": "com.veffect.app.v_effect",
-      "sha256_cert_fingerprints": [
-        "YOUR_SHA256_FINGERPRINT_HERE"
-      ]
+      "sha256_cert_fingerprints": ["<あなたのSHA-256フィンガープリント>"]
     }
   }
 ]

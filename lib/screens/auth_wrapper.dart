@@ -5,7 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/routes.dart';
 import '../services/analytics_service.dart';
 import '../widgets/splash_loading.dart';
+import '../widgets/global_error_widget.dart';
 import 'login_screen.dart';
+import 'dart:async';
 
 /// 認証状態とプロフィール完了状態を監視し、適切な画面へルーティングするラッパー
 class AuthWrapper extends StatefulWidget {
@@ -38,7 +40,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       builder: (context, snapshot) {
         // 1. まだ判定中
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SplashLoading();
+          return const _SplashWithTimeout();
         }
 
         // 2. ログインしていない → ログイン画面へ
@@ -52,7 +54,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
         final user = snapshot.data!;
 
         // メール未認証（メール/パスワード登録のみ対象）
-        // デバッグモード時は開発効率のため認証をスキップできるようにする
         if (!user.emailVerified &&
             user.providerData.any((p) => p.providerId == 'password') &&
             !kDebugMode) {
@@ -60,15 +61,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
           _userDocFuture = null;
           _lastUid = null;
           _navigateTo(AppRoutes.emailVerification);
-          return const SplashLoading();
+          return const _SplashWithTimeout();
         }
 
-        // UID が変わったら future を再作成（ログインユーザー切り替え対応）
+        // UID が変わったら future を再作成
         if (_lastUid != user.uid) {
           _lastUid = user.uid;
           _navigating = false;
-          // Analytics にユーザーIDを設定
           AnalyticsService.instance.setUserId(user.uid);
+          // タイムアウト付きで取得を試みる（Firestore自体のタイムアウト設定は難しいため、FutureBuilder側で明示的にはしないが、
+          // _SplashWithTimeout が背後で動くようにする）
           _userDocFuture =
               FirebaseFirestore.instance
                   .collection('users')
@@ -81,13 +83,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
           future: _userDocFuture,
           builder: (context, docSnapshot) {
             if (docSnapshot.connectionState == ConnectionState.waiting) {
-              return const SplashLoading();
+              return const _SplashWithTimeout();
+            }
+
+            if (docSnapshot.hasError) {
+              return GlobalErrorWidget(error: 'Firestore読み込みエラー: ${docSnapshot.error}');
             }
 
             // ドキュメントが存在しない → プロフィール設定へ
             if (!docSnapshot.hasData || !docSnapshot.data!.exists) {
               _navigateTo(AppRoutes.profileSetup);
-              return const SplashLoading();
+              return const _SplashWithTimeout();
             }
 
             final data = docSnapshot.data!.data() as Map<String, dynamic>?;
@@ -105,10 +111,75 @@ class _AuthWrapperState extends State<AuthWrapper> {
               _navigateTo(AppRoutes.home);
             }
 
-            return const SplashLoading();
+            return const _SplashWithTimeout();
           },
         );
       },
+    );
+  }
+}
+
+/// タイムアウトメッセージを表示する拡張スプラッシュ
+class _SplashWithTimeout extends StatefulWidget {
+  const _SplashWithTimeout();
+
+  @override
+  State<_SplashWithTimeout> createState() => _SplashWithTimeoutState();
+}
+
+class _SplashWithTimeoutState extends State<_SplashWithTimeout> {
+  bool _showTimeoutMessage = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(const Duration(seconds: 10), () {
+      if (mounted) {
+        setState(() {
+          _showTimeoutMessage = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        const SplashLoading(),
+        if (_showTimeoutMessage)
+          Positioned(
+            bottom: 80,
+            left: 0,
+            right: 0,
+            child: Material(
+              color: Colors.transparent,
+              child: Column(
+                children: [
+                  const Text(
+                    '接続に時間がかかっています...',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () {
+                      // 再読み込みを促す
+                      Navigator.of(context).pushReplacementNamed(AppRoutes.wrapper);
+                    },
+                    child: const Text('再試行'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

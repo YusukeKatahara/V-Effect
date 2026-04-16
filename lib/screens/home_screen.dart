@@ -45,12 +45,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   String? _pendingFlamePostId;
 
   // ── Card Swiping ──
+  // ── Card Swiping (Performance: Using AnimatedBuilder instead of setState) ──
   late final PageController _pageController;
-  double _scrollPosition = 10000.0; // 擬似的な無限スクロール
+  // pageController.page を直接参照するように変更
   int get _focusedIndex {
     if (_feedPosts.isEmpty) return 0;
     final len = _feedPosts.length;
-    final pos = _scrollPosition.round();
+    final pos = (_pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0).round();
     return (pos % len + len) % len;
   }
 
@@ -67,11 +68,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   final GlobalKey<_DopamineEmojiExplosionLayerState> _explosionKey = GlobalKey();
 
 
-  // ── ガード状態演出用 ──
-  late final AnimationController _pulseController;
-
-  // ── ロックアイコン シェイク演出用 ──
-  late final AnimationController _shakeController;
+  // ── ロックアイコンは子 Widget に切り出し ──
 
   @override
   void initState() {
@@ -85,30 +82,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       TweenSequenceItem(tween: Tween(begin: 0.8, end: 0.0), weight: 80),
     ]).animate(_flashController);
 
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat();
-
-    _shakeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-
     _reactionMenuController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
     );
+    // _pulseController と _shakeController は _GuardedStateLayer 内に移動
 
 
     final initialPage = 10000;
-    _pageController = PageController(initialPage: initialPage)..addListener(() {
-      if (mounted) {
-        setState(() {
-          _scrollPosition = _pageController.page ?? initialPage.toDouble();
-        });
-      }
-    });
+    _pageController = PageController(initialPage: initialPage);
+    // addListener 内の setState を削除（全画面リビルド回避）
 
     // データの読み込みは homeDataProvider (Riverpod) が担当するため
     // 手動の _loadData() は廃止
@@ -118,8 +101,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   void dispose() {
     _pageController.dispose();
     _flashController.dispose();
-    _pulseController.dispose();
-    _shakeController.dispose();
     _reactionMenuController.dispose();
     _flameDebounceTimer?.cancel();
     super.dispose();
@@ -140,10 +121,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
         context,
       );
     }
-
-    setState(() {
-      _scrollPosition = index.toDouble();
-    });
+    // ここでの setState も不要。必要な部分は AnimatedBuilder で連動済み
   }
 
   Future<void> _sendReaction(int index, {String? emoji}) async {
@@ -456,7 +434,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           ),
           Expanded(
             child: !_postedToday
-                ? _buildGuardedState()
+                ? _GuardedStateLayer(
+                    feedPosts: _feedPosts,
+                    postedFriends: _postedFriends,
+                  )
                 : (_feedPosts.isEmpty
                     ? _buildEmptyState()
                     : _buildCardStack()),
@@ -510,7 +491,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           ),
           const SizedBox(height: 16),
           Text(
-            'まだ投稿がありません',
+            '誰もやらないなら、自分がやる。',
             style: GoogleFonts.notoSansJp(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -519,7 +500,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           ),
           const SizedBox(height: 8),
           Text(
-            'フレンドを追加するか、\nみんなの投稿を待ちましょう',
+            '圧倒的な努力の証明を、今ここに。\nフィードが空なのは、あなたがトップランナーである証拠です。',
             textAlign: TextAlign.center,
             style: GoogleFonts.notoSansJp(
               fontSize: 13,
@@ -532,238 +513,73 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildGuardedState() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // ── 背面プレビュー (Blur) ──
-        if (_feedPosts.isNotEmpty)
-          Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-              child: Opacity(
-                opacity: 0.4,
-                child: CachedNetworkImage(
-                  imageUrl: _feedPosts.first.imageUrl!,
-                  fit: BoxFit.cover,
-                  memCacheWidth: 400, // ぼかすので低解像度で十分
-                ),
-              ),
-            ),
-          ),
 
-        // ── コンテンツ ──
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 鍵アイコン + パルスアニメーション (固定サイズでレイアウトを安定させる)
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.heavyImpact();
-                  _shakeController.forward(from: 0);
-                },
-                child: SizedBox(
-                  width: 120,
-                  height: 120,
-                  child: AnimatedBuilder(
-                    animation: Listenable.merge([_pulseController, _shakeController]),
-                    builder: (context, child) {
-                      final shakeOffset = sin(_shakeController.value * pi * 4) * 8.0;
-                      return Transform.translate(
-                        offset: Offset(shakeOffset, 0),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              width: 100 + (20 * _pulseController.value),
-                              height: 100 + (20 * _pulseController.value),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.accentGold.withValues(
-                                    alpha: 1.0 - _pulseController.value,
-                                  ),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            child!,
-                          ],
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: AppColors.grey10.withValues(alpha: 0.8),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.accentGold.withValues(alpha: 0.5),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.accentGold.withValues(alpha: 0.2),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.lock_outline_rounded,
-                        color: AppColors.accentGold,
-                        size: 48,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 48),
-
-              // ソーシャル・プレゼンス
-              if (_postedFriends.isNotEmpty) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      height: 32,
-                      width: (24.0 * _postedFriends.length.clamp(1, 5)) + 8,
-                      child: Stack(
-                        children: [
-                          for (int i = 0; i < min(_postedFriends.length, 5); i++)
-                            Positioned(
-                              left: i * 20.0,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.black,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: CircleAvatar(
-                                  radius: 14,
-                                  backgroundColor: AppColors.grey20,
-                                  backgroundImage: _postedFriends[i]['photoUrl'] != null
-                                      ? CachedNetworkImageProvider(_postedFriends[i]['photoUrl'])
-                                      : null,
-                                  child: _postedFriends[i]['photoUrl'] == null
-                                      ? Text(
-                                          _postedFriends[i]['username'][0].toUpperCase(),
-                                          style: const TextStyle(fontSize: 10),
-                                        )
-                                      : null,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '仲間の努力が届いています',
-                      style: GoogleFonts.notoSansJp(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.grey50,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-              ],
-
-              Text(
-                'Victory を証明しましょう',
-                style: GoogleFonts.notoSansJp(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.white,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'あなたの「V」を投稿して、\n今日という日を完成させよう。',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.notoSansJp(
-                  fontSize: 14,
-                  color: AppColors.grey50,
-                  height: 1.6,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildCardStack() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cardWidth = constraints.maxWidth * 0.85;
-        final cardHeight = cardWidth * (16 / 9);
-        final maxCardHeight = (constraints.maxHeight - 40).clamp(
-          0.0,
-          cardHeight,
-        );
-        final finalCardWidth = maxCardHeight * (9 / 16);
+    return AnimatedBuilder(
+      animation: _pageController,
+      builder: (context, child) {
+        if (_feedPosts.isEmpty) return const SizedBox.shrink();
+        final scrollPos = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
 
-        return Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            for (final i in _sortedCardIndices())
-              _buildStackedCard(
-                index: i,
-                cardWidth: finalCardWidth,
-                cardHeight: maxCardHeight,
-              ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final cardWidth = constraints.maxWidth * 0.85;
+            final cardHeight = cardWidth * (16 / 9);
+            final maxCardHeight = (constraints.maxHeight - 40).clamp(0.0, cardHeight);
+            final finalCardWidth = maxCardHeight * (9 / 16);
 
-            Positioned.fill(
-              child: PageView.builder(
-                controller: _pageController,
-                physics: const _FrictionlessPageScrollPhysics(),
-                onPageChanged: _onPageChanged,
-                itemBuilder: (context, index) {
-                  if (_feedPosts.isEmpty) return const SizedBox.shrink();
-                  final actualIndex = index % _feedPosts.length;
-                  final post = _feedPosts[actualIndex];
+            return Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                for (final i in _sortedCardIndices(scrollPos))
+                  _buildStackedCard(
+                    index: i,
+                    cardWidth: finalCardWidth,
+                    cardHeight: maxCardHeight,
+                    scrollPosition: scrollPos,
+                  ),
 
-                  final myUid = FirebaseAuth.instance.currentUser?.uid;
-                  // 絵文字（VFIREの'🔥'以外）を送った場合のみチェックマークにする
-                  final alreadyReacted = post.hasEmojiReacted(myUid);
+                Positioned.fill(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    physics: const _FrictionlessPageScrollPhysics(),
+                    onPageChanged: _onPageChanged,
+                    itemBuilder: (context, index) {
+                      final actualIndex = index % _feedPosts.length;
+                      final post = _feedPosts[actualIndex];
 
-                  return Center(
-                    child: SizedBox(
-                      width: finalCardWidth,
-                      height: maxCardHeight,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          // 1. 写真エリア（上部タップ域）: タップでリアクション
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 180,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                // メニューが開いているときは閉じる、そうでなければリアクション
-                                if (_reactionMenuOpen) {
-                                  setState(() => _reactionMenuOpen = false);
-                                  _reactionMenuController.reverse();
-                                } else {
-                                  _sendReaction(actualIndex);
-                                }
-                              },
-                              child: const SizedBox.expand(),
-                            ),
-                          ),
+                      final myUid = FirebaseAuth.instance.currentUser?.uid;
+                      final alreadyReacted = post.hasEmojiReacted(myUid);
+
+                      return Center(
+                        child: SizedBox(
+                          width: finalCardWidth,
+                          height: maxCardHeight,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              // 1. 写真エリア（上部タップ域）
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 180,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    if (_reactionMenuOpen) {
+                                      setState(() => _reactionMenuOpen = false);
+                                      _reactionMenuController.reverse();
+                                    } else {
+                                      _sendReaction(actualIndex);
+                                    }
+                                  },
+                                  child: const SizedBox.expand(),
+                                ),
+                              ),
+                              // (以下略: 他のボタン等も必要に応じて AnimatedBuilder で参照可能)
 
                           // 2. アバタータップエリア (中心をVFIREと合わせる: bottom 32 + text 16 + gap 16 + avatar 40 = 104 -> center 84)
                           Positioned(
@@ -934,20 +750,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
         );
       },
     );
-  }
+  },
+);
+}
 
-  List<int> _sortedCardIndices() {
+  List<int> _sortedCardIndices(double scrollPosition) {
+    if (_feedPosts.isEmpty) return [];
     final indices = List.generate(_feedPosts.length, (i) => i);
     indices.sort((a, b) {
-      if (_feedPosts.isEmpty) return 0;
       final halfLength = _feedPosts.length / 2.0;
 
-      double distA = (a - _scrollPosition) % _feedPosts.length;
+      double distA = (a - scrollPosition) % _feedPosts.length;
       if (distA > halfLength) distA -= _feedPosts.length;
       if (distA < -halfLength) distA += _feedPosts.length;
       final depthA = distA.abs();
 
-      double distB = (b - _scrollPosition) % _feedPosts.length;
+      double distB = (b - scrollPosition) % _feedPosts.length;
       if (distB > halfLength) distB -= _feedPosts.length;
       if (distB < -halfLength) distB += _feedPosts.length;
       final depthB = distB.abs();
@@ -961,27 +779,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     required int index,
     required double cardWidth,
     required double cardHeight,
+    required double scrollPosition,
   }) {
     final halfLength = _feedPosts.length / 2.0;
-    double relativePos = (index - _scrollPosition) % _feedPosts.length;
+    double relativePos = (index - scrollPosition) % _feedPosts.length;
     if (relativePos > halfLength) relativePos -= _feedPosts.length;
     if (relativePos < -halfLength) relativePos += _feedPosts.length;
 
     final double smoothDepth = relativePos.abs();
 
-    // Tinder/Pokepoke風のスタック
-    final scale = (1.0 - smoothDepth * 0.05).clamp(0.8, 1.0);
-    final offsetY = smoothDepth * -20.0; // 奥のカードは少し上に配置される
-    // 横方向へのスワイプ時の移動
-    final offsetX = relativePos * cardWidth * 1.2;
+    if (smoothDepth > 3) return const SizedBox.shrink(); // パフォーマンス最適化
 
-    final dimAlpha = (smoothDepth * 0.2).clamp(0.0, 0.6); // 奥は暗く
-
-    // スワイプ中のカードは回転させる（Tinder風）
-    final rotateZ = relativePos * 0.1;
-
-    // 現在フォーカスされているカード（一番手前）からどれくらい離れているか
-    if (smoothDepth > 3) return const SizedBox.shrink(); // 3枚目以降は描画しない（軽量化）
+    final double scale = (1.0 - smoothDepth * 0.05).clamp(0.8, 1.0);
+    final double offsetY = smoothDepth * -20.0;
+    final double offsetX = relativePos * cardWidth * 1.2;
+    final double dimAlpha = (smoothDepth * 0.2).clamp(0.0, 0.6);
+    final double rotateZ = relativePos * 0.1;
 
     final post = _feedPosts[index];
     final username = _userNames[post.userId] ?? 'Unknown';
@@ -993,36 +806,247 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       offset: Offset(offsetX, offsetY),
       child: Transform(
         alignment: Alignment.center,
-        transform:
-            Matrix4.identity()
-              ..rotateZ(rotateZ)
-              ..scale(scale, scale, scale),
-        child: SizedBox(
-          width: cardWidth,
-          height: cardHeight,
-          child: _FeedCard(
-            post: post,
-            username: username,
-            userPhotoUrl: photoUrl,
-            dimAlpha: dimAlpha,
-            onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
-            isTop: index == _focusedIndex,
-            tierColor: tierColor,
-            userPhotos: _userPhotos,
-            onProfileTap: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.userProfile,
-                arguments: {
-                  'uid': post.userId,
-                  'username': username,
-                  'photoUrl': photoUrl,
-                },
-              );
-            },
+        transform: Matrix4.identity()
+          ..rotateZ(rotateZ)
+          ..scale(scale, scale, scale),
+        child: RepaintBoundary( // パフォーマンス: カード単位でキャッシュ
+          child: SizedBox(
+            width: cardWidth,
+            height: cardHeight,
+            child: _FeedCard(
+              post: post,
+              username: username,
+              userPhotoUrl: photoUrl,
+              dimAlpha: dimAlpha,
+              onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
+              isTop: index == _focusedIndex,
+              tierColor: tierColor,
+              userPhotos: _userPhotos,
+              onProfileTap: () {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.userProfile,
+                  arguments: {
+                    'uid': post.userId,
+                    'username': username,
+                    'photoUrl': photoUrl,
+                  },
+                );
+              },
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────
+// Guarded State Layer (Performance optimization)
+// ────────────────────────────────────────────
+class _GuardedStateLayer extends StatefulWidget {
+  final List<Post> feedPosts;
+  final List<Map<String, dynamic>> postedFriends;
+
+  const _GuardedStateLayer({
+    required this.feedPosts,
+    required this.postedFriends,
+  });
+
+  @override
+  State<_GuardedStateLayer> createState() => _GuardedStateLayerState();
+}
+
+class _GuardedStateLayerState extends State<_GuardedStateLayer> with TickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final AnimationController _shakeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _shakeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        if (widget.feedPosts.isNotEmpty)
+          Positioned.fill(
+            child: RepaintBoundary( // ブラー計算をキャッシュ
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                child: Opacity(
+                  opacity: 0.4,
+                  child: CachedNetworkImage(
+                    imageUrl: widget.feedPosts.first.imageUrl!,
+                    fit: BoxFit.cover,
+                    memCacheWidth: 400,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.heavyImpact();
+                  _shakeController.forward(from: 0);
+                },
+                child: SizedBox(
+                  width: 120,
+                  height: 120,
+                  child: AnimatedBuilder(
+                    animation: Listenable.merge([_pulseController, _shakeController]),
+                    builder: (context, child) {
+                      final shakeOffset = sin(_shakeController.value * pi * 4) * 8.0;
+                      return Transform.translate(
+                        offset: Offset(shakeOffset, 0),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: 100 + (20 * _pulseController.value),
+                              height: 100 + (20 * _pulseController.value),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.accentGold.withValues(
+                                    alpha: 1.0 - _pulseController.value,
+                                  ),
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            child!,
+                          ],
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppColors.grey10.withValues(alpha: 0.8),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.accentGold.withValues(alpha: 0.5),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.accentGold.withValues(alpha: 0.2),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.lock_outline_rounded,
+                        color: AppColors.accentGold,
+                        size: 48,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 48),
+
+              if (widget.postedFriends.isNotEmpty) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      height: 32,
+                      width: (24.0 * widget.postedFriends.length.clamp(1, 5)) + 8,
+                      child: Stack(
+                        children: [
+                          for (int i = 0; i < min(widget.postedFriends.length, 5); i++)
+                            Positioned(
+                              left: i * 20.0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.black,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: AppColors.grey20,
+                                  backgroundImage: widget.postedFriends[i]['photoUrl'] != null
+                                      ? CachedNetworkImageProvider(widget.postedFriends[i]['photoUrl'])
+                                      : null,
+                                  child: widget.postedFriends[i]['photoUrl'] == null
+                                      ? Text(
+                                          widget.postedFriends[i]['username'][0].toUpperCase(),
+                                          style: const TextStyle(fontSize: 10),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '仲間の努力が届いています',
+                      style: GoogleFonts.notoSansJp(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.grey50,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              Text(
+                'Victory を証明しましょう',
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.white,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'あなたの「V」を投稿して、\n今日という日を完成させよう。',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 14,
+                  color: AppColors.grey50,
+                  height: 1.6,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1124,14 +1148,21 @@ class _FeedCard extends StatelessWidget {
               top: 24,
               left: 20,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.black.withValues(alpha: 0.4),
+                  color: AppColors.grey15.withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: AppColors.white.withValues(alpha: 0.1),
                     width: 0.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.black.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Text(
                   post.taskName,

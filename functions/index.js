@@ -18,8 +18,14 @@ exports.sendPushNotification = onDocumentCreated(
     const data = event.data?.data();
     if (!data) return;
 
-    const { toUid, title, body } = data;
+    const { toUid, title, body, sendPush } = data;
     if (!toUid || !title) return;
+
+    // フロントエンドで指定されたプッシュ送出フラグをチェック
+    // sendPush が明示的に false の場合（V FIREリアクション等）は送信しない
+    if (sendPush === false) {
+      return;
+    }
 
     const db = getFirestore();
 
@@ -63,7 +69,7 @@ exports.sendPushNotification = onDocumentCreated(
         error.code === "messaging/registration-token-not-registered"
       ) {
         await db.collection("users").doc(toUid).update({
-          fcmToken: require("firebase-admin/firestore").FieldValue.delete(),
+          fcmToken: FieldValue.delete(),
         });
       }
     }
