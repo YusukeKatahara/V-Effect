@@ -98,8 +98,10 @@ class Post {
       taskName: data[fieldTaskName] ?? '今日のヒーロータスク',
       caption: data[fieldCaption],
       createdAt: (data[fieldCreatedAt] as Timestamp?)?.toDate() ?? DateTime.now(),
-      expiresAt: (data[fieldExpiresAt] as Timestamp?)?.toDate() ??
-          DateTime.now().add(const Duration(hours: 24)),
+      expiresAt: (data[fieldExpiresAt] as Timestamp?)?.toDate() ?? () {
+        final now = DateTime.now();
+        return DateTime(now.year, now.month, now.day + 1);
+      }(),
       reactionCount: (data[fieldReactionCount] as num?)?.toInt() ?? 0,
       showTimestamp: data[fieldShowTimestamp] ?? true,
       emojiReactedUserIds: emojiReactedUserIds,

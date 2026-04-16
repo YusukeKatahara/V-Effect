@@ -164,7 +164,7 @@ class PostService {
 
     // Step2: Firestoreに投稿データを保存
     final now = DateTime.now();
-    final expiresAt = now.add(const Duration(hours: 24));
+    final expiresAt = DateTime(now.year, now.month, now.day + 1); // 翌日0:00
 
     // ユーザー設定（タイムスタンプ表示）を取得
     final userSnap = await _db.collection('users').doc(uid).get();

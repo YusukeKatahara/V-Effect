@@ -1,0 +1,14 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.veffect.app.v_effect",
+            "sha256_cert_fingerprints": [
+                "3E:33:4A:A4:E0:1F:E7:99:0E:12:D1:6E:E2:86:12:49:3A:3B:2B:D2SHA256:08:FD:28:E4:E4:FB:B7:AC:0F:45:4A:CC:0C:7C:D9:38:C4:C3:43:B2:39:3A:82:03:E0:A1:27:85:1C:C3:7A:9C"
+            ]
+        }
+    }
+]
