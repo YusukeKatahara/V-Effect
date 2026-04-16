@@ -37,7 +37,15 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Future<void> _resendEmail() async {
     setState(() => _isResending = true);
     try {
-      await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+      final actionCodeSettings = ActionCodeSettings(
+        url: 'https://veffect.firebaseapp.com/emailVerification',
+        handleCodeInApp: true,
+        androidPackageName: 'com.veffect.app.v_effect',
+        androidInstallApp: true,
+        androidMinimumVersion: '1',
+        iOSBundleId: 'com.veffect.app.vEffect',
+      );
+      await FirebaseAuth.instance.currentUser?.sendEmailVerification(actionCodeSettings);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('認証メールを再送信しました。')),
@@ -99,7 +107,28 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.textMuted.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: AppColors.textMuted),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'メールが届かない場合は、迷惑メールフォルダやゴミ箱をご確認ください。',
+                        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
                 height: 54,

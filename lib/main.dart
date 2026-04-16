@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app_links/app_links.dart';
 import 'firebase_options.dart';
 import 'config/routes.dart';
 import 'config/theme.dart';
@@ -64,12 +66,51 @@ class VEffectApp extends StatefulWidget {
 }
 
 class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
+  final _appLinks = AppLinks();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // 初回セッション開始を記録
     AnalyticsService.instance.onAppResumed();
+    // メール認証 Deep Link の受信を開始
+    _initDeepLinks();
+  }
+
+  /// メール認証リンクをアプリで受け取って処理する
+  void _initDeepLinks() {
+    _appLinks.uriLinkStream.listen((uri) async {
+      await _handleEmailVerificationLink(uri.toString());
+    });
+
+    // アプリを閉じた状態からリンクで起動したケース
+    _appLinks.getInitialLink().then((uri) async {
+      if (uri != null) {
+        await _handleEmailVerificationLink(uri.toString());
+      }
+    });
+  }
+
+  Future<void> _handleEmailVerificationLink(String link) async {
+    final auth = FirebaseAuth.instance;
+    if (!auth.isSignInWithEmailLink(link)) return;
+    try {
+      final user = auth.currentUser;
+      if (user == null) return;
+      // メール認証コードを適用
+      await auth.applyActionCode(
+        Uri.parse(link).queryParameters['oobCode'] ?? '',
+      );
+      await user.reload();
+      // 認証完了 → ホーム画面へ
+      final navigator = VEffectApp.navigatorKey.currentState;
+      if (navigator != null && user.emailVerified) {
+        navigator.pushNamedAndRemoveUntil(AppRoutes.wrapper, (r) => false);
+      }
+    } catch (e) {
+      debugPrint('Deep link email verification error: $e');
+    }
   }
 
   @override

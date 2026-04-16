@@ -92,8 +92,16 @@ class _RegisterScreenState extends State<RegisterScreen>
         password: _passCtrl.text.trim(),
       );
       await _analytics.logSignUp('email');
-      // 認証メールを送信
-      await cred.user?.sendEmailVerification();
+      // 認証メールを送信（Deep Link でアプリに戻れるよう ActionCodeSettings を設定）
+      final actionCodeSettings = ActionCodeSettings(
+        url: 'https://veffect.firebaseapp.com/emailVerification',
+        handleCodeInApp: true,
+        androidPackageName: 'com.veffect.app.v_effect',
+        androidInstallApp: true,
+        androidMinimumVersion: '1',
+        iOSBundleId: 'com.veffect.app.vEffect',
+      );
+      await cred.user?.sendEmailVerification(actionCodeSettings);
       // Firestoreドキュメントを作成
       await _ensureUserDoc(cred.user!);
       

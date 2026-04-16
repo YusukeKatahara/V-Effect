@@ -359,11 +359,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(color: AppColors.textPrimary),
             ),
             trailing: const Icon(
-              Icons.open_in_new,
+              Icons.chevron_right,
               color: AppColors.textMuted,
-              size: 16,
             ),
-            onTap: () => _launchURL('https://v-effect.web.app/terms/'),
+            onTap: () => Navigator.pushNamed(context, AppRoutes.terms),
           ),
           ListTile(
             title: const Text(
@@ -371,11 +370,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(color: AppColors.textPrimary),
             ),
             trailing: const Icon(
-              Icons.open_in_new,
+              Icons.chevron_right,
               color: AppColors.textMuted,
-              size: 16,
             ),
-            onTap: () => _launchURL('https://v-effect.web.app/privacy/'),
+            onTap: () => Navigator.pushNamed(context, AppRoutes.privacyPolicy),
           ),
           ListTile(
             title: const Text(

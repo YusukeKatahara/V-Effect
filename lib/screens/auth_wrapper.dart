@@ -84,13 +84,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
               return const SplashLoading();
             }
 
-            // ドキュメントが存在しない → プロフィール設定へ
+            // ドキュメントが存在しない → 新規ユーザー: 利用規約同意画面へ
             if (!docSnapshot.hasData || !docSnapshot.data!.exists) {
-              _navigateTo(AppRoutes.profileSetup);
+              _navigateTo(AppRoutes.termsAgreement);
               return const SplashLoading();
             }
 
             final data = docSnapshot.data!.data() as Map<String, dynamic>?;
+
+            // termsAgreed が未設定の場合は同意画面へ
+            // ただし既に profileCompleted が true の既存ユーザーには適用しない
+            final termsAgreed = data?['termsAgreed'] == true;
+            final isExistingUser = data?['profileCompleted'] == true;
+            if (!termsAgreed && !isExistingUser) {
+              _navigateTo(AppRoutes.termsAgreement);
+              return const SplashLoading();
+            }
+
             final isProfileCompleted = data?['profileCompleted'] == true;
             final isTemplateCompleted = data?['templateCompleted'] == true;
             final isOnboardingCompleted = data?['onboardingCompleted'] == true;

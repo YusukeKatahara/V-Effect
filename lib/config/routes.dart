@@ -19,6 +19,9 @@ import '../screens/forgot_password_screen.dart';
 import '../screens/reset_password_screen.dart';
 import '../screens/email_verification_screen.dart';
 import '../screens/auth_wrapper.dart';
+import '../screens/terms_screen.dart';
+import '../screens/privacy_policy_screen.dart';
+import '../screens/terms_agreement_screen.dart';
 
 /// アプリ全体のルート（画面の住所）定義
 class AppRoutes {
@@ -42,6 +45,9 @@ class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String resetPassword = '/reset-password';
   static const String emailVerification = '/email-verification';
+  static const String terms = '/terms';
+  static const String privacyPolicy = '/privacy-policy';
+  static const String termsAgreement = '/terms-agreement';
 
   static Map<String, WidgetBuilder> get routes => {
         wrapper: (context) => const AuthWrapper(),
@@ -63,5 +69,8 @@ class AppRoutes {
         forgotPassword: (context) => const ForgotPasswordScreen(),
         resetPassword: (context) => const ResetPasswordScreen(),
         emailVerification: (context) => const EmailVerificationScreen(),
+        terms: (context) => const TermsScreen(),
+        privacyPolicy: (context) => const PrivacyPolicyScreen(),
+        termsAgreement: (context) => const TermsAgreementScreen(),
       };
 }
