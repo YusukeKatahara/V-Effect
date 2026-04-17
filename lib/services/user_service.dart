@@ -230,22 +230,25 @@ class UserService {
     }
   }
 
-  /// 完了から24時間経過したワンタイムタスクを自動削除する共通処理
+  /// 完了日が昨日以前のワンタイムタスクを自動削除する共通処理
   Future<void> cleanupExpiredTasks(AppUser user) async {
     final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    
     final expiredTasks = user.tasks.where((task) {
       if (!task.isOneTime || task.completedAt == null) return false;
-      return now.difference(task.completedAt!).inHours >= 24;
+      // 完了日が今日より前（昨日以前）なら期限切れ
+      return task.completedAt!.isBefore(startOfToday);
     }).toList();
 
     if (expiredTasks.isNotEmpty) {
       final updatedTasks = user.tasks.where((task) {
         if (!task.isOneTime || task.completedAt == null) return true;
-        return now.difference(task.completedAt!).inHours < 24;
+        return !task.completedAt!.isBefore(startOfToday);
       }).toList();
 
       await updateProfile(tasks: updatedTasks);
-      debugPrint('${expiredTasks.length}個のワンタイムタスクを期限切れのため削除しました');
+      debugPrint('${expiredTasks.length}個のワンタイムタスクを期限切れ（翌日）のため削除しました');
     }
   }
 }

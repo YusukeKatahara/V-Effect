@@ -693,7 +693,37 @@ class PostService {
       }
     }
 
-    // データの変更をアプリ全体に通知
+    // 4. (追加機能) 削除した投稿がワンタイムタスクのものであれば、再度挑戦できるようにステータスをリセットする
+    if (remainingToday.isEmpty) {
+      final userSnap = await _db.collection('users').doc(uid).get();
+      if (userSnap.exists) {
+        final userData = userSnap.data()!;
+        final tasks = (userData['tasks'] as List? ?? [])
+            .map((item) => AppTask.fromFirestore(item))
+            .toList();
+        
+        final postData = postSnap.data()!;
+        final deletedTaskName = postData['taskName'] as String?;
+        
+        bool taskReset = false;
+        final updatedTasks = tasks.map((t) {
+          if (t.title == deletedTaskName && t.isOneTime && t.completedAt != null) {
+            taskReset = true;
+            return t.copyWith(completedAt: null);
+          }
+          return t;
+        }).toList();
+
+        if (taskReset) {
+          await _db.collection('users').doc(uid).update({
+            'tasks': updatedTasks.map((t) => t.toFirestore()).toList(),
+          });
+          debugPrint('ワンタイムタスク "${deletedTaskName}" の完了ステータスをリセットしました');
+        }
+      }
+    }
+
+    // 5. データの変更をアプリ全体に通知
     _updateController.add(null);
   }
 }

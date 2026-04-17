@@ -206,7 +206,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           // 24時間経過後に削除されるタイミングなので、ユーザーが画面を開いた瞬間に消えるので
           // 取得済みの allTasks からフィルタリングして即時反映する
           final now = DateTime.now();
-          allTasks.removeWhere((t) => t.isOneTime && t.completedAt != null && now.difference(t.completedAt!).inHours >= 24);
+          final startOfToday = DateTime(now.year, now.month, now.day);
+          allTasks.removeWhere((t) => t.isOneTime && t.completedAt != null && t.completedAt!.isBefore(startOfToday));
         }
       }
 
