@@ -97,7 +97,7 @@ class _AppInitializerState extends State<AppInitializer> {
           _isInitialized = true;
         });
       }
-    } catch (e, stack) {
+    } catch (e) {
       debugPrint('初期化中の致命的エラー: $e');
       if (mounted) {
         setState(() {
