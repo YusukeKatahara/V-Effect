@@ -259,9 +259,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgBase,
-      appBar: AppBar(
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        // 左から右へのスワイプ（速度 600以上）で前の画面に戻る
+        if (details.primaryVelocity != null && details.primaryVelocity! > 600) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.bgBase,
+        appBar: AppBar(
         title: const Text('通知'),
         backgroundColor: AppColors.bgBase,
         surfaceTintColor: Colors.transparent,
@@ -461,7 +468,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           );
         },
       ),
-    );
+    ),
+  );
   }
 
   /// 通知本文をリッチテキストで構築（特定のキーワードを太字やゴールドにする）

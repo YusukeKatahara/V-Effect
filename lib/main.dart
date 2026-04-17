@@ -12,53 +12,122 @@ import 'config/routes.dart';
 import 'config/theme.dart';
 import 'services/analytics_service.dart';
 import 'services/push_notification_service.dart';
+import 'services/deep_link_service.dart';
+import 'widgets/global_error_widget.dart';
+import 'widgets/splash_loading.dart';
+import 'dart:async';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  // ガードレール1: エラー時の最終防衛ライン
+  runZonedGuarded(() {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  try {
-    // 起動時の初期化を並列実行
-    final results = await Future.wait([
-      Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      ),
-      SharedPreferences.getInstance(),
-    ]);
+    // 描画エラー時のガードレール
+    ErrorWidget.builder = (FlutterErrorDetails details) {
+      return GlobalErrorWidget(details: details);
+    };
 
-    final prefs = results[1] as SharedPreferences;
-
-    // Firebase 初期化直後に必要な設定
+    // Fast Boot: 即座にアプリを起動し、初期化は内部で行う
+    runApp(const ProviderScope(child: AppInitializer()));
+  }, (error, stack) {
     if (!kIsWeb) {
-      FlutterError.onError =
-          FirebaseCrashlytics.instance.recordFlutterFatalError;
-      PlatformDispatcher.instance.onError = (error, stack) {
-        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-        return true;
-      };
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     }
+    debugPrint('致命的なエラー: $error');
+    runApp(GlobalErrorWidget(error: error.toString()));
+  });
+}
 
-    // 他のサービス初期化（FirebaseAppが必要なもの）
-    await PushNotificationService().initialize();
+/// アプリの初期化状態を管理するラッパー
+class AppInitializer extends StatefulWidget {
+  const AppInitializer({super.key});
 
-    // テーマ設定の反映
-    final isDarkMode = prefs.getBool('isDarkMode') ?? true;
-    VEffectApp.themeNotifier.value =
-        isDarkMode ? ThemeMode.dark : ThemeMode.light;
+  @override
+  State<AppInitializer> createState() => _AppInitializerState();
+}
 
-  } catch (e) {
-    debugPrint('Firebase連携エラー: $e');
+class _AppInitializerState extends State<AppInitializer> {
+  bool _isInitialized = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialize();
   }
 
-  runApp(const ProviderScope(child: VEffectApp()));
+  Future<void> _initialize() async {
+    try {
+      // Step1: Firebase の初期化（5秒タイムアウト）
+      try {
+        if (Firebase.apps.isEmpty) {
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          ).timeout(const Duration(seconds: 5));
+        }
+      } catch (e) {
+        debugPrint('Firebase初期化エラー: $e');
+        // Firebaseが必須な場合はここでエラーにしても良いが、
+        // 続行できる可能性にかけてここでは握り潰しすぎない
+      }
+
+      // Step2: Firebase 設定
+      if (!kIsWeb && Firebase.apps.isNotEmpty) {
+        FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+      }
+
+      // Step3: 各種サービスの初期化
+      final prefs = await SharedPreferences.getInstance();
+      
+      await Future.wait([
+        PushNotificationService().initialize().timeout(const Duration(seconds: 5)),
+        DeepLinkService().initialize().timeout(const Duration(seconds: 3)),
+      ]).catchError((e) {
+        debugPrint('サービス初期化警告: $e');
+        return <void>[];
+      });
+
+      // テーマ設定
+      final isDarkMode = prefs.getBool('isDarkMode') ?? true;
+      VEffectApp.themeNotifier.value =
+          isDarkMode ? ThemeMode.dark : ThemeMode.light;
+
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    } catch (e, stack) {
+      debugPrint('初期化中の致命的エラー: $e');
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return GlobalErrorWidget(error: _error);
+    }
+
+    if (!_isInitialized) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: SplashLoading(),
+      );
+    }
+
+    return const VEffectApp();
+  }
 }
 
 class VEffectApp extends StatefulWidget {
   const VEffectApp({super.key});
 
-  /// アプリ内のどこからでも Navigator にアクセスするためのグローバルキー
   static final navigatorKey = GlobalKey<NavigatorState>();
-
-  /// テーマ変更用のNotifier
   static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 
   @override
@@ -72,7 +141,6 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // 初回セッション開始を記録
     AnalyticsService.instance.onAppResumed();
     // メール認証 Deep Link の受信を開始
     _initDeepLinks();
@@ -116,17 +184,16 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    DeepLinkService().dispose();
     super.dispose();
   }
 
-  /// アプリのライフサイクルを監視してセッションを計測
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final analytics = AnalyticsService.instance;
     if (state == AppLifecycleState.resumed) {
-      analytics.onAppResumed();
+      AnalyticsService.instance.onAppResumed();
     } else if (state == AppLifecycleState.paused) {
-      analytics.onAppPaused();
+      AnalyticsService.instance.onAppPaused();
     }
   }
 
@@ -138,10 +205,9 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
         return MaterialApp(
           navigatorKey: VEffectApp.navigatorKey,
           title: 'V EFFECT',
-          theme: AppTheme.light, // ライトモード用のテーマ（後で拡張予定）
+          theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: themeMode,
-          // 日本語ロケール設定（午前/午後表示などに必要）
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -151,7 +217,6 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
           locale: const Locale('ja', 'JP'),
           initialRoute: AppRoutes.wrapper,
           routes: AppRoutes.routes,
-          // 画面遷移の自動トラッキング
           navigatorObservers: [AnalyticsService.instance.observer],
         );
       },

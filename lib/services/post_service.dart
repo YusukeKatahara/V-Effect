@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../models/post.dart';
 import '../models/app_notification.dart';
 import '../utils/date_helper.dart';
@@ -161,6 +162,17 @@ class PostService {
     // Web互換のため、putData(Uint8List) を使用
     await ref.putData(imageBytes, SettableMetadata(contentType: 'image/jpeg'));
     final imageUrl = await ref.getDownloadURL();
+
+    // 🚀 【爆速化】ローカルキャッシュに先回りして保存 (Optimistic Cache Seeding)
+    try {
+      await DefaultCacheManager().putFile(
+        imageUrl,
+        imageBytes,
+        fileExtension: 'jpg',
+      );
+    } catch (e) {
+      debugPrint('CACHE SEEDING ERROR: $e');
+    }
 
     // Step2: Firestoreに投稿データを保存
     final now = DateTime.now();
@@ -526,17 +538,38 @@ class PostService {
     final uid = _auth.currentUser!.uid;
     final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
     
-    final snap = await _postsRef
-        .where(Post.fieldUserId, isEqualTo: uid)
-        .where(Post.fieldCreatedAt, isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
-        .get();
+    try {
+      // 1. 最適化クエリ（要：複合インデックス）
+      final snap = await _postsRef
+          .where(Post.fieldUserId, isEqualTo: uid)
+          .where(Post.fieldCreatedAt, isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
+          .get();
 
-    final posts = snap.docs
-        .map((doc) => doc.data())
-        .toList()
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt)); // 古い順に再生するため、昇順ソート
-
-    return posts;
+      return snap.docs
+          .map((doc) => doc.data())
+          .toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    } on FirebaseException catch (e) {
+      // 2. フォールバック（インデックス不足時など）
+      if (e.code == 'failed-precondition' || e.code == 'invalid-argument') {
+        debugPrint('⚠️ WeeklyReview: Composite index missing or query failed. Falling back to local filtering. Error: ${e.message}');
+        
+        // userId だけで取得（単一インデックスのみで可能）し、メモリ上で日付フィルタリング
+        final snap = await _postsRef
+            .where(Post.fieldUserId, isEqualTo: uid)
+            .get();
+        
+        return snap.docs
+            .map((doc) => doc.data())
+            .where((p) => p.createdAt.isAfter(sevenDaysAgo))
+            .toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      }
+      rethrow;
+    } catch (e) {
+      debugPrint('WeeklyReview unexpected error: $e');
+      rethrow;
+    }
   }
 
   /// 自分のヒーロータスクリストを取得します
@@ -670,7 +703,37 @@ class PostService {
       }
     }
 
-    // データの変更をアプリ全体に通知
+    // 4. (追加機能) 削除した投稿がワンタイムタスクのものであれば、再度挑戦できるようにステータスをリセットする
+    if (remainingToday.isEmpty) {
+      final userSnap = await _db.collection('users').doc(uid).get();
+      if (userSnap.exists) {
+        final userData = userSnap.data()!;
+        final tasks = (userData['tasks'] as List? ?? [])
+            .map((item) => AppTask.fromFirestore(item))
+            .toList();
+        
+        final postData = postSnap.data()!;
+        final deletedTaskName = postData['taskName'] as String?;
+        
+        bool taskReset = false;
+        final updatedTasks = tasks.map((t) {
+          if (t.title == deletedTaskName && t.isOneTime && t.completedAt != null) {
+            taskReset = true;
+            return t.copyWith(completedAt: null);
+          }
+          return t;
+        }).toList();
+
+        if (taskReset) {
+          await _db.collection('users').doc(uid).update({
+            'tasks': updatedTasks.map((t) => t.toFirestore()).toList(),
+          });
+          debugPrint('ワンタイムタスク "${deletedTaskName}" の完了ステータスをリセットしました');
+        }
+      }
+    }
+
+    // 5. データの変更をアプリ全体に通知
     _updateController.add(null);
   }
 }

@@ -31,7 +31,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
   final PostService _postService = PostService.instance;
-  StreamSubscription? _updateSubscription;
+  bool _postedToday = false;
   List<Post> _feedPosts = [];
   List<Map<String, dynamic>> _postedFriends = []; // [{uid, username, photoUrl}]
   Map<String, String> _userNames = {}; // userId -> username
@@ -48,12 +48,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   String? _pendingFlamePostId;
 
   // ── Card Swiping ──
+  // ── Card Swiping (Performance: Using AnimatedBuilder instead of setState) ──
   late final PageController _pageController;
-  double _scrollPosition = 10000.0; // 擬似的な無限スクロール
+  // pageController.page を直接参照するように変更
   int get _focusedIndex {
     if (_feedPosts.isEmpty) return 0;
     final len = _feedPosts.length;
-    final pos = _scrollPosition.round();
+    final pos = (_pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0).round();
     return (pos % len + len) % len;
   }
 
@@ -70,11 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final GlobalKey<_DopamineEmojiExplosionLayerState> _explosionKey =
       GlobalKey();
 
-  // ── ガード状態演出用 ──
-  late final AnimationController _pulseController;
-
-  // ── ロックアイコン シェイク演出用 ──
-  late final AnimationController _shakeController;
+  // ── ロックアイコンは子 Widget に切り出し ──
 
   @override
   void initState() {
@@ -88,43 +85,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       TweenSequenceItem(tween: Tween(begin: 0.8, end: 0.0), weight: 80),
     ]).animate(_flashController);
 
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat();
-
-    _shakeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-
     _reactionMenuController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
     );
+    // _pulseController と _shakeController は _GuardedStateLayer 内に移動
 
     final initialPage = 10000;
-    _pageController = PageController(initialPage: initialPage)..addListener(() {
-      if (mounted) {
-        setState(() {
-          _scrollPosition = _pageController.page ?? initialPage.toDouble();
-        });
-      }
-    });
+    _pageController = PageController(initialPage: initialPage);
+    // addListener 内の setState を削除（全画面リビルド回避）
 
-    // データの更新通知を監視（homeDataProvider を再取得させる）
-    _updateSubscription = _postService.updateStream.listen((_) {
-      if (mounted) ref.invalidate(homeDataProvider);
-    });
+    // データの読み込みは homeDataProvider (Riverpod) が担当するため
+    // 手動の _loadData() は廃止
   }
 
   @override
   void dispose() {
-    _updateSubscription?.cancel();
     _pageController.dispose();
     _flashController.dispose();
-    _pulseController.dispose();
-    _shakeController.dispose();
     _reactionMenuController.dispose();
     _flameDebounceTimer?.cancel();
     super.dispose();
@@ -132,9 +110,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   void _onPageChanged(int index) {
     if (_feedPosts.isEmpty) return;
+    
+    // 次のカードの画像をプリキャッシュ
     final nextIndex = (index + 1) % _feedPosts.length;
-
-    // 次의 카드의 画像をプリキャッシュ
     final nextPost = _feedPosts[nextIndex];
     if (nextPost.imageUrl != null) {
       precacheImage(
@@ -142,110 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         context,
       );
     }
-
-    setState(() {
-      _scrollPosition = index.toDouble();
-      // カードが変わったらリアクションメニューを閉じる
-      if (_reactionMenuOpen) {
-        _reactionMenuOpen = false;
-        _reactionMenuController.reverse();
-      }
-    });
-  }
-
-  /// homeDataProvider から新しいデータが届いたときに呼び出す。
-  /// _feedPosts のスマートマージを setState で行い、build() の副作用を排除する。
-  void _applyHomeDataUpdate(HomeData homeData) {
-    if (_lastHomeData == homeData) return;
-
-    final myUid = FirebaseAuth.instance.currentUser?.uid;
-    final newPosts = <Post>[];
-    final idsToRemove = <String>[];
-    final pendingToRemove = <String>[];
-
-    debugPrint('[EMOJI_DEBUG] _applyHomeDataUpdate called. feedPosts=${homeData.feedPosts.length}');
-
-    for (final fetchedPost in homeData.feedPosts) {
-      final localPost = _feedPosts.firstWhere(
-        (p) => p.id == fetchedPost.id,
-        orElse: () => fetchedPost,
-      );
-      final pending = _pendingEmojis[fetchedPost.id];
-      final fetchedHasEmoji =
-          myUid != null && fetchedPost.hasEmojiReacted(myUid);
-      final localHasEmoji = myUid != null && localPost.hasEmojiReacted(myUid);
-
-      debugPrint('[EMOJI_DEBUG] post=${fetchedPost.id.substring(0, 6)} localHasEmoji=$localHasEmoji fetchedHasEmoji=$fetchedHasEmoji pending=${pending?.emoji} local.userReactions=${localPost.userReactions} fetched.userReactions=${fetchedPost.userReactions}');
-
-      if (fetchedHasEmoji) {
-        // ケース1: Firestore 確認済み → fetchedPost 採用、pending 削除
-        newPosts.add(fetchedPost);
-        pendingToRemove.add(fetchedPost.id);
-        if (_reactingPostIds.contains(fetchedPost.id)) {
-          idsToRemove.add(fetchedPost.id);
-        }
-      } else if (pending != null) {
-        // ケース2: pending あり & Firestore 未確認
-        // → fetchedPost に pending の emoji を注入して表示を維持
-        // （myUid null や _feedPosts 不整合に依存しない堅牢な実装）
-        final mergedReactions = Map<String, String>.from(fetchedPost.userReactions)
-          ..[pending.uid] = pending.emoji;
-        final mergedIds = List<String>.from(fetchedPost.emojiReactedUserIds);
-        if (!mergedIds.contains(pending.uid)) mergedIds.add(pending.uid);
-        newPosts.add(fetchedPost.copyWith(
-          userReactions: mergedReactions,
-          emojiReactedUserIds: mergedIds,
-        ));
-        // pending は Firestore 確認まで保持（次の fetch で fetchedHasEmoji=true になったら削除）
-      } else if (localHasEmoji && !fetchedHasEmoji) {
-        // ケース3: ローカルで絵文字リアクション済みだが Firestore にまだ反映されていない → ローカルを優先
-        newPosts.add(localPost);
-      } else {
-        // ケース4: 変更なし → fetchedPost をそのまま使用
-        newPosts.add(fetchedPost);
-        if (_reactingPostIds.contains(fetchedPost.id)) {
-          idsToRemove.add(fetchedPost.id);
-        }
-      }
-    }
-
-    // postedFriends から userNames / userPhotos を構築
-    final names = <String, String>{};
-    final photos = <String, String?>{};
-    for (final f in homeData.postedFriends) {
-      names[f['uid'] as String] = f['username'] as String;
-      photos[f['uid'] as String] = f['photoUrl'] as String?;
-    }
-
-    // 最初の数枚の画像をプリキャッシュ
-    for (var i = 0; i < min(newPosts.length, 3); i++) {
-      if (newPosts[i].imageUrl != null) {
-        precacheImage(
-          ResizeImage(
-            CachedNetworkImageProvider(newPosts[i].imageUrl!),
-            width: 800,
-          ),
-          context,
-        );
-      }
-    }
-
-    setState(() {
-      _lastHomeData = homeData;
-      _feedPosts = newPosts;
-      _postedFriends = homeData.postedFriends;
-      _userNames = names;
-      _userPhotos = photos;
-      for (final id in idsToRemove) {
-        _reactingPostIds.remove(id);
-      }
-      for (final id in pendingToRemove) {
-        _pendingEmojis.remove(id); // Firestore 確認後に pending を削除
-      }
-    });
-
-    widget.onLoadingChanged?.call(false);
-    AnalyticsService.instance.logFriendFeedViewed();
+    // ここでの setState も不要。必要な部分は AnimatedBuilder で連動済み
   }
 
   Future<void> _sendReaction(int index, {String? emoji}) async {
@@ -312,33 +187,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // 2. 通信処理
     if (emoji != null) {
       // 絵文字は即座に送信
+      // ※ updateStream が自動的にhomeDataProviderをソフトリフレッシュするため
+      //   ref.invalidate() は不要（invalidateはUIをちらつかせる原因になる）
       try {
         _reactingPostIds.add(post.id);
         await _postService.addEmojiReaction(post.id, emoji);
-        ref.invalidate(homeDataProvider);
       } catch (e) {
-        debugPrint('[EMOJI_DEBUG] ⚠️ WRITE FAILED → ROLLBACK: $e');
-        // 書き込み失敗: 楽観的更新をロールバックしてチェックマークを取り消す
-        if (mounted) {
-          setState(() {
-            _pendingEmojis.remove(post.id); // pending も削除
-            final idx = _feedPosts.indexWhere((p) => p.id == post.id);
-            if (idx != -1) {
-              final reactions =
-                  Map<String, String>.from(_feedPosts[idx].userReactions)
-                    ..remove(myUid);
-              final ids =
-                  List<String>.from(_feedPosts[idx].emojiReactedUserIds)
-                    ..remove(myUid);
-              _feedPosts = List.from(_feedPosts)
-                ..[idx] = _feedPosts[idx].copyWith(
-                  userReactions: reactions,
-                  emojiReactedUserIds: ids,
-                );
-            }
-          });
-        }
-        ref.invalidate(homeDataProvider);
+        debugPrint('Emoji reaction error: $e');
       } finally {
         _cleanupReactionLock(post.id);
       }
@@ -346,7 +201,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       // VFIRE はデバウンス（1秒間タップが止まるまで待機）
       _pendingFlameCount++;
       _pendingFlamePostId = post.id;
-      _reactingPostIds.add(post.id); // 連打中もガードールを維持
+      _reactingPostIds.add(post.id); // 連打中もガードレールを維持
 
       _flameDebounceTimer?.cancel();
       _flameDebounceTimer = Timer(const Duration(seconds: 1), () async {
@@ -360,10 +215,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         if (postIdToSend != null && countToSend > 0) {
           try {
             await _postService.incrementFlameCount(postIdToSend, countToSend);
-            ref.invalidate(homeDataProvider);
           } catch (e) {
             debugPrint('Flame sync error: $e');
-            ref.invalidate(homeDataProvider);
           } finally {
             _cleanupReactionLock(postIdToSend);
           }
@@ -373,8 +226,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _cleanupReactionLock(String postId) {
-    // Smart Merge により、引数ベース（500ms）の強制ロック解除は原則不要となりました
-    // 一定時間（3秒）経っても同期されない場合のフェイルセーフとしてのみ機能させます
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
@@ -386,6 +237,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _openWeeklyReview() async {
+    // 画面遷移中もホームのローディング通知を送る
+    widget.onLoadingChanged?.call(true);
     try {
       final posts = await _postService.getWeeklyReviewPosts();
       final streak = await _postService.getStreak();
@@ -399,12 +252,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   WeeklyReviewScreen(posts: posts, currentStreak: streak),
         ),
       );
-    } catch (e) {
+    } on FirebaseException catch (e, stack) {
+      debugPrint('WeeklyReview Load Error (Firebase): ${e.code}\n$e\n$stack');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('読み込みに失敗しました')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('振り返りデータの取得に失敗しました (${e.code})')),
+        );
       }
+    } catch (e, stack) {
+      debugPrint('WeeklyReview Load Error (Unexpected): $e\n$stack');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('予期せぬエラーが発生しました')),
+        );
+      }
+    } finally {
+      if (mounted) widget.onLoadingChanged?.call(false);
     }
   }
 
@@ -420,144 +283,198 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final homeAsync = ref.watch(homeDataProvider);
 
-    // homeDataProvider が新しいデータを返したとき、setState 経由でスマートマージを実行する。
-    // build() 内の直接代入（副作用）を排除し、_feedPosts の更新を一本化する。
-    ref.listen<AsyncValue<HomeData>>(homeDataProvider, (prev, next) {
-      next.whenData((homeData) {
-        if (mounted) _applyHomeDataUpdate(homeData);
+    // ── UIスレッドでの実行を保証し、ローカル状態を同期 (データがある場合のみ) ──
+    homeAsync.whenData((homeData) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onLoadingChanged?.call(false);
       });
+
+      if (_lastHomeData != homeData) {
+        _postedToday = homeData.postedToday;
+        _postedFriends = homeData.postedFriends;
+        _userNames = homeData.userNames;
+        _userPhotos = homeData.userPhotos;
+        _userStreaks = homeData.userStreaks;
+        _lastHomeData = homeData;
+
+        final myUid = FirebaseAuth.instance.currentUser?.uid;
+        final newPosts = <Post>[];
+        final List<String> idsToRemove = [];
+
+        for (final fetchedPost in homeData.feedPosts) {
+          if (_reactingPostIds.contains(fetchedPost.id)) {
+            final localPost = _feedPosts.firstWhere(
+              (p) => p.id == fetchedPost.id,
+              orElse: () => fetchedPost,
+            );
+            final localHasEmoji = localPost.hasEmojiReacted(myUid);
+            final fetchedHasEmoji = fetchedPost.hasEmojiReacted(myUid);
+
+            if (localHasEmoji && !fetchedHasEmoji) {
+              newPosts.add(localPost);
+            } else {
+              newPosts.add(fetchedPost);
+              idsToRemove.add(fetchedPost.id);
+            }
+          } else {
+            newPosts.add(fetchedPost);
+          }
+        }
+        _feedPosts = newPosts;
+
+        if (idsToRemove.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                for (final id in idsToRemove) {
+                  _reactingPostIds.remove(id);
+                }
+              });
+            }
+          });
+        }
+      }
     });
 
-    return homeAsync.when(
-      loading: () => _buildHomeSkeleton(),
-      error:
-          (err, stack) => Scaffold(
-            backgroundColor: AppColors.black,
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: AppColors.accentGold,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'エラーが発生しました: $err',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => ref.invalidate(homeDataProvider),
-                    child: const Text('再試行'),
-                  ),
-                ],
+
+    return Scaffold(
+      backgroundColor: AppColors.black,
+      body: Stack(
+        children: [
+          // 1. 背景
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [AppColors.grey08, AppColors.black],
+                ),
               ),
             ),
           ),
-      data: (homeData) {
-        return Scaffold(
-          backgroundColor: AppColors.black,
-          body: Stack(
-            children: [
-              // ── 背景 ──
-              Positioned.fill(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [AppColors.grey08, AppColors.black],
-                    ),
-                  ),
-                ),
-              ),
 
-              SafeArea(
-                child: Column(
-                  children: [
-                    _buildTitleBar(),
-                    SizedBox(
-                      height: 76,
-                      child: Center(
-                        child:
-                            (DateTime.now().weekday == DateTime.saturday ||
-                                    DateTime.now().weekday == DateTime.sunday)
-                                ? WeeklyReviewBanner(onTap: _openWeeklyReview)
-                                : const SizedBox.shrink(),
-                      ),
-                    ),
-                    Expanded(
-                      child:
-                          !homeData.postedToday
-                              ? _buildGuardedState()
-                              : (_feedPosts.isEmpty
-                                  ? _buildEmptyState()
-                                  : _buildCardStack()),
-                    ),
-                  ],
-                ),
-              ),
+          // 2. メインコンテンツ
+          // ガードレール: 一度でもデータを受信したら、プロバイダーの
+          // loading/refreshing 状態に関わらず、絶対にスケルトンに戻さない。
+          // ローカル状態変数 (_postedToday, _feedPosts 等) が常に最新であり、
+          // UIの信頼できる唯一の情報源 (Single Source of Truth) として扱う。
+          if (_lastHomeData == null) ...[
+            // 初回ロード: まだ一度もデータを受信していない
+            homeAsync.when(
+              loading: () => _buildHomeSkeletonBody(),
+              error: (err, stack) => _buildErrorBody(err),
+              data: (_) => _buildMainContent(),
+            ),
+          ] else ...[
+            // データ受信済み: 常にコンテンツを表示（リフレッシュ中もちらつかない）
+            _buildMainContent(),
+          ],
 
-              // ── V-Flash 演出レイヤー ──
-              IgnorePointer(
-                child: AnimatedBuilder(
-                  animation: _flashAnimation,
-                  builder: (context, _) {
-                    if (_flashAnimation.value == 0) {
-                      return const SizedBox.shrink();
-                    }
-                    return Container(
-                      color: Colors.white.withValues(
-                        alpha: _flashAnimation.value,
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              // ── 炎のエフェクトレイヤー (最前面) ──
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: _FloatingFlamesLayer(key: _flamesKey),
-                ),
-              ),
-
-              // ── ドーパミン爆発レイヤー (最前面) ──
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: _DopamineEmojiExplosionLayer(key: _explosionKey),
-                ),
-              ),
-            ],
+          // 3. V-Flash 演出レイヤー (永続)
+          IgnorePointer(
+            child: AnimatedBuilder(
+              animation: _flashAnimation,
+              builder: (context, _) {
+                if (_flashAnimation.value == 0) return const SizedBox.shrink();
+                return Container(
+                  color: Colors.white.withValues(alpha: _flashAnimation.value),
+                );
+              },
+            ),
           ),
-        );
-      },
+
+          // 4. 炎のエフェクトレイヤー (永続)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: _FloatingFlamesLayer(key: _flamesKey),
+            ),
+          ),
+
+          // 5. ドーパミン爆発レイヤー (永続)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: _DopamineEmojiExplosionLayer(key: _explosionKey),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildHomeSkeleton() {
-    return Scaffold(
-      backgroundColor: AppColors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTitleBar(),
-            const Spacer(),
-            Center(
-              child: Container(
-                width: MediaQuery.sizeOf(context).width * 0.72,
-                height: MediaQuery.sizeOf(context).height * 0.6,
-                decoration: BoxDecoration(
-                  color: AppColors.grey10,
-                  borderRadius: BorderRadius.circular(24),
-                ),
+  Widget _buildHomeSkeletonBody() {
+    return SafeArea(
+      child: Column(
+        children: [
+          _buildTitleBar(),
+          const Spacer(),
+          Center(
+            child: Container(
+              width: MediaQuery.sizeOf(context).width * 0.72,
+              height: MediaQuery.sizeOf(context).height * 0.6,
+              decoration: BoxDecoration(
+                color: AppColors.grey10,
+                borderRadius: BorderRadius.circular(24),
               ),
             ),
-            const Spacer(),
-          ],
-        ),
+          ),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+
+  /// ローカル状態変数を使ってメインコンテンツを構築する。
+  /// プロバイダーの AsyncValue に依存しないため、リフレッシュ中もちらつかない。
+  Widget _buildMainContent() {
+    return SafeArea(
+      child: Column(
+        children: [
+          _buildTitleBar(),
+          SizedBox(
+            height: 76,
+            child: Center(
+              child: (DateTime.now().weekday == DateTime.saturday ||
+                      DateTime.now().weekday == DateTime.sunday)
+                  ? WeeklyReviewBanner(onTap: _openWeeklyReview)
+                  : const SizedBox.shrink(),
+            ),
+          ),
+          Expanded(
+            child: !_postedToday
+                ? _GuardedStateLayer(
+                    feedPosts: _feedPosts,
+                    postedFriends: _postedFriends,
+                  )
+                : (_feedPosts.isEmpty
+                    ? _buildEmptyState()
+                    : _buildCardStack()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorBody(Object err) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.accentGold, size: 48),
+          const SizedBox(height: 16),
+          Text('エラーが発生しました', style: GoogleFonts.outfit(color: Colors.white)),
+          const SizedBox(height: 8),
+          Text('$err', style: TextStyle(color: AppColors.grey50, fontSize: 12)),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.grey10,
+              foregroundColor: AppColors.white,
+            ),
+            onPressed: () => ref.invalidate(homeDataProvider),
+            child: const Text('再試行'),
+          )
+        ],
       ),
     );
   }
@@ -582,7 +499,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'まだ投稿がありません',
+            '誰もやらないなら、自分がやる。',
             style: GoogleFonts.notoSansJp(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -591,7 +508,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'フレンドを追加するか、\nみんなの投稿を待ちましょう',
+            '圧倒的な努力の証明を、今ここに。\nフィードが空なのは、あなたがトップランナーである証拠です。',
             textAlign: TextAlign.center,
             style: GoogleFonts.notoSansJp(
               fontSize: 13,
@@ -604,33 +521,402 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildGuardedState() {
+
+
+  Widget _buildCardStack() {
+    return AnimatedBuilder(
+      animation: _pageController,
+      builder: (context, child) {
+        if (_feedPosts.isEmpty) return const SizedBox.shrink();
+        final scrollPos = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final cardWidth = constraints.maxWidth * 0.85;
+            final cardHeight = cardWidth * (16 / 9);
+            final maxCardHeight = (constraints.maxHeight - 40).clamp(0.0, cardHeight);
+            final finalCardWidth = maxCardHeight * (9 / 16);
+
+            return Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                for (final i in _sortedCardIndices(scrollPos))
+                  _buildStackedCard(
+                    index: i,
+                    cardWidth: finalCardWidth,
+                    cardHeight: maxCardHeight,
+                    scrollPosition: scrollPos,
+                  ),
+
+                Positioned.fill(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    physics: const _FrictionlessPageScrollPhysics(),
+                    onPageChanged: _onPageChanged,
+                    itemBuilder: (context, index) {
+                      final actualIndex = index % _feedPosts.length;
+                      final post = _feedPosts[actualIndex];
+
+                      final myUid = FirebaseAuth.instance.currentUser?.uid;
+                      final alreadyReacted = post.hasEmojiReacted(myUid);
+
+                      return Center(
+                        child: SizedBox(
+                          width: finalCardWidth,
+                          height: maxCardHeight,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              // 1. 写真エリア（上部タップ域）
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 180,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    if (_reactionMenuOpen) {
+                                      setState(() => _reactionMenuOpen = false);
+                                      _reactionMenuController.reverse();
+                                    } else {
+                                      _sendReaction(actualIndex);
+                                    }
+                                  },
+                                  child: const SizedBox.expand(),
+                                ),
+                              ),
+                              // (以下略: 他のボタン等も必要に応じて AnimatedBuilder で参照可能)
+
+                          // 2. アバタータップエリア (中心をVFIREと合わせる: bottom 32 + text 16 + gap 16 + avatar 40 = 104 -> center 84)
+                          Positioned(
+                            bottom: 32,
+                            left: 20,
+                            width: 60,
+                            height: 72,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                final photoUrl = _userPhotos[post.userId];
+                                final username =
+                                    _userNames[post.userId] ?? 'User';
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.userProfile,
+                                  arguments: {
+                                    'uid': post.userId,
+                                    'username': username,
+                                    'photoUrl': photoUrl,
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+
+                          // 拡張リアクション エモジピルズ
+                          if (_reactionMenuOpen)
+                            Positioned(
+                              bottom: 66, // 中心を84に合わせる (height約36 / 2 = 18)
+                              right: 140, // トグルボタン(88) + 幅(44) + 余白(8) = 140 から左へ展開
+                              child: AnimatedOpacity(
+                                opacity: _reactionMenuOpen ? 1.0 : 0.0,
+                                duration: const Duration(milliseconds: 200),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.grey15
+                                        .withValues(alpha: 0.95),
+                                    borderRadius: BorderRadius.circular(30),
+                                    border: Border.all(
+                                      color: AppColors.white
+                                          .withValues(alpha: 0.1),
+                                      width: 0.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.black
+                                            .withValues(alpha: 0.3),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: _reactionEmojis.map((emoji) {
+                                      return Opacity(
+                                        opacity: alreadyReacted ? 0.4 : 1.0,
+                                        child: AbsorbPointer(
+                                          absorbing: alreadyReacted,
+                                          child: GestureDetector(
+                                            behavior: HitTestBehavior.opaque,
+                                            onTap: () {
+                                              _sendReaction(actualIndex,
+                                                  emoji: emoji);
+                                              setState(() =>
+                                                  _reactionMenuOpen = false);
+                                              _reactionMenuController.reverse();
+                                            },
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 10, vertical: 4),
+                                              child: Text(
+                                                emoji,
+                                                style:
+                                                    const TextStyle(fontSize: 24),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          // ＋ または ✓ トグルボタン
+                          Positioned(
+                            bottom: 62, // 中心を84に合わせる (44 / 2 = 22)
+                            right: 88,
+                            width: 44,
+                            height: 44,
+                            child: Opacity(
+                              opacity: alreadyReacted ? 0.7 : 1.0,
+                              child: AbsorbPointer(
+                                absorbing: alreadyReacted,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    setState(() => _reactionMenuOpen =
+                                        !_reactionMenuOpen);
+                                    if (_reactionMenuOpen) {
+                                      _reactionMenuController.forward();
+                                    } else {
+                                      _reactionMenuController.reverse();
+                                    }
+                                  },
+                                  child: AnimatedBuilder(
+                                    animation: _reactionMenuController,
+                                    builder: (context, child) =>
+                                        AnimatedRotation(
+                                      turns: _reactionMenuOpen ? 0.125 : 0.0,
+                                      duration:
+                                          const Duration(milliseconds: 220),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: AppColors.white
+                                              .withValues(alpha: 0.1),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: alreadyReacted
+                                                ? AppColors.white
+                                                    .withValues(alpha: 0.4)
+                                                : AppColors.white
+                                                    .withValues(alpha: 0.15),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          alreadyReacted
+                                              ? Icons.check_rounded
+                                              : Icons.add_rounded,
+                                          color: AppColors.white,
+                                          size: 24,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // V Fire ボタン
+                          Positioned(
+                            bottom: 32, // テキスト領域(16) + 間隔(8) + 本体(56) の中心を84に合わせる
+                            right: 20,
+                            width: 56,
+                            height: 80,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _sendReaction(actualIndex),
+                            ),
+                          ),
+
+                          // 以前表示していたリアクションアバター群は、ユーザー要望により削除
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  },
+);
+}
+
+  List<int> _sortedCardIndices(double scrollPosition) {
+    if (_feedPosts.isEmpty) return [];
+    final indices = List.generate(_feedPosts.length, (i) => i);
+    indices.sort((a, b) {
+      final halfLength = _feedPosts.length / 2.0;
+
+      double distA = (a - scrollPosition) % _feedPosts.length;
+      if (distA > halfLength) distA -= _feedPosts.length;
+      if (distA < -halfLength) distA += _feedPosts.length;
+      final depthA = distA.abs();
+
+      double distB = (b - scrollPosition) % _feedPosts.length;
+      if (distB > halfLength) distB -= _feedPosts.length;
+      if (distB < -halfLength) distB += _feedPosts.length;
+      final depthB = distB.abs();
+
+      return depthB.compareTo(depthA);
+    });
+    return indices;
+  }
+
+  Widget _buildStackedCard({
+    required int index,
+    required double cardWidth,
+    required double cardHeight,
+    required double scrollPosition,
+  }) {
+    final halfLength = _feedPosts.length / 2.0;
+    double relativePos = (index - scrollPosition) % _feedPosts.length;
+    if (relativePos > halfLength) relativePos -= _feedPosts.length;
+    if (relativePos < -halfLength) relativePos += _feedPosts.length;
+
+    final double smoothDepth = relativePos.abs();
+
+    if (smoothDepth > 3) return const SizedBox.shrink(); // パフォーマンス最適化
+
+    final double scale = (1.0 - smoothDepth * 0.05).clamp(0.8, 1.0);
+    final double offsetY = smoothDepth * -20.0;
+    final double offsetX = relativePos * cardWidth * 1.2;
+    final double dimAlpha = (smoothDepth * 0.2).clamp(0.0, 0.6);
+    final double rotateZ = relativePos * 0.1;
+
+    final post = _feedPosts[index];
+    final username = _userNames[post.userId] ?? 'Unknown';
+    final photoUrl = _userPhotos[post.userId];
+    final streak = _userStreaks[post.userId] ?? 0;
+    final tierColor = _getTierColor(streak);
+
+    return Transform.translate(
+      offset: Offset(offsetX, offsetY),
+      child: Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..rotateZ(rotateZ)
+          ..scale(scale, scale, scale),
+        child: RepaintBoundary( // パフォーマンス: カード単位でキャッシュ
+          child: SizedBox(
+            width: cardWidth,
+            height: cardHeight,
+            child: _FeedCard(
+              post: post,
+              username: username,
+              userPhotoUrl: photoUrl,
+              dimAlpha: dimAlpha,
+              onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
+              isTop: index == _focusedIndex,
+              tierColor: tierColor,
+              userPhotos: _userPhotos,
+              onProfileTap: () {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.userProfile,
+                  arguments: {
+                    'uid': post.userId,
+                    'username': username,
+                    'photoUrl': photoUrl,
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────
+// Guarded State Layer (Performance optimization)
+// ────────────────────────────────────────────
+class _GuardedStateLayer extends StatefulWidget {
+  final List<Post> feedPosts;
+  final List<Map<String, dynamic>> postedFriends;
+
+  const _GuardedStateLayer({
+    required this.feedPosts,
+    required this.postedFriends,
+  });
+
+  @override
+  State<_GuardedStateLayer> createState() => _GuardedStateLayerState();
+}
+
+class _GuardedStateLayerState extends State<_GuardedStateLayer> with TickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final AnimationController _shakeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _shakeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // ── 背面プレビュー (Blur) ──
-        if (_feedPosts.isNotEmpty)
+        if (widget.feedPosts.isNotEmpty)
           Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-              child: Opacity(
-                opacity: 0.4,
-                child: CachedNetworkImage(
-                  imageUrl: _feedPosts.first.imageUrl!,
-                  fit: BoxFit.cover,
-                  memCacheWidth: 400, // ぼかすので低解像度で十分
+            child: RepaintBoundary( // ブラー計算をキャッシュ
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                child: Opacity(
+                  opacity: 0.4,
+                  child: CachedNetworkImage(
+                    imageUrl: widget.feedPosts.first.imageUrl!,
+                    fit: BoxFit.cover,
+                    memCacheWidth: 400,
+                  ),
                 ),
               ),
             ),
           ),
 
-        // ── コンテンツ ──
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 鍵アイコン + パルスアニメーション (固定サイズでレイアウトを安定させる)
               GestureDetector(
                 onTap: () {
                   HapticFeedback.heavyImpact();
@@ -698,21 +984,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
               const SizedBox(height: 48),
 
-              // ソーシャル・プレゼンス
-              if (_postedFriends.isNotEmpty) ...[
+              if (widget.postedFriends.isNotEmpty) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
                       height: 32,
-                      width: (24.0 * _postedFriends.length.clamp(1, 5)) + 8,
+                      width: (24.0 * widget.postedFriends.length.clamp(1, 5)) + 8,
                       child: Stack(
                         children: [
-                          for (
-                            int i = 0;
-                            i < min(_postedFriends.length, 5);
-                            i++
-                          )
+                          for (int i = 0; i < min(widget.postedFriends.length, 5); i++)
                             Positioned(
                               left: i * 20.0,
                               child: Container(
@@ -726,22 +1007,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 child: CircleAvatar(
                                   radius: 14,
                                   backgroundColor: AppColors.grey20,
-                                  backgroundImage:
-                                      _postedFriends[i]['photoUrl'] != null
-                                          ? CachedNetworkImageProvider(
-                                            _postedFriends[i]['photoUrl'],
-                                          )
-                                          : null,
-                                  child:
-                                      _postedFriends[i]['photoUrl'] == null
-                                          ? Text(
-                                            _postedFriends[i]['username'][0]
-                                                .toUpperCase(),
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                            ),
-                                          )
-                                          : null,
+                                  backgroundImage: widget.postedFriends[i]['photoUrl'] != null
+                                      ? CachedNetworkImageProvider(widget.postedFriends[i]['photoUrl'])
+                                      : null,
+                                  child: widget.postedFriends[i]['photoUrl'] == null
+                                      ? Text(
+                                          widget.postedFriends[i]['username'][0].toUpperCase(),
+                                          style: const TextStyle(fontSize: 10),
+                                        )
+                                      : null,
                                 ),
                               ),
                             ),
@@ -785,360 +1059,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildCardStack() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cardWidth = constraints.maxWidth * 0.85;
-        final cardHeight = cardWidth * (16 / 9);
-        final maxCardHeight = (constraints.maxHeight - 40).clamp(
-          0.0,
-          cardHeight,
-        );
-        final finalCardWidth = maxCardHeight * (9 / 16);
-
-        return Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            for (final i in _sortedCardIndices())
-              _buildStackedCard(
-                index: i,
-                cardWidth: finalCardWidth,
-                cardHeight: maxCardHeight,
-              ),
-
-            Positioned.fill(
-              child: PageView.builder(
-                controller: _pageController,
-                physics: const _FrictionlessPageScrollPhysics(),
-                onPageChanged: _onPageChanged,
-                itemBuilder: (context, index) {
-                  if (_feedPosts.isEmpty) return const SizedBox.shrink();
-                  final actualIndex = index % _feedPosts.length;
-                  final post = _feedPosts[actualIndex];
-
-                  final myUid = FirebaseAuth.instance.currentUser?.uid;
-                  // 絵文字（VFIREの'🔥'以外）を送った場合のみチェックマークにする
-                  final alreadyReacted = post.hasEmojiReacted(myUid);
-
-                  return Center(
-                    child: SizedBox(
-                      width: finalCardWidth,
-                      height: maxCardHeight,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          // 1. 写真エリア（上部タップ域）: タップでリアクション
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 180,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                // メニューが開いているときは閉じる、そうでなければリアクション
-                                if (_reactionMenuOpen) {
-                                  setState(() => _reactionMenuOpen = false);
-                                  _reactionMenuController.reverse();
-                                } else {
-                                  _sendReaction(actualIndex);
-                                }
-                              },
-                              child: const SizedBox.expand(),
-                            ),
-                          ),
-
-                          // 2. アバタータップエリア (アイコンのみ)
-                          Positioned(
-                            bottom: 30,
-                            left: 20,
-                            width: 50,
-                            height: 50,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                final photoUrl = _userPhotos[post.userId];
-                                final username =
-                                    _userNames[post.userId] ?? 'User';
-                                Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.userProfile,
-                                  arguments: {
-                                    'uid': post.userId,
-                                    'username': username,
-                                    'photoUrl': photoUrl,
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-
-                          // 拡張リアクション エモジピルズ
-                          if (_reactionMenuOpen)
-                            Positioned(
-                              bottom: 62, // トグルボタンと高さを合わせる
-                              right:
-                                  140, // トグルボタン(88) + 幅(44) + 余白(8) = 140 から左へ展開
-                              child: AnimatedOpacity(
-                                opacity: _reactionMenuOpen ? 1.0 : 0.0,
-                                duration: const Duration(milliseconds: 200),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.grey15.withValues(
-                                      alpha: 0.95,
-                                    ),
-                                    borderRadius: BorderRadius.circular(30),
-                                    border: Border.all(
-                                      color: AppColors.white.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      width: 0.5,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppColors.black.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children:
-                                        _reactionEmojis.map((emoji) {
-                                          return Opacity(
-                                            opacity: alreadyReacted ? 0.4 : 1.0,
-                                            child: AbsorbPointer(
-                                              absorbing: alreadyReacted,
-                                              child: GestureDetector(
-                                                behavior:
-                                                    HitTestBehavior.opaque,
-                                                onTap: () {
-                                                  _sendReaction(
-                                                    actualIndex,
-                                                    emoji: emoji,
-                                                  );
-                                                  setState(
-                                                    () =>
-                                                        _reactionMenuOpen =
-                                                            false,
-                                                  );
-                                                  _reactionMenuController
-                                                      .reverse();
-                                                },
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 4,
-                                                      ),
-                                                  child: Text(
-                                                    emoji,
-                                                    style: const TextStyle(
-                                                      fontSize: 24,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                          // ＋ または ✓ トグルボタン
-                          Positioned(
-                            bottom: 62,
-                            right: 88,
-                            width: 44,
-                            height: 44,
-                            child: Opacity(
-                              opacity: alreadyReacted ? 0.7 : 1.0,
-                              child: AbsorbPointer(
-                                absorbing: alreadyReacted,
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () {
-                                    setState(
-                                      () =>
-                                          _reactionMenuOpen =
-                                              !_reactionMenuOpen,
-                                    );
-                                    if (_reactionMenuOpen) {
-                                      _reactionMenuController.forward();
-                                    } else {
-                                      _reactionMenuController.reverse();
-                                    }
-                                  },
-                                  child: AnimatedBuilder(
-                                    animation: _reactionMenuController,
-                                    builder:
-                                        (context, child) => AnimatedRotation(
-                                          turns:
-                                              _reactionMenuOpen ? 0.125 : 0.0,
-                                          duration: const Duration(
-                                            milliseconds: 220,
-                                          ),
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: AppColors.white.withValues(
-                                                alpha: 0.1,
-                                              ),
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color:
-                                                    alreadyReacted
-                                                        ? AppColors.white
-                                                            .withValues(
-                                                              alpha: 0.4,
-                                                            )
-                                                        : AppColors.white
-                                                            .withValues(
-                                                              alpha: 0.15,
-                                                            ),
-                                                width: 1,
-                                              ),
-                                            ),
-                                            child: Icon(
-                                              alreadyReacted
-                                                  ? Icons.check_rounded
-                                                  : Icons.add_rounded,
-                                              color: AppColors.white,
-                                              size: 24,
-                                            ),
-                                          ),
-                                        ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // V Fire ボタン
-                          Positioned(
-                            bottom: 56, // カウントテキスト(約20) + 間隔(6) + 基底(30)
-                            right: 20,
-                            width: 56,
-                            height: 56,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => _sendReaction(actualIndex),
-                            ),
-                          ),
-
-                          // 以前表示していたリアクションアバター群は、ユーザー要望により削除
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  List<int> _sortedCardIndices() {
-    final indices = List.generate(_feedPosts.length, (i) => i);
-    indices.sort((a, b) {
-      if (_feedPosts.isEmpty) return 0;
-      final halfLength = _feedPosts.length / 2.0;
-
-      double distA = (a - _scrollPosition) % _feedPosts.length;
-      if (distA > halfLength) distA -= _feedPosts.length;
-      if (distA < -halfLength) distA += _feedPosts.length;
-      final depthA = distA.abs();
-
-      double distB = (b - _scrollPosition) % _feedPosts.length;
-      if (distB > halfLength) distB -= _feedPosts.length;
-      if (distB < -halfLength) distB += _feedPosts.length;
-      final depthB = distB.abs();
-
-      return depthB.compareTo(depthA);
-    });
-    return indices;
-  }
-
-  Widget _buildStackedCard({
-    required int index,
-    required double cardWidth,
-    required double cardHeight,
-  }) {
-    final halfLength = _feedPosts.length / 2.0;
-    double relativePos = (index - _scrollPosition) % _feedPosts.length;
-    if (relativePos > halfLength) relativePos -= _feedPosts.length;
-    if (relativePos < -halfLength) relativePos += _feedPosts.length;
-
-    final double smoothDepth = relativePos.abs();
-
-    // Tinder/Pokepoke風のスタック
-    final scale = (1.0 - smoothDepth * 0.05).clamp(0.8, 1.0);
-    final offsetY = smoothDepth * -20.0; // 奥のカードは少し上に配置される
-    // 横方向へのスワイプ時の移動
-    final offsetX = relativePos * cardWidth * 1.2;
-
-    final dimAlpha = (smoothDepth * 0.2).clamp(0.0, 0.6); // 奥は暗く
-
-    // スワイプ中のカードは回転させる（Tinder風）
-    final rotateZ = relativePos * 0.1;
-
-    // 現在フォーカスされているカード（一番手前）からどれくらい離れているか
-    if (smoothDepth > 3) return const SizedBox.shrink(); // 3枚目以降は描画しない（軽量化）
-
-    final post = _feedPosts[index];
-    final username = _userNames[post.userId] ?? 'Unknown';
-    final photoUrl = _userPhotos[post.userId];
-    final streak = _userStreaks[post.userId] ?? 0;
-    final tierColor = _getTierColor(streak);
-
-    return Transform.translate(
-      offset: Offset(offsetX, offsetY),
-      child: Transform(
-        alignment: Alignment.center,
-        transform:
-            Matrix4.identity()
-              ..rotateZ(rotateZ)
-              ..scaleByDouble(scale, scale, scale, 1.0),
-        child: SizedBox(
-          width: cardWidth,
-          height: cardHeight,
-          child: _FeedCard(
-            post: post,
-            username: username,
-            userPhotoUrl: photoUrl,
-            dimAlpha: dimAlpha,
-            onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
-            isTop: index == _focusedIndex,
-            tierColor: tierColor,
-            userPhotos: _userPhotos,
-            onProfileTap: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.userProfile,
-                arguments: {
-                  'uid': post.userId,
-                  'username': username,
-                  'photoUrl': photoUrl,
-                },
-              );
-            },
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1248,17 +1168,21 @@ class _FeedCard extends StatelessWidget {
               top: 24,
               left: 20,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.black.withValues(alpha: 0.4),
+                  color: AppColors.grey15.withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: AppColors.white.withValues(alpha: 0.1),
                     width: 0.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.black.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Text(
                   post.taskName,
@@ -1294,7 +1218,7 @@ class _FeedCard extends StatelessWidget {
 
             // ユーザー情報とタスク情報 (Zenly-style Thought Bubble)
             Positioned(
-              bottom: 30,
+              bottom: 32, // 絶対基準線の起点
               left: 20,
               right: 20,
               child: Row(
@@ -1336,7 +1260,7 @@ class _FeedCard extends StatelessWidget {
                                 color: AppColors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                height: 1.4,
+                                height: 1.2, // 高さを制御
                               ),
                             ),
                           ),
@@ -1363,39 +1287,32 @@ class _FeedCard extends StatelessWidget {
                           onTap: onProfileTap,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: 4),
-                                child: CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: AppColors.grey20,
-                                  backgroundImage:
-                                      userPhotoUrl != null
-                                          ? ResizeImage(
-                                            CachedNetworkImageProvider(
-                                              userPhotoUrl!,
-                                            ),
-                                            width: 120,
-                                          )
-                                          : null,
-                                  child:
-                                      userPhotoUrl == null
-                                          ? Text(
-                                            username[0].toUpperCase(),
-                                            style: const TextStyle(
-                                              color: AppColors.white,
-                                              fontSize: 14,
-                                            ),
-                                          )
-                                          : null,
-                                ),
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundColor: AppColors.grey20,
+                                backgroundImage: userPhotoUrl != null
+                                    ? ResizeImage(
+                                        CachedNetworkImageProvider(userPhotoUrl!),
+                                        width: 120)
+                                    : null,
+                                child: userPhotoUrl == null
+                                    ? Text(
+                                        username[0].toUpperCase(),
+                                        style: const TextStyle(
+                                          color: AppColors.white,
+                                          fontSize: 14,
+                                        ),
+                                      )
+                                    : null,
                               ),
-                              const SizedBox(height: 8), // 間隔を詰める
-                              Padding(
-                                padding: const EdgeInsets.only(left: 4),
+                              const SizedBox(height: 14), // チェックマーク側(44px)と同期。中心を84pxに維持。
+                              SizedBox(
+                                height: 16,
                                 child: Text(
                                   username,
+                                  textAlign: TextAlign.center,
                                   style: GoogleFonts.outfit(
                                     color: AppColors.white,
                                     fontSize: 13,
@@ -1440,18 +1357,21 @@ class _FeedCard extends StatelessWidget {
                                 ),
                                 child: Icon(
                                   Icons.local_fire_department,
-                                  color: tierColor,
+                                  color: AppColors.accentGold,
                                   size: 32,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              '${post.reactionCount}',
-                              style: GoogleFonts.outfit(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.white,
+                            const SizedBox(height: 8), // 基準値
+                            SizedBox(
+                              height: 16, // 高さを固定して中心を安定させる
+                              child: Text(
+                                '${post.reactionCount}',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.white,
+                                ),
                               ),
                             ),
                           ],

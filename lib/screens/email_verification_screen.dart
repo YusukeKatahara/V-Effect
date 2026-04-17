@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../config/firebase_config.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({super.key});
@@ -37,15 +38,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Future<void> _resendEmail() async {
     setState(() => _isResending = true);
     try {
-      final actionCodeSettings = ActionCodeSettings(
-        url: 'https://veffect.firebaseapp.com/emailVerification',
-        handleCodeInApp: true,
-        androidPackageName: 'com.veffect.app.v_effect',
-        androidInstallApp: true,
-        androidMinimumVersion: '1',
-        iOSBundleId: 'com.veffect.app.vEffect',
-      );
-      await FirebaseAuth.instance.currentUser?.sendEmailVerification(actionCodeSettings);
+      await FirebaseAuth.instance.currentUser?.sendEmailVerification(FirebaseConfig.actionCodeSettings);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('認証メールを再送信しました。')),

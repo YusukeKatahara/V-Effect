@@ -14,8 +14,8 @@ class ReactionAvatarsStack extends StatelessWidget {
     required this.reactorUids,
     required this.userPhotos,
     this.reactionCount = 0,
-    this.avatarSize = 34.0,
-    this.overlapOffset = 22.0,
+    this.avatarSize = 44.0,
+    this.overlapOffset = 28.0,
   });
 
   final Map<String, String> userReactions; // uid -> 絵文字
@@ -174,7 +174,7 @@ class _ReactorAvatar extends StatelessWidget {
               ),
               child: Text(
                 emoji,
-                style: const TextStyle(fontSize: 12),
+                style: const TextStyle(fontSize: 14),
               ),
             ),
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post.dart';
 import '../models/app_task.dart';
 import '../services/block_service.dart';
@@ -14,6 +15,9 @@ class HomeData {
   final List<String> followingUids;
   final List<Post> feedPosts;
   final List<Map<String, dynamic>> postedFriends; // {uid, username, photoUrl}
+  final Map<String, String> userNames; // userId -> username
+  final Map<String, String?> userPhotos; // userId -> photoUrl
+  final Map<String, int> userStreaks; // userId -> streak
 
   HomeData({
     required this.streak,
@@ -24,6 +28,9 @@ class HomeData {
     required this.followingUids,
     required this.feedPosts,
     required this.postedFriends,
+    required this.userNames,
+    required this.userPhotos,
+    required this.userStreaks,
   });
 
   @override
@@ -38,7 +45,10 @@ class HomeData {
           _listEquals(tasks, other.tasks) &&
           _listEquals(followingUids, other.followingUids) &&
           _listEquals(feedPosts, other.feedPosts) &&
-          _listEquals(postedFriends, other.postedFriends);
+          _listEquals(postedFriends, other.postedFriends) &&
+          _mapEquals(userNames, other.userNames) &&
+          _mapEquals(userPhotos, other.userPhotos) &&
+          _mapEquals(userStreaks, other.userStreaks);
 
   @override
   int get hashCode =>
@@ -49,7 +59,10 @@ class HomeData {
       tasks.hashCode ^
       followingUids.hashCode ^
       feedPosts.hashCode ^
-      postedFriends.hashCode;
+      postedFriends.hashCode ^
+      userNames.hashCode ^
+      userPhotos.hashCode ^
+      userStreaks.hashCode;
 
   bool _listEquals(List? a, List? b) {
     if (a == null) return b == null;
@@ -59,10 +72,27 @@ class HomeData {
     }
     return true;
   }
+
+  bool _mapEquals(Map? a, Map? b) {
+    if (a == null) return b == null;
+    if (b == null || a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (a[key] != b[key]) return false;
+    }
+    return true;
+  }
 }
 
+final postUpdateProvider = StreamProvider<void>((ref) {
+  return PostService.instance.updateStream;
+});
+
 final homeDataProvider = FutureProvider<HomeData>((ref) async {
+  // PostService からの更新信号を監視。信号が届くたびにこの Provider は再実行される。
+  ref.watch(postUpdateProvider);
+  
   final postService = PostService.instance;
+  final myUid = FirebaseAuth.instance.currentUser?.uid;
   
   // 1. 基本的なホームデータ（自分のステータス、タスク、フレンドUID）を取得
   final homeDataMap = await postService.getHomeData();
@@ -74,17 +104,26 @@ final homeDataProvider = FutureProvider<HomeData>((ref) async {
       .where((uid) => !blockedUids.contains(uid))
       .toList();
 
+  // 自分のステータスも含めてフレンド情報を取得
+  final uidsToFetch = List<String>.from(friendUids);
+  if (myUid != null && !uidsToFetch.contains(myUid)) {
+    uidsToFetch.add(myUid);
+  }
+
   // 2. フィード投稿を取得
   final feedPosts = await postService.getAllFriendsPosts(friendUids, includeMe: false);
 
   // 3. フレンドの詳細情報（名前や写真）を取得
-  final friendStatuses = await postService.getFriendsListFromUids(friendUids);
+  final friendStatuses = await postService.getFriendsListFromUids(uidsToFetch);
   
   final names = <String, String>{};
   final photos = <String, String?>{};
+  final streaks = <String, int>{};
   for (final f in friendStatuses) {
-    names[f['uid']] = f['username'] as String;
-    photos[f['uid']] = f['photoUrl'] as String?;
+    final uid = f['uid'] as String;
+    names[uid] = f['username'] as String;
+    photos[uid] = f['photoUrl'] as String?;
+    streaks[uid] = (f['streak'] as num?)?.toInt() ?? 0;
   }
 
   // 4. 投稿済みのフレンドを抽出
@@ -111,5 +150,8 @@ final homeDataProvider = FutureProvider<HomeData>((ref) async {
     followingUids: friendUids,
     feedPosts: feedPosts,
     postedFriends: postedFriends,
+    userNames: names,
+    userPhotos: photos,
+    userStreaks: streaks,
   );
 });

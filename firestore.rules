@@ -66,9 +66,12 @@ service cloud.firestore {
         && resource.data.toUid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
 
-      // 通知削除: 自分宛ての通知のみ（ユーザーが通知を消す）
+      // 通知削除:
+      //   - 自分宛ての通知（ユーザーが通知を消す）
+      //   - 自分が送った通知（リアクション通知の集約・上書きのため）
       allow delete: if request.auth != null
-        && resource.data.toUid == request.auth.uid;
+        && (resource.data.toUid == request.auth.uid
+            || resource.data.fromUid == request.auth.uid);
     }
 
     // ────────────────────────────────────────

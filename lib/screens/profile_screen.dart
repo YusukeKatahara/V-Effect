@@ -85,24 +85,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  /// 完了から24時間経過したワンタイムタスクを自動削除する
+  /// 完了日が昨日以前のワンタイムタスクを自動削除する
   Future<void> _checkAndCleanupOneTimeTasks(AppUser user) async {
-    final now = DateTime.now();
-    final expiredTasks = user.tasks.where((task) {
-      if (!task.isOneTime || task.completedAt == null) return false;
-      // 完了から24時間以上経過しているかチェック
-      return now.difference(task.completedAt!).inHours >= 24;
-    }).toList();
-
-    if (expiredTasks.isNotEmpty) {
-      final updatedTasks = user.tasks.where((task) {
-        if (!task.isOneTime || task.completedAt == null) return true;
-        return now.difference(task.completedAt!).inHours < 24;
-      }).toList();
-
-      await _userService.updateProfile(tasks: updatedTasks);
-      debugPrint('${expiredTasks.length}個のワンタイムタスクを期限切れのため削除しました');
-    }
+    await _userService.cleanupExpiredTasks(user);
   }
 
   // ---── 時刻設定の変更 ──

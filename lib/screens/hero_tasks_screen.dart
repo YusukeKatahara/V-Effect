@@ -205,7 +205,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           // 24時間経過後に削除されるタイミングなので、ユーザーが画面を開いた瞬間に消えるので
           // 取得済みの allTasks からフィルタリングして即時反映する
           final now = DateTime.now();
-          allTasks.removeWhere((t) => t.isOneTime && t.completedAt != null && now.difference(t.completedAt!).inHours >= 24);
+          final startOfToday = DateTime(now.year, now.month, now.day);
+          allTasks.removeWhere((t) => t.isOneTime && t.completedAt != null && t.completedAt!.isBefore(startOfToday));
         }
       }
 
@@ -1262,7 +1263,7 @@ class _TaskCard extends StatelessWidget {
         if (isCompleted && depth == 0) ...[
           // V FIRE ボタン (本体 + カウントテキスト)
           Positioned(
-            bottom: 30,
+            bottom: 32,
             right: 20,
             child: IgnorePointer(
               child: Column(
@@ -1275,7 +1276,7 @@ class _TaskCard extends StatelessWidget {
                       color: AppColors.white.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.accentGold.withValues(alpha: 0.3),
+                        color: AppColors.white.withValues(alpha: 0.1),
                         width: 1,
                       ),
                     ),
@@ -1285,13 +1286,16 @@ class _TaskCard extends StatelessWidget {
                       size: 32,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '${item.completedPost?.reactionCount ?? 0}',
-                    style: GoogleFonts.outfit(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.white,
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 16,
+                    child: Text(
+                      '${item.completedPost?.reactionCount ?? 0}',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -1303,7 +1307,7 @@ class _TaskCard extends StatelessWidget {
           if (item.completedPost != null &&
               (item.completedPost!.reactionCount > 0))
             Positioned(
-              bottom: 41, // VFIRE(56+12+20)＝88 の下から、アバター(34)の中心と炎(56)の中心を合わせるための微調整
+              bottom: 62,  // Y=84pxの中心に合わせる (44px / 2 = 22)
               right: 88,  // VFIRE(56+20) + 余白(12) = 88
               child: IgnorePointer(
                 child: ReactionAvatarsStack(
@@ -1311,8 +1315,8 @@ class _TaskCard extends StatelessWidget {
                   reactorUids: item.completedPost!.emojiReactedUserIds,
                   userPhotos: userPhotos,
                   reactionCount: item.completedPost!.reactionCount,
-                  avatarSize: 34,
-                  overlapOffset: 22,
+                  avatarSize: 44,
+                  overlapOffset: 28,
                 ),
               ),
             ),
