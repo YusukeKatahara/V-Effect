@@ -57,10 +57,13 @@ class PostService {
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
 
-    // ユーザー情報と投稿を並列で取得
+    // ユーザー情報と投稿を並列で取得（投稿は過去24時間以内の期限切れでないものに限定して高速化）
     final results = await Future.wait([
       _db.collection('users').doc(uid).get(),
-      _postsRef.where(Post.fieldUserId, isEqualTo: uid).get(),
+      _postsRef
+          .where(Post.fieldUserId, isEqualTo: uid)
+          .where('expiresAt', isGreaterThan: now)
+          .get(),
     ]);
 
     final snap = results[0] as DocumentSnapshot;

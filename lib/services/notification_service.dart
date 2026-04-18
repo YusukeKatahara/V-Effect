@@ -221,10 +221,17 @@ class NotificationService {
         .collection('notifications')
         .where('toUid', isEqualTo: uid)
         .where('type', isEqualTo: type.name)
-        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
-        .limit(1)
         .get();
-    if (existing.docs.isNotEmpty) return;
+
+    final alreadyCreated = existing.docs.any((doc) {
+      final createdAt = doc.data()['createdAt'];
+      if (createdAt is Timestamp) {
+        return createdAt.toDate().isAfter(todayStart);
+      }
+      return false; // null などの場合（ローカルの書き込み待ちなど）
+    });
+
+    if (alreadyCreated) return;
 
     await createNotification(
       toUid: uid,
