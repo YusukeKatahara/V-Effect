@@ -4,6 +4,7 @@ import '../models/app_user.dart';
 import '../models/friend_request.dart';
 import '../services/friend_service.dart';
 import '../widgets/section_title.dart';
+import '../widgets/swipe_back_gate.dart';
 
 /// フレンドリスト + フレンド検索・リクエスト画面
 /// 上部にフレンド検索、中部に受信リクエスト、下部にフレンドリストを表示します
@@ -153,7 +154,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SwipeBackGate(
+      child: Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         title: const Text('フレンド'),
@@ -430,6 +432,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
             },
           ),
         ],
+      ),
       ),
     );
   }

@@ -30,7 +30,6 @@ class UserService {
     required String userId,
     required String birthDate,
     required String gender,
-    required String wakeUpTime,
     required String taskTime,
     required String occupation,
   }) async {
@@ -64,7 +63,6 @@ class UserService {
         'email': email,
         'birthDate': birthDate,
         'gender': gender,
-        'wakeUpTime': wakeUpTime,
         'taskTime': taskTime,
         'occupation': occupation,
         'showTimestamp': true,
@@ -96,7 +94,6 @@ class UserService {
   /// tasks は公開、wakeUpTime/taskTime は非公開
   Future<void> saveTaskSettings({
     required List<AppTask> tasks,
-    required String wakeUpTime,
     required String taskTime,
     String? photoUrl,
   }) async {
@@ -121,7 +118,6 @@ class UserService {
     batch.set(
       _db.collection('users').doc(uid).collection('private').doc('data'),
       {
-        'wakeUpTime': wakeUpTime,
         'taskTime': taskTime,
       },
       SetOptions(merge: true),
@@ -164,7 +160,6 @@ class UserService {
     String? username,
     String? userId,
     String? birthDate,
-    String? wakeUpTime,
     String? taskTime,
     String? photoUrl,
     List<AppTask>? tasks,
@@ -200,7 +195,6 @@ class UserService {
     // 非公開情報の更新
     final privateData = <String, dynamic>{};
     if (birthDate != null) privateData['birthDate'] = birthDate;
-    if (wakeUpTime != null) privateData['wakeUpTime'] = wakeUpTime;
     if (taskTime != null) privateData['taskTime'] = taskTime;
     if (showTimestamp != null) privateData['showTimestamp'] = showTimestamp;
 

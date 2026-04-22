@@ -110,11 +110,14 @@ final homeDataProvider = FutureProvider<HomeData>((ref) async {
     uidsToFetch.add(myUid);
   }
 
-  // 2. フィード投稿を取得
-  final feedPosts = await postService.getAllFriendsPosts(friendUids, includeMe: false);
+  // 2. フィード投稿とフレンドの詳細情報を一括（並列）で取得して高速化
+  final parallelResults = await Future.wait([
+    postService.getAllFriendsPosts(friendUids, includeMe: false),
+    postService.getFriendsListFromUids(uidsToFetch),
+  ]);
 
-  // 3. フレンドの詳細情報（名前や写真）を取得
-  final friendStatuses = await postService.getFriendsListFromUids(uidsToFetch);
+  final feedPosts = parallelResults[0] as List<Post>;
+  final friendStatuses = parallelResults[1] as List<Map<String, dynamic>>;
   
   final names = <String, String>{};
   final photos = <String, String?>{};

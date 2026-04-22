@@ -20,6 +20,8 @@ import '../widgets/streak_flame.dart';
 import '../widgets/v_effect_header.dart';
 import 'camera_screen.dart';
 import '../widgets/reaction_avatars.dart';
+import '../widgets/entropic_conversion_overlay.dart';
+import '../widgets/post_success_dialog.dart';
 
 /// 内部管理用のタスクアイテム
 class _HeroTaskItem {
@@ -59,10 +61,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   int? _expandedIndex; // 長押しで拡大中のカードインデックス
   final Map<String, String?> _userPhotos = {};
   final Map<String, String> _userNames = {};
-
-  // ── Zen Mode ──
-  late final AnimationController _zenController;
-  late final Animation<double> _zenGlow;
 
   // ── Sublimation ──
   late final AnimationController _sublimationController;
@@ -107,15 +105,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     _loadData().then((_) {
       _checkAndShowTutorial();
     });
-
-    _zenController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    );
-    _zenGlow = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _zenController, curve: Curves.easeInOut));
 
     _sublimationController = AnimationController(
       vsync: this,
@@ -178,7 +167,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     _updateSubscription?.cancel();
     _userUpdateSubscription?.cancel();
     _pageController.dispose();
-    _zenController.dispose();
     _sublimationController.dispose();
     super.dispose();
   }
@@ -263,10 +251,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         _loading = false;
       });
       widget.onLoadingChanged?.call(false);
-
-      if (_isAllTasksCompleted && allTasks.isNotEmpty) {
-        _zenController.repeat(reverse: true);
-      }
 
       _analytics.setStreakTier(_streak);
       _analytics.setTaskCount(_taskItems.length);
@@ -399,22 +383,26 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   Future<void> _selectHeroTask(int index) async {
     HapticFeedback.lightImpact();
 
-    final posted = await Navigator.push<bool>(
+    final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
         builder: (_) => CameraScreen(heroTaskName: _taskItems[index].name),
       ),
     );
 
-    if (posted == true && mounted) {
-      // 演出のために、一時的にアイテムを「完了」状態にする
+    if (result != null && result['posted'] == true && mounted) {
+      final String? localImagePath = result['imagePath'] as String?;
+      final int newStreak = result['newStreak'] as int;
+      final bool isRecordUpdating = result['isRecordUpdating'] as bool;
+
+      // 1. 一時的に「完了」状態にしてUI上の反映漏れを防ぐ
       final originalItem = _taskItems[index];
       _taskItems[index] = _HeroTaskItem(
         name: originalItem.name,
         completedPost: Post(
           id: 'temp',
           userId: 'temp',
-          imageUrl: null,
+          imageUrl: null, // まだURLはないが、後続の演出でlocalImagePathを使う
           taskName: originalItem.name,
           reactionCount: 0,
           emojiReactedUserIds: const [],
@@ -425,16 +413,32 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
       setState(() {
         _heroIndex = index;
-        _isSublimating = true;
         _postedToday = true;
+        _isSublimating = true;
       });
 
-      _playVictoryHaptics();
-      await _sublimationController.forward();
-      _sublimationController.reset();
+      // 2. 再誕の V-Entropic 演出を実行
+      await EntropicConversionOverlay.show(
+        context,
+        finishedImagePath: localImagePath,
+        taskName: originalItem.name,
+      );
 
       if (mounted) {
-        setState(() => _isSublimating = false);
+        setState(() {
+          _isSublimating = false;
+        });
+      }
+
+      // 3. 演出完了後に結果ダイアログを表示
+      if (mounted) {
+        await PostSuccessDialog.show(
+          context,
+          streakDays: newStreak,
+          isRecordUpdating: isRecordUpdating,
+        );
+        
+        // 4. 最後にデータを最新化して、NetworkImageなどへの切り替えを完了させる
         await _loadData();
         await _checkAndShowPostTutorial();
       }
@@ -492,9 +496,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                   ),
                 ),
                 Expanded(
-                  child: _isAllTasksCompleted && !_isSublimating
-                      ? _buildZenMode()
-                      : _buildCardStack(),
+                  child: _buildCardStack(),
                 ),
               ],
             ),
@@ -620,8 +622,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     );
   }
 
-  Widget _buildTitleBar() => const VEffectHeader(
-        trailing: NotificationBellIcon(),
+  Widget _buildTitleBar() => VEffectHeader(
+        trailing: const NotificationBellIcon(),
+        hideLogo: _isSublimating,
       );
 
   Widget _buildStreakRow() {
@@ -723,11 +726,11 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           valueListenable: _scrollPositionNotifier,
           builder: (context, scrollPos, _) {
             final sortedIndices = _sortedCardIndices(scrollPos);
-            // 描画負荷軽減：手前にある一定数（最大8枚）のカードのみ描画
+            // 描画負荷軽減：手前にある一定数（最大5枚）のカードのみ描画
             // ※sortedIndicesは奥から順に並んでいる（Stack用）
             final visibleIndices =
-                sortedIndices.length > 8
-                    ? sortedIndices.sublist(sortedIndices.length - 8)
+                sortedIndices.length > 5
+                    ? sortedIndices.sublist(sortedIndices.length - 5)
                     : sortedIndices;
 
             return Stack(
@@ -861,33 +864,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     return AnimatedBuilder(
       animation: _sublimation,
       builder: (context, child) {
-        double currentOpacity = 1.0;
+        double currentOpacity = (_isSublimating && index == _heroIndex) ? 0.0 : 1.0;
         double currentScale = scale;
         double currentAngle = isExpanded ? 0.0 : fanAngleRad;
         double currentSublimateY = 0;
-
-        if (_isSublimating && _heroIndex != null) {
-          final t = _sublimation.value;
-          if (index == _heroIndex) {
-            // Hero card centers and stays briefly
-            double moveT = (t / 0.2).clamp(0.0, 1.0); // 0.4s for centering
-            double returnT = ((t - 0.75) / 0.25).clamp(0.0, 1.0); // 1.5s-2.0s for returning
-            
-            currentAngle = fanAngleRad * (1.0 - moveT) + fanAngleRad * returnT;
-            // 0.9倍から1.08倍程度まで一気に拡大することで達成感を強調
-            currentScale = scale + (moveT * (1.08 - scale)) - (returnT * (1.08 - scale));
-            currentOpacity = 1.0;
-          } else {
-            // Other cards exit and then return
-            double exitT = ((t - 0.1) / 0.3).clamp(0.0, 1.0); // 0.2s-0.8s
-            double returnT = ((t - 0.75) / 0.25).clamp(0.0, 1.0); // 1.5s-2.0s
-            
-            currentAngle = fanAngleRad * (1.0 + exitT * 1.5 - returnT * 1.5);
-            currentSublimateY = (-exitT * 600 + returnT * 600) - (smoothDepth * 40 * exitT);
-            currentOpacity = (1.0 - exitT * 1.5 + returnT * 1.5).clamp(0.0, 1.0);
-            currentScale = scale * (1.0 + exitT * 0.15 - returnT * 0.15);
-          }
-        }
 
         if (currentOpacity <= 0) return const SizedBox.shrink();
 
@@ -903,134 +883,44 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           ),
         );
       },
-      child: RepaintBoundary(
-        child: SizedBox(
-          width: cardWidth,
-          height: cardHeight,
-          child: _TaskCard(
-            item: item,
-            index: index + 1,
-            total: total,
-            depth: smoothDepth.round(),
-            dimAlpha: dimAlpha,
-            showCamera:
-                !item.isCompleted && !_isSublimating && index == _focusedIndex,
-            tierColor: _getTierColor(_streak),
-            isExpanded: isExpanded,
-            userPhotos: _userPhotos,
-            onDelete:
-                item.completedPost != null
-                    ? () => _deleteHeroPost(item.completedPost!.id)
-                    : null,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          RepaintBoundary(
+            child: SizedBox(
+              width: cardWidth,
+              height: cardHeight,
+              child: _TaskCard(
+                item: item,
+                index: index + 1,
+                total: total,
+                depth: smoothDepth.round(),
+                showCamera:
+                    !item.isCompleted && !_isSublimating && index == _focusedIndex,
+                tierColor: _getTierColor(_streak),
+                isExpanded: isExpanded,
+                userPhotos: _userPhotos,
+                onDelete:
+                    item.completedPost != null
+                        ? () => _deleteHeroPost(item.completedPost!.id)
+                        : null,
+              ),
+            ),
           ),
-        ),
+          if (dimAlpha > 0 && !isExpanded)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.black.withValues(alpha: dimAlpha),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
-  }
-
-  Widget _buildZenMode() {
-    return RepaintBoundary(
-      child: AnimatedBuilder(
-      animation: _zenGlow,
-      builder: (context, _) {
-        final glow = _zenGlow.value;
-        final glowSize = 180 + glow * 60;
-        final glowAlpha = 0.06 + glow * 0.08;
-
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: glowSize,
-                height: glowSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.white.withValues(alpha: glowAlpha),
-                      blurRadius: 100 + glow * 40,
-                      spreadRadius: 20 + glow * 20,
-                    ),
-                  ],
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        AppColors.white.withValues(alpha: 0.12 + glow * 0.06),
-                        AppColors.white.withValues(alpha: 0.03),
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.5, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-              ShaderMask(
-                shaderCallback:
-                    (bounds) => const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [AppColors.white, AppColors.grey70],
-                    ).createShader(bounds),
-                child: Text(
-                  '$_streak',
-                  style: GoogleFonts.outfit(
-                    fontSize: 96,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.white,
-                    height: 1,
-                    letterSpacing: -4,
-                  ),
-                ),
-              ),
-              Text(
-                'Day Streak',
-                                style: GoogleFonts.outfit(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.grey50,
-                  letterSpacing: 4,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _username.isNotEmpty ? _username : '',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.grey30,
-                  letterSpacing: 1,
-                ),
-              ),
-              const SizedBox(height: 40),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.grey20, width: 1),
-                ),
-                child: Text(
-                  'ALL CLEAR',
-                  style: GoogleFonts.outfit(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.grey50,
-                    letterSpacing: 3,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    ),  // AnimatedBuilder
-    );  // RepaintBoundary
   }
 }
 
@@ -1039,7 +929,6 @@ class _TaskCard extends StatelessWidget {
   final int index;
   final int total;
   final int depth;
-  final double dimAlpha;
   final bool showCamera;
   final Color tierColor;
   final bool isExpanded;
@@ -1051,7 +940,6 @@ class _TaskCard extends StatelessWidget {
     required this.index,
     required this.total,
     required this.depth,
-    required this.dimAlpha,
     required this.showCamera,
     required this.tierColor,
     required this.isExpanded,
@@ -1112,23 +1000,17 @@ class _TaskCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: AppColors.black.withValues(alpha: isTop ? 0.6 : 0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: isTop ? 20 : 10,
+            offset: Offset(0, isTop ? 10 : 5),
             spreadRadius: -2,
           ),
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: isTop ? 0.4 : 0.1),
-            blurRadius: 50,
-            offset: const Offset(0, 24),
-            spreadRadius: -4,
-          ),
-          if (isTop)
+          if (isTop) // 二重の重いシャドウは最前面のみにし、ぼかしを軽減
             BoxShadow(
               color: isCompleted
-                  ? AppColors.accentGold.withValues(alpha: 0.35)
+                  ? AppColors.accentGold.withValues(alpha: 0.3)
                   : tierColor.withValues(alpha: 0.04),
-              blurRadius: isCompleted ? 50 : 80,
-              spreadRadius: isCompleted ? 4 : 2,
+              blurRadius: 30, // 以前は80など過剰だったため30に制限
+              spreadRadius: 2,
             ),
         ],
       ),
@@ -1143,13 +1025,6 @@ class _TaskCard extends StatelessWidget {
     final isCompleted = item.isCompleted;
     return Stack(
       children: [
-        if (dimAlpha > 0 && !isExpanded)
-          Positioned.fill(
-            child: ColoredBox(
-              color: AppColors.black.withValues(alpha: dimAlpha),
-            ),
-          ),
-
         // テキスト上部エリア（カメラは別レイヤー）
         Padding(
           padding: const EdgeInsets.fromLTRB(40, 40, 40, 120),

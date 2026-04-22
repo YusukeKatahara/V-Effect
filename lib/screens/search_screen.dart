@@ -5,6 +5,7 @@ import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/friend_service.dart';
 import '../providers/following_provider.dart';
+import '../widgets/swipe_back_gate.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -98,8 +99,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final followingAsync = ref.watch(followingProvider);
     final followingUids = followingAsync.value?.map((u) => u.uid).toSet() ?? {};
 
-    return Scaffold(
-      backgroundColor: AppColors.bgBase,
+    return SwipeBackGate(
+      child: Scaffold(
+        backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
         surfaceTintColor: Colors.transparent,
@@ -221,6 +223,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             );
                           },
                         ),
+      ),
     );
   }
 }

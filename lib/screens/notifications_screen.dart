@@ -6,6 +6,7 @@ import '../models/app_user.dart';
 import '../services/notification_service.dart';
 import '../services/friend_service.dart';
 import '../utils/date_helper.dart';
+import '../widgets/swipe_back_gate.dart';
 
 /// 通知画面
 class NotificationsScreen extends StatefulWidget {
@@ -36,8 +37,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.person_add;
       case NotificationType.friendRequestAccepted:
         return Icons.how_to_reg;
-      case NotificationType.wakeUpReminder:
-        return Icons.alarm;
       case NotificationType.taskReminder:
         return Icons.schedule;
       case NotificationType.reactionReceived:
@@ -53,8 +52,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return AppColors.grey70;
       case NotificationType.friendRequestAccepted:
         return AppColors.white;
-      case NotificationType.wakeUpReminder:
-        return AppColors.grey85;
       case NotificationType.taskReminder:
         return AppColors.white;
       case NotificationType.reactionReceived:
@@ -259,13 +256,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onHorizontalDragEnd: (details) {
-        // 左から右へのスワイプ（速度 600以上）で前の画面に戻る
-        if (details.primaryVelocity != null && details.primaryVelocity! > 600) {
-          Navigator.pop(context);
-        }
-      },
+    return SwipeBackGate(
       child: Scaffold(
         backgroundColor: AppColors.bgBase,
         appBar: AppBar(
@@ -469,7 +460,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         },
       ),
     ),
-  );
+    );
   }
 
   /// 通知本文をリッチテキストで構築（特定のキーワードを太字やゴールドにする）

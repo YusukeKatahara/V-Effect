@@ -12,6 +12,7 @@ import 'dart:io';
 import '../config/app_colors.dart';
 import '../models/post.dart';
 import '../providers/weekly_review_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 今週の振り返りをストーリー形式で表示する画面
@@ -33,13 +34,16 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
     with SingleTickerProviderStateMixin {
   // 表示用データ
   List<Post> _posts = [];
+  List<Post> _imagePosts = [];
   int _currentStreak = 0;
   bool _isDataInitialized = false;
+  int _selectedImageIndex = 0;
 
   late PageController _pageController;
   Timer? _autoTimer;
   final GlobalKey _summaryKey = GlobalKey();
   bool _isSharing = false;
+  bool _isAnimating = false;
 
   // ひっぱり（Pull-to-dismiss）用の状態
   double _dragOffset = 0;
@@ -51,6 +55,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
     super.initState();
     if (widget.posts != null && widget.currentStreak != null) {
       _posts = widget.posts!;
+      _imagePosts = _posts.where((p) => p.imageUrl != null).toList();
       _currentStreak = widget.currentStreak!;
       _isDataInitialized = true;
     }
@@ -87,15 +92,20 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
   }
 
   void _goNext() {
-    if (_pageController.hasClients) {
-      final nextPage = _pageController.page!.round() + 1;
+    if (_pageController.hasClients && !_isAnimating) {
       final totalPages = _posts.length + 1;
+      final currentPage = _pageController.page?.round() ?? 0;
+      final nextPage = currentPage + 1;
+      
       if (nextPage < totalPages) {
+        setState(() => _isAnimating = true);
         _pageController.animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOut,
-        );
+        ).then((_) {
+          if (mounted) setState(() => _isAnimating = false);
+        });
       } else {
         _autoTimer?.cancel();
       }
@@ -103,14 +113,19 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
   }
 
   void _goPrev() {
-    if (_pageController.hasClients) {
-      final prevPage = _pageController.page!.round() - 1;
+    if (_pageController.hasClients && !_isAnimating) {
+      final currentPage = _pageController.page?.round() ?? 0;
+      final prevPage = currentPage - 1;
+      
       if (prevPage >= 0) {
+        setState(() => _isAnimating = true);
         _pageController.animateToPage(
           prevPage,
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOut,
-        );
+        ).then((_) {
+          if (mounted) setState(() => _isAnimating = false);
+        });
       } else {
         Navigator.pop(context);
       }
@@ -125,12 +140,13 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
       final boundary = _summaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return;
 
+      // Strava-style images are vertically long, so ensure we capture enough quality
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
 
       final directory = await getTemporaryDirectory();
-      final path = '${directory.path}/weekly_review.png';
+      final path = '${directory.path}/v_effect_review_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File(path);
       await file.writeAsBytes(pngBytes);
 
@@ -162,6 +178,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
         ),
         data: (data) {
           _posts = data.posts;
+          _imagePosts = _posts.where((p) => p.imageUrl != null).toList();
           _currentStreak = data.streak;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && !_isDataInitialized) {
@@ -220,26 +237,40 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
                             final bool isCurrent = i == currentPage;
 
                             return Expanded(
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                margin: const EdgeInsets.symmetric(horizontal: 2),
-                                height: isCurrent ? 4 : 3,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(2),
-                                  color: isCurrent
-                                      ? AppColors.accentGold
-                                      : (isPassed
-                                          ? AppColors.white
-                                          : AppColors.white.withValues(alpha: 0.2)),
-                                  boxShadow: isCurrent
-                                      ? [
-                                          BoxShadow(
-                                            color: AppColors.accentGold.withValues(alpha: 0.6),
-                                            blurRadius: 8,
-                                            spreadRadius: 1,
-                                          )
-                                        ]
-                                      : null,
+                              child: GestureDetector(
+                                onTap: () {
+                                  _pageController.animateToPage(
+                                    i,
+                                    duration: const Duration(milliseconds: 400),
+                                    curve: Curves.easeInOut,
+                                  );
+                                },
+                                child: Container(
+                                  // Add vertical padding to increase hit target
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  color: Colors.transparent, 
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                                    height: isCurrent ? 4 : 3,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(2),
+                                      color: isCurrent
+                                          ? AppColors.accentGold
+                                          : (isPassed
+                                              ? AppColors.white
+                                              : AppColors.white.withValues(alpha: 0.2)),
+                                      boxShadow: isCurrent
+                                          ? [
+                                              BoxShadow(
+                                                color: AppColors.accentGold.withValues(alpha: 0.6),
+                                                blurRadius: 8,
+                                                spreadRadius: 1,
+                                              )
+                                            ]
+                                          : null,
+                                    ),
+                                  ),
                                 ),
                               ),
                             );
@@ -248,25 +279,66 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
                       ),
                       // Main Content
                       Expanded(
-                        child: PageView.builder(
-                          controller: _pageController,
-                          itemCount: totalPages,
-                          onPageChanged: (index) {
-                            setState(() {});
-                            if (index >= _posts.length) {
-                              _autoTimer?.cancel();
-                              HapticFeedback.mediumImpact();
-                            } else {
-                              _resetAutoTimer();
-                            }
-                          },
-                          itemBuilder: (context, index) {
-                            if (index < _posts.length) {
-                              return _buildStoryView(_posts[index]);
-                            } else {
-                              return _buildSummaryView();
-                            }
-                          },
+                        child: Stack(
+                          children: [
+                            PageView.builder(
+                              controller: _pageController,
+                              itemCount: totalPages,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _isAnimating = false; // Reset just in case
+                                });
+                                if (index >= _posts.length) {
+                                  _autoTimer?.cancel();
+                                  HapticFeedback.mediumImpact();
+                                } else {
+                                  _resetAutoTimer();
+                                }
+                              },
+                              itemBuilder: (context, index) {
+                                if (index < _posts.length) {
+                                  return _buildStoryView(_posts[index]);
+                                } else {
+                                  return _buildSummaryView();
+                                }
+                              },
+                            ),
+                            // Global Tap Zones for navigation (fixes hittest issues during transitions)
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: _goPrev, 
+                                    behavior: HitTestBehavior.translucent, 
+                                    child: const SizedBox.expand(),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: _goNext,
+                                    onDoubleTap: () {
+                                      _pageController.animateToPage(
+                                        _posts.length,
+                                        duration: const Duration(milliseconds: 600),
+                                        curve: Curves.easeInOut,
+                                      );
+                                    },
+                                    behavior: HitTestBehavior.translucent, 
+                                    child: const SizedBox.expand(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            // Global Close Button
+                            Positioned(
+                              top: 0,
+                              right: 8,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, color: AppColors.white, size: 32),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -381,124 +453,162 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
             ),
           ),
         ),
-        // Tap zones
-        Row(
-          children: [
-            Expanded(child: GestureDetector(onTap: _goPrev, behavior: HitTestBehavior.translucent, child: const SizedBox.expand())),
-            Expanded(child: GestureDetector(onTap: _goNext, behavior: HitTestBehavior.translucent, child: const SizedBox.expand())),
-          ],
-        ),
-        Positioned(
-          top: 0,
-          right: 8,
-          child: IconButton(
-            icon: const Icon(Icons.close, color: AppColors.white, size: 32),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
       ],
     );
   }
 
   Widget _buildSummaryView() {
     return Stack(
-      fit: StackFit.expand,
       children: [
-        Center(
-          child: RepaintBoundary(
-            key: _summaryKey,
-            child: Container(
-              width: MediaQuery.sizeOf(context).width,
-              height: MediaQuery.sizeOf(context).height * 0.8,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.bgElevated,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.3), width: 2),
-                boxShadow: [
-                  BoxShadow(color: AppColors.accentGold.withValues(alpha: 0.1), blurRadius: 40, spreadRadius: 10),
-                ],
-              ),
+        Column(
+          children: [
+            Expanded(
               child: Stack(
                 children: [
-                  Positioned(
-                    top: -50,
-                    right: -50,
-                    child: Icon(Icons.workspace_premium, size: 200, color: AppColors.white.withValues(alpha: 0.05)),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Text(
-                          'WEEKLY\nREVIEW',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 4,
-                            color: AppColors.white,
-                            height: 1.1,
+                  Center(
+                    child: AspectRatio(
+                      aspectRatio: 9 / 16,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                        child: RepaintBoundary(
+                          key: _summaryKey,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                // Background Image or Gradient
+                                if (_imagePosts.isNotEmpty && _selectedImageIndex < _imagePosts.length)
+                                  CachedNetworkImage(
+                                    imageUrl: _imagePosts[_selectedImageIndex].imageUrl!,
+                                    fit: BoxFit.cover,
+                                    placeholder: (ctx, url) => Container(color: AppColors.grey10),
+                                  )
+                                else
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: AppColors.cardGradient,
+                                    ),
+                                  ),
+                                
+                                // Scrim/Overlay for readability
+                                Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.black.withValues(alpha: 0.6),
+                                        Colors.transparent,
+                                        Colors.transparent,
+                                        Colors.black.withValues(alpha: 0.7),
+                                      ],
+                                      stops: const [0.0, 0.3, 0.6, 1.0],
+                                    ),
+                                  ),
+                                ),
+
+                                // Content
+                                Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Logo centered horizontally
+                                      Center(child: _buildLogo()),
+                                      const Spacer(),
+                                      // Stats (Normalized Data Fields)
+                                      Row(
+                                        children: [
+                                          _buildStravaStat('WEEKLY COMPLETED', '${_posts.length}', 'TASKS'),
+                                          const SizedBox(width: 32),
+                                          _buildStravaStat('CURRENT STREAK', '$_currentStreak', 'DAYS'),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 48),
-                        _buildStatCard('🔥 今週の完了数', '${_posts.length}', 'TASKS'),
-                        const SizedBox(height: 16),
-                        _buildStatCard('👑 現在のストリーク', '$_currentStreak', 'DAYS'),
-                        const Spacer(),
-                        const Text(
-                          'Keep the winning streak alive.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.accentGold,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          '#VEffect',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textMuted,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ),
-        Row(
-          children: [
-            Expanded(child: GestureDetector(onTap: _goPrev, behavior: HitTestBehavior.translucent, child: const SizedBox.expand())),
-            Expanded(child: GestureDetector(onTap: () {}, behavior: HitTestBehavior.translucent, child: const SizedBox.expand())),
+
+            // Controls Area (Not captured in share)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_imagePosts.length > 1) ...[
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 4, bottom: 8),
+                        child: Text(
+                          '背景カードを選ぶ',
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 60,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _imagePosts.length,
+                        itemBuilder: (context, index) {
+                          final isSelected = _selectedImageIndex == index;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() => _selectedImageIndex = index);
+                              HapticFeedback.lightImpact();
+                            },
+                            child: Container(
+                              width: 60,
+                              margin: const EdgeInsets.only(right: 10),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected ? AppColors.accentGold : Colors.transparent,
+                                  width: 2,
+                                ),
+                                image: DecorationImage(
+                                  image: CachedNetworkImageProvider(_imagePosts[index].imageUrl!),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  
+                  ElevatedButton.icon(
+                    onPressed: _isSharing ? null : _shareSummary,
+                    icon: _isSharing 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bgBase))
+                        : const Icon(Icons.share, color: AppColors.bgBase),
+                    label: Text(_isSharing ? '準備中...' : 'SNSへシェア', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentGold,
+                      minimumSize: const Size(double.infinity, 56),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
           ],
         ),
-        Positioned(
-          bottom: 32,
-          left: 32,
-          right: 32,
-          child: ElevatedButton.icon(
-            onPressed: _isSharing ? null : _shareSummary,
-            icon: _isSharing 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bgBase))
-                : const Icon(Icons.share, color: AppColors.bgBase),
-            label: Text(_isSharing ? '準備中...' : 'SNSへシェア', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accentGold,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-          ),
-        ),
+        // Close button
         Positioned(
           top: 0,
           right: 8,
@@ -511,31 +621,63 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
     );
   }
 
-  Widget _buildStatCard(String label, String value, String unit) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-      decoration: BoxDecoration(
-        color: AppColors.bgBase.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(value, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.white, height: 1.0)),
-              const SizedBox(width: 4),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(unit, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.accentGold)),
-              ),
-            ],
-          ),
+  Widget _buildLogo() {
+    return Text(
+      'V EFFECT',
+      style: GoogleFonts.outfit(
+        color: AppColors.white,
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 4.0,
+        shadows: const [
+          Shadow(offset: Offset(0, 2), blurRadius: 10, color: Colors.black54),
         ],
       ),
+    );
+  }
+
+  Widget _buildStravaStat(String label, String value, String unit) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: 10,
+            color: AppColors.white,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.0,
+            shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
+          ),
+        ),
+        const SizedBox(height: 2),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              value,
+              style: GoogleFonts.outfit(
+                fontSize: 36,
+                fontWeight: FontWeight.w900,
+                color: AppColors.white,
+                height: 1.1,
+                shadows: const [Shadow(blurRadius: 12, color: Colors.black54)],
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              unit,
+              style: GoogleFonts.outfit(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: AppColors.white,
+                shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

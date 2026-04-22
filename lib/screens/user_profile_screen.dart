@@ -8,6 +8,7 @@ import '../models/post.dart';
 import '../services/block_service.dart';
 import '../services/friend_service.dart';
 import '../services/post_service.dart';
+import '../widgets/swipe_back_gate.dart';
 
 /// 他ユーザーのプロフィール閲覧画面
 ///
@@ -381,7 +382,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final title = _user?.username ?? _initialUsername ?? '';
     final isOtherUser = _targetUid != _myUid && _targetUid != null;
 
-    return Scaffold(
+    return SwipeBackGate(
+      child: Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
@@ -440,6 +442,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ],
                   ),
                 ),
+      ),
     );
   }
 

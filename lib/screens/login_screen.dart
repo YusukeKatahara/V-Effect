@@ -68,9 +68,9 @@ class _LoginScreenState extends State<LoginScreen>
         'onboardingCompleted': false,
       });
     }
-    PushNotificationService().saveFcmToken().catchError(
-      (e) => debugPrint('FCM token save error: $e'),
-    );
+    PushNotificationService().saveFcmToken().catchError((e) => debugPrint('FCM token save error: $e'));
+    // V Alert スケジュールをアプリ再インストール後も復元
+    PushNotificationService().restoreVAlertSchedule().catchError((e) => debugPrint('V Alert restore error: $e'));
 
     if (!mounted) return;
 

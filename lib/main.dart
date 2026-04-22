@@ -18,8 +18,7 @@ import 'widgets/splash_loading.dart';
 import 'dart:async';
 
 void main() {
-  // ガードレール1: エラー時の最終防衛ライン
-  runZonedGuarded(() {
+  runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
     // 描画エラー時のガードレール
@@ -27,11 +26,35 @@ void main() {
       return GlobalErrorWidget(details: details);
     };
 
-    // Fast Boot: 即座にアプリを起動し、初期化は内部で行う
+    // Firebase 初期化を最優先で実行（バックグラウンド初期化による重複を防ぐため）
+    try {
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        ).timeout(const Duration(seconds: 10));
+      }
+    } catch (e) {
+      if (e.toString().contains('duplicate-app')) {
+        debugPrint('Firebase already initialized (duplicate-app ignored)');
+      } else {
+        debugPrint('Firebase初期化エラー (非致命的): $e');
+      }
+    }
+
+    // Step2: Firebase 設定（初期化成功時のみ）
+    if (!kIsWeb && Firebase.apps.isNotEmpty) {
+      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    }
+
+    // Fast Boot: 即座にアプリを起動
     runApp(const ProviderScope(child: AppInitializer()));
   }, (error, stack) {
     if (!kIsWeb) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      try {
+        if (Firebase.apps.isNotEmpty) {
+          FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        }
+      } catch (_) {}
     }
     debugPrint('致命的なエラー: $error');
     runApp(GlobalErrorWidget(error: error.toString()));
@@ -58,34 +81,11 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _initialize() async {
     try {
-      // Step1: Firebase の初期化（5秒タイムアウト）
-      try {
-        if (Firebase.apps.isEmpty) {
-          await Firebase.initializeApp(
-            options: DefaultFirebaseOptions.currentPlatform,
-          ).timeout(const Duration(seconds: 5));
-        }
-      } catch (e) {
-        debugPrint('Firebase初期化エラー: $e');
-        // Firebaseが必須な場合はここでエラーにしても良いが、
-        // 続行できる可能性にかけてここでは握り潰しすぎない
-      }
+      // 非UIブロック項目の初期化
+      PushNotificationService().initialize().catchError((e) => debugPrint('通知初期化エラー: $e'));
+      DeepLinkService().initialize().catchError((e) => debugPrint('DeepLink初期化エラー: $e'));
 
-      // Step2: Firebase 設定
-      if (!kIsWeb && Firebase.apps.isNotEmpty) {
-        FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-      }
-
-      // Step3: 各種サービスの初期化
       final prefs = await SharedPreferences.getInstance();
-      
-      await Future.wait([
-        PushNotificationService().initialize().timeout(const Duration(seconds: 5)),
-        DeepLinkService().initialize().timeout(const Duration(seconds: 3)),
-      ]).catchError((e) {
-        debugPrint('サービス初期化警告: $e');
-        return <void>[];
-      });
 
       // テーマ設定
       final isDarkMode = prefs.getBool('isDarkMode') ?? true;

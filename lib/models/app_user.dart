@@ -16,7 +16,6 @@ class AppUser {
   final List<String> following;
   final List<String> followers;
   final List<AppTask> tasks;
-  final String? wakeUpTime;
   final String? taskTime;
   final String? occupation;
   final bool profileCompleted;
@@ -41,7 +40,6 @@ class AppUser {
     this.following = const [],
     this.followers = const [],
     this.tasks = const [],
-    this.wakeUpTime,
     this.taskTime,
     this.occupation,
     this.profileCompleted = false,
@@ -92,9 +90,8 @@ class AppUser {
       tasks: (data['tasks'] as List? ?? [])
           .map((item) => AppTask.fromFirestore(item))
           .toList(),
-      wakeUpTime: safeString(data['wakeUpTime']),
-      taskTime: safeString(data['taskTime']),
-      occupation: safeString(data['occupation']),
+      taskTime: data['taskTime'],
+      occupation: data['occupation'],
       profileCompleted: data['profileCompleted'] ?? false,
       templateCompleted: data['templateCompleted'] ?? false,
       onboardingCompleted: data['onboardingCompleted'] ?? false,
@@ -123,7 +120,6 @@ class AppUser {
       'following': following,
       'followers': followers,
       'tasks': tasks.map((t) => t.toFirestore()).toList(),
-      'wakeUpTime': wakeUpTime,
       'taskTime': taskTime,
       'occupation': occupation,
       'profileCompleted': profileCompleted,

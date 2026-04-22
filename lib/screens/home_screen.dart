@@ -45,6 +45,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Timer? _flameDebounceTimer;
   int _pendingFlameCount = 0;
   String? _pendingFlamePostId;
+  // 送信済みだがサーバーからまだ返ってきていない増分を保持（表示上の即時性を確保）
+  final Map<String, int> _localFlameIncrements = {};
+  // パフォーマンス最適化: 個別の投稿のリアクション数をリビルドなしで更新するためのNotifier
+  final Map<String, ValueNotifier<int>> _flameNotifiers = {};
 
   // ── Card Swiping ──
   // ── Card Swiping (Performance: Using AnimatedBuilder instead of setState) ──
@@ -67,8 +71,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _reactionMenuOpen = false;
   late final AnimationController _reactionMenuController;
   static const _reactionEmojis = ['❤️', '🔥', '👍'];
-  final GlobalKey<_DopamineEmojiExplosionLayerState> _explosionKey =
-      GlobalKey();
+  final GlobalKey<_DopamineEmojiExplosionLayerState> _explosionKey = GlobalKey();
+
+  // ── Shuffle Refresh 用 ──
+  late final AnimationController _shuffleController;
+  double _dragOffset = 0.0;
+  bool _isRefreshing = false;
+
 
   // ── ロックアイコンは子 Widget に切り出し ──
 
@@ -96,6 +105,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     // データの読み込みは homeDataProvider (Riverpod) が担当するため
     // 手動の _loadData() は廃止
+
+    _shuffleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
   }
 
   @override
@@ -103,6 +117,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _pageController.dispose();
     _flashController.dispose();
     _reactionMenuController.dispose();
+    _shuffleController.dispose();
     _flameDebounceTimer?.cancel();
     super.dispose();
   }
@@ -122,6 +137,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // ここでの setState も不要。必要な部分は AnimatedBuilder で連動済み
   }
 
+  // ── Shuffle Refresh Logic ──
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    if (_isRefreshing) return;
+    setState(() {
+      _dragOffset = (_dragOffset + details.delta.dy).clamp(0.0, 150.0);
+    });
+    // debugPrint('Drag offset: $_dragOffset');
+  }
+
+  void _onVerticalDragEnd(DragEndDetails details) {
+    if (_isRefreshing) return;
+    // debugPrint('Drag ended with offset: $_dragOffset');
+    if (_dragOffset >= 80.0) { // しきい値を少し下げて反応を良くする
+      _triggerRefresh();
+    } else {
+      setState(() {
+        _dragOffset = 0.0;
+      });
+    }
+  }
+
+  Future<void> _triggerRefresh() async {
+    setState(() {
+      _isRefreshing = true;
+      _dragOffset = 100.0; // 引っ張った位置で固定
+    });
+    
+    _shuffleController.repeat();
+    HapticFeedback.mediumImpact();
+
+    try {
+      // データの再取得
+      ref.invalidate(homeDataProvider);
+      await ref.read(homeDataProvider.future);
+    } catch (e) {
+      debugPrint('Refresh error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+          _dragOffset = 0.0;
+        });
+        _shuffleController.stop();
+        _shuffleController.animateTo(0.0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+        HapticFeedback.lightImpact();
+      }
+    }
+  }
+
+  double _getShuffleOffsetX(int index) {
+    if (!_isRefreshing) return 0.0;
+    // インデックスごとに異なる揺らぎを与える
+    final t = _shuffleController.value;
+    final phase = index * (pi / 2);
+    return sin(t * 2 * pi + phase) * 40.0 * (1.0 - t.abs()); // 減衰しつつ左右に振る
+  }
+
+  double _getShuffleOffsetY(int index) {
+    if (!_isRefreshing) return 0.0;
+    final t = _shuffleController.value;
+    final phase = index * (pi / 3);
+    return cos(t * 2 * pi + phase) * 60.0; // 上下に大きく振る
+  }
+
+  double _getShuffleRotation(int index) {
+    if (!_isRefreshing) return 0.0;
+    final t = _shuffleController.value;
+    final sign = index % 2 == 0 ? 1 : -1;
+    return sign * sin(t * pi) * 0.2; // Z軸の回転
+  }
+
   Future<void> _sendReaction(int index, {String? emoji}) async {
     if (_feedPosts.isEmpty) return;
     final post = _feedPosts[index];
@@ -138,6 +224,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
 
     final isVFlash = emoji == null && Random().nextInt(100) == 0;
+    
+    // VFIREの場合、全画面のsetStateを避けてNotifier経由で極小範囲のみ更新
+    if (emoji == null) {
+      final notifier = _flameNotifiers[post.id];
+      if (notifier != null) {
+        notifier.value++;
+      }
+      _localFlameIncrements[post.id] = (_localFlameIncrements[post.id] ?? 0) + 1;
+    } else {
+      // 絵文字は1回きりなので、安全にsetStateで全体反映
+      setState(() {
+        final newUserReactions = Map<String, String>.from(post.userReactions);
+        final currentEmoji = newUserReactions[myUid];
+        if (currentEmoji == null || currentEmoji == '🔥') {
+          newUserReactions[myUid] = emoji;
+          final updatedIds = List<String>.from(post.emojiReactedUserIds);
+          if (!updatedIds.contains(myUid)) updatedIds.add(myUid);
+          
+          _feedPosts = List.from(_feedPosts)
+            ..[index] = post.copyWith(
+              userReactions: newUserReactions,
+              emojiReactedUserIds: updatedIds,
+            );
+        }
+      });
+    }
 
     // 演出の実行（これはタップごとに即座に行う）
     if (isVFlash) {
@@ -154,35 +266,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     }
 
-    // 1. Optimistic UI update (ローカル状態を即座に反映)
-    // _applyHomeDataUpdate が myUid=null 等で localHasEmoji を取れない場合のフォールバック
-    if (emoji != null) {
-      _pendingEmojis[post.id] = (emoji: emoji, uid: myUid);
-    }
-    setState(() {
-      if (emoji != null) {
-        // 絵文字リアクション：1回のみ
-        final newUserReactions = Map<String, String>.from(post.userReactions);
-        final currentEmoji = newUserReactions[myUid];
-        if (currentEmoji == null || currentEmoji == '🔥') {
-          newUserReactions[myUid] = emoji;
-          debugPrint('[EMOJI_DEBUG] ✅ Optimistic update: post=${post.id.substring(0, 6)} emoji=$emoji uid=$myUid');
-          final updatedIds = List<String>.from(post.emojiReactedUserIds);
-          if (!updatedIds.contains(myUid)) updatedIds.add(myUid);
-
-          _feedPosts = List.from(_feedPosts)
-            ..[index] = post.copyWith(
-              userReactions: newUserReactions,
-              emojiReactedUserIds: updatedIds,
-            );
-        }
-      } else {
-        // VFIRE: カウントを増やす
-        _feedPosts = List.from(_feedPosts)
-          ..[index] = post.copyWith(reactionCount: post.reactionCount + 1);
-      }
-    });
-
     // 2. 通信処理
     if (emoji != null) {
       // 絵文字は即座に送信
@@ -197,13 +280,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _cleanupReactionLock(post.id);
       }
     } else {
-      // VFIRE はデバウンス（1秒間タップが止まるまで待機）
+      // VFIRE はデバウンス（連打が止まってから500msで同期）
       _pendingFlameCount++;
       _pendingFlamePostId = post.id;
-      _reactingPostIds.add(post.id); // 連打中もガードレールを維持
+      _reactingPostIds.add(post.id); 
 
       _flameDebounceTimer?.cancel();
-      _flameDebounceTimer = Timer(const Duration(seconds: 1), () async {
+      _flameDebounceTimer = Timer(const Duration(milliseconds: 500), () async {
         final countToSend = _pendingFlameCount;
         final postIdToSend = _pendingFlamePostId;
 
@@ -214,6 +297,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         if (postIdToSend != null && countToSend > 0) {
           try {
             await _postService.incrementFlameCount(postIdToSend, countToSend);
+            
+            // 同期成功後、ローカル増分から送信分を差し引く
+            if (mounted) {
+              // ここでは表示の整合性を取るため setState を行う
+              setState(() {
+                final current = _localFlameIncrements[postIdToSend] ?? 0;
+                _localFlameIncrements[postIdToSend] = (current - countToSend).clamp(0, 100000);
+              });
+            }
           } catch (e) {
             debugPrint('Flame sync error: $e');
           } finally {
@@ -301,22 +393,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         final List<String> idsToRemove = [];
 
         for (final fetchedPost in homeData.feedPosts) {
-          if (_reactingPostIds.contains(fetchedPost.id)) {
-            final localPost = _feedPosts.firstWhere(
-              (p) => p.id == fetchedPost.id,
-              orElse: () => fetchedPost,
+          // サーバーから取得したデータに、ローカルでまだ同期中の増分を上乗せする
+          final localInc = _localFlameIncrements[fetchedPost.id] ?? 0;
+          final totalCount = fetchedPost.reactionCount + localInc;
+
+          // Notifierの更新または生成
+          if (_flameNotifiers.containsKey(fetchedPost.id)) {
+            _flameNotifiers[fetchedPost.id]!.value = totalCount;
+          } else {
+            _flameNotifiers[fetchedPost.id] = ValueNotifier(totalCount);
+          }
+
+          final displayedPost = fetchedPost.copyWith(
+            reactionCount: totalCount,
+          );
+
+          if (_reactingPostIds.contains(displayedPost.id)) {
+            final existingLocal = _feedPosts.firstWhere(
+              (p) => p.id == displayedPost.id,
+              orElse: () => displayedPost,
             );
-            final localHasEmoji = localPost.hasEmojiReacted(myUid);
-            final fetchedHasEmoji = fetchedPost.hasEmojiReacted(myUid);
+            
+            // 最新サーバーデータ + ローカル増分 でマージ
+            newPosts.add(displayedPost);
+            
+            // 絵文字の状態チェック
+            final localHasEmoji = existingLocal.hasEmojiReacted(myUid);
+            final fetchedHasEmoji = displayedPost.hasEmojiReacted(myUid);
 
             if (localHasEmoji && !fetchedHasEmoji) {
-              newPosts.add(localPost);
+              // 絵文字だけは localPost の状態を維持
+              newPosts[newPosts.length - 1] = newPosts.last.copyWith(
+                userReactions: existingLocal.userReactions,
+                emojiReactedUserIds: existingLocal.emojiReactedUserIds,
+              );
             } else {
-              newPosts.add(fetchedPost);
-              idsToRemove.add(fetchedPost.id);
+              idsToRemove.add(displayedPost.id);
             }
           } else {
-            newPosts.add(fetchedPost);
+            newPosts.add(displayedPost);
           }
         }
         _feedPosts = newPosts;
@@ -444,6 +559,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ? _GuardedStateLayer(
                     feedPosts: _feedPosts,
                     postedFriends: _postedFriends,
+                    onRefresh: () => ref.invalidate(homeDataProvider),
                   )
                 : (_feedPosts.isEmpty
                     ? _buildEmptyState()
@@ -498,7 +614,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            '誰もやらないなら、自分がやる。',
+            'あなたはトップランナーだ。',
             style: GoogleFonts.notoSansJp(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -507,7 +623,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            '圧倒的な努力の証明を、今ここに。\nフィードが空なのは、あなたがトップランナーである証拠です。',
+            '小さな選択、小さな勝利が証拠となり\n理想とする自分が真実になる。',
             textAlign: TextAlign.center,
             style: GoogleFonts.notoSansJp(
               fontSize: 13,
@@ -524,7 +640,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildCardStack() {
     return AnimatedBuilder(
-      animation: _pageController,
+      animation: Listenable.merge([_pageController, _shuffleController]),
       builder: (context, child) {
         if (_feedPosts.isEmpty) return const SizedBox.shrink();
         final scrollPos = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
@@ -536,11 +652,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             final maxCardHeight = (constraints.maxHeight - 40).clamp(0.0, cardHeight);
             final finalCardWidth = maxCardHeight * (9 / 16);
 
-            return Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                for (final i in _sortedCardIndices(scrollPos))
+            return GestureDetector(
+              onVerticalDragUpdate: _onVerticalDragUpdate,
+              onVerticalDragEnd: _onVerticalDragEnd,
+              behavior: HitTestBehavior.translucent,
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  for (final i in _sortedCardIndices(scrollPos))
                   _buildStackedCard(
                     index: i,
                     cardWidth: finalCardWidth,
@@ -754,12 +874,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
           ],
-        );
-      },
+        ),
+      );
+    },
+  );
+},
     );
-  },
-);
-}
+  }
 
   List<int> _sortedCardIndices(double scrollPosition) {
     if (_feedPosts.isEmpty) return [];
@@ -810,11 +931,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final tierColor = _getTierColor(streak);
 
     return Transform.translate(
-      offset: Offset(offsetX, offsetY),
+      offset: Offset(offsetX + _getShuffleOffsetX(index), offsetY + _dragOffset + _getShuffleOffsetY(index)),
       child: Transform(
         alignment: Alignment.center,
         transform: Matrix4.identity()
-          ..rotateZ(rotateZ)
+          ..rotateZ(rotateZ + _getShuffleRotation(index))
           ..scale(scale, scale, scale),
         child: RepaintBoundary( // パフォーマンス: カード単位でキャッシュ
           child: SizedBox(
@@ -829,6 +950,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               isTop: index == _focusedIndex,
               tierColor: tierColor,
               userPhotos: _userPhotos,
+              reactionCountNotifier: _flameNotifiers[post.id],
               onProfileTap: () {
                 Navigator.pushNamed(
                   context,
@@ -854,10 +976,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 class _GuardedStateLayer extends StatefulWidget {
   final List<Post> feedPosts;
   final List<Map<String, dynamic>> postedFriends;
+  final VoidCallback? onRefresh;
 
   const _GuardedStateLayer({
     required this.feedPosts,
     required this.postedFriends,
+    this.onRefresh,
   });
 
   @override
@@ -920,6 +1044,7 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> with TickerProvi
                 onTap: () {
                   HapticFeedback.heavyImpact();
                   _shakeController.forward(from: 0);
+                  widget.onRefresh?.call();
                 },
                 child: SizedBox(
                   width: 120,
@@ -1076,6 +1201,7 @@ class _FeedCard extends StatelessWidget {
     required this.tierColor,
     required this.userPhotos,
     this.onProfileTap,
+    this.reactionCountNotifier,
   });
 
   final Post post;
@@ -1087,6 +1213,7 @@ class _FeedCard extends StatelessWidget {
   final Color tierColor;
   final Map<String, String?> userPhotos;
   final VoidCallback? onProfileTap;
+  final ValueNotifier<int>? reactionCountNotifier;
 
   @override
   Widget build(BuildContext context) {
@@ -1364,13 +1491,18 @@ class _FeedCard extends StatelessWidget {
                             const SizedBox(height: 8), // 基準値
                             SizedBox(
                               height: 16, // 高さを固定して中心を安定させる
-                              child: Text(
-                                '${post.reactionCount}',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.white,
-                                ),
+                              child: ValueListenableBuilder<int>(
+                                valueListenable: reactionCountNotifier ?? ValueNotifier(post.reactionCount),
+                                builder: (context, count, _) {
+                                  return Text(
+                                    '$count',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.white,
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           ],

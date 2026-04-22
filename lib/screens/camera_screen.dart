@@ -12,7 +12,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../services/post_service.dart';
 import '../widgets/post_success_dialog.dart';
-import '../widgets/victory_overlay.dart';
+import '../widgets/entropic_conversion_overlay.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/home_provider.dart';
@@ -111,7 +111,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       await _pickImage(source);
     } else if (_image == null && mounted) {
       // メニューを閉じた時に写真が未選択なら戻る
-      Navigator.pop(context, false);
+      Navigator.pop(context, null);
     }
   }
 
@@ -195,17 +195,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       ref.invalidate(homeDataProvider);
 
       if (mounted) {
-        // V-Flash (Victory Overlay)
-        await VictoryOverlay.show(context);
-        
-        if (mounted) {
-          await PostSuccessDialog.show(
-            context,
-            streakDays: result['newStreak'] as int,
-            isRecordUpdating: result['isRecordUpdating'] as bool,
-          );
-          if (mounted) Navigator.pop(context, true);
-        }
+        // 投稿成功データを返して前画面（HeroTasksScreen）で演出を制御させる
+        Navigator.pop(context, {
+          'posted': true,
+          'imagePath': _image!.path,
+          'newStreak': result['newStreak'] as int,
+          'isRecordUpdating': result['isRecordUpdating'] as bool,
+        });
       }
     } catch (e, st) {
       debugPrint('POST UPLOAD ERROR: $e\n$st');

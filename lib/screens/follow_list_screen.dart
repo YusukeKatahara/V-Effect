@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/friend_service.dart';
+import '../widgets/swipe_back_gate.dart';
 
 /// フォロー中 / フォロワー 一覧画面
 ///
@@ -80,7 +81,8 @@ class _FollowListScreenState extends State<FollowListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SwipeBackGate(
+      child: Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
@@ -110,6 +112,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
                 ),
               ],
             ),
+      ),
     );
   }
 

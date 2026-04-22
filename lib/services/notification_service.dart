@@ -21,6 +21,9 @@ class NotificationService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // 重複実行防止フラグ
+  bool _isCheckingReminders = false;
+
   /// 通知を作成します（テンプレートからメッセージを自動生成）
   ///
   /// [params] はプレースホルダーの置換に使用されます。
@@ -119,80 +122,52 @@ class NotificationService {
     await batch.commit();
   }
 
-  /// 起床時間・ヒーロータスク時間のリマインダー通知を生成します
-  /// アプリ起動時やホーム画面表示時に呼び出してください
-  ///
-  /// [streak] を渡すとユーザードキュメントの再読み込みをスキップします。
-  /// HomeScreenでは既にgetHomeData()でストリークを取得済みなので、
-  /// ここで再度読む必要はありません。
   Future<void> checkAndCreateTimeReminders({int? streak}) async {
-    final myUid = _auth.currentUser!.uid;
-    final now = DateTime.now();
-    final todayStr =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    if (_isCheckingReminders) return;
+    _isCheckingReminders = true;
 
-    // streakが未提供の場合のみユーザードキュメントを読む
-    int streakNum;
-    if (streak != null) {
-      streakNum = streak;
-    } else {
-      final userSnap = await _db.collection('users').doc(myUid).get();
-      streakNum = ((userSnap.data()?['streak'] as num?) ?? 0).toInt();
-    }
-    final streakStr = streakNum.toString();
+    try {
+      final myUid = _auth.currentUser?.uid;
+      if (myUid == null) return;
+      
+      final now = DateTime.now();
+      final todayStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-    final privateSnap = await _db
-        .collection('users')
-        .doc(myUid)
-        .collection('private')
-        .doc('data')
-        .get();
-    if (!privateSnap.exists) return;
-    final data = privateSnap.data()!;
-    final wakeUpTime = data['wakeUpTime'] as String?;
-    final taskTime = data['taskTime'] as String?;
-
-    // 起床時間の1時間前までにアプリを開いているか判定
-    bool earlyWake = false;
-    if (wakeUpTime != null) {
-      final wParts = wakeUpTime.split(':');
-      if (wParts.length == 2) {
-        final wh = int.tryParse(wParts[0]);
-        final wm = int.tryParse(wParts[1]);
-        if (wh != null && wm != null) {
-          final wakeUpMinutes = wh * 60 + wm;
-          final nowMinutes = now.hour * 60 + now.minute;
-          // 現在時刻が「起床時間 - 60分」〜「起床時間」の範囲内
-          earlyWake = nowMinutes >= wakeUpMinutes - 60 &&
-              nowMinutes <= wakeUpMinutes;
-        }
+      int streakNum;
+      if (streak != null) {
+        streakNum = streak;
+      } else {
+        final userSnap = await _db.collection('users').doc(myUid).get();
+        streakNum = ((userSnap.data()?['streak'] as num?) ?? 0).toInt();
       }
-    }
+      final streakStr = streakNum.toString();
 
-    final ctx = NotificationContext(streak: streakNum, earlyWake: earlyWake);
+      final privateSnap = await _db
+          .collection('users')
+          .doc(myUid)
+          .collection('private')
+          .doc('data')
+          .get();
+      if (!privateSnap.exists) return;
+      final data = privateSnap.data()!;
+      final taskTime = data['taskTime'] as String?;
 
-    if (wakeUpTime != null) {
-      await _createTimeReminderIfNeeded(
-        uid: myUid,
-        timeStr: wakeUpTime,
-        todayStr: todayStr,
-        now: now,
-        type: NotificationType.wakeUpReminder,
-        params: {'time': wakeUpTime, 'streak': streakStr},
-        context: ctx,
-      );
-    }
+      final ctx = NotificationContext(streak: streakNum);
 
-    if (taskTime != null) {
-      await _createTimeReminderIfNeeded(
-        uid: myUid,
-        timeStr: taskTime,
-        todayStr: todayStr,
-        now: now,
-        type: NotificationType.taskReminder,
-        params: {'time': taskTime, 'streak': streakStr},
-        context: ctx,
-      );
+      if (taskTime != null) {
+        await _createTimeReminderIfNeeded(
+          uid: myUid,
+          timeStr: taskTime,
+          todayStr: todayStr,
+          now: now,
+          type: NotificationType.taskReminder,
+          params: {'time': taskTime, 'streak': streakStr},
+          context: ctx,
+        );
+      }
+    } finally {
+      _isCheckingReminders = false;
     }
   }
 
@@ -221,10 +196,17 @@ class NotificationService {
         .collection('notifications')
         .where('toUid', isEqualTo: uid)
         .where('type', isEqualTo: type.name)
-        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
-        .limit(1)
         .get();
-    if (existing.docs.isNotEmpty) return;
+
+    final alreadyCreated = existing.docs.any((doc) {
+      final createdAt = doc.data()['createdAt'];
+      if (createdAt is Timestamp) {
+        return createdAt.toDate().isAfter(todayStart);
+      }
+      return false; // null などの場合（ローカルの書き込み待ちなど）
+    });
+
+    if (alreadyCreated) return;
 
     await createNotification(
       toUid: uid,

@@ -11,10 +11,12 @@ class VEffectHeader extends StatelessWidget {
     super.key,
     this.leading,
     this.trailing,
+    this.hideLogo = false,
   });
 
   final Widget? leading;
   final Widget? trailing;
+  final bool hideLogo;
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +35,16 @@ class VEffectHeader extends StatelessWidget {
           // Center logo
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              'V EFFECT',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.white,
-                letterSpacing: 4.0,
+            child: Opacity(
+              opacity: hideLogo ? 0.0 : 1.0,
+              child: Text(
+                'V EFFECT',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.white,
+                  letterSpacing: 4.0,
+                ),
               ),
             ),
           ),

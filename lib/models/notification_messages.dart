@@ -12,9 +12,8 @@ class NotificationContent {
 /// テンプレート選択時に参照されるコンテキスト情報
 class NotificationContext {
   final int streak;
-  final bool earlyWake; // 起床時間の1時間前までにアプリを開いたか
 
-  const NotificationContext({this.streak = 0, this.earlyWake = false});
+  const NotificationContext({this.streak = 0});
 }
 
 /// テンプレートが選ばれるための条件
@@ -23,7 +22,6 @@ enum _Condition {
   streakAtLeast1, // streak >= 1
   streakAtLeast5, // streak >= 5
   streakZero, // streak == 0
-  earlyWake, // 起床時間の1時間前までにアプリを開いている
 }
 
 /// NotificationType ごとのメッセージテンプレートを一元管理するクラス
@@ -36,40 +34,41 @@ abstract class NotificationMessages {
   static final _random = Random();
 
   /// テンプレート定義
-  static const Map<NotificationType, List<_Template>> _templates = {
-    // ── 起床リマインダー ──
-    NotificationType.wakeUpReminder: [
-      _Template(title: '起床時間です', body: '新しい一日。昨日の自分を超えるチャンスです'),
-      _Template(
-        title: '起床時間です',
-        body: '{streak}日間、自分との約束を守り続けています',
-        condition: _Condition.streakAtLeast5,
-      ),
-      _Template(
-        title: '起床時間です',
-        body: '今日もあなたが決めた時間に目覚めた。それだけで一歩前進です',
-        condition: _Condition.earlyWake,
-      ),
-      _Template(title: '起床時間です', body: '今日の自分は、まだ何も描かれていないキャンバス。どんな一日にしますか？'),
-      _Template(title: '起床時間です', body: '毎朝起きると決めたのはあなた自身。その決意が力になります'),
-    ],
-
+  static final _templates = {
     // ── ヒーロータスクリマインダー ──
     NotificationType.taskReminder: [
-      _Template(title: 'Focus Time', body: '自分で決めたことをやる。それが一番の自信になります'),
       _Template(
-        title: 'Focus Time',
+        title: 'V Alert',
+        body: '小さな選択、小さな勝利が証拠となり\n理想とする自分が真実になる。',
+      ),
+      _Template(
+        title: 'V Alert',
+        body: '「天才とは努力する凡才のことである」 Albert Einstein',
+      ),
+      _Template(
+        title: 'V Alert',
+        body: '「楽観的？悲観的？そんなことは知らん。やる。やり遂げる。必ずやり遂げると神に誓うんだ」 Elon Musk',
+      ),
+      _Template(
+        title: 'V Alert',
+        body: '「時間をかけることを恐れてはいけないよ。それは、いちばん洗練されたかたちでの復讐なんだ」 村上春樹',
+      ),
+      _Template(
+        title: 'V Alert',
         body: '完璧じゃなくていい。今日も「やった」という事実を積み上げよう',
         condition: _Condition.streakAtLeast1,
       ),
       _Template(
-        title: 'Focus Time',
+        title: 'V Alert',
         body: '{streak}日目の挑戦。続けている自分を誇ろう',
         condition: _Condition.streakAtLeast5,
       ),
-      _Template(title: 'Focus Time', body: 'まずは始めるだけ。やると決めたのはあなたです'),
       _Template(
-        title: 'Focus Time',
+        title: 'V Alert',
+        body: 'まずは始めるだけ。やると決めたのはあなたです',
+      ),
+      _Template(
+        title: 'V Alert',
         body: '昨日の自分にできなかったことが、今日はできるかもしれない',
         condition: _Condition.streakZero,
       ),
@@ -149,8 +148,6 @@ abstract class NotificationMessages {
         return ctx.streak >= 5;
       case _Condition.streakZero:
         return ctx.streak == 0;
-      case _Condition.earlyWake:
-        return ctx.earlyWake;
     }
   }
 
