@@ -150,9 +150,11 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
       final file = File(path);
       await file.writeAsBytes(pngBytes);
 
-      await Share.shareXFiles(
-        [XFile(path)],
-        text: '今週も${_posts.length}回のヒーロータスクを完遂！\n現在のストリーク: $_currentStreak日 🔥\n#VEffect',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(path)],
+          text: '今週も${_posts.length}回のヒーロータスクを完遂！\n現在のストリーク: $_currentStreak日 🔥\n#VEffect',
+        ),
       );
     } catch (e) {
       debugPrint('Share error: $e');
@@ -387,7 +389,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
             weekdayStr,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 48,
+              fontSize: 36,
               fontWeight: FontWeight.w900,
               letterSpacing: 10,
               color: AppColors.white,
