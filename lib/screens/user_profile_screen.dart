@@ -7,6 +7,7 @@ import '../models/app_user.dart';
 import '../models/post.dart';
 import '../services/friend_service.dart';
 import '../services/post_service.dart';
+import '../widgets/swipe_back_gate.dart';
 
 /// 他ユーザーのプロフィール閲覧画面
 ///
@@ -149,7 +150,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     final title = _user?.username ?? _initialUsername ?? '';
 
-    return Scaffold(
+    return SwipeBackGate(
+      child: Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
@@ -192,6 +194,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ],
                   ),
                 ),
+      ),
     );
   }
 

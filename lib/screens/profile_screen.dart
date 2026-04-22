@@ -13,6 +13,7 @@ import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/push_notification_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -59,6 +60,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final uid = _userService.currentUid;
     if (uid == null) return;
     try {
+      // 非公開情報の再ロード
+      await _loadPrivateData();
+
       final doc =
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (doc.exists && mounted) {
@@ -91,11 +95,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ---── 時刻設定の変更 ──
-  Future<void> _selectTime(BuildContext context, bool isWakeUp) async {
-    final initialTimeStr =
-        isWakeUp
-            ? (_privateData['wakeUpTime'] ?? '07:00')
-            : (_privateData['taskTime'] ?? '08:00');
+  Future<void> _selectTime(BuildContext context) async {
+    final initialTimeStr = _privateData['taskTime'] ?? '08:00';
     final parts = initialTimeStr.split(':');
     final now = DateTime.now();
     DateTime tempDateTime = DateTime(
@@ -148,15 +149,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          onPressed: () {
+                         onPressed: () async {
                             final timeStr =
                                 '${tempDateTime.hour.toString().padLeft(2, '0')}:${tempDateTime.minute.toString().padLeft(2, '0')}';
-                            _userService.updateProfile(
-                              wakeUpTime: isWakeUp ? timeStr : null,
-                              taskTime: isWakeUp ? null : timeStr,
-                            );
+                            
+                            // 先にモーダルを閉じて blackout を防ぐ
                             Navigator.pop(context);
-                            _loadProfile();
+
+                            try {
+                              await _userService.updateProfile(
+                                taskTime: timeStr,
+                              );
+                              
+                              // taskTime が変更された場合、V Alert を即座に再スケジュール
+                              PushNotificationService().scheduleVAlert(timeStr)
+                                  .catchError((e) => debugPrint('V Alert schedule error: $e'));
+                              
+                              if (mounted) {
+                                _loadProfile();
+                              }
+                            } catch (e) {
+                              debugPrint('Error updating taskTime: $e');
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('時刻の更新に失敗しました')),
+                                );
+                              }
+                            }
                           },
                         ),
                       ],
@@ -729,7 +748,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: Icons.schedule_rounded,
                 label: 'V Alert',
                 value: _privateData['taskTime'] ?? '08:00',
-                onTap: () => _selectTime(context, false),
+                onTap: () => _selectTime(context),
                 isFirst: true,
                 isLast: true,
               ),

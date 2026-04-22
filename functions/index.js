@@ -41,7 +41,7 @@ exports.sendPushNotification = onDocumentCreated(
       token: fcmToken,
       notification: {
         title: title,
-        body: body || "",
+        ...(body ? { body: body } : {}),
       },
       android: {
         priority: "high",
@@ -51,10 +51,14 @@ exports.sendPushNotification = onDocumentCreated(
         },
       },
       apns: {
+        headers: {
+          "apns-priority": "10",
+        },
         payload: {
           aps: {
             sound: "default",
             badge: 1,
+            // "content-available": 1, // バックグラウンド処理が必要な場合はコメントを外す
           },
         },
       },
@@ -62,7 +66,9 @@ exports.sendPushNotification = onDocumentCreated(
 
     try {
       await getMessaging().send(message);
+      console.log(`Successfully sent message to ${toUid}`);
     } catch (error) {
+      console.error(`Error sending push notification to ${toUid}:`, error);
       // トークンが無効な場合は削除
       if (
         error.code === "messaging/invalid-registration-token" ||
@@ -71,6 +77,7 @@ exports.sendPushNotification = onDocumentCreated(
         await db.collection("users").doc(toUid).update({
           fcmToken: FieldValue.delete(),
         });
+        console.log(`Deleted invalid FCM token for ${toUid}`);
       }
     }
   }

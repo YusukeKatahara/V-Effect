@@ -22,11 +22,27 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.785257044471-sg4mbln6ot7sskb4m0kpud7r2j587o5p</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-
+	<key>NSCameraUsageDescription</key>
+	<string>ヒーロータスクの写真を撮影するためにカメラを使用します。</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>動画撮影時にマイクを使用します（カメラ機能の安定動作のため）。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>プロフィール写真を選択するためにフォトライブラリを使用します。</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
@@ -42,22 +58,5 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.785257044471-sg4mbln6ot7sskb4m0kpud7r2j587o5p</string>
-			</array>
-		</dict>
-	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>ヒーロータスクの写真を撮影するためにカメラを使用します。</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>プロフィール写真を選択するためにフォトライブラリを使用します。</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>動画撮影時にマイクを使用します（カメラ機能の安定動作のため）。</string>
 </dict>
 </plist>

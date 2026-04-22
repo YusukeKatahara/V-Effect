@@ -11,11 +11,11 @@ import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
-import '../services/analytics_service.dart';
+// import '../services/analytics_service.dart'; // Unused
 import '../widgets/v_effect_header.dart';
 import '../widgets/weekly_review_banner.dart';
 import 'weekly_review_screen.dart';
-import '../widgets/reaction_avatars.dart';
+// import '../widgets/reaction_avatars.dart'; // Unused
 import '../providers/home_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -70,6 +70,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   late final AnimationController _reactionMenuController;
   static const _reactionEmojis = ['❤️', '🔥', '👍'];
   final GlobalKey<_DopamineEmojiExplosionLayerState> _explosionKey = GlobalKey();
+  
+  // ── Shuffle Refresh 用 ──
+  late final AnimationController _shuffleController;
+  double _dragOffset = 0.0;
+  bool _isRefreshing = false;
 
 
   // ── ロックアイコンは子 Widget に切り出し ──
@@ -99,6 +104,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
     // データの読み込みは homeDataProvider (Riverpod) が担当するため
     // 手動の _loadData() は廃止
+
+    _shuffleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
   }
 
   @override
@@ -106,6 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     _pageController.dispose();
     _flashController.dispose();
     _reactionMenuController.dispose();
+    _shuffleController.dispose();
     _flameDebounceTimer?.cancel();
     super.dispose();
   }
@@ -126,6 +137,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       );
     }
     // ここでの setState も不要。必要な部分は AnimatedBuilder で連動済み
+  }
+
+  // ── Shuffle Refresh Logic ──
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    if (_isRefreshing) return;
+    setState(() {
+      _dragOffset = (_dragOffset + details.delta.dy).clamp(0.0, 150.0);
+    });
+    // debugPrint('Drag offset: $_dragOffset');
+  }
+
+  void _onVerticalDragEnd(DragEndDetails details) {
+    if (_isRefreshing) return;
+    // debugPrint('Drag ended with offset: $_dragOffset');
+    if (_dragOffset >= 80.0) { // しきい値を少し下げて反応を良くする
+      _triggerRefresh();
+    } else {
+      setState(() {
+        _dragOffset = 0.0;
+      });
+    }
+  }
+
+  Future<void> _triggerRefresh() async {
+    setState(() {
+      _isRefreshing = true;
+      _dragOffset = 100.0; // 引っ張った位置で固定
+    });
+    
+    _shuffleController.repeat();
+    HapticFeedback.mediumImpact();
+
+    try {
+      // データの再取得
+      ref.invalidate(homeDataProvider);
+      await ref.read(homeDataProvider.future);
+    } catch (e) {
+      debugPrint('Refresh error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+          _dragOffset = 0.0;
+        });
+        _shuffleController.stop();
+        _shuffleController.animateTo(0.0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+        HapticFeedback.lightImpact();
+      }
+    }
+  }
+
+  double _getShuffleOffsetX(int index) {
+    if (!_isRefreshing) return 0.0;
+    // インデックスごとに異なる揺らぎを与える
+    final t = _shuffleController.value;
+    final phase = index * (pi / 2);
+    return sin(t * 2 * pi + phase) * 40.0 * (1.0 - t.abs()); // 減衰しつつ左右に振る
+  }
+
+  double _getShuffleOffsetY(int index) {
+    if (!_isRefreshing) return 0.0;
+    final t = _shuffleController.value;
+    final phase = index * (pi / 3);
+    return cos(t * 2 * pi + phase) * 60.0; // 上下に大きく振る
+  }
+
+  double _getShuffleRotation(int index) {
+    if (!_isRefreshing) return 0.0;
+    final t = _shuffleController.value;
+    final sign = index % 2 == 0 ? 1 : -1;
+    return sign * sin(t * pi) * 0.2; // Z軸の回転
   }
 
   Future<void> _sendReaction(int index, {String? emoji}) async {
@@ -475,6 +557,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                 ? _GuardedStateLayer(
                     feedPosts: _feedPosts,
                     postedFriends: _postedFriends,
+                    onRefresh: () => ref.invalidate(homeDataProvider),
                   )
                 : (_feedPosts.isEmpty
                     ? _buildEmptyState()
@@ -529,7 +612,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           ),
           const SizedBox(height: 16),
           Text(
-            '誰もやらないなら、自分がやる。',
+            'あなたはトップランナーだ。',
             style: GoogleFonts.notoSansJp(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -538,7 +621,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           ),
           const SizedBox(height: 8),
           Text(
-            '圧倒的な努力の証明を、今ここに。\nフィードが空なのは、あなたがトップランナーである証拠です。',
+            '小さな選択、小さな勝利が証拠となり\n理想とする自分が真実になる。',
             textAlign: TextAlign.center,
             style: GoogleFonts.notoSansJp(
               fontSize: 13,
@@ -555,7 +638,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
   Widget _buildCardStack() {
     return AnimatedBuilder(
-      animation: _pageController,
+      animation: Listenable.merge([_pageController, _shuffleController]),
       builder: (context, child) {
         if (_feedPosts.isEmpty) return const SizedBox.shrink();
         final scrollPos = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
@@ -567,11 +650,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
             final maxCardHeight = (constraints.maxHeight - 40).clamp(0.0, cardHeight);
             final finalCardWidth = maxCardHeight * (9 / 16);
 
-            return Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                for (final i in _sortedCardIndices(scrollPos))
+            return GestureDetector(
+              onVerticalDragUpdate: _onVerticalDragUpdate,
+              onVerticalDragEnd: _onVerticalDragEnd,
+              behavior: HitTestBehavior.translucent,
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  for (final i in _sortedCardIndices(scrollPos))
                   _buildStackedCard(
                     index: i,
                     cardWidth: finalCardWidth,
@@ -785,12 +872,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
               ),
             ),
           ],
-        );
-      },
+        ),
+      );
+    },
+  );
+},
     );
-  },
-);
-}
+  }
 
   List<int> _sortedCardIndices(double scrollPosition) {
     if (_feedPosts.isEmpty) return [];
@@ -841,11 +929,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     final tierColor = _getTierColor(streak);
 
     return Transform.translate(
-      offset: Offset(offsetX, offsetY),
+      offset: Offset(offsetX + _getShuffleOffsetX(index), offsetY + _dragOffset + _getShuffleOffsetY(index)),
       child: Transform(
         alignment: Alignment.center,
         transform: Matrix4.identity()
-          ..rotateZ(rotateZ)
+          ..rotateZ(rotateZ + _getShuffleRotation(index))
           ..scale(scale, scale, scale),
         child: RepaintBoundary( // パフォーマンス: カード単位でキャッシュ
           child: SizedBox(
@@ -886,10 +974,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 class _GuardedStateLayer extends StatefulWidget {
   final List<Post> feedPosts;
   final List<Map<String, dynamic>> postedFriends;
+  final VoidCallback? onRefresh;
 
   const _GuardedStateLayer({
     required this.feedPosts,
     required this.postedFriends,
+    this.onRefresh,
   });
 
   @override
@@ -952,6 +1042,7 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> with TickerProvi
                 onTap: () {
                   HapticFeedback.heavyImpact();
                   _shakeController.forward(from: 0);
+                  widget.onRefresh?.call();
                 },
                 child: SizedBox(
                   width: 120,

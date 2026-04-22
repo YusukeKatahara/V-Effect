@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 enum NotificationType {
   friendRequestReceived, // フレンドリクエスト受信
   friendRequestAccepted, // フレンドリクエスト承認
-  wakeUpReminder,        // 起床時間リマインダー
   taskReminder,          // ヒーロータスク時間リマインダー
   reactionReceived,      // リアクション受信 (🔥)
   friendTaskCompleted,   // フレンドのヒーロータスク完了

@@ -6,6 +6,7 @@ import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/premium_icon_header.dart';
 import '../widgets/section_title.dart';
+import '../widgets/swipe_back_gate.dart';
 
 /// ヒーロータスク設定完了後に表示される初期フレンド登録画面
 class InitialFriendScreen extends StatefulWidget {
@@ -194,8 +195,9 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgBase,
+    return SwipeBackGate(
+      child: Scaffold(
+        backgroundColor: AppColors.bgBase,
       body: Stack(
         children: [
           const PremiumBackground(),
@@ -343,6 +345,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
           ),
         ],
       ),
+    ),
     );
   }
 }

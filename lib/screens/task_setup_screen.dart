@@ -14,6 +14,7 @@ import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/premium_icon_header.dart';
 import '../widgets/section_title.dart';
+import '../services/push_notification_service.dart';
 
 /// 新規登録後のヒーロータスク設定画面
 /// プロフィール写真、ヒーロータスク、ヒーロータスク実行時間、起床時間を入力します
@@ -44,7 +45,6 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
 
   // ヒーロータスク実行時間と起床時間
   TimeOfDay _taskTime = const TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _wakeUpTime = const TimeOfDay(hour: 7, minute: 0);
 
   @override
   void initState() {
@@ -117,8 +117,8 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
   /// 【rennさんへ】
   /// iPhoneの設定画面みたいに、スクロールで時間を選べるピッカーを表示します。
   /// 画面の下からスルッと出てきて、上下にクルクル回して選ぶやつです。
-  Future<void> _pickTime({required bool isWakeUp}) async {
-    final initial = isWakeUp ? _wakeUpTime : _taskTime;
+  Future<void> _pickTime() async {
+    final initial = _taskTime;
     // 一時的に選択中の時・分を保持する変数
     int selectedHour = initial.hour;
     int selectedMinute = initial.minute;
@@ -155,9 +155,9 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                           ),
                         Expanded(
                           child: Center(
-                            child: Text(
-                              isWakeUp ? '起きる時間' : 'ヒーロータスクの時間',
-                              style: const TextStyle(
+                            child: const Text(
+                              'ヒーロータスクの時間',
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,
@@ -169,15 +169,10 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                           onPressed: () {
                             // 「完了」を押したら、選んだ時間を確定して閉じる
                             setState(() {
-                              final newTime = TimeOfDay(
+                              _taskTime = TimeOfDay(
                                 hour: selectedHour,
                                 minute: selectedMinute,
                               );
-                              if (isWakeUp) {
-                                _wakeUpTime = newTime;
-                              } else {
-                                _taskTime = newTime;
-                              }
                             });
                             Navigator.pop(context);
                           },
@@ -329,17 +324,20 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
       }
 
       debugPrint('ヒーロータスク保存開始: tasks=$tasks');
-      debugPrint('wakeUpTime=${_formatTimeForSave(_wakeUpTime)}');
       debugPrint('taskTime=${_formatTimeForSave(_taskTime)}');
 
       await _userService.saveTaskSettings(
         tasks: tasks,
-        wakeUpTime: _formatTimeForSave(_wakeUpTime),
         taskTime: _formatTimeForSave(_taskTime),
         photoUrl: photoUrl,
       );
 
       debugPrint('ヒーロータスク保存成功！');
+
+      // V Alert を初回登録直後からスケジュール
+      final taskTimeStr = _formatTimeForSave(_taskTime);
+      PushNotificationService().scheduleVAlert(taskTimeStr)
+          .catchError((e) => debugPrint('V Alert schedule error: $e'));
 
       final analytics = AnalyticsService.instance;
       await analytics.logTaskSetupComplete(taskCount: tasks.length);
@@ -560,33 +558,9 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                               ),
                             const SizedBox(height: 24),
 
-                            // ── 起床時間（先に聞く：朝のスケジュール順） ──
-                            const SectionTitle(title: 'いつも何時に起きますか？'),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'この時間に起床の通知をお届けします',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              onTap: () => _pickTime(isWakeUp: true),
-                              child: InputDecorator(
-                                decoration: const InputDecoration(
-                                  prefixIcon: Icon(Icons.alarm),
-                                ),
-                                child: Text(
-                                  _formatTime(_wakeUpTime),
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                            ),
                             const SizedBox(height: 24),
+
+                            // ── ヒーロータスク実行時間 ──
 
                             // ── ヒーロータスク実行時間 ──
                             const SectionTitle(title: 'ヒーロータスクをいつやりたいですか？'),
@@ -600,7 +574,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             ),
                             const SizedBox(height: 8),
                             InkWell(
-                              onTap: () => _pickTime(isWakeUp: false),
+                              onTap: () => _pickTime(),
                               child: InputDecorator(
                                 decoration: const InputDecoration(
                                   prefixIcon: Icon(Icons.schedule),

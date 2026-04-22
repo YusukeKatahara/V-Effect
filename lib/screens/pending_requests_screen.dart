@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../config/app_colors.dart';
 import '../models/friend_request.dart';
 import '../services/friend_service.dart';
+import '../widgets/swipe_back_gate.dart';
 
 /// 届いているフォロー申請一覧画面
 class PendingRequestsScreen extends StatelessWidget {
@@ -12,44 +13,46 @@ class PendingRequestsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final friendService = FriendService.instance;
 
-    return Scaffold(
-      backgroundColor: AppColors.bgBase,
-      appBar: AppBar(
+    return SwipeBackGate(
+      child: Scaffold(
         backgroundColor: AppColors.bgBase,
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: AppColors.textPrimary,
-        title: const Text(
-          'フォロー申請',
-          style: TextStyle(color: AppColors.textPrimary),
+        appBar: AppBar(
+          backgroundColor: AppColors.bgBase,
+          surfaceTintColor: Colors.transparent,
+          foregroundColor: AppColors.textPrimary,
+          title: const Text(
+            'フォロー申請',
+            style: TextStyle(color: AppColors.textPrimary),
+          ),
         ),
-      ),
-      body: StreamBuilder<List<FriendRequest>>(
-        stream: friendService.getReceivedRequests(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final requests = snapshot.data ?? [];
-          if (requests.isEmpty) {
-            return const Center(
-              child: Text(
-                '申請はありません',
-                style: TextStyle(color: AppColors.textSecondary),
+        body: StreamBuilder<List<FriendRequest>>(
+          stream: friendService.getReceivedRequests(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final requests = snapshot.data ?? [];
+            if (requests.isEmpty) {
+              return const Center(
+                child: Text(
+                  '申請はありません',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              );
+            }
+            return ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: requests.length,
+              separatorBuilder: (_, __) => const Divider(
+                color: AppColors.border,
+                height: 1,
+                indent: 72,
               ),
+              itemBuilder: (context, index) =>
+                  _RequestTile(request: requests[index]),
             );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: requests.length,
-            separatorBuilder: (_, __) => const Divider(
-              color: AppColors.border,
-              height: 1,
-              indent: 72,
-            ),
-            itemBuilder: (context, index) =>
-                _RequestTile(request: requests[index]),
-          );
-        },
+          },
+        ),
       ),
     );
   }

@@ -11,6 +11,8 @@ import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/section_title.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/swipe_back_gate.dart';
+import '../services/push_notification_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final AppUser user;
@@ -36,7 +38,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   File? _newProfileImage;
   String? _currentPhotoUrl;
 
-  TimeOfDay? _wakeUpTime;
   TimeOfDay? _taskTime;
   bool _showTimestamp = true;
 
@@ -50,7 +51,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _userIdCtrl = TextEditingController(text: widget.user.userId);
     _currentPhotoUrl = widget.user.photoUrl;
 
-    _wakeUpTime = _parseTimeOfDay(widget.privateData['wakeUpTime'] as String?);
     _taskTime = _parseTimeOfDay(widget.privateData['taskTime'] as String?);
     _showTimestamp = widget.privateData['showTimestamp'] ?? true;
 
@@ -114,10 +114,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<void> _pickTime(bool isWakeUpTime) async {
-    final initialTime =
-        (isWakeUpTime ? _wakeUpTime : _taskTime) ??
-        const TimeOfDay(hour: 8, minute: 0);
+  Future<void> _pickTime() async {
+    final initialTime = _taskTime ?? const TimeOfDay(hour: 8, minute: 0);
     final now = DateTime.now();
     DateTime tempDateTime = DateTime(
       now.year,
@@ -170,15 +168,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                           onPressed: () {
                             setState(() {
-                              if (isWakeUpTime) {
-                                _wakeUpTime = TimeOfDay.fromDateTime(
-                                  tempDateTime,
-                                );
-                              } else {
-                                _taskTime = TimeOfDay.fromDateTime(
-                                  tempDateTime,
-                                );
-                              }
+                              _taskTime = TimeOfDay.fromDateTime(
+                                tempDateTime,
+                              );
                             });
                             Navigator.pop(context);
                           },
@@ -219,7 +211,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final newUserId = _userIdCtrl.text.trim();
     final newUsername = _usernameCtrl.text.trim();
-    final wakeUpTimeStr = _wakeUpTime != null ? _formatTimeOfDay(_wakeUpTime!) : null;
     final taskTimeStr = _taskTime != null ? _formatTimeOfDay(_taskTime!) : null;
 
     bool isRestrictedFieldsChanged = false;
@@ -303,17 +294,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         username: newUsername,
         userId: newUserId,
         photoUrl: updatedPhotoUrl,
-        wakeUpTime: wakeUpTimeStr,
         taskTime: taskTimeStr,
         showTimestamp: _showTimestamp,
         updateEditDate: isRestrictedFieldsChanged,
       );
 
+      // taskTime が変更された場合、V Alert を即座に再スケジュール
+      PushNotificationService().scheduleVAlert(taskTimeStr)
+          .catchError((e) => debugPrint('V Alert schedule error: $e'));
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('設定を保存しました！')),
-        );
-        Navigator.pop(context, true);
+        // 保存中にユーザーが手動で戻った場合に二重 pop（ブラックアウト）するのを防ぐ
+        final nav = Navigator.of(context);
+        if (nav.canPop()) {
+          nav.pop(true);
+        }
       }
     } catch (e) {
       debugPrint('SaveProfile error: $e');
@@ -330,8 +325,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
 
-    return Scaffold(
-      backgroundColor: AppColors.bgBase,
+    return SwipeBackGate(
+      child: Scaffold(
+        backgroundColor: AppColors.bgBase,
       body: Stack(
         children: [
           PremiumBackground(),
@@ -413,6 +409,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -523,7 +520,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: _buildTimeButton(
             'Focus Time',
             _taskTime,
-            () => _pickTime(false),
+            () => _pickTime(),
           ),
         ),
       ],

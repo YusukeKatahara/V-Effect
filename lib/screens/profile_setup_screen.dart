@@ -37,7 +37,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   static const _genderOptions = ['男性', '女性', 'その他'];
 
   // 追加項目
-  TimeOfDay? _wakeUpTime;
   TimeOfDay? _taskTime;
   
   String? _occupation;
@@ -250,12 +249,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       );
       return;
     }
-    if (_wakeUpTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('起床時間を設定してください')),
-      );
-      return;
-    }
     if (_taskTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ヒーロータスク時間を設定してください')),
@@ -286,7 +279,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
         userId: _userIdCtrl.text.trim(),
         birthDate: birthDate,
         gender: _gender!,
-        wakeUpTime: '${_wakeUpTime!.hour.toString().padLeft(2, '0')}:${_wakeUpTime!.minute.toString().padLeft(2, '0')}',
         taskTime: '${_taskTime!.hour.toString().padLeft(2, '0')}:${_taskTime!.minute.toString().padLeft(2, '0')}',
         occupation: _occupation!,
       );
@@ -620,40 +612,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             ),
                             const SizedBox(height: 24),
 
-                            // 起床時間
-                            const SectionTitle(title: '起床時間'),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              onTap: () => _showTimePickerBottomSheet(
-                                context,
-                                '起床時間を設定',
-                                _wakeUpTime,
-                                (t) => setState(() => _wakeUpTime = t),
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.bgElevated,
-                                  border: Border.all(color: AppColors.border),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      _formatTime(_wakeUpTime),
-                                      style: TextStyle(
-                                        color: _wakeUpTime == null ? AppColors.textSecondary : AppColors.textPrimary,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const Icon(Icons.access_time, color: AppColors.textSecondary),
-                                  ],
-                                ),
-                              ),
-                            ),
                             const SizedBox(height: 24),
+
+                            // ヒーロータスク時間
 
                             // ヒーロータスク時間
                             const SectionTitle(title: 'ヒーロータスク実行時間'),
