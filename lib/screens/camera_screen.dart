@@ -11,8 +11,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../services/post_service.dart';
-import '../widgets/post_success_dialog.dart';
-import '../widgets/entropic_conversion_overlay.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/home_provider.dart';

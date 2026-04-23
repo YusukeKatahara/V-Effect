@@ -347,6 +347,7 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
             ),
             clipBehavior: Clip.antiAlias,
             child: Stack(
+              alignment: Alignment.center,
               children: [
                 // Shimmer for record-breaking
                 if (widget.isRecordUpdating) _buildShimmerEffect(),
@@ -414,13 +415,16 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
         borderRadius: BorderRadius.circular(30),
         color: tier.primaryColor.withValues(alpha: 0.05),
       ),
-      child: Text(
-        tier.label,
-        style: GoogleFonts.outfit(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: tier.primaryColor.withValues(alpha: 0.85),
-          letterSpacing: 3,
+      child: Transform.translate(
+        offset: const Offset(1.5, 0),
+        child: Text(
+          tier.label,
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: tier.primaryColor.withValues(alpha: 0.85),
+            letterSpacing: 3,
+          ),
         ),
       ),
     );
@@ -482,14 +486,19 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
               tier.primaryColor.withValues(alpha: 0.7),
             ],
           ).createShader(bounds),
-          child: Text(
-            '${_countAnimation.value}',
-            style: GoogleFonts.outfit(
-              fontSize: 72,
-              fontWeight: FontWeight.w900,
-              color: AppColors.white,
-              letterSpacing: -3,
-              height: 1,
+          child: Transform.translate(
+            offset: const Offset(-1.5, 0),
+            child: Text(
+              '${_countAnimation.value}',
+              style: GoogleFonts.outfit(
+                fontSize: 72,
+                fontWeight: FontWeight.w900,
+                color: AppColors.white,
+                letterSpacing: -3,
+                height: 1,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         );
@@ -498,13 +507,16 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
   }
 
   Widget _buildVStreakLabel(_TierStyle tier) {
-    return Text(
-      'V STREAK',
-      style: GoogleFonts.outfit(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: tier.primaryColor.withValues(alpha: 0.6),
-        letterSpacing: 4,
+    return Transform.translate(
+      offset: const Offset(2.0, 0),
+      child: Text(
+        'V STREAK',
+        style: GoogleFonts.outfit(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: tier.primaryColor.withValues(alpha: 0.6),
+          letterSpacing: 4,
+        ),
       ),
     );
   }
@@ -523,13 +535,16 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
               : AppColors.white.withValues(alpha: 0.07),
         ),
       ),
-      child: Text(
-        widget.isRecordUpdating ? '🏆  RECORD UPDATED' : '継続中',
-        style: GoogleFonts.outfit(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: widget.isRecordUpdating ? tier.primaryColor : AppColors.grey50,
-          letterSpacing: 2,
+      child: Transform.translate(
+        offset: const Offset(1.0, 0),
+        child: Text(
+          widget.isRecordUpdating ? '🏆  RECORD UPDATED' : '継続中',
+          style: GoogleFonts.outfit(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: widget.isRecordUpdating ? tier.primaryColor : AppColors.grey50,
+            letterSpacing: 2,
+          ),
         ),
       ),
     );
@@ -540,13 +555,16 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
     if (tier.nextMilestone >= 9999) {
       return Column(
         children: [
-          Text(
-            'LEGENDARY STREAK',
-            style: GoogleFonts.outfit(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: tier.primaryColor.withValues(alpha: 0.6),
-              letterSpacing: 2,
+          Transform.translate(
+            offset: const Offset(1.0, 0),
+            child: Text(
+              'LEGENDARY STREAK',
+              style: GoogleFonts.outfit(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: tier.primaryColor.withValues(alpha: 0.6),
+                letterSpacing: 2,
+              ),
             ),
           ),
         ],

@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -67,7 +66,7 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
   late Animation<double> _logoLetterSpacing;
   late Animation<double> _logoOpacity;
   
-  List<FlameParticle> _particles = [];
+  final List<FlameParticle> _particles = [];
   bool _isRebirthPhase = false; // 写真付きカードが吐き出されるフェーズかどうか
 
   @override
@@ -236,7 +235,7 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
             fit: StackFit.expand,
             children: [
               // 背景
-              Container(color: Colors.black.withOpacity(_bgOpacity.value)),
+              Container(color: Colors.black.withValues(alpha: _bgOpacity.value)),
               
               // 特異点（ブラックホール）
               Positioned(
@@ -277,7 +276,7 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
                           color: Colors.black,
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.accentGold.withOpacity(0.6),
+                              color: AppColors.accentGold.withValues(alpha: 0.6),
                               blurRadius: 40,
                               spreadRadius: 10,
                             ),
@@ -313,7 +312,7 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
 
               // 変換の瞬間のフラッシュ
               if (_flashOpacity.value > 0)
-                Container(color: Colors.white.withOpacity(_flashOpacity.value)),
+                Container(color: Colors.white.withValues(alpha: _flashOpacity.value)),
 
               // VICTORY 文字
               if (_isRebirthPhase && _mainController.value >= 0.55 && _mainController.value <= 0.85)
@@ -325,7 +324,7 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
                       style: GoogleFonts.outfit(
                         fontSize: 64, fontWeight: FontWeight.w900,
                         color: AppColors.accentGold, letterSpacing: 8.0,
-                        shadows: [Shadow(color: AppColors.accentGold.withOpacity(0.8), blurRadius: 30)],
+                        shadows: [Shadow(color: AppColors.accentGold.withValues(alpha: 0.8), blurRadius: 30)],
                       ),
                     ),
                   ),
@@ -345,7 +344,7 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.accentGold, width: 2),
         color: const Color(0xFF1C1D21),
-        boxShadow: [BoxShadow(color: AppColors.accentGold.withOpacity(0.3), blurRadius: 40)],
+        boxShadow: [BoxShadow(color: AppColors.accentGold.withValues(alpha: 0.3), blurRadius: 40)],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(22),
@@ -406,7 +405,7 @@ class _ParticlePainter extends CustomPainter {
     for (var p in particles) {
       if (p.life <= 0) continue;
       final paint = Paint()
-        ..color = Color.lerp(Colors.orange, AppColors.accentGold, p.life)!.withOpacity(p.life)
+        ..color = Color.lerp(Colors.orange, AppColors.accentGold, p.life)!.withValues(alpha: p.life)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0);
       canvas.drawCircle(Offset(origin.dx + p.x, origin.dy + p.y), p.size * p.life, paint);
     }

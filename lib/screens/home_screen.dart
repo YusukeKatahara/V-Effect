@@ -936,7 +936,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         alignment: Alignment.center,
         transform: Matrix4.identity()
           ..rotateZ(rotateZ + _getShuffleRotation(index))
-          ..scale(scale, scale, scale),
+          ..scaleByDouble(scale, scale, scale, 1.0),
         child: RepaintBoundary( // パフォーマンス: カード単位でキャッシュ
           child: SizedBox(
             width: cardWidth,

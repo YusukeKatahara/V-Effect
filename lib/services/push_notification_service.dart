@@ -358,6 +358,23 @@ class PushNotificationService {
     }
   }
 
+  /// スケジュールされたリマインダーを更新する
+  Future<void> updateScheduledReminders({
+    String? wakeUpTime,
+    String? taskTime,
+    bool focusTimeEnabled = true,
+  }) async {
+    if (kIsWeb) return;
+
+    if (focusTimeEnabled) {
+      await scheduleVAlert(taskTime);
+    } else {
+      for (int i = 0; i < 7; i++) {
+        await _localNotifications.cancel(_vAlertNotificationId + i);
+      }
+    }
+  }
+
   /// Firestore から taskTime を取得して V Alert をスケジュールする
   /// アプリ起動時やログイン後に呼び出す
   Future<void> restoreVAlertSchedule() async {

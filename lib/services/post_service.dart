@@ -731,7 +731,7 @@ class PostService {
           await _db.collection('users').doc(uid).update({
             'tasks': updatedTasks.map((t) => t.toFirestore()).toList(),
           });
-          debugPrint('ワンタイムタスク "${deletedTaskName}" の完了ステータスをリセットしました');
+          debugPrint('ワンタイムタスク "$deletedTaskName" の完了ステータスをリセットしました');
         }
       }
     }

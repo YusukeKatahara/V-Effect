@@ -248,7 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: TextStyle(color: AppColors.grey50, fontSize: 11),
                     ),
                     value: isOneTime,
-                    activeColor: AppColors.accentGold,
+                    activeThumbColor: AppColors.accentGold,
                     onChanged: (val) {
                       setModalState(() => isOneTime = val);
                     },
@@ -329,7 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: TextStyle(color: AppColors.grey50, fontSize: 11),
                     ),
                     value: isOneTime,
-                    activeColor: AppColors.accentGold,
+                    activeThumbColor: AppColors.accentGold,
                     onChanged: (val) {
                       setModalState(() => isOneTime = val);
                     },

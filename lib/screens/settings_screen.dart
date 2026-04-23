@@ -48,10 +48,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (doc.exists) {
           final data = doc.data();
           if (data != null) {
-            if (data.containsKey('pushNotifications'))
+            if (data.containsKey('pushNotifications')) {
               remotePush = data['pushNotifications'];
-            if (data.containsKey('focusTimeNotifications'))
+            }
+            if (data.containsKey('focusTimeNotifications')) {
               remoteFocusTime = data['focusTimeNotifications'];
+            }
           }
         }
       }
@@ -154,8 +156,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.pop(ctx);
                   await PushNotificationService().removeFcmToken();
                   await FirebaseAuth.instance.signOut();
-                  if (mounted)
+                  if (mounted) {
                     Navigator.pushReplacementNamed(context, AppRoutes.login);
+                  }
                 },
                 child: const Text(
                   'ログアウト',

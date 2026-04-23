@@ -53,7 +53,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   int _streak = 0;
   bool _postedToday = false;
   bool _loading = true;
-  String _username = '';
   List<_HeroTaskItem> _taskItems = [];
   bool _isAllTasksCompleted = false;
 
@@ -244,7 +243,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         _postedToday = homeData['postedToday'] as bool? ?? false;
         _isAllTasksCompleted =
             homeData['isAllTasksCompleted'] as bool? ?? false;
-        _username = homeData['username'] as String? ?? '';
         _taskItems = items;
         _userPhotos.addAll(photoMap);
         _userNames.addAll(nameMap);
@@ -443,24 +441,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         await _checkAndShowPostTutorial();
       }
     }
-  }
-
-  void _playVictoryHaptics() async {
-    // 0.0s Anticipation: short selection clicks
-    HapticFeedback.selectionClick();
-    await Future.delayed(const Duration(milliseconds: 200));
-    if (!mounted) return;
-    HapticFeedback.selectionClick();
-    
-    // 0.4s V-Flash: Heavy impact
-    await Future.delayed(const Duration(milliseconds: 200));
-    if (!mounted) return;
-    HapticFeedback.heavyImpact();
-    
-    // Additional impact for "Victory Text"
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
-    HapticFeedback.mediumImpact();
   }
 
   Color _getTierColor(int streak) {
