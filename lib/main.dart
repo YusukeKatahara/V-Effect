@@ -151,6 +151,8 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       AnalyticsService.instance.onAppResumed();
+      // フォアグラウンド復帰時にバッジをリセット
+      PushNotificationService().resetBadge();
     } else if (state == AppLifecycleState.paused) {
       AnalyticsService.instance.onAppPaused();
     }

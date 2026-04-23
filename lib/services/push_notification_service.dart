@@ -96,7 +96,35 @@ class PushNotificationService {
     // トークン更新時にも保存
     _messaging.onTokenRefresh.listen((_) => saveFcmToken());
 
+    // 起動時にバッジをリセット
+    await resetBadge();
+
+    // V Alert のスケジュールを復元（既ログインユーザー向け）
+    await restoreVAlertSchedule();
+
     _initialized = true;
+  }
+
+  /// アプリバッジを 0 にリセットし、通知センターから全通知を消去する（iOS/Android 用）
+  Future<void> resetBadge() async {
+    if (kIsWeb) return;
+    try {
+      // 全ての配信済み通知を消去（通知センターをクリア）
+      await _localNotifications.cancelAll();
+      
+      // iOS のアプリアイコンバッジをリセット
+      final iosPlugin =
+          _localNotifications
+              .resolvePlatformSpecificImplementation<
+                DarwinFlutterLocalNotificationsPlugin
+              >();
+      if (iosPlugin != null) {
+        await iosPlugin.setApplicationIconBadgeNumber(0);
+        debugPrint('App Badge & Notification Center リセット完了');
+      }
+    } catch (e) {
+      debugPrint('App Badge リセットエラー: $e');
+    }
   }
 
   /// 通知権限をリクエスト
@@ -110,8 +138,10 @@ class PushNotificationService {
 
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       // iOS でフォアグラウンド通知を表示するための設定
+      // alert: false にすることで OS 標準の自動表示を抑制し、
+      // _handleForegroundMessage での手動表示（LocalNotifications）と重複するのを防ぐ
       await _messaging.setForegroundNotificationPresentationOptions(
-        alert: true,
+        alert: false,
         badge: true,
         sound: true,
       );
