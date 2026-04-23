@@ -258,9 +258,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       _analytics.setFriendCount(friendUids.length);
       _analytics.setTaskCategories(allTasks.map((t) => t.title).toList());
 
-      _notificationService
-          .checkAndCreateTimeReminders(streak: _streak)
-          .catchError((e) => debugPrint('Time reminder error: $e'));
     } catch (e) {
       debugPrint('Load data error: $e');
       if (mounted) {

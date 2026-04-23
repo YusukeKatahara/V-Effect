@@ -425,7 +425,7 @@ class PostService {
           : '$myUsernameさんが今日の達成に「$emoji」を贈りました！';
       sendPush = true;
     } else {
-      // V Fireリアクション：重複チェックしてカウントを増やす（プッシュなし）
+      // V Fireリアクション：重複チェックしてカウントを増やす（プッシュあり）
       // flameIncrement 分を既存の通知に加算する
       final int addedCount = flameIncrement > 0 ? flameIncrement : 1;
 
@@ -471,7 +471,7 @@ class PostService {
       final selected = variations[random.nextInt(variations.length)];
       title = selected['title']!;
       body = selected['body']!;
-      sendPush = false;
+      sendPush = true;
     }
 
     // 2. 通知ドキュメント作成

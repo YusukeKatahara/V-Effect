@@ -21,9 +21,6 @@ class NotificationService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // 重複実行防止フラグ
-  bool _isCheckingReminders = false;
-
   /// 通知を作成します（テンプレートからメッセージを自動生成）
   ///
   /// [params] はプレースホルダーの置換に使用されます。
@@ -35,6 +32,7 @@ class NotificationService {
     NotificationContext context = const NotificationContext(),
     String? fromUid,
     String? relatedId,
+    bool sendPush = true,
   }) async {
     final content = NotificationMessages.build(type, params, context);
     await _db.collection('notifications').add({
@@ -45,6 +43,7 @@ class NotificationService {
       'fromUid': fromUid,
       'relatedId': relatedId,
       'isRead': false,
+      'sendPush': sendPush,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -122,97 +121,5 @@ class NotificationService {
     await batch.commit();
   }
 
-  Future<void> checkAndCreateTimeReminders({int? streak}) async {
-    if (_isCheckingReminders) return;
-    _isCheckingReminders = true;
 
-    try {
-      final myUid = _auth.currentUser?.uid;
-      if (myUid == null) return;
-      
-      final now = DateTime.now();
-      final todayStr =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-
-      int streakNum;
-      if (streak != null) {
-        streakNum = streak;
-      } else {
-        final userSnap = await _db.collection('users').doc(myUid).get();
-        streakNum = ((userSnap.data()?['streak'] as num?) ?? 0).toInt();
-      }
-      final streakStr = streakNum.toString();
-
-      final privateSnap = await _db
-          .collection('users')
-          .doc(myUid)
-          .collection('private')
-          .doc('data')
-          .get();
-      if (!privateSnap.exists) return;
-      final data = privateSnap.data()!;
-      final taskTime = data['taskTime'] as String?;
-
-      final ctx = NotificationContext(streak: streakNum);
-
-      if (taskTime != null) {
-        await _createTimeReminderIfNeeded(
-          uid: myUid,
-          timeStr: taskTime,
-          todayStr: todayStr,
-          now: now,
-          type: NotificationType.taskReminder,
-          params: {'time': taskTime, 'streak': streakStr},
-          context: ctx,
-        );
-      }
-    } finally {
-      _isCheckingReminders = false;
-    }
-  }
-
-  Future<void> _createTimeReminderIfNeeded({
-    required String uid,
-    required String timeStr,
-    required String todayStr,
-    required DateTime now,
-    required NotificationType type,
-    required Map<String, String> params,
-    NotificationContext context = const NotificationContext(),
-  }) async {
-    // timeStr は "HH:MM" 形式を想定
-    final parts = timeStr.split(':');
-    if (parts.length != 2) return;
-    final hour = int.tryParse(parts[0]);
-    final minute = int.tryParse(parts[1]);
-    if (hour == null || minute == null) return;
-
-    // まだ設定時刻を過ぎていなければ通知しない
-    if (now.hour < hour || (now.hour == hour && now.minute < minute)) return;
-
-    // 今日既に同じ種類の通知を作成済みかチェック
-    final todayStart = DateTime(now.year, now.month, now.day);
-    final existing = await _db
-        .collection('notifications')
-        .where('toUid', isEqualTo: uid)
-        .where('type', isEqualTo: type.name)
-        .get();
-
-    final alreadyCreated = existing.docs.any((doc) {
-      final createdAt = doc.data()['createdAt'];
-      if (createdAt is Timestamp) {
-        return createdAt.toDate().isAfter(todayStart);
-      }
-      return false; // null などの場合（ローカルの書き込み待ちなど）
-    });
-
-    if (alreadyCreated) return;
-
-    await createNotification(
-      toUid: uid,
-      type: type,
-      params: params,
-      context: context,
-    );
-  }
 }

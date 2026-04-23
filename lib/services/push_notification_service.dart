@@ -243,8 +243,8 @@ class PushNotificationService {
   Future<void> scheduleVAlert(String? taskTimeStr) async {
     if (kIsWeb) return;
 
-    // 既存スケジュール（最大7日分）を先にキャンセル
-    for (int i = 0; i < 7; i++) {
+    // 既存スケジュール（最大60日分）を先にキャンセル
+    for (int i = 0; i < 60; i++) {
       await _localNotifications.cancel(_vAlertNotificationId + i);
     }
 
@@ -274,8 +274,8 @@ class PushNotificationService {
       baseDate = baseDate.add(const Duration(days: 1));
     }
 
-    // 今後 7 日間分の通知をそれぞれランダムなメッセージでスケジュール
-    for (int i = 0; i < 7; i++) {
+    // 今後 60 日間分の通知をそれぞれランダムなメッセージでスケジュール
+    for (int i = 0; i < 60; i++) {
       final scheduledDate = baseDate.add(Duration(days: i));
       final notificationId = _vAlertNotificationId + i;
 
