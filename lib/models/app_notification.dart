@@ -21,6 +21,7 @@ class AppNotification {
   final int reactionCount;
   final String? emoji; // 絵文字リアクション用
   final bool isRead;
+  final bool sendPush; // プッシュ通知を送るかどうかのフラグ
   final DateTime createdAt;
 
   const AppNotification({
@@ -34,6 +35,7 @@ class AppNotification {
     this.emoji,
     this.reactionCount = 0,
     this.isRead = false,
+    this.sendPush = true,
     required this.createdAt,
   });
 
@@ -53,6 +55,7 @@ class AppNotification {
       emoji: data['emoji'],
       reactionCount: data['reactionCount'] as int? ?? 0,
       isRead: data['isRead'] ?? false,
+      sendPush: data['sendPush'] ?? true,
       createdAt:
           (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -68,6 +71,7 @@ class AppNotification {
         'emoji': emoji,
         'reactionCount': reactionCount,
         'isRead': isRead,
+        'sendPush': sendPush,
         'createdAt': FieldValue.serverTimestamp(),
       };
 }

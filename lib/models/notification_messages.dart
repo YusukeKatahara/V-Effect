@@ -39,10 +39,6 @@ abstract class NotificationMessages {
     NotificationType.taskReminder: [
       _Template(
         title: 'V Alert',
-        body: '小さな選択、小さな勝利が証拠となり\n理想とする自分が真実になる。',
-      ),
-      _Template(
-        title: 'V Alert',
         body: '「天才とは努力する凡才のことである」 Albert Einstein',
       ),
       _Template(
@@ -55,22 +51,7 @@ abstract class NotificationMessages {
       ),
       _Template(
         title: 'V Alert',
-        body: '完璧じゃなくていい。今日も「やった」という事実を積み上げよう',
-        condition: _Condition.streakAtLeast1,
-      ),
-      _Template(
-        title: 'V Alert',
-        body: '{streak}日目の挑戦。続けている自分を誇ろう',
-        condition: _Condition.streakAtLeast5,
-      ),
-      _Template(
-        title: 'V Alert',
-        body: 'まずは始めるだけ。やると決めたのはあなたです',
-      ),
-      _Template(
-        title: 'V Alert',
-        body: '昨日の自分にできなかったことが、今日はできるかもしれない',
-        condition: _Condition.streakZero,
+        body: '「貪欲であれ、愚かであれ」 Steve Jobs',
       ),
     ],
 

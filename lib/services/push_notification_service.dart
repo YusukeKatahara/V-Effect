@@ -96,46 +96,34 @@ class PushNotificationService {
     // トークン更新時にも保存
     _messaging.onTokenRefresh.listen((_) => saveFcmToken());
 
-    // 初期化時にスケジュールを同期
-    await syncScheduledReminders();
+    // 起動時にバッジをリセット
+    await resetBadge();
+
+    // V Alert のスケジュールを復元（既ログインユーザー向け）
+    await restoreVAlertSchedule();
 
     _initialized = true;
   }
 
-  /// Firestore から設定を取得してローカル通知スケジュールを同期する
-  Future<void> syncScheduledReminders() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
+  /// アプリバッジを 0 にリセットし、通知センターから全通知を消去する（iOS/Android 用）
+  Future<void> resetBadge() async {
+    if (kIsWeb) return;
     try {
-      // Fetch public settings
-      final publicSnap = await _db.collection('users').doc(user.uid).get();
-      bool focusTimeEnabled = true;
-      if (publicSnap.exists) {
-        focusTimeEnabled = publicSnap.data()?['focusTimeNotifications'] ?? true;
-      }
+      // 全ての配信済み通知を消去（通知センターをクリア）
+      await _localNotifications.cancelAll();
 
-      // Fetch private details (times)
-      final privateSnap = await _db
-          .collection('users')
-          .doc(user.uid)
-          .collection('private')
-          .doc('data')
-          .get();
-
-      if (privateSnap.exists) {
-        final data = privateSnap.data()!;
-        final wakeUpTime = data['wakeUpTime'] as String?;
-        final taskTime = data['taskTime'] as String?;
-
-        await updateScheduledReminders(
-          wakeUpTime: wakeUpTime,
-          taskTime: taskTime,
-          focusTimeEnabled: focusTimeEnabled,
-        );
+      // iOS のアプリアイコンバッジをリセット
+      final iosPlugin =
+          _localNotifications
+              .resolvePlatformSpecificImplementation<
+                DarwinFlutterLocalNotificationsPlugin
+              >();
+      if (iosPlugin != null) {
+        await iosPlugin.setApplicationIconBadgeNumber(0);
+        debugPrint('App Badge & Notification Center リセット完了');
       }
     } catch (e) {
-      debugPrint('スケジュール同期エラー: $e');
+      debugPrint('App Badge リセットエラー: $e');
     }
   }
 
@@ -150,8 +138,10 @@ class PushNotificationService {
 
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       // iOS でフォアグラウンド通知を表示するための設定
+      // alert: false にすることで OS 標準の自動表示を抑制し、
+      // _handleForegroundMessage での手動表示（LocalNotifications）と重複するのを防ぐ
       await _messaging.setForegroundNotificationPresentationOptions(
-        alert: true,
+        alert: false,
         badge: true,
         sound: true,
       );
@@ -283,8 +273,8 @@ class PushNotificationService {
   Future<void> scheduleVAlert(String? taskTimeStr) async {
     if (kIsWeb) return;
 
-    // 既存スケジュール（最大7日分）を先にキャンセル
-    for (int i = 0; i < 7; i++) {
+    // 既存スケジュール（最大60日分）を先にキャンセル
+    for (int i = 0; i < 60; i++) {
       await _localNotifications.cancel(_vAlertNotificationId + i);
     }
 
@@ -314,8 +304,8 @@ class PushNotificationService {
       baseDate = baseDate.add(const Duration(days: 1));
     }
 
-    // 今後 7 日間分の通知をそれぞれランダムなメッセージでスケジュール
-    for (int i = 0; i < 7; i++) {
+    // 今後 60 日間分の通知をそれぞれランダムなメッセージでスケジュール
+    for (int i = 0; i < 60; i++) {
       final scheduledDate = baseDate.add(Duration(days: i));
       final notificationId = _vAlertNotificationId + i;
 
