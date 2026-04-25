@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
+import '../services/sound_service.dart';
 
 class EntropicConversionOverlay extends StatefulWidget {
   final VoidCallback onComplete;
@@ -181,6 +182,10 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
 
   Future<void> _playAnimation() async {
     HapticFeedback.mediumImpact();
+    
+    // 演出開始と同時に音声を再生（2.6秒のシンクロ開始）
+    SoundService.instance.playTaskCompleteSound();
+    
     _mainController.forward();
     
     await Future.delayed(const Duration(milliseconds: 1200));

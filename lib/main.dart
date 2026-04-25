@@ -13,6 +13,7 @@ import 'config/theme.dart';
 import 'services/analytics_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/deep_link_service.dart';
+import 'services/sound_service.dart';
 import 'widgets/global_error_widget.dart';
 import 'widgets/splash_loading.dart';
 import 'dart:async';
@@ -84,6 +85,7 @@ class _AppInitializerState extends State<AppInitializer> {
       // 非UIブロック項目の初期化
       PushNotificationService().initialize().catchError((e) => debugPrint('通知初期化エラー: $e'));
       DeepLinkService().initialize().catchError((e) => debugPrint('DeepLink初期化エラー: $e'));
+      SoundService.instance.init().catchError((e) => debugPrint('音声初期化エラー: $e'));
 
       final prefs = await SharedPreferences.getInstance();
 

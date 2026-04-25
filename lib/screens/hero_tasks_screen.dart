@@ -15,6 +15,7 @@ import '../services/analytics_service.dart';
 import '../services/notification_service.dart';
 import '../services/post_service.dart';
 import '../services/user_service.dart';
+import '../services/sound_service.dart';
 import '../widgets/splash_loading.dart';
 import '../widgets/streak_flame.dart';
 import '../widgets/v_effect_header.dart';
