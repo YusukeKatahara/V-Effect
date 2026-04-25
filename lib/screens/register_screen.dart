@@ -71,7 +71,8 @@ class _RegisterScreenState extends State<RegisterScreen>
     PushNotificationService().saveFcmToken().catchError((e) => debugPrint('FCM token save error: $e'));
   }
 
-  /// ユーザードキュメントを作成し、プロフィール設定画面へ直接遷移する（ソーシャルログイン用）
+  /// ユーザードキュメントを作成し、wrapper 経由でルーティングする（ソーシャルログイン用）
+  /// wrapper に戻すことで auth_wrapper の termsAgreed チェックが走り、同意画面が表示される
   Future<void> _ensureUserDocAndNavigate() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -79,7 +80,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     if (!mounted) return;
     Navigator.of(
       context,
-    ).pushNamedAndRemoveUntil(AppRoutes.profileSetup, (r) => false);
+    ).pushNamedAndRemoveUntil(AppRoutes.wrapper, (r) => false);
   }
 
   Future<void> _register() async {

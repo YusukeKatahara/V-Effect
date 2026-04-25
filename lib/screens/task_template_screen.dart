@@ -119,7 +119,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
       // 簡単のため、初回のHome表示時にフラグを監視・チェックする方法もあります。Analyticsで初投稿か判定します。
       
       Navigator.of(context)
-          .pushNamedAndRemoveUntil(AppRoutes.home, (r) => false);
+          .pushNamedAndRemoveUntil(AppRoutes.initialFriend, (r) => false);
     } catch (e) {
       debugPrint('TaskTemplate error: $e');
       if (mounted) {
