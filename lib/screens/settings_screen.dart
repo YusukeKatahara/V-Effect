@@ -22,6 +22,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = true;
   bool _pushNotifications = true;
   bool _focusTimeNotifications = true;
+  bool _isPrivateAccount = false;
   String _appVersion = '';
 
   @override
@@ -40,6 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Load remote settings from Firestore
     bool remotePush = true;
     bool remoteFocusTime = true;
+    bool remotePrivate = false;
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
@@ -54,6 +56,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (data.containsKey('focusTimeNotifications')) {
               remoteFocusTime = data['focusTimeNotifications'];
             }
+            if (data.containsKey('isPrivateAccount')) {
+              remotePrivate = data['isPrivateAccount'];
+            }
           }
         }
       }
@@ -66,6 +71,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _isDarkMode = localDarkMode;
         _pushNotifications = remotePush;
         _focusTimeNotifications = remoteFocusTime;
+        _isPrivateAccount = remotePrivate;
       });
     }
   }
@@ -118,9 +124,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _togglePrivateAccount(bool value) async {
+    setState(() => _isPrivateAccount = value);
+    try {
+      await UserService.instance.updateSettings(isPrivateAccount: value);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('設定の保存に失敗しました')));
+        setState(() => _isPrivateAccount = !value); // revert
+      }
+    }
+  }
+
   Future<void> _launchURL(String urlString) async {
     final url = Uri.parse(urlString);
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+    if (!await launchUrl(url, mode: LaunchMode.inAppBrowserView)) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -339,6 +359,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             value: _focusTimeNotifications,
             onChanged: _toggleFocusTimeNotifications,
+            activeThumbColor: AppColors.white,
+            activeTrackColor: AppColors.grey50,
+          ),
+
+          _buildSectionHeader('プライバシー'),
+          SwitchListTile(
+            title: const Text(
+              '非公開アカウント',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            subtitle: const Text(
+              '承認した人だけが投稿を見られるようになります',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
+            value: _isPrivateAccount,
+            onChanged: _togglePrivateAccount,
             activeThumbColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),

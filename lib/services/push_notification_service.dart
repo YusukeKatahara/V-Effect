@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'analytics_service.dart';
@@ -110,7 +111,15 @@ class PushNotificationService {
     if (kIsWeb) return;
     try {
       await _localNotifications.cancelAll();
-      debugPrint('Notification Center リセット完了');
+      
+      // アプリバッジをリセット
+      final bool isSupported = await FlutterAppBadger.isAppBadgeSupported();
+      if (isSupported) {
+        await FlutterAppBadger.removeBadge();
+        debugPrint('App Badge & Notification Center リセット完了');
+      } else {
+        debugPrint('App Badge はこのデバイスでサポートされていません');
+      }
     } catch (e) {
       debugPrint('Notification Center リセットエラー: $e');
     }
