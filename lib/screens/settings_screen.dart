@@ -329,7 +329,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             value: _isDarkMode,
             onChanged: _toggleTheme,
-            activeThumbColor: AppColors.white,
+            activeColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),
 
@@ -345,7 +345,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             value: _pushNotifications,
             onChanged: _togglePushNotifications,
-            activeThumbColor: AppColors.white,
+            activeColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),
           SwitchListTile(
@@ -359,7 +359,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             value: _focusTimeNotifications,
             onChanged: _toggleFocusTimeNotifications,
-            activeThumbColor: AppColors.white,
+            activeColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),
 
@@ -375,7 +375,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             value: _isPrivateAccount,
             onChanged: _togglePrivateAccount,
-            activeThumbColor: AppColors.white,
+            activeColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),
 
