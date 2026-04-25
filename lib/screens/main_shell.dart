@@ -6,6 +6,7 @@ import '../config/app_colors.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'hero_tasks_screen.dart';
+import 'v_practice_screen.dart';
 
 /// Spatial Shell — ジェスチャー主導のUI空間
 ///
@@ -31,6 +32,7 @@ class _MainShellState extends State<MainShell> {
       },
     ),
     const HeroTasksScreen(),
+    const VPracticeScreen(),
     const ProfileScreen(),
   ];
 
@@ -117,11 +119,18 @@ class _MainShellState extends State<MainShell> {
                       onTap: () => _onTap(1),
                     ),
 
+                    // V-Practice
+                    _SpatialNavItem(
+                      icon: Icons.menu_book_rounded,
+                      isActive: _currentIndex == 2,
+                      onTap: () => _onTap(2),
+                    ),
+
                     // Profile
                     _SpatialNavItem(
                       icon: Icons.person_rounded,
-                      isActive: _currentIndex == 2,
-                      onTap: () => _onTap(2),
+                      isActive: _currentIndex == 3,
+                      onTap: () => _onTap(3),
                     ),
                   ],
                 ),
