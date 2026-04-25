@@ -105,25 +105,14 @@ class PushNotificationService {
     _initialized = true;
   }
 
-  /// アプリバッジを 0 にリセットし、通知センターから全通知を消去する（iOS/Android 用）
+  /// 通知センターから全通知を消去する
   Future<void> resetBadge() async {
     if (kIsWeb) return;
     try {
-      // 全ての配信済み通知を消去（通知センターをクリア）
       await _localNotifications.cancelAll();
-
-      // iOS のアプリアイコンバッジをリセット
-      final iosPlugin =
-          _localNotifications
-              .resolvePlatformSpecificImplementation<
-                DarwinFlutterLocalNotificationsPlugin
-              >();
-      if (iosPlugin != null) {
-        await iosPlugin.setApplicationIconBadgeNumber(0);
-        debugPrint('App Badge & Notification Center リセット完了');
-      }
+      debugPrint('Notification Center リセット完了');
     } catch (e) {
-      debugPrint('App Badge リセットエラー: $e');
+      debugPrint('Notification Center リセットエラー: $e');
     }
   }
 

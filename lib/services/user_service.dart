@@ -73,7 +73,7 @@ class UserService {
     await batch.commit();
 
     // ローカル通知スケジュールを更新
-    await PushNotificationService().syncScheduledReminders();
+    await PushNotificationService().restoreVAlertSchedule();
   }
 
   /// テンプレートヒーロータスク選択を保存します（新規登録フロー: テンプレート選択ステップ）
@@ -126,7 +126,7 @@ class UserService {
     await batch.commit();
 
     // ローカル通知スケジュールを更新
-    await PushNotificationService().syncScheduledReminders();
+    await PushNotificationService().restoreVAlertSchedule();
   }
 
   /// ユーザーIDが既に使われていないかチェックします
@@ -208,8 +208,8 @@ class UserService {
 
     await batch.commit();
 
-    // ローカル通知スケジュールを更新（設定変更を考慮するため syncScheduledReminders を使用）
-    await PushNotificationService().syncScheduledReminders();
+    // ローカル通知スケジュールを更新
+    await PushNotificationService().restoreVAlertSchedule();
 
     // タスクが変更された場合、HeroTasksScreen など購読者に通知
     if (tasks != null) {
@@ -236,7 +236,11 @@ class UserService {
       
       // Focus Time 通知設定が変更された場合はスケジュールを更新
       if (focusTimeNotifications != null) {
-        await PushNotificationService().syncScheduledReminders();
+        if (focusTimeNotifications) {
+          await PushNotificationService().restoreVAlertSchedule();
+        } else {
+          await PushNotificationService().scheduleVAlert(null);
+        }
       }
     }
   }
