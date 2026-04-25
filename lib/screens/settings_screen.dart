@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // REQUIRED
 import '../config/app_colors.dart';
 import '../config/routes.dart';
-import '../main.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/user_service.dart'; // REQUIRED
@@ -19,10 +17,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _isDarkMode = true;
   bool _pushNotifications = true;
   bool _focusTimeNotifications = true;
-  bool _isPrivateAccount = false;
   String _appVersion = '';
 
   @override
@@ -33,15 +29,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // Load local settings
-    bool localDarkMode = prefs.getBool('isDarkMode') ?? true;
-
     // Load remote settings from Firestore
     bool remotePush = true;
     bool remoteFocusTime = true;
-    bool remotePrivate = false;
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
@@ -56,9 +46,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (data.containsKey('focusTimeNotifications')) {
               remoteFocusTime = data['focusTimeNotifications'];
             }
-            if (data.containsKey('isPrivateAccount')) {
-              remotePrivate = data['isPrivateAccount'];
-            }
           }
         }
       }
@@ -68,10 +55,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (mounted) {
       setState(() {
-        _isDarkMode = localDarkMode;
         _pushNotifications = remotePush;
         _focusTimeNotifications = remoteFocusTime;
-        _isPrivateAccount = remotePrivate;
       });
     }
   }
@@ -87,13 +72,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       debugPrint('Failed to load version: $e');
     }
-  }
-
-  Future<void> _toggleTheme(bool value) async {
-    setState(() => _isDarkMode = value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', value);
-    VEffectApp.themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
   }
 
   Future<void> _togglePushNotifications(bool value) async {
@@ -120,20 +98,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           context,
         ).showSnackBar(const SnackBar(content: Text('設定の保存に失敗しました')));
         setState(() => _focusTimeNotifications = !value); // revert
-      }
-    }
-  }
-
-  Future<void> _togglePrivateAccount(bool value) async {
-    setState(() => _isPrivateAccount = value);
-    try {
-      await UserService.instance.updateSettings(isPrivateAccount: value);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('設定の保存に失敗しました')));
-        setState(() => _isPrivateAccount = !value); // revert
       }
     }
   }
@@ -317,22 +281,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.only(bottom: 60),
         children: [
-          _buildSectionHeader('外観'),
-          SwitchListTile(
-            title: const Text(
-              'ダークモード',
-              style: TextStyle(color: AppColors.textPrimary),
-            ),
-            subtitle: const Text(
-              '（※完全なライトモード対応は今後のアップデートで提供されます）',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-            ),
-            value: _isDarkMode,
-            onChanged: _toggleTheme,
-            activeColor: AppColors.white,
-            activeTrackColor: AppColors.grey50,
-          ),
-
           _buildSectionHeader('通知'),
           SwitchListTile(
             title: const Text(
@@ -359,22 +307,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             value: _focusTimeNotifications,
             onChanged: _toggleFocusTimeNotifications,
-            activeColor: AppColors.white,
-            activeTrackColor: AppColors.grey50,
-          ),
-
-          _buildSectionHeader('プライバシー'),
-          SwitchListTile(
-            title: const Text(
-              '非公開アカウント',
-              style: TextStyle(color: AppColors.textPrimary),
-            ),
-            subtitle: const Text(
-              '承認した人だけが投稿を見られるようになります',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-            ),
-            value: _isPrivateAccount,
-            onChanged: _togglePrivateAccount,
             activeColor: AppColors.white,
             activeTrackColor: AppColors.grey50,
           ),
