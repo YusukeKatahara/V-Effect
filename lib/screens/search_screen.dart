@@ -108,7 +108,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         title: TextField(
           controller: _searchController,
           autofocus: true,
-          style: const TextStyle(color: Colors.white, fontSize: 15),
+          style: const TextStyle(color: AppColors.white, fontSize: 15),
           decoration: const InputDecoration(
             hintText: 'IDまたは名前を検索',
             hintStyle: TextStyle(color: AppColors.grey30, fontSize: 15),

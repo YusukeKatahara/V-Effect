@@ -11,6 +11,24 @@ class SoundService {
   /// アプリ起動時に音声を事前ロード（キャッシュ）しておくことで遅延を防ぎます
   Future<void> init() async {
     try {
+      // iOSのマナーモードを無視して再生するための設定
+      await AudioPlayer.global.setAudioContext(AudioContext(
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playback,
+          options: {
+            AVAudioSessionOptions.mixWithOthers,
+            AVAudioSessionOptions.defaultToSpeaker,
+          },
+        ),
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: true,
+          stayAwake: true,
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.assistanceSonification,
+          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+        ),
+      ));
+
       await _player.setSource(AssetSource('sounds/task_complete_sync.mp3'));
       _player.setPlayerMode(PlayerMode.lowLatency);
     } catch (e) {

@@ -235,7 +235,7 @@ class _LoginScreenState extends State<LoginScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Colors.white.withValues(alpha: 0.08),
+                    AppColors.white.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -253,7 +253,7 @@ class _LoginScreenState extends State<LoginScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Colors.white.withValues(alpha: 0.05),
+                    AppColors.white.withValues(alpha: 0.05),
                     Colors.transparent,
                   ],
                 ),
@@ -284,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen>
             style: TextStyle(
               fontSize: 38,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: AppColors.white,
               letterSpacing: 3.0,
             ),
           ),
@@ -367,7 +367,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ? []
                           : [
                             BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: AppColors.white.withValues(alpha: 0.2),
                               blurRadius: 16,
                               offset: const Offset(0, 6),
                             ),

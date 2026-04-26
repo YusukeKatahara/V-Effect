@@ -274,7 +274,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       builder:
           (ctx) => AlertDialog(
             backgroundColor: AppColors.bgElevated,
-            title: const Text('投稿を削除', style: TextStyle(color: Colors.white)),
+            title: const Text('投稿を削除', style: TextStyle(color: AppColors.white)),
             content: const Text('この投稿を削除してもよろしいですか？\n(今日の達成記録も取り消されます)'),
             actions: [
               TextButton(
@@ -327,7 +327,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               ),
               title: const Text(
                 'V-Quest',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: AppColors.white),
               ),
               content: const Text(
                 '今日の挑戦を選んでタップしましょう。\n証拠写真を投稿して Victory を獲得！',
@@ -361,7 +361,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               ),
               title: const Text(
                 'Victory!',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: AppColors.white),
               ),
               content: const Text(
                 '投稿が完了しました！\nHOMEタブから仲間の努力を見に行きましょう。',
@@ -498,7 +498,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       builder: (context, _) {
         return Positioned.fill(
           child: Container(
-            color: Colors.black.withValues(alpha: _sublimationBgDim.value * 0.7),
+            color: AppColors.black.withValues(alpha: _sublimationBgDim.value * 0.7),
           ),
         );
       },
@@ -543,7 +543,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         return Positioned.fill(
           child: IgnorePointer(
             child: Container(
-              color: Colors.white.withValues(alpha: opacity),
+              color: AppColors.white.withValues(alpha: opacity),
             ),
           ),
         );
@@ -577,7 +577,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                       blurRadius: 20,
                     ),
                     const Shadow(
-                      color: Colors.white,
+                      color: AppColors.white,
                       blurRadius: 4,
                     ),
                   ],
@@ -966,7 +966,7 @@ class _TaskCard extends StatelessWidget {
                 ),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
-                  Colors.black.withValues(
+                  AppColors.black.withValues(
                     alpha: isExpanded ? 0.1 : (isTop ? 0.3 : 0.6),
                   ),
                   BlendMode.darken,
@@ -1269,37 +1269,17 @@ class _PulseCameraButtonState extends State<_PulseCameraButton>
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // 背光オーラ（静止）
-                  Container(
-                    width: outerSize,
-                    height: outerSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.accentGold.withValues(alpha: glowAlpha),
-                          blurRadius: 40,
-                          spreadRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ゴールドシマーボーダー
-                  CustomPaint(
-                    size: const Size(innerSize, innerSize),
-                    painter: _GoldShimmerPainter(
-                      angle: _shimmerAngle.value,
-                    ),
-                  ),
-
-                  // 内側サークル＋アイコン
+                  // 内側サークル＋アイコン (ゴールドの縁取り)
                   Container(
                     width: innerSize,
                     height: innerSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: AppColors.white.withValues(alpha: 0.06),
+                      border: Border.all(
+                        color: AppColors.accentGold.withValues(alpha: 0.8),
+                        width: 1.5,
+                      ),
                     ),
                     child: const Icon(
                       Icons.camera_alt_outlined,

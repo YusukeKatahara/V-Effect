@@ -105,7 +105,7 @@ class _VictoryOverlayState extends State<VictoryOverlay> with TickerProviderStat
             builder: (context, child) {
               return IgnorePointer(
                 child: Container(
-                  color: Colors.white.withValues(alpha: _flashOpacity.value),
+                  color: AppColors.white.withValues(alpha: _flashOpacity.value),
                 ),
               );
             },
@@ -132,7 +132,7 @@ class _VictoryOverlayState extends State<VictoryOverlay> with TickerProviderStat
                           blurRadius: 30,
                         ),
                         Shadow(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: AppColors.white.withValues(alpha: 0.8),
                           blurRadius: 10,
                         ),
                       ],

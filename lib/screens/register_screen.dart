@@ -236,7 +236,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Colors.white.withValues(alpha: 0.08),
+                    AppColors.white.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -253,7 +253,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Colors.white.withValues(alpha: 0.04),
+                    AppColors.white.withValues(alpha: 0.04),
                     Colors.transparent,
                   ],
                 ),
@@ -369,7 +369,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: _isLoadingAny ? [] : [
                     BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: AppColors.white.withValues(alpha: 0.2),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),

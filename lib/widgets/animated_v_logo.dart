@@ -80,7 +80,7 @@ class _AnimatedVLogoState extends State<AnimatedVLogo>
                 borderRadius: BorderRadius.circular(widget.size * 0.25),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.white.withValues(alpha: 0.12 + (flicker * 0.05)),
+                    color: AppColors.white.withValues(alpha: 0.12 + (flicker * 0.05)),
                     blurRadius: blur,
                     spreadRadius: spread,
                   ),

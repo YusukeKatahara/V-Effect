@@ -240,7 +240,7 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
             fit: StackFit.expand,
             children: [
               // 背景
-              Container(color: Colors.black.withValues(alpha: _bgOpacity.value)),
+              Container(color: AppColors.black.withValues(alpha: _bgOpacity.value)),
               
               // 特異点（ブラックホール）
               Positioned(
@@ -278,7 +278,7 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
                         height: 60,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.black,
+                          color: AppColors.black,
                           boxShadow: [
                             BoxShadow(
                               color: AppColors.accentGold.withValues(alpha: 0.6),
@@ -317,7 +317,7 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
 
               // 変換の瞬間のフラッシュ
               if (_flashOpacity.value > 0)
-                Container(color: Colors.white.withValues(alpha: _flashOpacity.value)),
+                Container(color: AppColors.white.withValues(alpha: _flashOpacity.value)),
 
               // VICTORY 文字
               if (_isRebirthPhase && _mainController.value >= 0.55 && _mainController.value <= 0.85)
@@ -362,7 +362,7 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
                 ? Image.network(widget.finishedImagePath!, fit: BoxFit.cover)
                 : Image.file(File(widget.finishedImagePath!), fit: BoxFit.cover, cacheWidth: 540)
             else
-              Container(color: Colors.black),
+              Container(color: AppColors.black),
             
             // タスク名などのオーバーレイ
             Padding(

@@ -28,7 +28,7 @@ class PremiumIconHeader extends StatelessWidget {
             gradient: AppColors.primaryGradient,
             boxShadow: [
               BoxShadow(
-                color: Colors.white.withValues(alpha: 0.3),
+                color: AppColors.white.withValues(alpha: 0.3),
                 blurRadius: 32,
                 spreadRadius: 4,
               ),

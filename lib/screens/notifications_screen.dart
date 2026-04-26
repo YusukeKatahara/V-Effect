@@ -316,7 +316,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       color: AppColors.bgSurface,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.white.withValues(alpha: 0.08),
+                          color: AppColors.white.withValues(alpha: 0.08),
                           blurRadius: 24,
                           spreadRadius: 2,
                         ),
@@ -353,7 +353,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
                   color: AppColors.error.withValues(alpha: 0.8),
-                  child: const Icon(Icons.delete_outline, color: Colors.white),
+                  child: const Icon(Icons.delete_outline, color: AppColors.white),
                 ),
                 onDismissed: (_) => _deleteNotification(notif.id),
                 child: Material(

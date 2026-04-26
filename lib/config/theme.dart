@@ -46,7 +46,7 @@ class AppTheme {
       secondaryContainer: AppColors.grey20,
       onSecondaryContainer: AppColors.grey95,
       error:            AppColors.error,
-      onError:          Colors.white,
+      onError:          AppColors.white,
       errorContainer:   Color(0xFF5C0000),
       onErrorContainer: Color(0xFFFFB4AB),
       surface:          AppColors.bgSurface,
@@ -213,7 +213,7 @@ class AppTheme {
 
       badgeTheme: const BadgeThemeData(
         backgroundColor: AppColors.error,
-        textColor: Colors.white,
+        textColor: AppColors.white,
       ),
     );
   }

@@ -445,12 +445,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: AppColors.white.withValues(alpha: 0.5),
               width: 3,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.white.withValues(alpha: 0.12),
+                color: AppColors.white.withValues(alpha: 0.12),
                 blurRadius: 16,
                 spreadRadius: 2,
               ),

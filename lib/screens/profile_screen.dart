@@ -561,7 +561,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _user!.photoUrl == null ? AppColors.primaryGradient : null,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: AppColors.white.withValues(alpha: 0.1),
                       blurRadius: 20,
                     ),
                   ],

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import '../config/app_colors.dart';
 
 /// モノクロの炎アイコンを CustomPaint で描画し、
 /// 揺らめきアニメーションを付けるウィジェット。
@@ -101,7 +102,7 @@ class _FlamePainter extends CustomPainter {
       heightFactor: 1.05,
     );
     final outerGlow = Paint()
-      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.08)
+      ..color = AppColors.white.withValues(alpha: 0.08)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
     canvas.drawPath(outerPath, outerGlow);
 
@@ -119,9 +120,9 @@ class _FlamePainter extends CustomPainter {
         begin: Alignment.bottomCenter,
         end: Alignment.topCenter,
         colors: [
-          const Color(0xFFFFFFFF).withValues(alpha: 0.7),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.35),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.05),
+          AppColors.white.withValues(alpha: 0.7),
+          AppColors.white.withValues(alpha: 0.35),
+          AppColors.white.withValues(alpha: 0.05),
         ],
         stops: const [0.0, 0.5, 1.0],
       ).createShader(Rect.fromLTWH(-w / 2, 0, w, h));
@@ -141,8 +142,8 @@ class _FlamePainter extends CustomPainter {
         begin: Alignment.bottomCenter,
         end: Alignment.topCenter,
         colors: [
-          const Color(0xFFFFFFFF).withValues(alpha: 0.9),
-          const Color(0xFFFFFFFF).withValues(alpha: 0.0),
+          AppColors.white.withValues(alpha: 0.9),
+          AppColors.white.withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(-w / 2, 0, w, h));
     canvas.drawPath(innerPath, innerPaint);

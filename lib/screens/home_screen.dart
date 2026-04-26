@@ -574,7 +574,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               builder: (context, _) {
                 if (_flashAnimation.value == 0) return const SizedBox.shrink();
                 return Container(
-                  color: Colors.white.withValues(alpha: _flashAnimation.value),
+                  color: AppColors.white.withValues(alpha: _flashAnimation.value),
                 );
               },
             ),
@@ -659,7 +659,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         children: [
           const Icon(Icons.error_outline, color: AppColors.accentGold, size: 48),
           const SizedBox(height: 16),
-          Text('エラーが発生しました', style: GoogleFonts.outfit(color: Colors.white)),
+          Text('エラーが発生しました', style: GoogleFonts.outfit(color: AppColors.white)),
           const SizedBox(height: 8),
           Text('$err', style: TextStyle(color: AppColors.grey50, fontSize: 12)),
           const SizedBox(height: 24),
@@ -1046,9 +1046,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           borderRadius: BorderRadius.circular(24),
                           gradient: LinearGradient(
                             colors: [
-                              Colors.white.withValues(alpha: 0.0),
-                              Colors.white.withValues(alpha: 0.4),
-                              Colors.white.withValues(alpha: 0.0),
+                              AppColors.white.withValues(alpha: 0.0),
+                              AppColors.white.withValues(alpha: 0.4),
+                              AppColors.white.withValues(alpha: 0.0),
                             ],
                             stops: const [0.35, 0.5, 0.65],
                             begin: Alignment(sin(_shuffleController.value * pi * 2) * 2, -1.0),
@@ -1688,7 +1688,7 @@ class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
         size: widget.isGold ? 64 : 44,
         shadows: [
           Shadow(
-            color: widget.isGold ? Colors.white : Colors.white24,
+            color: widget.isGold ? AppColors.white : AppColors.white.withValues(alpha: 0.24),
             blurRadius: widget.isGold ? 24 : 12,
           ),
         ],

@@ -176,7 +176,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
         loading: () => const Scaffold(backgroundColor: AppColors.bgBase, body: Center(child: CircularProgressIndicator())),
         error: (err, stack) => Scaffold(
           backgroundColor: AppColors.bgBase,
-          body: Center(child: Text('読み込みエラー: $err', style: const TextStyle(color: Colors.white))),
+          body: Center(child: Text('読み込みエラー: $err', style: const TextStyle(color: AppColors.white))),
         ),
         data: (data) {
           _posts = data.posts;
@@ -202,7 +202,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
     final int totalPages = _posts.length + 1;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.black,
       body: SafeArea(
         child: GestureDetector(
           onVerticalDragUpdate: (details) {
@@ -388,14 +388,14 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
           child: Text(
             weekdayStr,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.w900,
               letterSpacing: 10,
               color: AppColors.white,
               shadows: [
-                Shadow(color: Colors.black54, offset: Offset(0, 4), blurRadius: 12),
-                Shadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 4),
+                Shadow(color: AppColors.black.withValues(alpha: 0.54), offset: Offset(0, 4), blurRadius: 12),
+                Shadow(color: AppColors.black.withValues(alpha: 0.26), offset: Offset(0, 2), blurRadius: 4),
               ],
             ),
           ),
@@ -411,7 +411,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.4),
+                  color: AppColors.black.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: AppColors.white.withValues(alpha: 0.15), width: 0.5),
                 ),
@@ -501,10 +501,10 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
                                       colors: [
-                                        Colors.black.withValues(alpha: 0.6),
+                                        AppColors.black.withValues(alpha: 0.6),
                                         Colors.transparent,
                                         Colors.transparent,
-                                        Colors.black.withValues(alpha: 0.7),
+                                        AppColors.black.withValues(alpha: 0.7),
                                       ],
                                       stops: const [0.0, 0.3, 0.6, 1.0],
                                     ),
@@ -623,8 +623,8 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
         fontSize: 18,
         fontWeight: FontWeight.w800,
         letterSpacing: 4.0,
-        shadows: const [
-          Shadow(offset: Offset(0, 2), blurRadius: 10, color: Colors.black54),
+        shadows: [
+          Shadow(offset: Offset(0, 2), blurRadius: 10, color: AppColors.black.withValues(alpha: 0.54)),
         ],
       ),
     );
@@ -641,7 +641,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
             color: AppColors.white,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.0,
-            shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
+            shadows: const [Shadow(blurRadius: 4, color: AppColors.black)],
           ),
         ),
         const SizedBox(height: 2),
@@ -656,7 +656,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
                 fontWeight: FontWeight.w900,
                 color: AppColors.white,
                 height: 1.1,
-                shadows: const [Shadow(blurRadius: 12, color: Colors.black54)],
+                shadows: [Shadow(blurRadius: 12, color: AppColors.black.withValues(alpha: 0.54))],
               ),
             ),
             const SizedBox(width: 4),
@@ -666,7 +666,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: AppColors.white,
-                shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
+                shadows: const [Shadow(blurRadius: 4, color: AppColors.black)],
               ),
             ),
           ],

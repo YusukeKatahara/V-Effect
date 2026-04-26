@@ -1,3 +1,4 @@
+import "package:v_effect/config/app_colors.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../config/routes.dart';
@@ -14,7 +15,7 @@ class GlobalErrorWidget extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.black,
         body: Builder(
           builder: (context) => Padding(
             padding: const EdgeInsets.all(24),
@@ -27,7 +28,7 @@ class GlobalErrorWidget extends StatelessWidget {
                   const Text(
                     '申し訳ありません',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
