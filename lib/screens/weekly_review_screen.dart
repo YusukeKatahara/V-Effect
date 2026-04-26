@@ -58,6 +58,8 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
       _imagePosts = _posts.where((p) => p.imageUrl != null).toList();
       _currentStreak = widget.currentStreak!;
       _isDataInitialized = true;
+      // 既にデータがある場合は即座に先読みを開始
+      WidgetsBinding.instance.addPostFrameCallback((_) => _precacheImages());
     }
     _pageController = PageController(initialPage: 0);
     if (_isDataInitialized && _posts.isNotEmpty) {
@@ -82,6 +84,18 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
     super.dispose();
   }
 
+  void _precacheImages() {
+    if (!mounted || _posts.isEmpty) return;
+    for (final post in _posts) {
+      if (post.imageUrl != null) {
+        precacheImage(
+          CachedNetworkImageProvider(post.imageUrl!),
+          context,
+        );
+      }
+    }
+  }
+
   void _startAutoTimer() {
     _autoTimer?.cancel();
     _autoTimer = Timer(const Duration(seconds: 4), _goNext);
@@ -92,20 +106,13 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
   }
 
   void _goNext() {
-    if (_pageController.hasClients && !_isAnimating) {
+    if (_pageController.hasClients) {
       final totalPages = _posts.length + 1;
-      final currentPage = _pageController.page?.round() ?? 0;
-      final nextPage = currentPage + 1;
+      final int current = _pageController.page?.round() ?? 0;
+      final int next = current + 1;
       
-      if (nextPage < totalPages) {
-        setState(() => _isAnimating = true);
-        _pageController.animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        ).then((_) {
-          if (mounted) setState(() => _isAnimating = false);
-        });
+      if (next < totalPages) {
+        _pageController.jumpToPage(next);
       } else {
         _autoTimer?.cancel();
       }
@@ -113,19 +120,12 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
   }
 
   void _goPrev() {
-    if (_pageController.hasClients && !_isAnimating) {
-      final currentPage = _pageController.page?.round() ?? 0;
-      final prevPage = currentPage - 1;
+    if (_pageController.hasClients) {
+      final int current = _pageController.page?.round() ?? 0;
+      final int prev = current - 1;
       
-      if (prevPage >= 0) {
-        setState(() => _isAnimating = true);
-        _pageController.animateToPage(
-          prevPage,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        ).then((_) {
-          if (mounted) setState(() => _isAnimating = false);
-        });
+      if (prev >= 0) {
+        _pageController.jumpToPage(prev);
       } else {
         Navigator.pop(context);
       }
@@ -184,6 +184,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
           _currentStreak = data.streak;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && !_isDataInitialized) {
+              _precacheImages(); // 全画像をバックグラウンドで先読み
               setState(() {
                 _isDataInitialized = true;
                 if (_posts.isNotEmpty) {
@@ -305,32 +306,30 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
                                 }
                               },
                             ),
-                            // Global Tap Zones for navigation (fixes hittest issues during transitions)
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: _goPrev, 
-                                    behavior: HitTestBehavior.translucent, 
-                                    child: const SizedBox.expand(),
+                            // Fixed Tap Zones (Only for Story Pages)
+                            if (currentPage < _posts.length)
+                              Row(
+                                children: [
+                                  // Left 30%: Prev
+                                  Expanded(
+                                    flex: 3,
+                                    child: GestureDetector(
+                                      onTap: _goPrev, 
+                                      behavior: HitTestBehavior.translucent, 
+                                      child: const SizedBox.expand(),
+                                    ),
                                   ),
-                                ),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: _goNext,
-                                    onDoubleTap: () {
-                                      _pageController.animateToPage(
-                                        _posts.length,
-                                        duration: const Duration(milliseconds: 600),
-                                        curve: Curves.easeInOut,
-                                      );
-                                    },
-                                    behavior: HitTestBehavior.translucent, 
-                                    child: const SizedBox.expand(),
+                                  // Right 70%: Next
+                                  Expanded(
+                                    flex: 7,
+                                    child: GestureDetector(
+                                      onTap: _goNext,
+                                      behavior: HitTestBehavior.translucent, 
+                                      child: const SizedBox.expand(),
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
                             // Global Close Button
                             Positioned(
                               top: 0,
@@ -363,6 +362,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
           CachedNetworkImage(
             imageUrl: post.imageUrl!,
             fit: BoxFit.cover,
+            memCacheWidth: 1000, // メモリ負荷軽減と読み込み高速化
             placeholder: (ctx, url) => const Center(child: CircularProgressIndicator()),
             errorWidget: (ctx, url, err) => const Center(child: Icon(Icons.broken_image)),
           ),
@@ -484,6 +484,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
                                   CachedNetworkImage(
                                     imageUrl: _imagePosts[_selectedImageIndex].imageUrl!,
                                     fit: BoxFit.cover,
+                                    memCacheWidth: 800,
                                     placeholder: (ctx, url) => Container(color: AppColors.grey10),
                                   )
                                 else
@@ -609,15 +610,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
               ),
             ),
           ],
-        ),
-        // Close button
-        Positioned(
-          top: 0,
-          right: 8,
-          child: IconButton(
-            icon: const Icon(Icons.close, color: AppColors.white, size: 32),
-            onPressed: () => Navigator.pop(context),
-          ),
         ),
       ],
     );

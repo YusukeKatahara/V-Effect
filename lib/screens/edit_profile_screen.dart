@@ -43,6 +43,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isRestricted = false;
   int _daysRemaining = 0;
 
+  bool get _isAdmin {
+    const adminEmails = [
+      'ren0930ren0930@gmail.com', 
+      'yusuke@example.com',
+      'yusukekatahara@gmail.com'
+    ];
+    return adminEmails.contains(widget.user.email);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -57,11 +66,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _checkRestriction() {
-    // 制限を回避できるメールアドレスのリスト
-    const adminEmails = ['ren0930ren0930@gmail.com', 'yusuke@example.com'];
-
-    final currentEmail = widget.user.email;
-    if (adminEmails.contains(currentEmail)) {
+    if (_isAdmin) {
       debugPrint('Admin/Test account: ID change restriction skipped.');
       _isRestricted = false;
       return;
@@ -527,7 +532,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       validator: (v) {
         if (v == null || v.trim().isEmpty) return 'ユーザーIDを入力してください';
-        if (v.trim().length < 5) return '5文字以上で入力してください';
+        if (!_isAdmin && v.trim().length < 5) return '5文字以上で入力してください';
         return null;
       },
     );

@@ -72,6 +72,7 @@ class PostService {
     if (!snap.exists) {
       return {
         'streak': 0,
+        'streakProtections': 0,
         'postedToday': false,
         'isAllTasksCompleted': false,
         'username': '',
@@ -82,6 +83,7 @@ class PostService {
       };
     }
     final data = snap.data() as Map<String, dynamic>;
+
     final lastPostedDate = data['lastPostedDate'] as String?;
     final tasks = (data['tasks'] as List? ?? [])
         .map((item) => AppTask.fromFirestore(item))
@@ -99,6 +101,7 @@ class PostService {
 
     return {
       'streak': (data['streak'] as num?)?.toInt() ?? 0,
+      'streakProtections': (data['streakProtections'] as num?)?.toInt() ?? 0,
       'postedToday': postedPostsToday.isNotEmpty,
       'isAllTasksCompleted':
           tasks.isNotEmpty &&

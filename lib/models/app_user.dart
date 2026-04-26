@@ -12,6 +12,7 @@ class AppUser {
   final String? gender;
   final String? photoUrl;
   final int streak;
+  final int streakProtections;
   final String? lastPostedDate;
   final List<String> following;
   final List<String> followers;
@@ -36,6 +37,7 @@ class AppUser {
     this.gender,
     this.photoUrl,
     this.streak = 0,
+    this.streakProtections = 0,
     this.lastPostedDate,
     this.following = const [],
     this.followers = const [],
@@ -84,6 +86,7 @@ class AppUser {
       gender: safeString(data['gender']),
       photoUrl: safeString(data['photoUrl']),
       streak: (data['streak'] as num?)?.toInt() ?? 0,
+      streakProtections: (data['streakProtections'] as num?)?.toInt() ?? 0,
       lastPostedDate: safeString(data['lastPostedDate']),
       following: extractUids('following', 'friends'),
       followers: extractUids('followers', 'friends'),
@@ -116,6 +119,7 @@ class AppUser {
       'gender': gender,
       'photoUrl': photoUrl,
       'streak': streak,
+      'streakProtections': streakProtections,
       'lastPostedDate': lastPostedDate,
       'following': following,
       'followers': followers,

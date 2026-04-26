@@ -39,6 +39,7 @@ class StreakService {
       await userRef.set({
         'streak': 1,
         'maxStreak': 1,
+        'streakProtections': 0,
         'lastPostedDate': today,
         'email': _auth.currentUser!.email,
         'friends': [],
@@ -52,6 +53,7 @@ class StreakService {
 
     final currentStreak = (data['streak'] as num?)?.toInt() ?? 0;
     final maxStreak = (data['maxStreak'] as num?)?.toInt() ?? 0;
+    int currentProtections = (data['streakProtections'] as num?)?.toInt() ?? 0;
 
     if (lastPostedDate == today) {
       return {'newStreak': currentStreak, 'isRecordUpdating': false};
@@ -59,11 +61,33 @@ class StreakService {
 
     final yesterday = now.subtract(const Duration(days: 1));
     final yesterdayStr = DateHelper.toDateString(yesterday);
-    final newStreak = (lastPostedDate == yesterdayStr) ? currentStreak + 1 : 1;
+    final dayBeforeYesterday = now.subtract(const Duration(days: 2));
+    final dayBeforeYesterdayStr = DateHelper.toDateString(dayBeforeYesterday);
+
+    int newStreak;
+    if (lastPostedDate == yesterdayStr) {
+      newStreak = currentStreak + 1;
+    } else if (lastPostedDate == dayBeforeYesterdayStr && currentProtections > 0) {
+      newStreak = currentStreak + 1;
+      currentProtections -= 1;
+    } else {
+      newStreak = 1;
+      currentProtections = 0;
+    }
+
+    if (newStreak > 1 && newStreak % 10 == 0) {
+      if (currentProtections < 2) {
+        currentProtections += 1;
+      }
+    }
 
     // 最大記録更新チェック
     final isRecordUpdating = newStreak > maxStreak;
-    final updates = {'streak': newStreak, 'lastPostedDate': today};
+    final updates = {
+      'streak': newStreak,
+      'streakProtections': currentProtections,
+      'lastPostedDate': today
+    };
     if (isRecordUpdating) {
       updates['maxStreak'] = newStreak;
     }

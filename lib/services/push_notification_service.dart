@@ -110,7 +110,10 @@ class PushNotificationService {
   Future<void> resetBadge() async {
     if (kIsWeb) return;
     try {
-      await _localNotifications.cancelAll();
+      // cancelAll() は未来のスケジュールも消してしまうため、
+      // バッジのみをリセットするように変更。
+      // iOS の場合、バッジリセットで通知センターの通知も一部消えるが、
+      // スケジュールを維持するために cancelAll は避ける。
       
       // アプリバッジをリセット
       final bool isSupported = await FlutterAppBadger.isAppBadgeSupported();
@@ -271,10 +274,8 @@ class PushNotificationService {
   Future<void> scheduleVAlert(String? taskTimeStr) async {
     if (kIsWeb) return;
 
-    // 既存スケジュール（最大60日分）を先にキャンセル
-    for (int i = 0; i < 60; i++) {
-      await _localNotifications.cancel(_vAlertNotificationId + i);
-    }
+    // 既存の特定ID（V Alert）をキャンセル
+    await _localNotifications.cancel(_vAlertNotificationId);
 
     if (taskTimeStr == null || taskTimeStr.isEmpty) {
       debugPrint('V Alert: taskTime が未設定のためキャンセルのみ実行');
@@ -289,8 +290,8 @@ class PushNotificationService {
 
     final now = tz.TZDateTime.now(tz.local);
 
-    // 次に通知する日時を計算（今日の設定時刻が過ぎていれば明日）
-    var baseDate = tz.TZDateTime(
+    // 初回の通知日時を計算
+    var scheduledDate = tz.TZDateTime(
       tz.local,
       now.year,
       now.month,
@@ -298,51 +299,48 @@ class PushNotificationService {
       hour,
       minute,
     );
-    if (baseDate.isBefore(now)) {
-      baseDate = baseDate.add(const Duration(days: 1));
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    // 今後 60 日間分の通知をそれぞれランダムなメッセージでスケジュール
-    for (int i = 0; i < 60; i++) {
-      final scheduledDate = baseDate.add(Duration(days: i));
-      final notificationId = _vAlertNotificationId + i;
+    final content = NotificationMessages.build(NotificationType.taskReminder);
 
-      final content = NotificationMessages.build(NotificationType.taskReminder);
-
-      try {
-        await _localNotifications.zonedSchedule(
-          notificationId,
-          content.title,
-          content.body,
-          scheduledDate,
-          NotificationDetails(
-            android: AndroidNotificationDetails(
-              _alertChannel.id,
-              _alertChannel.name,
-              channelDescription: _alertChannel.description,
-              importance: Importance.high,
-              priority: Priority.high,
-              icon: '@mipmap/ic_launcher',
-              styleInformation: const BigTextStyleInformation(''),
-            ),
-            iOS: const DarwinNotificationDetails(
-              categoryIdentifier: 'valert',
-              presentAlert: true,
-              presentSound: true,
-              presentBadge: true,
-              sound: 'default',
-            ),
+    try {
+      // matchDateTimeComponents: DateTimeComponents.time を使うことで、
+      // 1回の登録で毎日同じ時刻に通知を繰り返す（リピート設定）
+      await _localNotifications.zonedSchedule(
+        _vAlertNotificationId,
+        content.title,
+        content.body,
+        scheduledDate,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _alertChannel.id,
+            _alertChannel.name,
+            channelDescription: _alertChannel.description,
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+            styleInformation: const BigTextStyleInformation(''),
           ),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-        );
-        debugPrint(
-          'V Alert スケジュール登録完了 [Day ${i + 1}]: $scheduledDate - ${content.body.replaceAll('\n', ' ')}',
-        );
-      } catch (e) {
-        debugPrint('V Alert スケジュール登録エラー [Day ${i + 1}]: $e');
-      }
+          iOS: const DarwinNotificationDetails(
+            categoryIdentifier: 'valert',
+            presentAlert: true,
+            presentSound: true,
+            presentBadge: true,
+            sound: 'default',
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time, // 毎日リピート！
+      );
+      debugPrint(
+        'V Alert スケジュール登録（毎日リピート設定）: $scheduledDate - ${content.body.replaceAll('\n', ' ')}',
+      );
+    } catch (e) {
+      debugPrint('V Alert スケジュール登録エラー: $e');
     }
   }
 

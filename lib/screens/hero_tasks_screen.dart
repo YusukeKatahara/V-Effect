@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../config/app_colors.dart';
+import '../config/routes.dart';
 import '../models/post.dart';
 import '../models/app_task.dart';
 import '../models/app_user.dart';
@@ -52,6 +53,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   StreamSubscription? _userUpdateSubscription;
 
   int _streak = 0;
+  int _streakProtections = 0;
   bool _postedToday = false;
   bool _loading = true;
   List<_HeroTaskItem> _taskItems = [];
@@ -241,6 +243,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
       setState(() {
         _streak = (homeData['streak'] as num?)?.toInt() ?? 0;
+        _streakProtections = (homeData['streakProtections'] as num?)?.toInt() ?? 0;
         _postedToday = homeData['postedToday'] as bool? ?? false;
         _isAllTasksCompleted =
             homeData['isAllTasksCompleted'] as bool? ?? false;
@@ -457,7 +460,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       backgroundColor: AppColors.black,
       body: Stack(
         children: [
-          _buildDeepBackground(),
           if (_isSublimating) _buildSublimationBackgroundDim(),
           if (_isSublimating) _buildSublimationAura(),
           SafeArea(
@@ -488,19 +490,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     );
   }
 
-  Widget _buildDeepBackground() {
-    return Positioned.fill(
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.topCenter,
-            radius: 1.5,
-            colors: [Color(0xFF1A1B1F), AppColors.black],
-          ),
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildSublimationBackgroundDim() {
     return AnimatedBuilder(
@@ -601,6 +591,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   }
 
   Widget _buildTitleBar() => VEffectHeader(
+        leading: IconButton(
+          icon: const Icon(Icons.menu_book_rounded, color: AppColors.grey50),
+          onPressed: () => Navigator.pushNamed(context, AppRoutes.vPractice),
+        ),
         trailing: const NotificationBellIcon(),
         hideLogo: _isSublimating,
       );
@@ -635,6 +629,14 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                         letterSpacing: 0.5,
                       ),
                     ),
+                    if (_streakProtections > 0) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.shield_rounded,
+                        size: 14,
+                        color: _getTierColor(_streak).withValues(alpha: 0.8),
+                      ),
+                    ],
                   ],
                 ),
                 if (isCompleted && _expandedIndex == _focusedIndex)

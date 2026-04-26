@@ -414,6 +414,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                 }
                                 final adminEmails = [
                                   'ren0930ren0930@gmail.com',
+                                  'yusuke@example.com',
+                                  'yusukekatahara@gmail.com',
                                   'y.katahara.academia@gmail.com'
                                 ];
                                 final isSpecialAdmin = adminEmails.contains(FirebaseAuth.instance.currentUser?.email);

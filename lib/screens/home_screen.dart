@@ -75,8 +75,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   // ── Shuffle Refresh 用 ──
   late final AnimationController _shuffleController;
+  late final AnimationController _spreadController; // 束ねる用
   double _dragOffset = 0.0;
   bool _isRefreshing = false;
+  double get _spreadFactor => _spreadController.value;
 
 
   // ── ロックアイコンは子 Widget に切り出し ──
@@ -108,7 +110,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     _shuffleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600), // 少し速めに
+    );
+
+    _spreadController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+      value: 1.0, // 最初は広がっている
     );
   }
 
@@ -118,6 +126,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _flashController.dispose();
     _reactionMenuController.dispose();
     _shuffleController.dispose();
+    _spreadController.dispose();
     _flameDebounceTimer?.cancel();
     super.dispose();
   }
@@ -125,16 +134,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _onPageChanged(int index) {
     if (_feedPosts.isEmpty) return;
     
-    // 次のカードの画像をプリキャッシュ
-    final nextIndex = (index + 1) % _feedPosts.length;
-    final nextPost = _feedPosts[nextIndex];
-    if (nextPost.imageUrl != null) {
-      precacheImage(
-        ResizeImage(CachedNetworkImageProvider(nextPost.imageUrl!), width: 800),
-        context,
-      );
+    // 次の5枚の画像をプリキャッシュしてスムーズなめくりを実現
+    for (int i = 1; i <= 5; i++) {
+      final nextIndex = (index + i) % _feedPosts.length;
+      final nextPost = _feedPosts[nextIndex];
+      if (nextPost.imageUrl != null) {
+        precacheImage(
+          ResizeImage(CachedNetworkImageProvider(nextPost.imageUrl!), width: 800),
+          context,
+        );
+      }
     }
-    // ここでの setState も不要。必要な部分は AnimatedBuilder で連動済み
+  }
+
+  void _precacheInitialFeed() {
+    if (!mounted || _feedPosts.isEmpty) return;
+    // 最初の5枚を先読み
+    for (int i = 0; i < 5 && i < _feedPosts.length; i++) {
+      final post = _feedPosts[i];
+      if (post.imageUrl != null) {
+        precacheImage(
+          ResizeImage(CachedNetworkImageProvider(post.imageUrl!), width: 800),
+          context,
+        );
+      }
+    }
   }
 
   // ── Shuffle Refresh Logic ──
@@ -161,51 +185,115 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _triggerRefresh() async {
     setState(() {
       _isRefreshing = true;
-      _dragOffset = 100.0; // 引っ張った位置で固定
+      _dragOffset = 100.0; 
     });
     
+    // 束ねる
+    _spreadController.animateTo(0.0, curve: Curves.easeOutBack);
     _shuffleController.repeat();
     HapticFeedback.mediumImpact();
 
     try {
-      // データの再取得
       ref.invalidate(homeDataProvider);
       await ref.read(homeDataProvider.future);
     } catch (e) {
       debugPrint('Refresh error: $e');
     } finally {
       if (mounted) {
+        // 元に戻す
+        _spreadController.animateTo(1.0, curve: Curves.elasticOut, duration: const Duration(milliseconds: 800));
         setState(() {
           _isRefreshing = false;
           _dragOffset = 0.0;
         });
         _shuffleController.stop();
         _shuffleController.animateTo(0.0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-        HapticFeedback.lightImpact();
+        
+        // パラパラとしたフィードバック
+        for (int i = 0; i < 3; i++) {
+          Future.delayed(Duration(milliseconds: i * 80), () {
+            HapticFeedback.lightImpact();
+          });
+        }
       }
     }
   }
 
   double _getShuffleOffsetX(int index) {
     if (!_isRefreshing) return 0.0;
-    // インデックスごとに異なる揺らぎを与える
+    if (_feedPosts.length <= 1) return 0.0; // 1枚の時は動かさない
+
     final t = _shuffleController.value;
-    final phase = index * (pi / 2);
-    return sin(t * 2 * pi + phase) * 40.0 * (1.0 - t.abs()); // 減衰しつつ左右に振る
+    final len = _feedPosts.length;
+    if (len == 0) return 0.0;
+
+    // カードごとにタイミングをずらして「配る」
+    // indexが若いほど先に配られる
+    final double cardDelay = index / len;
+    final double progress = (t - cardDelay).clamp(0.0, 1.0);
+    
+    if (progress == 0 || progress == 1) return 0.0;
+
+    // 横に少し逸れながら飛ぶ
+    final double sideSwing = sin(index * 1.5) * 50.0;
+    return sideSwing * sin(progress * pi);
   }
 
   double _getShuffleOffsetY(int index) {
     if (!_isRefreshing) return 0.0;
+    if (_feedPosts.length <= 1) {
+      // 1枚の時: わずかに上下に呼吸するように揺れる
+      return sin(_shuffleController.value * pi * 2) * 10.0;
+    }
+
     final t = _shuffleController.value;
-    final phase = index * (pi / 3);
-    return cos(t * 2 * pi + phase) * 60.0; // 上下に大きく振る
+    final len = _feedPosts.length;
+    if (len == 0) return 0.0;
+
+    final double cardDelay = index / len;
+    final double progress = (t - cardDelay).clamp(0.0, 1.0);
+
+    if (progress == 0 || progress == 1) return 0.0;
+
+    // 手前に向かって飛んでくるように見せるために下に大きく移動
+    return progress * 600.0; 
   }
 
   double _getShuffleRotation(int index) {
     if (!_isRefreshing) return 0.0;
+    if (_feedPosts.length <= 1) return 0.0; // 1枚の時は3D回転で制御するため0
+
     final t = _shuffleController.value;
-    final sign = index % 2 == 0 ? 1 : -1;
-    return sign * sin(t * pi) * 0.2; // Z軸の回転
+    final len = _feedPosts.length;
+    if (len == 0) return 0.0;
+
+    final double cardDelay = index / len;
+    final double progress = (t - cardDelay).clamp(0.0, 1.0);
+
+    if (progress == 0 || progress == 1) return (index % 3 - 1) * 0.05; // 束ねている時の微かなズレ
+
+    // 回転しながら飛ぶ
+    return progress * pi * 0.5 * (index % 2 == 0 ? 1 : -1);
+  }
+
+  double _getShuffleScale(int index) {
+    if (!_isRefreshing) return 1.0;
+    if (_feedPosts.length <= 1) {
+      // 1枚の時: 少し浮き上がる
+      return 1.05 + sin(_shuffleController.value * pi * 2) * 0.02;
+    }
+
+    final t = _shuffleController.value;
+    final len = _feedPosts.length;
+    if (len == 0) return 1.0;
+
+    final double cardDelay = index / len;
+    final double progress = (t - cardDelay).clamp(0.0, 1.0);
+
+    if (progress == 0 || progress == 1) return 1.0;
+
+    // 飛んでいる間は少し大きく（手前に来る）
+    return 1.0 + sin(progress * pi) * 0.3;
   }
 
   Future<void> _sendReaction(int index, {String? emoji}) async {
@@ -435,6 +523,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           }
         }
         _feedPosts = newPosts;
+        
+        // 初回ロード時またはデータ更新時に先読みを開始
+        if (_feedPosts.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _precacheInitialFeed();
+          });
+        }
 
         if (idsToRemove.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -455,19 +550,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       backgroundColor: AppColors.black,
       body: Stack(
         children: [
-          // 1. 背景
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.grey08, AppColors.black],
-                ),
-              ),
-            ),
-          ),
-
           // 2. メインコンテンツ
           // ガードレール: 一度でもデータを受信したら、プロバイダーの
           // loading/refreshing 状態に関わらず、絶対にスケルトンに戻さない。
@@ -607,12 +689,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.local_fire_department_outlined,
-            color: AppColors.grey20,
-            size: 64,
+          _RefreshRingButton(
+            icon: Icons.local_fire_department_outlined,
+            onTap: () => ref.invalidate(homeDataProvider),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 32),
           Text(
             'あなたはトップランナーだ。',
             style: GoogleFonts.notoSansJp(
@@ -640,7 +721,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildCardStack() {
     return AnimatedBuilder(
-      animation: Listenable.merge([_pageController, _shuffleController]),
+      animation: Listenable.merge([_pageController, _shuffleController, _spreadController]),
       builder: (context, child) {
         if (_feedPosts.isEmpty) return const SizedBox.shrink();
         final scrollPos = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
@@ -918,11 +999,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     if (smoothDepth > 3) return const SizedBox.shrink(); // パフォーマンス最適化
 
-    final double scale = (1.0 - smoothDepth * 0.05).clamp(0.8, 1.0);
-    final double offsetY = smoothDepth * -20.0;
-    final double offsetX = relativePos * cardWidth * 1.2;
-    final double dimAlpha = (smoothDepth * 0.2).clamp(0.0, 0.6);
-    final double rotateZ = relativePos * 0.1;
+    final double scale = (1.0 - smoothDepth * 0.05 * _spreadFactor).clamp(0.8, 1.0);
+    final double offsetY = smoothDepth * -20.0 * _spreadFactor;
+    final double offsetX = relativePos * cardWidth * 1.2 * _spreadFactor;
+    final double dimAlpha = (smoothDepth * 0.2 * _spreadFactor).clamp(0.0, 0.6);
+    final double rotateZ = relativePos * 0.1 * _spreadFactor;
 
     final post = _feedPosts[index];
     final username = _userNames[post.userId] ?? 'Unknown';
@@ -931,13 +1012,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final tierColor = _getTierColor(streak);
 
     return Transform.translate(
-      offset: Offset(offsetX + _getShuffleOffsetX(index), offsetY + _dragOffset + _getShuffleOffsetY(index)),
-      child: Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()
-          ..rotateZ(rotateZ + _getShuffleRotation(index))
-          ..scale(scale, scale, scale),
-        child: RepaintBoundary( // パフォーマンス: カード単位でキャッシュ
+      offset: Offset(
+        offsetX + _getShuffleOffsetX(index), 
+        offsetY + _dragOffset + _getShuffleOffsetY(index),
+      ),
+      child: AnimatedBuilder(
+        animation: _shuffleController,
+        builder: (context, child) {
+          final isSingleCard = _feedPosts.length <= 1;
+          final matrix = Matrix4.identity()..setEntry(3, 2, 0.001); // 遠近感を追加
+          
+          if (_isRefreshing && isSingleCard) {
+            // 3D 垂直回転 (Y軸回転)
+            final double angle = _shuffleController.value * pi * 2;
+            matrix.rotateY(index % 2 == 0 ? angle : -angle);
+          } else {
+            matrix.rotateZ(rotateZ + _getShuffleRotation(index));
+          }
+          matrix.scale(scale * _getShuffleScale(index));
+
+          return Transform(
+            alignment: Alignment.center,
+            transform: matrix,
+            child: Stack(
+              children: [
+                child!,
+                // 1枚の時のダイナミックな光沢
+                if (_isRefreshing && isSingleCard)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withValues(alpha: 0.0),
+                              Colors.white.withValues(alpha: 0.4),
+                              Colors.white.withValues(alpha: 0.0),
+                            ],
+                            stops: const [0.35, 0.5, 0.65],
+                            begin: Alignment(sin(_shuffleController.value * pi * 2) * 2, -1.0),
+                            end: Alignment(-sin(_shuffleController.value * pi * 2) * 2, 1.0),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+        child: RepaintBoundary(
           child: SizedBox(
             width: cardWidth,
             height: cardHeight,
@@ -988,31 +1113,7 @@ class _GuardedStateLayer extends StatefulWidget {
   State<_GuardedStateLayer> createState() => _GuardedStateLayerState();
 }
 
-class _GuardedStateLayerState extends State<_GuardedStateLayer> with TickerProviderStateMixin {
-  late final AnimationController _pulseController;
-  late final AnimationController _shakeController;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat();
-
-    _shakeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-  }
-
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    _shakeController.dispose();
-    super.dispose();
-  }
-
+class _GuardedStateLayerState extends State<_GuardedStateLayer> {
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -1020,7 +1121,7 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> with TickerProvi
       children: [
         if (widget.feedPosts.isNotEmpty)
           Positioned.fill(
-            child: RepaintBoundary( // ブラー計算をキャッシュ
+            child: RepaintBoundary(
               child: ImageFiltered(
                 imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
                 child: Opacity(
@@ -1040,70 +1141,9 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> with TickerProvi
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.heavyImpact();
-                  _shakeController.forward(from: 0);
-                  widget.onRefresh?.call();
-                },
-                child: SizedBox(
-                  width: 120,
-                  height: 120,
-                  child: AnimatedBuilder(
-                    animation: Listenable.merge([
-                      _pulseController,
-                      _shakeController,
-                    ]),
-                    builder: (context, child) {
-                      final shakeOffset =
-                          sin(_shakeController.value * pi * 4) * 8.0;
-                      return Transform.translate(
-                        offset: Offset(shakeOffset, 0),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              width: 100 + (20 * _pulseController.value),
-                              height: 100 + (20 * _pulseController.value),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.accentGold.withValues(
-                                    alpha: 1.0 - _pulseController.value,
-                                  ),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            child!,
-                          ],
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: AppColors.grey10.withValues(alpha: 0.8),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.accentGold.withValues(alpha: 0.5),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.accentGold.withValues(alpha: 0.2),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.lock_outline_rounded,
-                        color: AppColors.accentGold,
-                        size: 48,
-                      ),
-                    ),
-                  ),
-                ),
+              _RefreshRingButton(
+                icon: Icons.lock_outline_rounded,
+                onTap: widget.onRefresh,
               ),
 
               const SizedBox(height: 48),
@@ -1873,4 +1913,175 @@ class _EmojiExplosionPainter extends CustomPainter {
   @override
   bool shouldRepaint(_EmojiExplosionPainter old) =>
       elapsed != old.elapsed || particles.length != old.particles.length;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared: リフレッシュ矢印リングボタン
+// ロック画面・Empty State で共通利用される、
+// タップで「→が回る円」がスピンする高級感あるリフレッシュUI
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _RefreshRingButton extends StatefulWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  const _RefreshRingButton({required this.icon, this.onTap});
+
+  @override
+  State<_RefreshRingButton> createState() => _RefreshRingButtonState();
+}
+
+class _RefreshRingButtonState extends State<_RefreshRingButton>
+    with TickerProviderStateMixin {
+  // 常時パルス（波紋）アニメーション
+  late final AnimationController _pulseController;
+  // タップ時にリングをくるっと回す
+  late final AnimationController _spinController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+
+    _spinController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _spinController.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    HapticFeedback.heavyImpact();
+    _spinController.forward(from: 0).then((_) {
+      HapticFeedback.lightImpact();
+    });
+    widget.onTap?.call();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleTap,
+      child: SizedBox(
+        width: 130,
+        height: 130,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_pulseController, _spinController]),
+          builder: (context, child) {
+            // スピンはEaseInOut で加速→減速する1回転
+            final spinAngle =
+                Curves.easeInOut.transform(_spinController.value) * 2 * pi;
+
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                // ── 回転するリフレッシュ矢印リング ──
+                Transform.rotate(
+                  angle: spinAngle,
+                  child: CustomPaint(
+                    size: const Size(108, 108),
+                    painter: _RefreshRingPainter(
+                      color: AppColors.accentGold,
+                    ),
+                  ),
+                ),
+
+                // ── 内側のサークル + アイコン ──
+                child!,
+              ],
+            );
+          },
+          child: Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              color: AppColors.grey10.withValues(alpha: 0.92),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.accentGold.withValues(alpha: 0.25),
+                  blurRadius: 24,
+                  spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: Icon(
+              widget.icon,
+              color: AppColors.accentGold,
+              size: 36,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 1本の弧＋右上に1つの矢印（参考画像準拠）
+class _RefreshRingPainter extends CustomPainter {
+  final Color color;
+
+  const _RefreshRingPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 4;
+
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.85)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.8
+      ..strokeCap = StrokeCap.round;
+
+    // 弧の開始: 3時をわずかに過ぎた位置（0.2 rad ≈ 11°）
+    // 弧の終了: 1時半位置（5.5 rad ≈ 315° = 右上）
+    // これで約304°の弧になり、右上に矢印が来る
+    const startAngle = 0.2;
+    const sweepAngle = 5.3;
+
+    final arcRect = Rect.fromCircle(center: center, radius: radius);
+    canvas.drawArc(arcRect, startAngle, sweepAngle, false, paint);
+
+    // 矢印の先端は弧の終点（右上 = endAngle ≈ 5.5 rad）
+    const endAngle = startAngle + sweepAngle;
+    final tipX = center.dx + radius * cos(endAngle);
+    final tipY = center.dy + radius * sin(endAngle);
+    final tip = Offset(tipX, tipY);
+
+    // 時計回りの接線方向（endAngle + pi/2）
+    const tangentAngle = endAngle + pi / 2;
+    const arrowLen = 8.0;
+    const arrowSpread = 0.44;
+
+    final a1 = Offset(
+      tip.dx + arrowLen * cos(tangentAngle + pi - arrowSpread),
+      tip.dy + arrowLen * sin(tangentAngle + pi - arrowSpread),
+    );
+    final a2 = Offset(
+      tip.dx + arrowLen * cos(tangentAngle + pi + arrowSpread),
+      tip.dy + arrowLen * sin(tangentAngle + pi + arrowSpread),
+    );
+
+    final arrowPaint = Paint()
+      ..color = color.withValues(alpha: 0.85)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.8
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawLine(tip, a1, arrowPaint);
+    canvas.drawLine(tip, a2, arrowPaint);
+  }
+
+  @override
+  bool shouldRepaint(_RefreshRingPainter old) => old.color != color;
 }

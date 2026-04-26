@@ -13,6 +13,7 @@ import '../screens/search_screen.dart';
 import '../screens/follow_list_screen.dart';
 import '../screens/pending_requests_screen.dart';
 import '../screens/user_profile_screen.dart';
+import '../screens/v_practice_screen.dart';
 
 import '../screens/initial_friend_screen.dart';
 import '../screens/forgot_password_screen.dart';
@@ -48,6 +49,7 @@ class AppRoutes {
   static const String terms = '/terms';
   static const String privacyPolicy = '/privacy-policy';
   static const String termsAgreement = '/terms-agreement';
+  static const String vPractice = '/v-practice';
 
   static Map<String, WidgetBuilder> get routes => {
         wrapper: (context) => const AuthWrapper(),
@@ -72,5 +74,6 @@ class AppRoutes {
         terms: (context) => const TermsScreen(),
         privacyPolicy: (context) => const PrivacyPolicyScreen(),
         termsAgreement: (context) => const TermsAgreementScreen(),
+        vPractice: (context) => const VPracticeScreen(),
       };
 }
