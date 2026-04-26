@@ -19,6 +19,22 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+subprojects {
+    plugins.withId("com.android.library") {
+        extensions.configure<com.android.build.gradle.LibraryExtension> {
+            if (namespace == null) {
+                namespace = group.toString()
+            }
+        }
+    }
+}
+
+gradle.afterProject {
+    if (plugins.hasPlugin("com.android.library")) {
+        extensions.findByType<com.android.build.gradle.LibraryExtension>()?.compileSdk = 34
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
