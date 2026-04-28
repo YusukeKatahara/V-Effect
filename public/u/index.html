@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ===== 動的OGP: Cloud Functionが userId に応じた値を埋め込む ===== -->
+  <!--
+    Firebase Hosting の rewrites + Cloud Function (userInvitePage) が
+    この HTML を動的に生成して返す。
+    静的な index.html はフォールバック用。
+  -->
+  <title>V EFFECT – フレンドからの招待</title>
+  <meta name="description" content="V EFFECTであなたの努力を仲間と共有しよう。" />
+
+  <!-- OGP (Open Graph Protocol) -->
+  <meta property="og:site_name"   content="V EFFECT" />
+  <meta property="og:type"        content="profile" />
+  <meta property="og:title"       content="V EFFECT – フレンドからの招待" />
+  <meta property="og:description" content="V EFFECTでフレンドになろう！" />
+  <!-- og:image と og:url は userInvitePage Function で動的に差し替えられる -->
+  <meta property="og:image"       content="https://veffect.web.app/ogp_default.png" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="V EFFECT – フレンドからの招待" />
+  <meta name="twitter:description" content="V EFFECTでフレンドになろう！" />
+  <meta name="twitter:image"       content="https://veffect.web.app/ogp_default.png" />
+
+  <!-- iOS Universal Links (App Store へのフォールバック) -->
+  <meta name="apple-itunes-app" content="app-id=YOUR_APP_STORE_ID" />
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+      background: #0D0D0D;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: linear-gradient(135deg, #141414, #1F1F1F);
+      border: 1.5px solid #C9A84C55;
+      border-radius: 24px;
+      padding: 48px 56px;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 0 60px #C9A84C18;
+    }
+    .logo { font-size: 14px; letter-spacing: 6px; color: #C9A84C; margin-bottom: 32px; }
+    .logo span { font-size: 22px; font-weight: 900; margin-right: 6px; }
+    .username {
+      font-size: 42px;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 8px;
+    }
+    .userid { font-size: 16px; color: #666; letter-spacing: 1px; margin-bottom: 32px; }
+    .tag {
+      font-size: 13px;
+      letter-spacing: 4px;
+      color: #C9A84C;
+      margin-bottom: 40px;
+    }
+    .btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #C9A84C, #F0D080, #A07820);
+      color: #000;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 16px 40px;
+      border-radius: 50px;
+      text-decoration: none;
+      letter-spacing: 1px;
+      transition: opacity .2s;
+    }
+    .btn:hover { opacity: .85; }
+    .store-links { margin-top: 20px; font-size: 13px; color: #555; }
+    .store-links a { color: #888; text-decoration: underline; margin: 0 8px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo"><span>V</span>EFFECT</div>
+    <div class="username" id="username">Loading...</div>
+    <div class="userid"  id="userid"></div>
+    <div class="tag">フレンドからの招待</div>
+    <a class="btn" id="open-btn" href="#">V EFFECTで開く</a>
+    <div class="store-links">
+      <a href="https://apps.apple.com/app/YOUR_APP_STORE_ID" id="ios-link">App Store</a>
+      <a href="https://play.google.com/store/apps/details?id=YOUR_PACKAGE_NAME" id="android-link">Google Play</a>
+    </div>
+  </div>
+
+  <script>
+    // URL から userId を取得: /u?id=yusuke または /u/yusuke どちらの形式も対応
+    const params   = new URLSearchParams(location.search);
+    let   userId   = params.get('id') || location.pathname.split('/').filter(Boolean).pop();
+
+    // デフォルト表示
+    document.getElementById('username').textContent = userId || 'V EFFECT User';
+    document.getElementById('userid').textContent   = userId ? '@' + userId : '';
+
+    // ディープリンク: アプリ起動 or App Store へ
+    const deepLink = `veffect://user/${userId}`;
+    const appStoreUrl = 'https://apps.apple.com/app/YOUR_APP_STORE_ID';
+    const btn = document.getElementById('open-btn');
+
+    btn.href = deepLink;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      // まずアプリ起動を試みる
+      const start = Date.now();
+      window.location.href = deepLink;
+      // 1.5秒後にアプリが開いていなければ App Store へ
+      setTimeout(() => {
+        if (Date.now() - start < 2000) {
+          window.location.href = appStoreUrl;
+        }
+      }, 1500);
+    });
+
+    // Firestore からユーザー情報を取得して表示（オプション: Firebaseを公開SDKで叩く場合）
+    // ここではサーバー側 (userInvitePage Function) で OGP が処理されるため不要
+  </script>
+</body>
+</html>

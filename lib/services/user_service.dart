@@ -28,8 +28,8 @@ class UserService {
   Future<void> saveProfile({
     required String username,
     required String userId,
-    required String birthDate,
-    required String gender,
+    String? birthDate,
+    String? gender,
     required String taskTime,
     required String occupation,
   }) async {

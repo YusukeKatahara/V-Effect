@@ -226,21 +226,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   Future<void> _saveAndNext() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // 生年月日のバリデーション
-    if (_birthYear == null || _birthMonth == null || _birthDay == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('生年月日を選択してください')));
-      return;
+    // 生年月日は任意に変更（Apple審査対応: Guideline 5.1.1(v)）
+    String? birthDate;
+    if (_birthYear != null && _birthMonth != null && _birthDay != null) {
+      birthDate =
+          '${_birthYear!}-${_birthMonth!.toString().padLeft(2, '0')}-${_birthDay!.toString().padLeft(2, '0')}';
     }
 
-    // 性別のバリデーション
-    if (_gender == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('性別を選択してください')));
-      return;
-    }
+    // 性別も任意に変更
+    final gender = _gender;
 
     // 追加項目のバリデーション
     if (_occupation == null) {
@@ -271,14 +265,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
         return;
       }
 
-      // Firestore にプロフィール情報を保存
-      final birthDate =
-          '${_birthYear!}-${_birthMonth!.toString().padLeft(2, '0')}-${_birthDay!.toString().padLeft(2, '0')}';
       await _userService.saveProfile(
         username: _usernameCtrl.text.trim(),
         userId: _userIdCtrl.text.trim(),
         birthDate: birthDate,
-        gender: _gender!,
+        gender: gender,
         taskTime: '${_taskTime!.hour.toString().padLeft(2, '0')}:${_taskTime!.minute.toString().padLeft(2, '0')}',
         occupation: _occupation!,
       );
@@ -435,7 +426,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             const SizedBox(height: 24),
 
                             // 生年月日
-                            const SectionTitle(title: '生年月日'),
+                            const SectionTitle(title: '生年月日（任意）'),
                             const SizedBox(height: 8),
                             Row(
                               children: [
@@ -559,7 +550,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             const SizedBox(height: 24),
 
                             // 性別
-                            const SectionTitle(title: '性別'),
+                            const SectionTitle(title: '性別（任意）'),
                             const SizedBox(height: 8),
                             Column(
                               children: _genderOptions.map((option) {
