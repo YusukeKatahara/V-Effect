@@ -532,7 +532,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       validator: (v) {
         if (v == null || v.trim().isEmpty) return 'ユーザーIDを入力してください';
-        if (!_isAdmin && v.trim().length < 5) return '5文字以上で入力してください';
+        if (!_isAdmin) {
+          if (v.trim().length < 5) return '5文字以上で入力してください';
+          if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v.trim())) {
+            return '英数字とアンダースコアのみ使えます';
+          }
+        }
         return null;
       },
     );
