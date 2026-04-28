@@ -16,6 +16,10 @@ import '../screens/user_profile_screen.dart';
 import '../screens/v_practice_screen.dart';
 
 import '../screens/initial_friend_screen.dart';
+import '../screens/onboarding/v_effect_screen.dart';
+import '../screens/onboarding/core_feature_screen.dart';
+import '../screens/onboarding/profile_settings_screen.dart';
+import '../screens/onboarding/first_v_quest_screen.dart';
 import '../screens/forgot_password_screen.dart';
 import '../screens/reset_password_screen.dart';
 import '../screens/email_verification_screen.dart';
@@ -48,12 +52,20 @@ class AppRoutes {
   static const String terms = '/terms';
   static const String privacyPolicy = '/privacy-policy';
   static const String vPractice = '/v-practice';
+  static const String onboardingVEffect     = '/onboarding/v-effect';
+  static const String onboardingCoreFeature = '/onboarding/core-feature';
+  static const String onboardingProfile     = '/onboarding/profile';
+  static const String onboardingFirstQuest  = '/onboarding/first-quest';
 
   static Map<String, WidgetBuilder> get routes => {
         wrapper: (context) => const AuthWrapper(),
         login: (context) => const LoginScreen(),
         register: (context) => const RegisterScreen(),
-        home: (context) => const MainShell(),
+        home: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final idx = (args is int) ? args : 0;
+          return MainShell(initialIndex: idx);
+        },
         camera: (context) => const CameraScreen(),
         profileSetup: (context) => const ProfileSetupScreen(),
         taskSetup: (context) => const TaskSetupScreen(),
@@ -72,5 +84,9 @@ class AppRoutes {
         terms: (context) => const TermsScreen(),
         privacyPolicy: (context) => const PrivacyPolicyScreen(),
         vPractice: (context) => const VPracticeScreen(),
+        onboardingVEffect: (context) => const VEffectScreen(),
+        onboardingCoreFeature: (context) => const CoreFeatureScreen(),
+        onboardingProfile: (context) => const OnboardingProfileSettingsScreen(),
+        onboardingFirstQuest: (context) => const FirstVQuestScreen(),
       };
 }

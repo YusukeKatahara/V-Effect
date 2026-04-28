@@ -311,7 +311,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   }
 
   Future<void> _checkAndShowTutorial() async {
-    if (!mounted || _postedToday) return;
+    if (!mounted || _postedToday || _taskItems.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     final hasShown = prefs.getBool('v_quest_tutorial_shown') ?? false;
     if (hasShown) return;
