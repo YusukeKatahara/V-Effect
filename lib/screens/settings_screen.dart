@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // REQUIRED
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../screens/email_verification_screen.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../services/user_service.dart'; // REQUIRED
@@ -20,12 +21,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = true;
   bool _focusTimeNotifications = true;
   String _appVersion = '';
+  bool _isEmailVerified = false;
+  bool _isEmailProvider = false;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
     _loadAppVersion();
+    _loadEmailVerificationStatus();
+  }
+
+  Future<void> _loadEmailVerificationStatus() async {
+    try {
+      await FirebaseAuth.instance.currentUser?.reload();
+    } catch (_) {}
+    final user = FirebaseAuth.instance.currentUser;
+    if (mounted) {
+      setState(() {
+        _isEmailProvider =
+            user?.providerData.any((p) => p.providerId == 'password') == true;
+        _isEmailVerified = user?.emailVerified == true;
+      });
+    }
   }
 
   Future<void> _loadSettings() async {
@@ -358,6 +376,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           _buildSectionHeader('アカウント'),
+          if (_isEmailProvider && !_isEmailVerified)
+            ListTile(
+              title: const Text(
+                'メールアドレスを認証する',
+                style: TextStyle(color: AppColors.textPrimary),
+              ),
+              leading: const Icon(
+                Icons.mark_email_unread_outlined,
+                color: AppColors.textPrimary,
+              ),
+              trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+              onTap: () async {
+                final verified = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => const EmailVerificationScreen(),
+                  ),
+                );
+                if (verified == true) _loadEmailVerificationStatus();
+              },
+            ),
           ListTile(
             title: const Text(
               'ログアウト',

@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_colors.dart';
-import '../config/routes.dart';
 import '../config/firebase_config.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
@@ -16,16 +14,31 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   bool _isChecking = false;
   bool _isResending = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _sendVerificationEmail();
+  }
+
+  Future<void> _sendVerificationEmail() async {
+    try {
+      await FirebaseAuth.instance.currentUser
+          ?.sendEmailVerification(FirebaseConfig.actionCodeSettings);
+    } catch (_) {}
+  }
+
   Future<void> _checkVerification() async {
     setState(() => _isChecking = true);
     try {
       await FirebaseAuth.instance.currentUser?.reload();
       final user = FirebaseAuth.instance.currentUser;
+      if (!mounted) return;
       if (user?.emailVerified == true) {
-        if (!mounted) return;
-        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.wrapper, (r) => false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('メールアドレスの認証が完了しました。')),
+        );
+        Navigator.of(context).pop(true);
       } else {
-        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('まだ認証が完了していません。メールをご確認ください。')),
         );
@@ -38,7 +51,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Future<void> _resendEmail() async {
     setState(() => _isResending = true);
     try {
-      await FirebaseAuth.instance.currentUser?.sendEmailVerification(FirebaseConfig.actionCodeSettings);
+      await FirebaseAuth.instance.currentUser
+          ?.sendEmailVerification(FirebaseConfig.actionCodeSettings);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('認証メールを再送信しました。')),
@@ -53,25 +67,18 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     }
   }
 
-  Future<void> _signOut() async {
-    await FirebaseAuth.instance.signOut();
-    if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (r) => false);
-  }
-
   @override
   Widget build(BuildContext context) {
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.logout, color: AppColors.textMuted),
-          onPressed: _signOut,
-          tooltip: 'ログアウト',
+        backgroundColor: AppColors.bgBase,
+        title: const Text(
+          'メールアドレスの認証',
+          style: TextStyle(color: AppColors.textPrimary),
         ),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       body: SafeArea(
         child: Padding(
@@ -97,7 +104,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               const SizedBox(height: 12),
               Text(
                 '$email\nに認証メールを送信しました。\nメール内のリンクをタップして認証を完了してください。',
-                style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -171,23 +181,6 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
               ),
-              if (kDebugMode || email.contains('apple') || email.contains('reviewer')) ...[
-                const SizedBox(height: 24),
-                TextButton.icon(
-                  onPressed: () {
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      AppRoutes.wrapper,
-                      (r) => false,
-                    );
-                  },
-                  icon: const Icon(Icons.verified_user, color: AppColors.primary),
-                  label: const Text(
-                    'Reviewer Bypass (Skip Verification)',
-                    style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
             ],
           ),
         ),

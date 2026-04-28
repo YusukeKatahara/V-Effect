@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
-import '../config/firebase_config.dart';
 
 import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../widgets/animated_v_logo.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -27,13 +26,16 @@ class _RegisterScreenState extends State<RegisterScreen>
   final _authService = AuthService();
   final _analytics = AnalyticsService.instance;
   bool _isEmailLoading = false;
-  bool _isGoogleLoading = false;
   bool _isAppleLoading = false;
 
-  bool get _isLoadingAny => _isEmailLoading || _isGoogleLoading || _isAppleLoading;
+  bool get _isLoadingAny => _isEmailLoading || _isAppleLoading;
 
   bool _obscurePass = true;
   bool _obscureConf = true;
+  bool _agreedToTerms = false;
+  bool _agreedToPrivacy = false;
+
+  bool get _canSubmit => _agreedToTerms && _agreedToPrivacy && !_isLoadingAny;
 
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
@@ -58,7 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     super.dispose();
   }
 
-  /// ユーザードキュメントを作成する（ソーシャルログイン用）
+  /// ユーザードキュメントを作成する（初回のみ termsAgreed も記録）
   Future<void> _ensureUserDoc(User user) async {
     final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
     final doc = await docRef.get();
@@ -66,6 +68,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       await docRef.set({
         'profileCompleted': false,
         'onboardingCompleted': false,
+        'termsAgreed': true,
+        'termsAgreedAt': FieldValue.serverTimestamp(),
       });
     }
     PushNotificationService().saveFcmToken().catchError((e) => debugPrint('FCM token save error: $e'));
@@ -94,14 +98,9 @@ class _RegisterScreenState extends State<RegisterScreen>
         password: _passCtrl.text.trim(),
       );
       await _analytics.logSignUp('email');
-      // 認証メールを送信（Deep Link でアプリに戻れるよう ActionCodeSettings を設定）
-      await cred.user?.sendEmailVerification(FirebaseConfig.actionCodeSettings);
-      // Firestoreドキュメントを作成
       await _ensureUserDoc(cred.user!);
-      
       if (!mounted) return;
-      // メール認証待ち画面へ
-      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.emailVerification, (r) => false);
+      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.wrapper, (r) => false);
     } on FirebaseAuthException catch (e) {
       String msg = '登録に失敗しました。';
       if (e.code == 'email-already-in-use') msg = 'このメールアドレスは既に使われています。';
@@ -112,25 +111,6 @@ class _RegisterScreenState extends State<RegisterScreen>
       debugPrint('Registration error: $e');
       scaffold?.showSnackBar(const SnackBar(content: Text('登録に失敗しました。しばらくしてからお試しください。')));
       if (mounted) setState(() => _isEmailLoading = false);
-    }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    if (_isLoadingAny) return;
-    setState(() => _isGoogleLoading = true);
-    final scaffold = ScaffoldMessenger.maybeOf(context);
-    try {
-      final cred = await _authService.signInWithGoogle();
-      if (cred != null) {
-        await _analytics.logSignUp('google');
-        await _ensureUserDocAndNavigate();
-      } else {
-        if (mounted) setState(() => _isGoogleLoading = false);
-      }
-    } catch (e) {
-      debugPrint('Google sign-in error: $e');
-      scaffold?.showSnackBar(const SnackBar(content: Text('Googleでの登録に失敗しました。')));
-      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -355,7 +335,23 @@ class _RegisterScreenState extends State<RegisterScreen>
             return null;
           },
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 20),
+        _buildAgreementCheckbox(
+          value: _agreedToTerms,
+          onChanged: (v) => setState(() => _agreedToTerms = v ?? false),
+          label: 'に同意する',
+          linkText: '利用規約',
+          url: 'https://veffect.web.app/terms/',
+        ),
+        const SizedBox(height: 8),
+        _buildAgreementCheckbox(
+          value: _agreedToPrivacy,
+          onChanged: (v) => setState(() => _agreedToPrivacy = v ?? false),
+          label: 'に同意する',
+          linkText: 'プライバシーポリシー',
+          url: 'https://veffect.web.app/privacy/',
+        ),
+        const SizedBox(height: 20),
 
         // 登録ボタン
         _isEmailLoading
@@ -365,18 +361,19 @@ class _RegisterScreenState extends State<RegisterScreen>
               height: 54,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
+                  gradient: _canSubmit ? AppColors.primaryGradient : null,
+                  color: _canSubmit ? null : AppColors.bgElevated,
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: _isLoadingAny ? [] : [
+                  boxShadow: _canSubmit ? [
                     BoxShadow(
                       color: AppColors.white.withValues(alpha: 0.2),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
-                  ],
+                  ] : [],
                 ),
                 child: ElevatedButton(
-                  onPressed: _isLoadingAny ? null : _register,
+                  onPressed: _canSubmit ? _register : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
@@ -419,51 +416,12 @@ class _RegisterScreenState extends State<RegisterScreen>
           ],
         ),
         const SizedBox(height: 18),
-        // Google
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: OutlinedButton(
-            onPressed: _isLoadingAny ? null : _signInWithGoogle,
-            child: _isGoogleLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CachedNetworkImage(
-                        imageUrl: 'https://developers.google.com/identity/images/g-logo.png',
-                        height: 22,
-                        placeholder: (context, url) => const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 1),
-                        ),
-                        errorWidget: (context, url, error) => const Icon(
-                          Icons.g_mobiledata,
-                          size: 24,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'Googleで作成',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-          ),
-        ),
-        const SizedBox(height: 12),
         // Apple
         SizedBox(
           width: double.infinity,
           height: 50,
           child: OutlinedButton(
-            onPressed: _isLoadingAny ? null : _signInWithApple,
+            onPressed: _canSubmit ? _signInWithApple : null,
             child: _isAppleLoading
                 ? const SizedBox(
                     width: 20,
@@ -478,6 +436,55 @@ class _RegisterScreenState extends State<RegisterScreen>
                       const Text('Appleで作成', style: TextStyle(fontWeight: FontWeight.w600)),
                     ],
                   ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAgreementCheckbox({
+    required bool value,
+    required ValueChanged<bool?> onChanged,
+    required String linkText,
+    required String label,
+    required String url,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 24,
+          height: 24,
+          child: Checkbox(
+            value: value,
+            onChanged: onChanged,
+            activeColor: AppColors.textPrimary,
+            side: BorderSide(color: AppColors.textMuted, width: 1.5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+                child: Text(
+                  linkText,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF4A9EFF),
+                    decoration: TextDecoration.underline,
+                    decorationColor: Color(0xFF4A9EFF),
+                  ),
+                ),
+              ),
+              Text(
+                label,
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+            ],
           ),
         ),
       ],

@@ -9,7 +9,6 @@ import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../widgets/animated_v_logo.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -26,11 +25,9 @@ class _LoginScreenState extends State<LoginScreen>
   final _authService = AuthService();
   final _analytics = AnalyticsService.instance;
   bool _isEmailLoading = false;
-  bool _isGoogleLoading = false;
   bool _isAppleLoading = false;
 
-  bool get _isLoadingAny =>
-      _isEmailLoading || _isGoogleLoading || _isAppleLoading;
+  bool get _isLoadingAny => _isEmailLoading || _isAppleLoading;
 
   bool _obscurePass = true;
 
@@ -136,27 +133,6 @@ class _LoginScreenState extends State<LoginScreen>
       debugPrint('Login error: $e');
       scaffold?.showSnackBar(const SnackBar(content: Text('ログインに失敗しました')));
       if (mounted) setState(() => _isEmailLoading = false);
-    }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    if (_isLoadingAny) return;
-    setState(() => _isGoogleLoading = true);
-    final scaffold = ScaffoldMessenger.maybeOf(context);
-    try {
-      final cred = await _authService.signInWithGoogle();
-      if (cred != null) {
-        await _analytics.logLogin('google');
-        await _ensureUserDocAndNavigate();
-      } else {
-        if (mounted) setState(() => _isGoogleLoading = false);
-      }
-    } catch (e) {
-      debugPrint('Google sign-in error: $e');
-      scaffold?.showSnackBar(
-        const SnackBar(content: Text('Googleでのログインに失敗しました')),
-      );
-      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -420,31 +396,6 @@ class _LoginScreenState extends State<LoginScreen>
           ],
         ),
         const SizedBox(height: 20),
-
-        // Google
-        _SocialButton(
-          onPressed: _isLoadingAny ? null : _signInWithGoogle,
-          isLoading: _isGoogleLoading,
-          icon: CachedNetworkImage(
-            imageUrl:
-                'https://developers.google.com/identity/images/g-logo.png',
-            height: 22,
-            placeholder:
-                (context, url) => const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 1),
-                ),
-            errorWidget:
-                (context, url, error) => const Icon(
-                  Icons.g_mobiledata,
-                  size: 24,
-                  color: AppColors.textPrimary,
-                ),
-          ),
-          label: 'Googleでログイン',
-        ),
-        const SizedBox(height: 12),
 
         // Apple
         _SocialButton(
