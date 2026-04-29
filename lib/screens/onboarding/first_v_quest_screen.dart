@@ -34,12 +34,12 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
   Timer? _placeholderTimer;
 
   static const _keywordIntervals = [
-    [0.00, 0.20], // 勝利
-    [0.10, 0.30], // 努力
-    [0.18, 0.38], // 達成感
-    [0.28, 0.48], // 目標
-    [0.38, 0.58], // 習慣化
-    [0.50, 0.70], // 継続
+    [0.05, 0.10], // 勝利
+    [0.09, 0.14], // 努力
+    [0.07, 0.12], // 達成感
+    [0.11, 0.16], // 目標
+    [0.15, 0.20], // 習慣化
+    [0.13, 0.18], // 継続
   ];
 
   @override
@@ -48,14 +48,15 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
 
     _ctrlA = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(milliseconds: 10000),
     );
-    _keywordAnims = _keywordIntervals.map((iv) {
-      return CurvedAnimation(
-        parent: _ctrlA,
-        curve: Interval(iv[0], iv[1], curve: Curves.easeOut),
-      );
-    }).toList();
+    _keywordAnims =
+        _keywordIntervals.map((iv) {
+          return CurvedAnimation(
+            parent: _ctrlA,
+            curve: Interval(iv[0], iv[1], curve: Curves.easeOut),
+          );
+        }).toList();
     _questionAnim = CurvedAnimation(
       parent: _ctrlA,
       curve: const Interval(0.68, 0.88, curve: Curves.easeOut),
@@ -83,8 +84,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     _placeholderTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (mounted) {
         setState(() {
-          _placeholderIndex =
-              (_placeholderIndex + 1) % _placeholders.length;
+          _placeholderIndex = (_placeholderIndex + 1) % _placeholders.length;
         });
       }
     });
@@ -115,9 +115,9 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存に失敗しました: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
         setState(() => _isSaving = false);
       }
     }
@@ -133,29 +133,33 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
             // キーワードエリア
             Expanded(
               flex: 5,
-              child: AnimatedBuilder(
-                animation: _ctrlA,
-                builder: (context, _) {
-                  return Stack(
-                    children: [
-                      ..._buildKeywords(),
-                      Positioned(
-                        bottom: 16,
-                        left: 32,
-                        right: 32,
-                        child: FadeTransition(
-                          opacity: _questionAnim,
-                          child: Text(
-                            'これらのキーワードから連想される\nあなたの姿はどんなですか',
-                            style: GoogleFonts.notoSansJp(
-                              fontSize: 13,
-                              color: AppColors.grey50,
-                              height: 1.6,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return AnimatedBuilder(
+                    animation: _ctrlA,
+                    builder: (context, _) {
+                      return Stack(
+                        children: [
+                          ..._buildKeywords(constraints),
+                          Positioned(
+                            bottom: 16,
+                            left: 32,
+                            right: 32,
+                            child: FadeTransition(
+                              opacity: _questionAnim,
+                              child: Text(
+                                'これらのキーワードから連想される\nあなたの姿はどんなですか',
+                                style: GoogleFonts.notoSansJp(
+                                  fontSize: 13,
+                                  color: AppColors.grey50,
+                                  height: 1.6,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    ],
+                        ],
+                      );
+                    },
                   );
                 },
               ),
@@ -259,16 +263,17 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
             child: IgnorePointer(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 350),
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.4),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
-                  ),
-                ),
+                transitionBuilder:
+                    (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.4),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    ),
                 child: Text(
                   '例: ${_placeholders[_placeholderIndex]}',
                   key: ValueKey(_placeholderIndex),
@@ -284,7 +289,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     );
   }
 
-  List<Widget> _buildKeywords() {
+  List<Widget> _buildKeywords(BoxConstraints constraints) {
     const keywords = ['勝利', '努力', '達成感', '目標', '習慣化', '継続'];
     // 画面幅に依存しない相対的な配置（左上原点）
     const positions = [
@@ -298,24 +303,20 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     const sizes = [22.0, 20.0, 18.0, 24.0, 16.0, 20.0];
 
     return List.generate(keywords.length, (i) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          return Positioned(
-            left: constraints.maxWidth * positions[i][0],
-            top: constraints.maxHeight * positions[i][1],
-            child: FadeTransition(
-              opacity: _keywordAnims[i],
-              child: Text(
-                keywords[i],
-                style: GoogleFonts.notoSansJp(
-                  fontSize: sizes[i],
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.white,
-                ),
-              ),
+      return Positioned(
+        left: constraints.maxWidth * positions[i][0],
+        top: constraints.maxHeight * positions[i][1],
+        child: FadeTransition(
+          opacity: _keywordAnims[i],
+          child: Text(
+            keywords[i],
+            style: GoogleFonts.notoSansJp(
+              fontSize: sizes[i],
+              fontWeight: FontWeight.w500,
+              color: AppColors.white,
             ),
-          );
-        },
+          ),
+        ),
       );
     });
   }
