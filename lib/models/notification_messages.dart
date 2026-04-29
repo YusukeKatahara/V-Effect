@@ -9,21 +9,6 @@ class NotificationContent {
   const NotificationContent({required this.title, required this.body});
 }
 
-/// テンプレート選択時に参照されるコンテキスト情報
-class NotificationContext {
-  final int streak;
-
-  const NotificationContext({this.streak = 0});
-}
-
-/// テンプレートが選ばれるための条件
-enum _Condition {
-  none, // 常に候補
-  streakAtLeast1, // streak >= 1
-  streakAtLeast5, // streak >= 5
-  streakZero, // streak == 0
-}
-
 /// NotificationType ごとのメッセージテンプレートを一元管理するクラス
 ///
 /// テンプレート内のプレースホルダー:
@@ -81,55 +66,22 @@ abstract class NotificationMessages {
     ],
   };
 
-  /// 通知タイプ・パラメータ・コンテキストからメッセージを生成します
-  ///
-  /// 条件付きテンプレートは [context] の値で候補がフィルタリングされます。
-  /// 候補が複数ある場合はランダムに1つ選択されます。
+  /// 通知タイプ・パラメータからメッセージをランダムに生成します
   static NotificationContent build(
     NotificationType type, [
     Map<String, String> params = const {},
-    NotificationContext context = const NotificationContext(),
   ]) {
-    final allTemplates = _templates[type];
-    if (allTemplates == null || allTemplates.isEmpty) {
+    final templates = _templates[type];
+    if (templates == null || templates.isEmpty) {
       return NotificationContent(title: type.name, body: '');
     }
 
-    // 条件を満たすテンプレートだけに絞り込む
-    final eligible =
-        allTemplates.where((t) => _meetsCondition(t, context)).toList();
-
-    // 条件付きがすべて外れた場合は無条件のもののみにフォールバック
-    final candidates =
-        eligible.isNotEmpty
-            ? eligible
-            : allTemplates
-                .where((t) => t.condition == _Condition.none)
-                .toList();
-
-    if (candidates.isEmpty) {
-      return NotificationContent(title: type.name, body: '');
-    }
-
-    final template = candidates[_random.nextInt(candidates.length)];
+    final template = templates[_random.nextInt(templates.length)];
 
     return NotificationContent(
       title: _replacePlaceholders(template.title, params),
       body: _replacePlaceholders(template.body, params),
     );
-  }
-
-  static bool _meetsCondition(_Template template, NotificationContext ctx) {
-    switch (template.condition) {
-      case _Condition.none:
-        return true;
-      case _Condition.streakAtLeast1:
-        return ctx.streak >= 1;
-      case _Condition.streakAtLeast5:
-        return ctx.streak >= 5;
-      case _Condition.streakZero:
-        return ctx.streak == 0;
-    }
   }
 
   static String _replacePlaceholders(String text, Map<String, String> params) {
@@ -144,11 +96,9 @@ abstract class NotificationMessages {
 class _Template {
   final String title;
   final String body;
-  final _Condition condition;
 
   const _Template({
     required this.title,
     required this.body,
-    this.condition = _Condition.none,
   });
 }

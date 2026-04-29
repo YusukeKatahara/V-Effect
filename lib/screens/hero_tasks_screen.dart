@@ -13,10 +13,8 @@ import '../models/post.dart';
 import '../models/app_task.dart';
 import '../models/app_user.dart';
 import '../services/analytics_service.dart';
-import '../services/notification_service.dart';
 import '../services/post_service.dart';
 import '../services/user_service.dart';
-import '../services/sound_service.dart';
 import '../widgets/splash_loading.dart';
 import '../widgets/streak_flame.dart';
 import '../widgets/v_effect_header.dart';
@@ -47,7 +45,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     with TickerProviderStateMixin {
   final PostService _postService = PostService.instance;
   final UserService _userService = UserService.instance;
-  final NotificationService _notificationService = NotificationService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
   StreamSubscription? _updateSubscription;
   StreamSubscription? _userUpdateSubscription;
@@ -1261,7 +1258,6 @@ class _PulseCameraButtonState extends State<_PulseCameraButton>
           builder: (context, _) {
             const innerSize = 76.0;
             const outerSize = 104.0;
-            const glowAlpha = 0.12;
 
             return SizedBox(
               width: outerSize,
@@ -1295,53 +1291,6 @@ class _PulseCameraButtonState extends State<_PulseCameraButton>
       ),
     );
   }
-}
-
-// ゴールドの光がぐるりと走るカスタムペインター
-class _GoldShimmerPainter extends CustomPainter {
-  const _GoldShimmerPainter({required this.angle});
-  final double angle;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final radius = size.width / 2;
-    final center = Offset(radius, radius);
-
-    // ベースの薄いゴールドリング
-    final basePaint = Paint()
-      ..color = AppColors.accentGold.withValues(alpha: 0.25)
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke;
-    canvas.drawCircle(center, radius - 0.5, basePaint);
-
-    // シマー光点（弧）
-    final shimmerPaint = Paint()
-      ..shader = SweepGradient(
-        center: Alignment.center,
-        startAngle: angle - 0.6,
-        endAngle: angle + 0.6,
-        colors: [
-          AppColors.accentGold.withValues(alpha: 0),
-          AppColors.accentGold.withValues(alpha: 0.9),
-          AppColors.accentGold.withValues(alpha: 0),
-        ],
-        stops: const [0.0, 0.5, 1.0],
-      ).createShader(Rect.fromCircle(center: center, radius: radius))
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius - 1),
-      angle - 0.55,
-      1.1,
-      false,
-      shimmerPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_GoldShimmerPainter old) => old.angle != angle;
 }
 
 class _FrictionlessPageScrollPhysics extends PageScrollPhysics {

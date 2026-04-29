@@ -24,17 +24,15 @@ class NotificationService {
   /// 通知を作成します（テンプレートからメッセージを自動生成）
   ///
   /// [params] はプレースホルダーの置換に使用されます。
-  /// [context] は条件付きテンプレートの選択に使用されます。
   Future<void> createNotification({
     required String toUid,
     required NotificationType type,
     Map<String, String> params = const {},
-    NotificationContext context = const NotificationContext(),
     String? fromUid,
     String? relatedId,
     bool sendPush = true,
   }) async {
-    final content = NotificationMessages.build(type, params, context);
+    final content = NotificationMessages.build(type, params);
     await _db.collection('notifications').add({
       'toUid': toUid,
       'type': type.name,
