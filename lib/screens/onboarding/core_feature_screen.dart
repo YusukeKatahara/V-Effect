@@ -19,16 +19,16 @@ class _CoreFeatureScreenState extends State<CoreFeatureScreen>
   late final List<Animation<double>> _anims;
 
   static const _intervals = [
-    [0.00, 0.16], // タイトル
-    [0.14, 0.28], // 1. V Quest ラベル
-    [0.26, 0.40], // Vを証明しよう…
-    [0.36, 0.50], // 今日の達成を写真に…
-    [0.46, 0.60], // やり遂げたその事実が…
-    [0.56, 0.70], // 2. V Feed ラベル
-    [0.64, 0.78], // お互いの努力が…
-    [0.72, 0.86], // 今日Vを達成した…
-    [0.80, 0.93], // 努力証明した者だけが…
-    [0.90, 1.00], // ボタン
+    [0.00, 0.01], // タイトル
+    [0.10, 0.20], // 1. V Quest ラベル
+    [0.25, 0.30], // Vを証明しよう…
+    [0.25, 0.30], // 今日の達成を写真に…
+    [0.25, 0.30], // やり遂げたその事実が…
+    [0.40, 0.50], // 2. V Feed ラベル
+    [0.55, 0.70], // お互いの努力が…
+    [0.55, 0.70], // 今日Vを達成した…
+    [0.55, 0.70], // 努力証明した者だけが…
+    [0.70, 0.80], // ボタン
   ];
 
   @override
@@ -36,14 +36,15 @@ class _CoreFeatureScreenState extends State<CoreFeatureScreen>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 4000),
+      duration: const Duration(milliseconds: 10000),
     );
-    _anims = _intervals.map((iv) {
-      return CurvedAnimation(
-        parent: _ctrl,
-        curve: Interval(iv[0], iv[1], curve: Curves.easeOut),
-      );
-    }).toList();
+    _anims =
+        _intervals.map((iv) {
+          return CurvedAnimation(
+            parent: _ctrl,
+            curve: Interval(iv[0], iv[1], curve: Curves.easeOut),
+          );
+        }).toList();
     _ctrl.forward();
   }
 

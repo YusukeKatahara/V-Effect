@@ -233,13 +233,18 @@ class UserService {
 
     if (data.isNotEmpty) {
       await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
-      
+
       // Focus Time 通知設定が変更された場合はスケジュールを更新
+      // ローカル通知の失敗は設定保存成功とは独立して扱う
       if (focusTimeNotifications != null) {
-        if (focusTimeNotifications) {
-          await PushNotificationService().restoreVAlertSchedule();
-        } else {
-          await PushNotificationService().scheduleVAlert(null);
+        try {
+          if (focusTimeNotifications) {
+            await PushNotificationService().restoreVAlertSchedule();
+          } else {
+            await PushNotificationService().scheduleVAlert(null);
+          }
+        } catch (e) {
+          debugPrint('V Alert スケジュール更新エラー: $e');
         }
       }
     }

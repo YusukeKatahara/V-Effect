@@ -19,13 +19,13 @@ class _VEffectScreenState extends State<VEffectScreen>
   late final List<Animation<double>> _anims;
 
   static const _intervals = [
-    [0.00, 0.18], // タイトル
-    [0.15, 0.33], // VはVictoryのV
-    [0.28, 0.46], // V EFFECTは
-    [0.38, 0.56], // あなたと仲間の間で
-    [0.50, 0.68], // V（大文字）
-    [0.60, 0.78], // を積み重ねる…
-    [0.72, 0.90], // 圧倒的な自信が…
+    [0.00, 0.00], // タイトル
+    [0.05, 0.25], // VはVictoryのV
+    [0.40, 0.50], // V EFFECTは
+    [0.40, 0.50], // あなたと仲間の間で
+    [0.55, 0.65], // V（大文字）
+    [0.55, 0.65], // を積み重ねる…
+    [0.70, 0.80], // 圧倒的な自信が…
     [0.85, 1.00], // ボタン
   ];
 
@@ -34,14 +34,15 @@ class _VEffectScreenState extends State<VEffectScreen>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3500),
+      duration: const Duration(milliseconds: 5000),
     );
-    _anims = _intervals.map((iv) {
-      return CurvedAnimation(
-        parent: _ctrl,
-        curve: Interval(iv[0], iv[1], curve: Curves.easeOut),
-      );
-    }).toList();
+    _anims =
+        _intervals.map((iv) {
+          return CurvedAnimation(
+            parent: _ctrl,
+            curve: Interval(iv[0], iv[1], curve: Curves.easeOut),
+          );
+        }).toList();
     _ctrl.forward();
   }
 

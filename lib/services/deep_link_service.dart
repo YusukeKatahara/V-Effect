@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../main.dart';
 import '../config/routes.dart';
+import 'friend_service.dart';
 
 class DeepLinkService {
   static final DeepLinkService _instance = DeepLinkService._internal();
@@ -35,6 +36,15 @@ class DeepLinkService {
   void _handleLink(Uri uri) async {
     debugPrint('Incoming deep link: $uri');
 
+    // プロフィールURL（/u/{userId}）のハンドリング
+    if (uri.host == 'veffect.web.app') {
+      final segments = uri.pathSegments;
+      if (segments.length >= 2 && segments[0] == 'u') {
+        await _handleUserProfileLink(Uri.decodeComponent(segments[1]));
+        return;
+      }
+    }
+
     // Firebase Auth のアクションリンク（メール認証など）を判定
     // 通常、oobCode パラメータが含まれる
     final oobCode = uri.queryParameters['oobCode'];
@@ -49,6 +59,30 @@ class DeepLinkService {
           // パスワードリセット画面へ遷移など
           break;
       }
+    }
+  }
+
+  Future<void> _handleUserProfileLink(String userId) async {
+    try {
+      final user = await FriendService.instance.searchByUserId(userId);
+      final context = VEffectApp.navigatorKey.currentContext;
+      if (context == null) return;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ユーザーが見つかりません')),
+        );
+        return;
+      }
+      Navigator.of(context).pushNamed(
+        AppRoutes.userProfile,
+        arguments: {
+          'uid': user.uid,
+          'username': user.username,
+          'photoUrl': user.photoUrl,
+        },
+      );
+    } catch (e) {
+      debugPrint('Error handling user profile link: $e');
     }
   }
 
