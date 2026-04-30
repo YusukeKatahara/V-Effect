@@ -300,8 +300,8 @@ class _EntropicConversionOverlayState extends State<EntropicConversionOverlay> w
                   child: Transform.rotate(
                     angle: _cardRotation.value,
                     child: Transform.scale(
-                      scale: _cardScale.value,
-                      scaleY: _cardScaleY.value,
+                      scaleX: _cardScale.value,
+                      scaleY: _cardScale.value * _cardScaleY.value,
                       child: Opacity(
                         opacity: _cardOpacity.value,
                         child: _buildCardContent(size),
