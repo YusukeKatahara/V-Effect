@@ -177,7 +177,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _setPassword() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null || user.email == null) return;
+    if (user == null) return;
+    if (user.email == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('パスワードを設定するには先にメールアドレスを登録してください'),
+          action: SnackBarAction(label: 'メールを登録', onPressed: _changeEmail),
+        ),
+      );
+      return;
+    }
 
     final passwordController = TextEditingController();
     final confirmController = TextEditingController();
@@ -275,7 +285,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _resetPassword() async {
     final email = FirebaseAuth.instance.currentUser?.email;
-    if (email == null) return;
+    if (email == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('パスワードを再設定するには先にメールアドレスを登録してください'),
+          action: SnackBarAction(label: 'メールを登録', onPressed: _changeEmail),
+        ),
+      );
+      return;
+    }
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (mounted) {
