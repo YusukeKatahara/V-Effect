@@ -191,12 +191,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final passwordController = TextEditingController();
     final confirmController = TextEditingController();
+    String? errorMessage;
 
     final password = await showDialog<String>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          String? errorMessage;
           return AlertDialog(
             backgroundColor: AppColors.bgElevated,
             title: const Text('パスワードを設定', style: TextStyle(color: AppColors.textPrimary)),
