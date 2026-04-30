@@ -16,12 +16,6 @@
       "**/.*",
       "**/node_modules/**"
     ],
-    "rewrites": [
-      {
-        "source": "/u/**",
-        "function": "userInvitePage"
-      }
-    ],
     "headers": [
       {
         "source": "/.well-known/assetlinks.json",

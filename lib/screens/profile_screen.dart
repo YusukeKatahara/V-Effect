@@ -14,7 +14,6 @@ import 'settings_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/push_notification_service.dart';
-import '../services/invite_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -522,27 +521,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   if (didUpdate == true) {
                     _loadProfile();
                   }
-                },
-              ),
-              // ─── 招待ボタン ───────────────────────────────
-              ListTile(
-                leading: const Icon(Icons.card_giftcard_outlined, color: AppColors.accentGold),
-                title: const Text('名刺でフレンドを招待', style: TextStyle(color: AppColors.textPrimary)),
-                subtitle: const Text('URLを送るだけで名刺が表示されます', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final userId = _user?.userId;
-                  final username = _user?.username;
-                  if (userId == null || userId.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('ユーザーIDが設定されていません')),
-                    );
-                    return;
-                  }
-                  await InviteService.instance.shareInviteCard(
-                    userId: userId,
-                    username: username ?? 'V EFFECT User',
-                  );
                 },
               ),
               ListTile(
