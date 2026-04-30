@@ -175,6 +175,104 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _setPassword() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) return;
+
+    final passwordController = TextEditingController();
+    final confirmController = TextEditingController();
+
+    final password = await showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          String? errorMessage;
+          return AlertDialog(
+            backgroundColor: AppColors.bgElevated,
+            title: const Text('パスワードを設定', style: TextStyle(color: AppColors.textPrimary)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(user.email!, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  autofocus: true,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: const InputDecoration(
+                    hintText: 'パスワード（6文字以上）',
+                    hintStyle: TextStyle(color: AppColors.textMuted),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.textMuted)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.textPrimary)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: confirmController,
+                  obscureText: true,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: const InputDecoration(
+                    hintText: 'パスワード（確認）',
+                    hintStyle: TextStyle(color: AppColors.textMuted),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.textMuted)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.textPrimary)),
+                  ),
+                ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 12)),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('キャンセル', style: TextStyle(color: AppColors.grey50)),
+              ),
+              TextButton(
+                onPressed: () {
+                  final pw = passwordController.text;
+                  final confirm = confirmController.text;
+                  if (pw.length < 6) {
+                    setDialogState(() => errorMessage = 'パスワードは6文字以上にしてください');
+                    return;
+                  }
+                  if (pw != confirm) {
+                    setDialogState(() => errorMessage = 'パスワードが一致しません');
+                    return;
+                  }
+                  Navigator.pop(ctx, pw);
+                },
+                child: const Text('設定', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (password == null || !mounted) return;
+
+    try {
+      final credential = EmailAuthProvider.credential(email: user.email!, password: password);
+      await user.linkWithCredential(credential);
+      setState(() => _isEmailProvider = true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('パスワードを設定しました')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('パスワードの設定に失敗しました'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
   Future<void> _resetPassword() async {
     final email = FirebaseAuth.instance.currentUser?.email;
     if (email == null) return;
@@ -443,7 +541,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           _buildSectionHeader('アカウント'),
-          if (_isEmailProvider && !_isEmailVerified)
+          if (!_isEmailVerified)
             ListTile(
               title: const Text(
                 'メールアドレスを認証する',
@@ -463,26 +561,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (verified == true) _loadEmailVerificationStatus();
               },
             ),
-          if (_isEmailProvider)
-            ListTile(
-              title: const Text(
-                'パスワードの再設定',
-                style: TextStyle(color: AppColors.textPrimary),
-              ),
-              leading: const Icon(Icons.lock_reset, color: AppColors.textPrimary),
-              trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
-              onTap: _resetPassword,
+          ListTile(
+            title: Text(
+              _isEmailProvider ? 'パスワードの再設定' : 'パスワード',
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
-          if (_isEmailProvider)
-            ListTile(
-              title: const Text(
-                'メールアドレスの変更',
-                style: TextStyle(color: AppColors.textPrimary),
-              ),
-              leading: const Icon(Icons.email_outlined, color: AppColors.textPrimary),
-              trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
-              onTap: _changeEmail,
+            subtitle: _isEmailProvider
+                ? null
+                : const Text('未設定', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            leading: const Icon(Icons.lock_reset, color: AppColors.textPrimary),
+            trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            onTap: _isEmailProvider ? _resetPassword : _setPassword,
+          ),
+          ListTile(
+            title: const Text(
+              'メールアドレスの変更',
+              style: TextStyle(color: AppColors.textPrimary),
             ),
+            leading: const Icon(Icons.email_outlined, color: AppColors.textPrimary),
+            trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            onTap: _changeEmail,
+          ),
           ListTile(
             title: const Text(
               'ログアウト',
