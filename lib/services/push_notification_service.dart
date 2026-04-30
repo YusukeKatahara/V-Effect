@@ -275,7 +275,11 @@ class PushNotificationService {
     if (kIsWeb) return;
 
     // 既存の特定ID（V Alert）をキャンセル
-    await _localNotifications.cancel(_vAlertNotificationId);
+    try {
+      await _localNotifications.cancel(_vAlertNotificationId);
+    } catch (e) {
+      debugPrint('V Alert キャンセルエラー: $e');
+    }
 
     if (taskTimeStr == null || taskTimeStr.isEmpty) {
       debugPrint('V Alert: taskTime が未設定のためキャンセルのみ実行');

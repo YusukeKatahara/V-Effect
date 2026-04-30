@@ -72,6 +72,9 @@ dependencies:
   share_plus: ^12.0.2
   path_provider: ^2.1.5
   app_links: ^6.4.1
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.4
+  gal: ^1.3.0
   timezone: ^0.9.4
   audioplayers: ^6.6.0
 

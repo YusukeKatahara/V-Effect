@@ -14,6 +14,9 @@ import 'settings_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/push_notification_service.dart';
+import '../services/invite_service.dart';
+import 'qr_display_screen.dart';
+import 'qr_scanner_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -42,12 +45,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadPrivateData() async {
-    final privateSnap = await _db
-        .collection('users')
-        .doc(_uid)
-        .collection('private')
-        .doc('data')
-        .get();
+    final privateSnap =
+        await _db
+            .collection('users')
+            .doc(_uid)
+            .collection('private')
+            .doc('data')
+            .get();
     if (!mounted) return;
     setState(() {
       _privateData =
@@ -69,12 +73,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final user = AppUser.fromFirestore(doc);
         // ワンタイムタスクの期限切れチェックと削除
         await _checkAndCleanupOneTimeTasks(user);
-        
+
         // 今日の投稿を取得
         final todayPosts = await _postService.getFriendPostsList(uid);
-        
+
         // 再ロード（削除された可能性があるため）
-        final freshDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final freshDoc =
+            await FirebaseFirestore.instance.collection('users').doc(uid).get();
         if (mounted) {
           setState(() {
             _user = AppUser.fromFirestore(freshDoc);
@@ -121,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               top: false,
               child: Column(
                 children: [
-                   // ---ツールバー（完了ボタン）
+                  // ---ツールバー（完了ボタン）
                   Container(
                     decoration: BoxDecoration(
                       border: Border(
@@ -149,10 +154,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                         onPressed: () async {
+                          onPressed: () async {
                             final timeStr =
                                 '${tempDateTime.hour.toString().padLeft(2, '0')}:${tempDateTime.minute.toString().padLeft(2, '0')}';
-                            
+
                             // 先にモーダルを閉じて blackout を防ぐ
                             Navigator.pop(context);
 
@@ -160,11 +165,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               await _userService.updateProfile(
                                 taskTime: timeStr,
                               );
-                              
+
                               // taskTime が変更された場合、V Alert を即座に再スケジュール
-                              PushNotificationService().scheduleVAlert(timeStr)
-                                  .catchError((e) => debugPrint('V Alert schedule error: $e'));
-                              
+                              PushNotificationService()
+                                  .scheduleVAlert(timeStr)
+                                  .catchError(
+                                    (e) => debugPrint(
+                                      'V Alert schedule error: $e',
+                                    ),
+                                  );
+
                               if (mounted) {
                                 _loadProfile();
                               }
@@ -219,72 +229,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder:
           (ctx) => StatefulBuilder(
-            builder: (context, setModalState) => AlertDialog(
-              backgroundColor: AppColors.bgElevated,
-              title: const Text(
-                'タスクを追加',
-                style: TextStyle(color: AppColors.white),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: controller,
-                    autofocus: true,
-                    style: const TextStyle(color: AppColors.white),
-                    decoration: const InputDecoration(
-                      hintText: '例: 読書を30分する',
-                      hintStyle: TextStyle(color: AppColors.grey30),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SwitchListTile(
-                    title: const Text(
-                      'One-Time Task',
-                      style: TextStyle(color: AppColors.white, fontSize: 14),
-                    ),
-                    subtitle: const Text(
-                      '完了から24時間後に自動削除されます',
-                      style: TextStyle(color: AppColors.grey50, fontSize: 11),
-                    ),
-                    value: isOneTime,
-                    activeColor: AppColors.accentGold,
-                    onChanged: (val) {
-                      setModalState(() => isOneTime = val);
-                    },
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
-                    'キャンセル',
-                    style: TextStyle(color: AppColors.grey50),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, {
-                    'title': controller.text,
-                    'isOneTime': isOneTime,
-                  }),
-                  child: const Text(
-                    '追加',
+            builder:
+                (context, setModalState) => AlertDialog(
+                  backgroundColor: AppColors.bgElevated,
+                  title: const Text(
+                    'タスクを追加',
                     style: TextStyle(color: AppColors.white),
                   ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: controller,
+                        autofocus: true,
+                        style: const TextStyle(color: AppColors.white),
+                        decoration: const InputDecoration(
+                          hintText: '例: 読書を30分する',
+                          hintStyle: TextStyle(color: AppColors.grey30),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        title: const Text(
+                          'One-Time Task',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          '完了から24時間後に自動削除されます',
+                          style: TextStyle(
+                            color: AppColors.grey50,
+                            fontSize: 11,
+                          ),
+                        ),
+                        value: isOneTime,
+                        activeColor: AppColors.accentGold,
+                        onChanged: (val) {
+                          setModalState(() => isOneTime = val);
+                        },
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text(
+                        'キャンセル',
+                        style: TextStyle(color: AppColors.grey50),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed:
+                          () => Navigator.pop(ctx, {
+                            'title': controller.text,
+                            'isOneTime': isOneTime,
+                          }),
+                      child: const Text(
+                        '追加',
+                        style: TextStyle(color: AppColors.white),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
           ),
     );
 
     if (result != null && result['title'].toString().trim().isNotEmpty) {
-      final updatedTasks = List<AppTask>.from(_user!.tasks)
-        ..add(AppTask(
+      final updatedTasks = List<AppTask>.from(_user!.tasks)..add(
+        AppTask(
           title: result['title'].toString().trim(),
           isOneTime: result['isOneTime'] as bool,
-        ));
+        ),
+      );
       await _userService.updateProfile(tasks: updatedTasks);
       _loadProfile();
     }
@@ -300,63 +319,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder:
           (ctx) => StatefulBuilder(
-            builder: (context, setModalState) => AlertDialog(
-              backgroundColor: AppColors.bgElevated,
-              title: const Text(
-                'タスクを編集',
-                style: TextStyle(color: AppColors.white),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: controller,
-                    autofocus: true,
-                    style: const TextStyle(color: AppColors.white),
-                    decoration: const InputDecoration(
-                      hintText: '例: 読書を30分する',
-                      hintStyle: TextStyle(color: AppColors.grey30),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SwitchListTile(
-                    title: const Text(
-                      'One-Time Task',
-                      style: TextStyle(color: AppColors.white, fontSize: 14),
-                    ),
-                    subtitle: const Text(
-                      '完了から24時間後に自動削除されます',
-                      style: TextStyle(color: AppColors.grey50, fontSize: 11),
-                    ),
-                    value: isOneTime,
-                    activeColor: AppColors.accentGold,
-                    onChanged: (val) {
-                      setModalState(() => isOneTime = val);
-                    },
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
-                    'キャンセル',
-                    style: TextStyle(color: AppColors.grey50),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, {
-                    'title': controller.text,
-                    'isOneTime': isOneTime,
-                  }),
-                  child: const Text(
-                    '保存',
+            builder:
+                (context, setModalState) => AlertDialog(
+                  backgroundColor: AppColors.bgElevated,
+                  title: const Text(
+                    'タスクを編集',
                     style: TextStyle(color: AppColors.white),
                   ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: controller,
+                        autofocus: true,
+                        style: const TextStyle(color: AppColors.white),
+                        decoration: const InputDecoration(
+                          hintText: '例: 読書を30分する',
+                          hintStyle: TextStyle(color: AppColors.grey30),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        title: const Text(
+                          'One-Time Task',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          '完了から24時間後に自動削除されます',
+                          style: TextStyle(
+                            color: AppColors.grey50,
+                            fontSize: 11,
+                          ),
+                        ),
+                        value: isOneTime,
+                        activeColor: AppColors.accentGold,
+                        onChanged: (val) {
+                          setModalState(() => isOneTime = val);
+                        },
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text(
+                        'キャンセル',
+                        style: TextStyle(color: AppColors.grey50),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed:
+                          () => Navigator.pop(ctx, {
+                            'title': controller.text,
+                            'isOneTime': isOneTime,
+                          }),
+                      child: const Text(
+                        '保存',
+                        style: TextStyle(color: AppColors.white),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
           ),
     );
 
@@ -413,20 +440,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgBase,
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-              child: StreamBuilder<DocumentSnapshot>(
-                stream: _userStream,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData && snapshot.data!.exists) {
-                    _user = AppUser.fromFirestore(snapshot.data!);
-                  }
-                  if (_user == null) return _buildEmptyState();
-                  return _buildContent();
-                },
+      body:
+          _loading
+              ? const Center(child: CircularProgressIndicator())
+              : SafeArea(
+                child: StreamBuilder<DocumentSnapshot>(
+                  stream: _userStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data!.exists) {
+                      _user = AppUser.fromFirestore(snapshot.data!);
+                    }
+                    if (_user == null) return _buildEmptyState();
+                    return _buildContent();
+                  },
+                ),
               ),
-            ),
     );
   }
 
@@ -481,6 +509,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showQrActionDialog() {
+    if (_user == null) return;
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => SimpleDialog(
+            backgroundColor: AppColors.bgSurface,
+            title: const Text(
+              'QRコード',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            children: [
+              SimpleDialogOption(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => QrDisplayScreen(user: _user!),
+                    ),
+                  );
+                },
+                child: const Text(
+                  '表示する',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                ),
+              ),
+              SimpleDialogOption(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+                  );
+                },
+                child: const Text(
+                  '読み取る',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
   void _openSettingsModal() {
     showModalBottomSheet(
       context: context,
@@ -504,18 +577,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.edit_outlined, color: AppColors.textPrimary),
-                title: const Text('プロフィールを編集', style: TextStyle(color: AppColors.textPrimary)),
+                leading: const Icon(
+                  Icons.edit_outlined,
+                  color: AppColors.textPrimary,
+                ),
+                title: const Text(
+                  'プロフィールを編集',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
                 onTap: () async {
                   Navigator.pop(context);
                   if (_user == null) return;
                   final didUpdate = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => EditProfileScreen(
-                        user: _user!,
-                        privateData: _privateData,
-                      ),
+                      builder:
+                          (_) => EditProfileScreen(
+                            user: _user!,
+                            privateData: _privateData,
+                          ),
                     ),
                   );
                   if (didUpdate == true) {
@@ -523,9 +603,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }
                 },
               ),
+              // ─── 招待ボタン ───────────────────────────────
               ListTile(
-                leading: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
-                title: const Text('その他の設定', style: TextStyle(color: AppColors.textPrimary)),
+                leading: const Icon(
+                  Icons.card_giftcard_outlined,
+                  color: AppColors.accentGold,
+                ),
+                title: const Text(
+                  '名刺でフレンドを招待',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                subtitle: const Text(
+                  'URLを送るだけで名刺が表示されます',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final userId = _user?.userId;
+                  final username = _user?.username;
+                  if (userId == null || userId.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('ユーザーIDが設定されていません')),
+                    );
+                    return;
+                  }
+                  await InviteService.instance.shareInviteCard(
+                    userId: userId,
+                    username: username ?? 'V EFFECT User',
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.settings_outlined,
+                  color: AppColors.textPrimary,
+                ),
+                title: const Text(
+                  'その他の設定',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -558,7 +674,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient:
-                      _user!.photoUrl == null ? AppColors.primaryGradient : null,
+                      _user!.photoUrl == null
+                          ? AppColors.primaryGradient
+                          : null,
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.white.withValues(alpha: 0.1),
@@ -612,77 +730,112 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 28),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-            decoration: BoxDecoration(
-              color: AppColors.grey15.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.white.withValues(alpha: 0.08),
-                width: 0.5,
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 18,
+                    horizontal: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.grey15.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.white.withValues(alpha: 0.08),
+                      width: 0.5,
+                    ),
+                  ),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildFollowStat(
+                            'フォロー',
+                            _user!.following.length,
+                            onTap:
+                                () => Navigator.pushNamed(
+                                  context,
+                                  '/follow-list',
+                                  arguments: {
+                                    'uid': _uid,
+                                    'isFollowing': true,
+                                    'title': 'フォロー中',
+                                  },
+                                ),
+                          ),
+                        ),
+                        VerticalDivider(
+                          color: AppColors.white.withValues(alpha: 0.1),
+                          thickness: 1,
+                          width: 1,
+                        ),
+                        Expanded(
+                          child: _buildFollowStat(
+                            'フォロワー',
+                            _user!.followers.length,
+                            onTap:
+                                () => Navigator.pushNamed(
+                                  context,
+                                  '/follow-list',
+                                  arguments: {
+                                    'uid': _uid,
+                                    'isFollowing': false,
+                                    'title': 'フォロワー',
+                                  },
+                                ),
+                          ),
+                        ),
+                        VerticalDivider(
+                          color: AppColors.white.withValues(alpha: 0.1),
+                          thickness: 1,
+                          width: 1,
+                        ),
+                        Expanded(
+                          child: _buildFollowStat(
+                            'ストリーク',
+                            _user!.streak,
+                            icon: Icons.local_fire_department_rounded,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-            child: IntrinsicHeight(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildFollowStat(
-                      'フォロー',
-                      _user!.following.length,
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/follow-list',
-                        arguments: {
-                          'uid': _uid,
-                          'isFollowing': true,
-                          'title': 'フォロー中',
-                        },
-                      ),
-                    ),
+              const SizedBox(width: 10),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.grey15.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.white.withValues(alpha: 0.08),
+                    width: 0.5,
                   ),
-                  VerticalDivider(
-                    color: AppColors.white.withValues(alpha: 0.1),
-                    thickness: 1,
-                    width: 1,
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.qr_code,
+                    color: AppColors.textPrimary,
+                    size: 26,
                   ),
-                  Expanded(
-                    child: _buildFollowStat(
-                      'フォロワー',
-                      _user!.followers.length,
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/follow-list',
-                        arguments: {
-                          'uid': _uid,
-                          'isFollowing': false,
-                          'title': 'フォロワー',
-                        },
-                      ),
-                    ),
-                  ),
-                  VerticalDivider(
-                    color: AppColors.white.withValues(alpha: 0.1),
-                    thickness: 1,
-                    width: 1,
-                  ),
-                  Expanded(
-                    child: _buildFollowStat(
-                      'ストリーク',
-                      _user!.streak,
-                      icon: Icons.local_fire_department_rounded,
-                    ),
-                  ),
-                ],
+                  tooltip: 'QRコードで繋がる',
+                  onPressed: _showQrActionDialog,
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFollowStat(String label, int count,
-      {IconData? icon, VoidCallback? onTap}) {
+  Widget _buildFollowStat(
+    String label,
+    int count, {
+    IconData? icon,
+    VoidCallback? onTap,
+  }) {
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -698,7 +851,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: GoogleFonts.outfit(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: label == 'ストリーク' ? AppColors.accentGold : AppColors.white,
+                color:
+                    label == 'ストリーク' ? AppColors.accentGold : AppColors.white,
                 letterSpacing: 0.5,
               ),
             ),
@@ -859,10 +1013,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              AppColors.grey15,
-              AppColors.grey10,
-            ],
+            colors: [AppColors.grey15, AppColors.grey10],
           ),
           boxShadow: [
             BoxShadow(
@@ -882,7 +1033,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () => _editTask(index),
             borderRadius: BorderRadius.circular(16),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // コンパクトなパディング
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ), // コンパクトなパディング
               child: Row(
                 children: [
                   Container(
@@ -930,7 +1084,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.accentGold.withValues(alpha: 0.7),
+                                color: AppColors.accentGold.withValues(
+                                  alpha: 0.7,
+                                ),
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -948,12 +1104,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       return [
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.accentGold.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: AppColors.accentGold.withValues(alpha: 0.2),
+                              color: AppColors.accentGold.withValues(
+                                alpha: 0.2,
+                              ),
                               width: 0.5,
                             ),
                           ),

@@ -1,4 +1,3 @@
-import "package:v_effect/config/app_colors.dart";
 import 'package:flutter/material.dart';
 
 /// V EFFECT カラーシステム — Absolute Monochrome

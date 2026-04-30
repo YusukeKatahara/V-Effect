@@ -6,6 +6,11 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <!-- 端末再起動時にスケジュールを復元するために必要 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- QRコードスキャン用カメラ権限 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- QRコード画像のギャラリー保存用（API 28以下） -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
     <application
         android:label="V EFFECT"
         android:name="${applicationName}"
