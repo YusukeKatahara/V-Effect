@@ -27,8 +27,9 @@ class _RegisterScreenState extends State<RegisterScreen>
   final _analytics = AnalyticsService.instance;
   bool _isEmailLoading = false;
   bool _isAppleLoading = false;
+  bool _isGoogleLoading = false;
 
-  bool get _isLoadingAny => _isEmailLoading || _isAppleLoading;
+  bool get _isLoadingAny => _isEmailLoading || _isAppleLoading || _isGoogleLoading;
 
   bool _obscurePass = true;
   bool _obscureConf = true;
@@ -133,7 +134,24 @@ class _RegisterScreenState extends State<RegisterScreen>
     }
   }
 
-
+  Future<void> _signInWithGoogle() async {
+    if (_isLoadingAny) return;
+    setState(() => _isGoogleLoading = true);
+    final scaffold = ScaffoldMessenger.maybeOf(context);
+    try {
+      final cred = await _authService.signInWithGoogle();
+      if (cred != null) {
+        await _analytics.logSignUp('google');
+        await _ensureUserDocAndNavigate();
+      } else {
+        if (mounted) setState(() => _isGoogleLoading = false);
+      }
+    } catch (e) {
+      debugPrint('Google sign-in error: $e');
+      scaffold?.showSnackBar(const SnackBar(content: Text('Googleでの登録に失敗しました。')));
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -428,12 +446,80 @@ class _RegisterScreenState extends State<RegisterScreen>
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Row(
+                : const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
-                      const SizedBox(width: 10),
-                      const Text('Appleで作成', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
+                      SizedBox(width: 12),
+                      Stack(
+                        alignment: Alignment.centerLeft,
+                        children: [
+                          Opacity(
+                            opacity: 0,
+                            child: Text(
+                              'Googleで作成',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            'Appleで作成',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Google
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: OutlinedButton(
+            onPressed: _canSubmit ? _signInWithGoogle : null,
+            child: _isGoogleLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Center(
+                          child: Text(
+                            'G',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.textPrimary,
+                              height: 1.1,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Googleで作成',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
                     ],
                   ),
           ),

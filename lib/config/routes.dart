@@ -22,6 +22,8 @@ import '../screens/email_verification_screen.dart';
 import '../screens/auth_wrapper.dart';
 import '../screens/terms_screen.dart';
 import '../screens/privacy_policy_screen.dart';
+import '../screens/notification_settings_screen.dart';
+import '../screens/security_settings_screen.dart';
 
 /// アプリ全体のルート（画面の住所）定義
 class AppRoutes {
@@ -47,6 +49,8 @@ class AppRoutes {
   static const String emailVerification = '/email-verification';
   static const String terms = '/terms';
   static const String privacyPolicy = '/privacy-policy';
+  static const String notificationSettings = '/notification-settings';
+  static const String securitySettings = '/security-settings';
   static const String vPractice = '/v-practice';
 
   static Map<String, WidgetBuilder> get routes => {
@@ -71,6 +75,8 @@ class AppRoutes {
         emailVerification: (context) => const EmailVerificationScreen(),
         terms: (context) => const TermsScreen(),
         privacyPolicy: (context) => const PrivacyPolicyScreen(),
+        notificationSettings: (context) => const NotificationSettingsScreen(),
+        securitySettings: (context) => const SecuritySettingsScreen(),
         vPractice: (context) => const VPracticeScreen(),
       };
 }

@@ -5,6 +5,7 @@ import '../config/routes.dart';
 import '../services/analytics_service.dart';
 import '../widgets/splash_loading.dart';
 import '../widgets/global_error_widget.dart';
+import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'dart:async';
 
@@ -17,6 +18,7 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
+  static bool _isFirstLaunch = true;
   bool _navigating = false;
   // FutureBuilder の再ビルドで同じ future が再利用されるようキャッシュ
   Future<DocumentSnapshot>? _userDocFuture;
@@ -47,6 +49,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           _navigating = false;
           _userDocFuture = null;
           _lastUid = null;
+          _isFirstLaunch = false;
           return const LoginScreen();
         }
 
@@ -80,6 +83,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
             // ドキュメントが存在しない → プロフィール設定へ（登録画面で同意済み）
             if (!docSnapshot.hasData || !docSnapshot.data!.exists) {
+              if (_isFirstLaunch) {
+                _isFirstLaunch = false;
+                AuthService().deleteAccount().catchError((e) {
+                  debugPrint('Incomplete account delete error: $e');
+                  FirebaseAuth.instance.signOut();
+                });
+                return const _SplashWithTimeout();
+              }
               _navigateTo(AppRoutes.profileSetup);
               return const _SplashWithTimeout();
             }
@@ -89,6 +100,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
             final isProfileCompleted = data?['profileCompleted'] == true;
             final isTemplateCompleted = data?['templateCompleted'] == true;
             final isOnboardingCompleted = data?['onboardingCompleted'] == true;
+
+            // アプリ起動時にプロフィール未設定ならアカウントを削除してやり直させる
+            if (_isFirstLaunch && !isProfileCompleted) {
+              _isFirstLaunch = false;
+              AuthService().deleteAccount().catchError((e) {
+                debugPrint('Incomplete account delete error: $e');
+                FirebaseAuth.instance.signOut();
+              });
+              return const _SplashWithTimeout();
+            }
+            _isFirstLaunch = false;
 
             if (!isProfileCompleted) {
               _navigateTo(AppRoutes.profileSetup);

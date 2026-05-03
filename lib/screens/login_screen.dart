@@ -10,6 +10,7 @@ import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../widgets/animated_v_logo.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,8 +27,9 @@ class _LoginScreenState extends State<LoginScreen>
   final _analytics = AnalyticsService.instance;
   bool _isEmailLoading = false;
   bool _isAppleLoading = false;
+  bool _isGoogleLoading = false;
 
-  bool get _isLoadingAny => _isEmailLoading || _isAppleLoading;
+  bool get _isLoadingAny => _isEmailLoading || _isAppleLoading || _isGoogleLoading;
 
   bool _obscurePass = true;
 
@@ -150,10 +152,41 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } catch (e) {
       debugPrint('Apple sign-in error: $e');
-      scaffold?.showSnackBar(
-        const SnackBar(content: Text('Appleでのログインに失敗しました')),
-      );
+      
+      // ユーザーによるキャンセル（ダイアログを閉じただけ）の場合はエラー通知を出さない
+      bool isCanceled = false;
+      if (e is SignInWithAppleAuthorizationException && 
+          e.code == AuthorizationErrorCode.canceled) {
+        isCanceled = true;
+      }
+
+      if (!isCanceled) {
+        scaffold?.showSnackBar(
+          const SnackBar(content: Text('Appleでのログインに失敗しました')),
+        );
+      }
       if (mounted) setState(() => _isAppleLoading = false);
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isLoadingAny) return;
+    setState(() => _isGoogleLoading = true);
+    final scaffold = ScaffoldMessenger.maybeOf(context);
+    try {
+      final cred = await _authService.signInWithGoogle();
+      if (cred != null) {
+        await _analytics.logLogin('google');
+        await _ensureUserDocAndNavigate();
+      } else {
+        if (mounted) setState(() => _isGoogleLoading = false);
+      }
+    } catch (e) {
+      debugPrint('Google sign-in error: $e');
+      scaffold?.showSnackBar(
+        const SnackBar(content: Text('Googleでのログインに失敗しました')),
+      );
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -403,6 +436,30 @@ class _LoginScreenState extends State<LoginScreen>
           isLoading: _isAppleLoading,
           icon: const Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
           label: 'Appleでログイン',
+          baseLabel: 'Googleでログイン',
+        ),
+        const SizedBox(height: 12),
+
+        // Google
+        _SocialButton(
+          onPressed: _isLoadingAny ? null : _signInWithGoogle,
+          isLoading: _isGoogleLoading,
+          icon: const SizedBox(
+            width: 24,
+            height: 24,
+            child: Center(
+              child: Text(
+                'G',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                  height: 1.1,
+                ),
+              ),
+            ),
+          ),
+          label: 'Googleでログイン',
         ),
       ],
     );
@@ -462,12 +519,14 @@ class _SocialButton extends StatelessWidget {
     required this.onPressed,
     required this.icon,
     required this.label,
+    this.baseLabel,
     this.isLoading = false,
   });
 
   final VoidCallback? onPressed;
   final Widget icon;
   final String label;
+  final String? baseLabel;
   final bool isLoading;
 
   @override
@@ -488,10 +547,31 @@ class _SocialButton extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     icon,
-                    const SizedBox(width: 10),
-                    Text(
-                      label,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    const SizedBox(width: 12),
+                    Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        if (baseLabel != null)
+                          Opacity(
+                            opacity: 0,
+                            child: Text(
+                              baseLabel!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        Text(
+                          label,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

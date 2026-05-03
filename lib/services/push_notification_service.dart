@@ -40,6 +40,8 @@ class PushNotificationService {
 
   // V Alert 通知ID
   static const int _vAlertNotificationId = 1001;
+  static const int _protectionAlertNotificationId1 = 1002;
+  static const int _protectionAlertNotificationId2 = 1003;
 
   /// Android のフォアグラウンド通知チャンネル
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
@@ -344,6 +346,93 @@ class PushNotificationService {
     }
   }
 
+  /// ストリーク保護プロトコルの作動通知をスケジュールする
+  Future<void> scheduleProtectionAlert(String? taskTimeStr, int streakProtections, String? lastPostedDateStr) async {
+    if (kIsWeb) return;
+
+    // 既存のスケジュールをキャンセル
+    await _localNotifications.cancel(_protectionAlertNotificationId1);
+    await _localNotifications.cancel(_protectionAlertNotificationId2);
+
+    if (taskTimeStr == null || taskTimeStr.isEmpty || streakProtections <= 0 || lastPostedDateStr == null) {
+      return;
+    }
+
+    final parts = taskTimeStr.split(':');
+    if (parts.length != 2) return;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return;
+
+    final partsDate = lastPostedDateStr.split('-');
+    if (partsDate.length != 3) return;
+    final year = int.tryParse(partsDate[0]);
+    final month = int.tryParse(partsDate[1]);
+    final day = int.tryParse(partsDate[2]);
+    if (year == null || month == null || day == null) return;
+
+    final now = tz.TZDateTime.now(tz.local);
+    final baseDate = tz.TZDateTime(tz.local, year, month, day, hour, minute);
+
+    const bodyText = 'ストリーク保護プロトコル、作動中！';
+
+    // 1回目の保護発動 (2日後)
+    final targetDate1 = baseDate.add(const Duration(days: 2));
+    if (targetDate1.isAfter(now)) {
+      final title1 = streakProtections == 2 ? '🛡️ 報告' : '🛡️ 警告';
+      await _scheduleOneOffLocalNotification(
+        _protectionAlertNotificationId1,
+        title1,
+        bodyText,
+        targetDate1,
+      );
+      debugPrint('Protection Alert 1 スケジュール登録: $targetDate1');
+    }
+
+    // 2回目の保護発動 (3日後)
+    if (streakProtections >= 2) {
+      final targetDate2 = baseDate.add(const Duration(days: 3));
+      if (targetDate2.isAfter(now)) {
+        const title2 = '🛡️ 警告'; // 最後の1つ
+        await _scheduleOneOffLocalNotification(
+          _protectionAlertNotificationId2,
+          title2,
+          bodyText,
+          targetDate2,
+        );
+        debugPrint('Protection Alert 2 スケジュール登録: $targetDate2');
+      }
+    }
+  }
+
+  Future<void> _scheduleOneOffLocalNotification(int id, String title, String body, tz.TZDateTime scheduledDate) async {
+    await _localNotifications.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledDate,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _alertChannel.id,
+          _alertChannel.name,
+          channelDescription: _alertChannel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          styleInformation: const BigTextStyleInformation(''),
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentSound: true,
+          presentBadge: true,
+          sound: 'default',
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
   /// スケジュールされたリマインダーを更新する
   Future<void> updateScheduledReminders({
     String? wakeUpTime,
@@ -369,16 +458,31 @@ class PushNotificationService {
     if (user == null) return;
 
     try {
-      final snap = await FirebaseFirestore.instance
+      final privateSnap = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .collection('private')
           .doc('data')
           .get();
-      if (!snap.exists) return;
+      if (!privateSnap.exists) return;
 
-      final taskTime = snap.data()?['taskTime'] as String?;
+      final taskTime = privateSnap.data()?['taskTime'] as String?;
       await scheduleVAlert(taskTime);
+
+      final publicSnap = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (publicSnap.exists) {
+        final data = publicSnap.data()!;
+        final protections = (data['streakProtections'] as num?)?.toInt() ?? 0;
+        final lastPostedDate = data['lastPostedDate'] as String?;
+        final allowProtection = data['protectionNotifications'] ?? true;
+
+        if (allowProtection) {
+          await scheduleProtectionAlert(taskTime, protections, lastPostedDate);
+        } else {
+          // キャンセル
+          await scheduleProtectionAlert(null, 0, null);
+        }
+      }
     } catch (e) {
       debugPrint('V Alert スケジュール復元エラー: $e');
     }

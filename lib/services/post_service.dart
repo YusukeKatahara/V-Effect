@@ -11,6 +11,7 @@ import '../utils/date_helper.dart';
 import 'analytics_service.dart';
 import 'streak_service.dart';
 import 'notification_service.dart';
+import 'push_notification_service.dart';
 import '../models/app_task.dart';
 
 /// 投稿の作成・取得・リアクションを担当するサービス
@@ -99,9 +100,15 @@ class PostService {
             })
             .toList();
 
+    final effectiveStreakData = StreakService.calculateEffectiveStreak(
+      streak: (data['streak'] as num?)?.toInt() ?? 0,
+      protections: (data['streakProtections'] as num?)?.toInt() ?? 0,
+      lastPostedDate: lastPostedDate,
+    );
+
     return {
-      'streak': (data['streak'] as num?)?.toInt() ?? 0,
-      'streakProtections': (data['streakProtections'] as num?)?.toInt() ?? 0,
+      'streak': effectiveStreakData['streak'],
+      'streakProtections': effectiveStreakData['streakProtections'],
       'postedToday': postedPostsToday.isNotEmpty,
       'isAllTasksCompleted':
           tasks.isNotEmpty &&
@@ -141,13 +148,18 @@ class PostService {
     final today = DateHelper.toDateString(DateTime.now());
     return friendsSnap.docs.map((doc) {
       final data = doc.data();
+      final effective = StreakService.calculateEffectiveStreak(
+        streak: (data['streak'] as num?)?.toInt() ?? 0,
+        protections: (data['streakProtections'] as num?)?.toInt() ?? 0,
+        lastPostedDate: data['lastPostedDate']?.toString(),
+      );
       return {
         'uid': doc.id,
         'username': data['username']?.toString() ?? '',
         'userId': data['userId']?.toString() ?? '',
         'photoUrl': data['photoUrl'] is String ? data['photoUrl'] as String : data['photoUrl']?.toString(),
         'hasPostedToday': data['lastPostedDate']?.toString() == today,
-
+        'streak': effective['streak'],
       };
     }).toList();
   }
@@ -161,10 +173,13 @@ class PostService {
   }) async {
     final uid = _auth.currentUser!.uid;
 
+    // べき等性（二重投稿防止）のための固定ID生成
+    final dateStr = DateHelper.toDateString(DateTime.now());
+    final taskHash = taskName.hashCode.abs();
+    final postId = 'post_${uid}_${dateStr}_$taskHash';
+
     // Step1: Firebase Storage に画像を保存
-    final ref = _storage.ref().child(
-      'posts/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg',
-    );
+    final ref = _storage.ref().child('posts/$uid/$postId.jpg');
     // Web互換のため、putData(Uint8List) を使用
     await ref.putData(imageBytes, SettableMetadata(contentType: 'image/jpeg'));
     final imageUrl = await ref.getDownloadURL();
@@ -192,7 +207,7 @@ class PostService {
     final showTimestamp = userPrivateSnap.data()?['showTimestamp'] ?? true;
 
     final newPost = Post(
-      id: '', // Firestore will generate
+      id: postId,
       userId: uid,
       imageUrl: imageUrl,
       taskName: taskName,
@@ -205,7 +220,7 @@ class PostService {
       userReactions: const {},
     );
 
-    await _postsRef.add(newPost);
+    await _postsRef.doc(postId).set(newPost);
 
     // ワンタイムタスクの完了時間を記録
     final tasks = (userData['tasks'] as List? ?? [])
@@ -246,6 +261,9 @@ class PostService {
     _sendPostNotifications(uid).catchError((_) {
       // 通知送信失敗はクリティカルではないので静かに無視
     });
+
+    // 保護スケジュールを再計算
+    PushNotificationService().restoreVAlertSchedule().catchError((_) {});
 
     // データの変更をアプリ全体に通知
     _updateController.add(null);
@@ -405,6 +423,12 @@ class PostService {
     bool sendPush = false;
     int reactionCount = 1;
 
+    // 相手の通知設定を確認
+    final receiverSnap = await _db.collection('users').doc(postOwnerId).get();
+    final receiverData = receiverSnap.data() ?? {};
+    final allowReaction = receiverData['reactionNotifications'] ?? true;
+    final allowVFire = receiverData['vFireNotifications'] ?? true;
+
     if (emoji != null) {
       // 絵文字リアクション：重複チェックしてカウントを増やす（プッシュあり）
       final existing = await _db
@@ -427,7 +451,7 @@ class PostService {
       body = reactionCount > 1
           ? '$myUsernameさんが今日の達成に「$emoji」を$reactionCount回贈りました！'
           : '$myUsernameさんが今日の達成に「$emoji」を贈りました！';
-      sendPush = true;
+      sendPush = allowReaction;
     } else {
       // V Fireリアクション：重複チェックしてカウントを増やす（プッシュあり）
       // flameIncrement 分を既存の通知に加算する
@@ -475,7 +499,7 @@ class PostService {
       final selected = variations[random.nextInt(variations.length)];
       title = selected['title']!;
       body = selected['body']!;
-      sendPush = true;
+      sendPush = allowVFire;
     }
 
     // 2. 通知ドキュメント作成
@@ -741,5 +765,8 @@ class PostService {
 
     // 5. データの変更をアプリ全体に通知
     _updateController.add(null);
+
+    // 保護スケジュールを再計算
+    PushNotificationService().restoreVAlertSchedule().catchError((_) {});
   }
 }

@@ -21,30 +21,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = true;
   bool _focusTimeNotifications = true;
   String _appVersion = '';
-  bool _isEmailVerified = false;
-  bool _isEmailProvider = false;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
     _loadAppVersion();
-    _loadEmailVerificationStatus();
   }
 
-  Future<void> _loadEmailVerificationStatus() async {
-    try {
-      await FirebaseAuth.instance.currentUser?.reload();
-    } catch (_) {}
-    final user = FirebaseAuth.instance.currentUser;
-    if (mounted) {
-      setState(() {
-        _isEmailProvider =
-            user?.providerData.any((p) => p.providerId == 'password') == true;
-        _isEmailVerified = user?.emailVerified == true;
-      });
-    }
-  }
 
   Future<void> _loadSettings() async {
     // Load remote settings from Firestore
@@ -131,161 +115,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _confirmLogout() {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: AppColors.bgElevated,
-            title: const Text(
-              'ログアウト',
-              style: TextStyle(color: AppColors.textPrimary),
-            ),
-            content: const Text(
-              '本当にログアウトしますか？',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text(
-                  'キャンセル',
-                  style: TextStyle(color: AppColors.grey50),
-                ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  await PushNotificationService().removeFcmToken();
-                  await FirebaseAuth.instance.signOut();
-                  if (mounted) {
-                    Navigator.pushReplacementNamed(context, AppRoutes.login);
-                  }
-                },
-                child: const Text(
-                  'ログアウト',
-                  style: TextStyle(
-                    color: AppColors.error,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-    );
-  }
-
-  Future<void> _deleteAccount() async {
-    // 1回目の確認ダイアログ
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: AppColors.bgElevated,
-            title: const Text(
-              'アカウントを削除しますか？',
-              style: TextStyle(color: AppColors.textPrimary),
-            ),
-            content: const Text(
-              'アカウントを削除すると、プロフィール・投稿・フォロー関係などすべてのデータが完全に削除されます。この操作は取り消せません。',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-                height: 1.5,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text(
-                  'キャンセル',
-                  style: TextStyle(color: AppColors.grey50),
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text(
-                  '削除',
-                  style: TextStyle(
-                    color: AppColors.error,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    // 2回目の確認ダイアログ
-    final finalConfirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: AppColors.bgElevated,
-            title: const Text(
-              '本当に削除しますか？',
-              style: TextStyle(
-                color: AppColors.error,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            content: const Text(
-              'この操作は元に戻せません。アカウントを完全に削除してよろしいですか？',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-                height: 1.5,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text(
-                  'キャンセル',
-                  style: TextStyle(color: AppColors.grey50),
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text(
-                  '完全に削除する',
-                  style: TextStyle(
-                    color: AppColors.error,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-    );
-    if (finalConfirmed != true || !mounted) return;
-
-    // ローディング表示
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      await PushNotificationService().removeFcmToken();
-      await AuthService().deleteAccount();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.login);
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // ローディングを閉じる
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('アカウントの削除に失敗しました。時間をおいて再度お試しください。'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -297,38 +126,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 60),
+        padding: const EdgeInsets.only(bottom: 60, top: 8),
         children: [
-          _buildSectionHeader('通知'),
-          SwitchListTile(
+          ListTile(
             title: const Text(
-              'プッシュ通知',
+              '通知',
               style: TextStyle(color: AppColors.textPrimary),
             ),
-            subtitle: const Text(
-              'フォローや投稿に関する通知',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            trailing: const Icon(
+              Icons.chevron_right,
+              color: AppColors.textMuted,
             ),
-            value: _pushNotifications,
-            onChanged: _togglePushNotifications,
-            activeColor: AppColors.white,
-            activeTrackColor: AppColors.grey50,
+            onTap: () => Navigator.pushNamed(context, AppRoutes.notificationSettings),
           ),
-          SwitchListTile(
+          ListTile(
             title: const Text(
-              'V Alert 通知',
+              'パスワードとセキュリティ',
               style: TextStyle(color: AppColors.textPrimary),
             ),
-            subtitle: const Text(
-              '自分で決めた頑張り時のリマインダー',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            trailing: const Icon(
+              Icons.chevron_right,
+              color: AppColors.textMuted,
             ),
-            value: _focusTimeNotifications,
-            onChanged: _toggleFocusTimeNotifications,
-            activeColor: AppColors.white,
-            activeTrackColor: AppColors.grey50,
+            onTap: () => Navigator.pushNamed(context, AppRoutes.securitySettings),
           ),
-
+          
           _buildSectionHeader('サポート・法的情報'),
           ListTile(
             title: const Text(
@@ -373,48 +195,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _appVersion,
               style: const TextStyle(color: AppColors.textMuted),
             ),
-          ),
-
-          _buildSectionHeader('アカウント'),
-          if (_isEmailProvider && !_isEmailVerified)
-            ListTile(
-              title: const Text(
-                'メールアドレスを認証する',
-                style: TextStyle(color: AppColors.textPrimary),
-              ),
-              leading: const Icon(
-                Icons.mark_email_unread_outlined,
-                color: AppColors.textPrimary,
-              ),
-              trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
-              onTap: () async {
-                final verified = await Navigator.of(context).push<bool>(
-                  MaterialPageRoute(
-                    builder: (_) => const EmailVerificationScreen(),
-                  ),
-                );
-                if (verified == true) _loadEmailVerificationStatus();
-              },
-            ),
-          ListTile(
-            title: const Text(
-              'ログアウト',
-              style: TextStyle(
-                color: AppColors.error,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            onTap: _confirmLogout,
-          ),
-          ListTile(
-            title: const Text(
-              'アカウントを削除',
-              style: TextStyle(
-                color: AppColors.error,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            onTap: _deleteAccount,
           ),
         ],
       ),

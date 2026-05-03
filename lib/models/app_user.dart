@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'app_task.dart';
+import '../services/streak_service.dart';
 
 /// Firestore の users コレクションに対応するデータモデル
 class AppUser {
@@ -25,6 +26,9 @@ class AppUser {
   final int? lastProfileEditDate;
   final bool pushNotifications;
   final bool focusTimeNotifications;
+  final bool reactionNotifications;
+  final bool protectionNotifications;
+  final bool vFireNotifications;
   final bool isPrivateAccount;
 
   const AppUser({
@@ -50,6 +54,9 @@ class AppUser {
     this.lastProfileEditDate,
     this.pushNotifications = true,
     this.focusTimeNotifications = true,
+    this.reactionNotifications = true,
+    this.protectionNotifications = true,
+    this.vFireNotifications = true,
     this.isPrivateAccount = false,
   });
 
@@ -85,8 +92,16 @@ class AppUser {
       birthDate: safeString(data['birthDate']),
       gender: safeString(data['gender']),
       photoUrl: safeString(data['photoUrl']),
-      streak: (data['streak'] as num?)?.toInt() ?? 0,
-      streakProtections: (data['streakProtections'] as num?)?.toInt() ?? 0,
+      streak: StreakService.calculateEffectiveStreak(
+        streak: (data['streak'] as num?)?.toInt() ?? 0,
+        protections: (data['streakProtections'] as num?)?.toInt() ?? 0,
+        lastPostedDate: safeString(data['lastPostedDate']),
+      )['streak']!,
+      streakProtections: StreakService.calculateEffectiveStreak(
+        streak: (data['streak'] as num?)?.toInt() ?? 0,
+        protections: (data['streakProtections'] as num?)?.toInt() ?? 0,
+        lastPostedDate: safeString(data['lastPostedDate']),
+      )['streakProtections']!,
       lastPostedDate: safeString(data['lastPostedDate']),
       following: extractUids('following', 'friends'),
       followers: extractUids('followers', 'friends'),
@@ -104,6 +119,9 @@ class AppUser {
 
       pushNotifications: data['pushNotifications'] ?? true,
       focusTimeNotifications: data['focusTimeNotifications'] ?? true,
+      reactionNotifications: data['reactionNotifications'] ?? true,
+      protectionNotifications: data['protectionNotifications'] ?? true,
+      vFireNotifications: data['vFireNotifications'] ?? true,
       isPrivateAccount: data['isPrivateAccount'] ?? false,
     );
   }
@@ -131,6 +149,10 @@ class AppUser {
       'onboardingCompleted': onboardingCompleted,
       'lastProfileEditDate': lastProfileEditDate,
       'pushNotifications': pushNotifications,
+      'focusTimeNotifications': focusTimeNotifications,
+      'reactionNotifications': reactionNotifications,
+      'protectionNotifications': protectionNotifications,
+      'vFireNotifications': vFireNotifications,
       'isPrivateAccount': isPrivateAccount,
     };
   }

@@ -14,7 +14,14 @@ class StreakService {
   Future<int> getStreak() async {
     final uid = _auth.currentUser!.uid;
     final snap = await _db.collection('users').doc(uid).get();
-    return (snap.data()?['streak'] as num?)?.toInt() ?? 0;
+    final data = snap.data();
+    if (data == null) return 0;
+
+    return calculateEffectiveStreak(
+      streak: (data['streak'] as num?)?.toInt() ?? 0,
+      protections: (data['streakProtections'] as num?)?.toInt() ?? 0,
+      lastPostedDate: data['lastPostedDate'] as String?,
+    )['streak']!;
   }
 
   /// 自分が今日投稿済みかどうかをチェックします
@@ -95,5 +102,33 @@ class StreakService {
     await userRef.update(updates);
 
     return {'newStreak': newStreak, 'isRecordUpdating': isRecordUpdating};
+  }
+
+  /// 最後に投稿した日付に基づいて、現在有効なストリーク数と保護シールド数を計算します。
+  /// （UI表示用。Firestoreの更新は行いません）
+  static Map<String, int> calculateEffectiveStreak({
+    required int streak,
+    required int protections,
+    required String? lastPostedDate,
+  }) {
+    if (lastPostedDate == null || streak <= 0) {
+      return {'streak': 0, 'streakProtections': 0};
+    }
+
+    final now = DateTime.now();
+    final todayStr = DateHelper.toDateString(now);
+    final yesterdayStr = DateHelper.toDateString(now.subtract(const Duration(days: 1)));
+    final dayBeforeYesterdayStr = DateHelper.toDateString(now.subtract(const Duration(days: 2)));
+
+    if (lastPostedDate == todayStr || lastPostedDate == yesterdayStr) {
+      // 今日または昨日投稿済みなら有効
+      return {'streak': streak, 'streakProtections': protections};
+    } else if (lastPostedDate == dayBeforeYesterdayStr && protections > 0) {
+      // 一昨日投稿済みでシールドがあるなら、昨日分として1つ消費された状態
+      return {'streak': streak, 'streakProtections': protections - 1};
+    } else {
+      // 2日以上未投稿、またはシールドなしで1日未投稿ならリセット
+      return {'streak': 0, 'streakProtections': 0};
+    }
   }
 }

@@ -221,6 +221,9 @@ class UserService {
   Future<void> updateSettings({
     bool? pushNotifications,
     bool? focusTimeNotifications,
+    bool? reactionNotifications,
+    bool? protectionNotifications,
+    bool? vFireNotifications,
     bool? isPrivateAccount,
   }) async {
     final uid = _auth.currentUser?.uid;
@@ -229,18 +232,17 @@ class UserService {
     final data = <String, dynamic>{};
     if (pushNotifications != null) data['pushNotifications'] = pushNotifications;
     if (focusTimeNotifications != null) data['focusTimeNotifications'] = focusTimeNotifications;
+    if (reactionNotifications != null) data['reactionNotifications'] = reactionNotifications;
+    if (protectionNotifications != null) data['protectionNotifications'] = protectionNotifications;
+    if (vFireNotifications != null) data['vFireNotifications'] = vFireNotifications;
     if (isPrivateAccount != null) data['isPrivateAccount'] = isPrivateAccount;
 
     if (data.isNotEmpty) {
       await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
       
-      // Focus Time 通知設定が変更された場合はスケジュールを更新
-      if (focusTimeNotifications != null) {
-        if (focusTimeNotifications) {
-          await PushNotificationService().restoreVAlertSchedule();
-        } else {
-          await PushNotificationService().scheduleVAlert(null);
-        }
+      // 通知スケジュールを更新
+      if (focusTimeNotifications != null || protectionNotifications != null) {
+        await PushNotificationService().restoreVAlertSchedule();
       }
     }
   }
