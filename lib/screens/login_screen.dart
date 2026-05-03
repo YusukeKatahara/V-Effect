@@ -55,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  /// ユーザードキュメントを確認・作成し、状態に応じた画面に直接遷移する
+  /// ユーザードキュメントを確認・作成し、auth_wrapper 経由でルーティングする
   Future<void> _ensureUserDocAndNavigate() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -72,22 +72,8 @@ class _LoginScreenState extends State<LoginScreen>
     PushNotificationService().restoreVAlertSchedule().catchError((e) => debugPrint('V Alert restore error: $e'));
 
     if (!mounted) return;
-
-    // ドキュメントの状態に応じて遷移先を決定
-    final data = doc.exists ? doc.data() : null;
-    final isProfileCompleted = data?['profileCompleted'] == true;
-    final isOnboardingCompleted = data?['onboardingCompleted'] == true;
-
-    String route;
-    if (!isProfileCompleted) {
-      route = AppRoutes.profileSetup;
-    } else if (!isOnboardingCompleted) {
-      route = AppRoutes.taskSetup;
-    } else {
-      route = AppRoutes.home;
-    }
-
-    Navigator.of(context).pushNamedAndRemoveUntil(route, (r) => false);
+    // ルーティングは auth_wrapper に一元化する
+    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.wrapper, (r) => false);
   }
 
   Future<void> _login() async {

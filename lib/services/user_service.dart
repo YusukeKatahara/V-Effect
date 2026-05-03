@@ -239,12 +239,82 @@ class UserService {
 
     if (data.isNotEmpty) {
       await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
-      
       // 通知スケジュールを更新
+      // ローカル通知の失敗は設定保存成功とは独立して扱う
       if (focusTimeNotifications != null || protectionNotifications != null) {
-        await PushNotificationService().restoreVAlertSchedule();
+        try {
+          if (focusTimeNotifications == false) {
+            await PushNotificationService().scheduleVAlert(null);
+          } else {
+            await PushNotificationService().restoreVAlertSchedule();
+          }
+        } catch (e) {
+          debugPrint('V Alert スケジュール更新エラー: $e');
+        }
       }
     }
+  }
+
+  /// オンボーディングの進捗ステップを記録します（中断再開用）
+  Future<void> saveOnboardingStep(String step) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    await _db.collection('users').doc(uid).set(
+      {'onboardingStep': step},
+      SetOptions(merge: true),
+    );
+  }
+
+  /// 新オンボーディング用プロフィール保存
+  /// profileCompleted=true, onboardingStep='first_v_quest' を同一バッチで書き込む
+  Future<void> saveOnboardingProfile({
+    required String username,
+    required String userId,
+    String? photoUrl,
+  }) async {
+    final uid = _auth.currentUser!.uid;
+    final email = _auth.currentUser!.email;
+    final batch = _db.batch();
+
+    batch.set(
+      _db.collection('users').doc(uid),
+      {
+        'username': username,
+        'usernameLower': username.toLowerCase(),
+        'userId': userId,
+        'streak': 0,
+        'lastPostedDate': null,
+        'following': [],
+        'followers': [],
+        'tasks': [],
+        if (photoUrl != null) 'photoUrl': photoUrl,
+        'profileCompleted': true,
+        'onboardingStep': 'first_v_quest',
+      },
+      SetOptions(merge: true),
+    );
+
+    batch.set(
+      _db.collection('users').doc(uid).collection('private').doc('data'),
+      {'email': email},
+      SetOptions(merge: true),
+    );
+
+    await batch.commit();
+  }
+
+  /// 最初のV Questを保存しオンボーディングを完了させます
+  Future<void> saveFirstVQuest({String? questTitle}) async {
+    final uid = _auth.currentUser!.uid;
+    final data = <String, dynamic>{
+      'onboardingCompleted': true,
+      'templateCompleted': true, // 後方互換
+      'onboardingStep': 'completed',
+    };
+    if (questTitle != null && questTitle.isNotEmpty) {
+      data['tasks'] = [AppTask(title: questTitle).toFirestore()];
+    }
+    await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
   }
 
   /// 完了日が昨日以前のワンタイムタスクを自動削除する共通処理

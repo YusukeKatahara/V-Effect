@@ -43,7 +43,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
   Timer? _autoTimer;
   final GlobalKey _summaryKey = GlobalKey();
   bool _isSharing = false;
-  bool _isAnimating = false;
 
   // ひっぱり（Pull-to-dismiss）用の状態
   double _dragOffset = 0;
@@ -288,9 +287,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
                               controller: _pageController,
                               itemCount: totalPages,
                               onPageChanged: (index) {
-                                setState(() {
-                                  _isAnimating = false; // Reset just in case
-                                });
                                 if (index >= _posts.length) {
                                   _autoTimer?.cancel();
                                   HapticFeedback.mediumImpact();

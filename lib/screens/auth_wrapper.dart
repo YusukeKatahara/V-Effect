@@ -81,7 +81,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
               return GlobalErrorWidget(error: 'Firestore読み込みエラー: ${docSnapshot.error}');
             }
 
-            // ドキュメントが存在しない → プロフィール設定へ（登録画面で同意済み）
+            // ドキュメントが存在しない → オンボーディング開始
             if (!docSnapshot.hasData || !docSnapshot.data!.exists) {
               if (_isFirstLaunch) {
                 _isFirstLaunch = false;
@@ -91,18 +91,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 });
                 return const _SplashWithTimeout();
               }
-              _navigateTo(AppRoutes.profileSetup);
+              _navigateTo(AppRoutes.onboardingVEffect);
               return const _SplashWithTimeout();
             }
 
             final data = docSnapshot.data!.data() as Map<String, dynamic>?;
 
-            final isProfileCompleted = data?['profileCompleted'] == true;
-            final isTemplateCompleted = data?['templateCompleted'] == true;
             final isOnboardingCompleted = data?['onboardingCompleted'] == true;
 
-            // アプリ起動時にプロフィール未設定ならアカウントを削除してやり直させる
-            if (_isFirstLaunch && !isProfileCompleted) {
+            // アプリ起動時にオンボーディング未完了ならアカウントを削除してやり直させる
+            if (_isFirstLaunch && !isOnboardingCompleted) {
               _isFirstLaunch = false;
               AuthService().deleteAccount().catchError((e) {
                 debugPrint('Incomplete account delete error: $e');
@@ -112,14 +110,22 @@ class _AuthWrapperState extends State<AuthWrapper> {
             }
             _isFirstLaunch = false;
 
-            if (!isProfileCompleted) {
-              _navigateTo(AppRoutes.profileSetup);
-            } else if (!isTemplateCompleted) {
-              _navigateTo(AppRoutes.taskTemplate);
-            } else if (!isOnboardingCompleted) {
-              _navigateTo(AppRoutes.taskSetup);
-            } else {
+            if (isOnboardingCompleted) {
               _navigateTo(AppRoutes.home);
+            } else {
+              // onboardingStep を唯一の進捗ソースとして使う
+              // profileCompleted は Screen 3 内で保存されるが、ナビゲーション判定には使わない
+              final step = data?['onboardingStep'] as String?;
+              if (step == 'core_feature') {
+                _navigateTo(AppRoutes.onboardingCoreFeature);
+              } else if (step == 'profile_settings') {
+                _navigateTo(AppRoutes.onboardingProfile);
+              } else if (step == 'first_v_quest') {
+                _navigateTo(AppRoutes.onboardingFirstQuest);
+              } else {
+                // null（新規ユーザー）/ 'v_effect' / 不明な値 → Screen 1 から開始
+                _navigateTo(AppRoutes.onboardingVEffect);
+              }
             }
 
             return const _SplashWithTimeout();
