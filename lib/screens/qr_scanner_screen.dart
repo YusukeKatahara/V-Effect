@@ -71,7 +71,16 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   Future<void> _pickFromGallery() async {
     final image = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (image == null) return;
-    await _controller.analyzeImage(image.path);
+    final capture = await _controller.analyzeImage(image.path);
+    if (capture != null) {
+      await _onDetect(capture);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('画像からQRコードが見つかりませんでした')),
+        );
+      }
+    }
   }
 
   @override

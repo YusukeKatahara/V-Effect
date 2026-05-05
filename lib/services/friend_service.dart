@@ -67,6 +67,53 @@ class FriendService {
     return results;
   }
 
+  /// ユーザーを統合検索します（IDまたは名前、部分一致、大文字小文字無視）
+  Future<List<AppUser>> searchUsers(String queryText) async {
+    // @があれば取り除く
+    String cleanQuery = queryText.trim();
+    if (cleanQuery.startsWith('@')) {
+      cleanQuery = cleanQuery.substring(1);
+    }
+    if (cleanQuery.isEmpty) return [];
+
+    final queryLower = cleanQuery.toLowerCase();
+    final results = <AppUser>[];
+
+    // 1. userId (完全一致) - 互換性のため
+    final idExact = await _db
+        .collection('users')
+        .where('userId', isEqualTo: cleanQuery)
+        .limit(1)
+        .get();
+    if (idExact.docs.isNotEmpty) {
+      results.add(AppUser.fromFirestore(idExact.docs.first));
+    }
+
+    // 2. userIdLower (部分一致) - 新設フィールド用
+    final idLowerResults = await _db
+        .collection('users')
+        .where('userIdLower', isGreaterThanOrEqualTo: queryLower)
+        .where('userIdLower', isLessThanOrEqualTo: '$queryLower\uf8ff')
+        .limit(20)
+        .get();
+    for (final doc in idLowerResults.docs) {
+      final user = AppUser.fromFirestore(doc);
+      if (!results.any((u) => u.uid == user.uid)) {
+        results.add(user);
+      }
+    }
+
+    // 3. username (部分一致)
+    final nameResults = await searchByUsername(cleanQuery);
+    for (final user in nameResults) {
+      if (!results.any((u) => u.uid == user.uid)) {
+        results.add(user);
+      }
+    }
+
+    return results;
+  }
+
   /// フォロー申請を送ります
   ///
   /// 相手から既に申請が来ていた場合は自動的に承認します。

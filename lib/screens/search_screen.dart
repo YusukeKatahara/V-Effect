@@ -41,20 +41,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     });
 
     try {
-      // 1. IDで検索 (完全一致)
-      final idResult = await _friendService.searchByUserId(_query);
-      if (idResult != null) {
-        _results.add(idResult);
-      }
-
-      // 2. 名前で検索 (部分一致)
-      final nameResults = await _friendService.searchByUsername(_query);
-      for (final user in nameResults) {
-        // 重複を除外
-        if (!_results.any((u) => u.uid == user.uid)) {
-          _results.add(user);
-        }
-      }
+      final results = await _friendService.searchUsers(_query);
+      _results.addAll(results);
     } catch (e) {
       debugPrint('Search error: $e');
       if (mounted) {

@@ -661,6 +661,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
+              const SizedBox(width: 10),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.grey15.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.white.withValues(alpha: 0.08),
+                    width: 0.5,
+                  ),
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.qr_code,
+                    color: AppColors.textPrimary,
+                    size: 26,
+                  ),
+                  tooltip: 'QRコードで繋がる',
+                  onPressed: _showQrActionDialog,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.grey15.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.white.withValues(alpha: 0.08),
+                    width: 0.5,
+                  ),
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.card_giftcard,
+                    color: AppColors.accentGold,
+                    size: 26,
+                  ),
+                  tooltip: '名刺でフレンドを招待',
+                  onPressed: _shareInviteCard,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 28),
@@ -735,46 +775,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.grey15.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.white.withValues(alpha: 0.08),
-                    width: 0.5,
-                  ),
-                ),
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.qr_code,
-                    color: AppColors.textPrimary,
-                    size: 26,
-                  ),
-                  tooltip: 'QRコードで繋がる',
-                  onPressed: _showQrActionDialog,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.grey15.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.white.withValues(alpha: 0.08),
-                    width: 0.5,
-                  ),
-                ),
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.card_giftcard,
-                    color: AppColors.accentGold,
-                    size: 26,
-                  ),
-                  tooltip: '名刺でフレンドを招待',
-                  onPressed: _shareInviteCard,
                 ),
               ),
             ],

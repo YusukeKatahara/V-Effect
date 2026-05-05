@@ -1159,7 +1159,7 @@ class _TaskCard extends StatelessWidget {
           if (item.completedPost != null &&
               (item.completedPost!.reactionCount > 0))
             Positioned(
-              bottom: 62,  // Y=84pxの中心に合わせる (44px / 2 = 22)
+              bottom: 54,  // Y=84pxの中心に合わせる (44px / 2 = 22, 84-22-8=54)
               right: 88,  // VFIRE(56+20) + 余白(12) = 88
               child: IgnorePointer(
                 child: ReactionAvatarsStack(

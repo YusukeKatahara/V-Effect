@@ -45,6 +45,7 @@ class UserService {
         'username': username,
         'usernameLower': username.toLowerCase(),
         'userId': userId,
+        'userIdLower': userId.toLowerCase(),
         'streak': 0,
         'lastPostedDate': null,
         'following': [],
@@ -175,7 +176,10 @@ class UserService {
       publicData['username'] = username;
       publicData['usernameLower'] = username.toLowerCase();
     }
-    if (userId != null) publicData['userId'] = userId;
+    if (userId != null) {
+      publicData['userId'] = userId;
+      publicData['userIdLower'] = userId.toLowerCase();
+    }
     if (photoUrl != null) publicData['photoUrl'] = photoUrl;
     if (tasks != null) {
       publicData['tasks'] = tasks.map((t) => t.toFirestore()).toList();
@@ -282,6 +286,7 @@ class UserService {
         'username': username,
         'usernameLower': username.toLowerCase(),
         'userId': userId,
+        'userIdLower': userId.toLowerCase(),
         'streak': 0,
         'lastPostedDate': null,
         'following': [],

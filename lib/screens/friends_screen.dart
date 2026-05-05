@@ -52,10 +52,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
     });
 
     try {
-      final user = await _friendService.searchByUserId(query);
+      final results = await _friendService.searchUsers(query);
       setState(() {
-        _searchResult = user;
-        _searchError = user == null ? 'ユーザーが見つかりません' : null;
+        _searchResult = results.isNotEmpty ? results.first : null;
+        _searchError = results.isEmpty ? 'ユーザーが見つかりません' : null;
       });
     } catch (e) {
       setState(() => _searchError = '検索に失敗しました');
