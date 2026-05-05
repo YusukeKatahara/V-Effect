@@ -7,6 +7,10 @@ import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'hero_tasks_screen.dart';
 
+// NavBarがコンテンツに被らないようSafeAreaのbottomに追加するオフセット
+// 60(bar) + 12(margin) + 8(buffer) = 80
+const double _kNavBarExtraBottom = 30;
+
 /// Spatial Shell — ジェスチャー主導のUI空間
 ///
 /// ボトムナビゲーションを排除。
@@ -52,17 +56,25 @@ class _MainShellState extends State<MainShell> {
       backgroundColor: AppColors.black,
       body: Stack(
         children: [
-          // ── Screens ──
-          IndexedStack(index: _currentIndex, children: _screens),
+          // ── Screens ── MediaQueryをオーバーライドしてNavBarの高さ分だけ
+          // 子画面のSafeArea.bottomを増やし、コンテンツが重ならないようにする
+          Builder(
+            builder: (context) {
+              final mq = MediaQuery.of(context);
+              return MediaQuery(
+                data: mq.copyWith(
+                  padding: mq.padding.copyWith(
+                    bottom: mq.padding.bottom + _kNavBarExtraBottom,
+                  ),
+                ),
+                child: IndexedStack(index: _currentIndex, children: _screens),
+              );
+            },
+          ),
 
           // ── Bottom spatial nav ──
           if (!_isHomeLoading || _currentIndex != 0)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildSpatialNav(),
-            ),
+            Positioned(left: 0, right: 0, bottom: 0, child: _buildSpatialNav()),
         ],
       ),
     );

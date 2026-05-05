@@ -63,6 +63,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   // ── リアクションアニメーション制御用 ──
   final GlobalKey<_FloatingFlamesLayerState> _flamesKey = GlobalKey();
+  double _flameBottomOffset = 120.0; // NavBar高さを考慮した炎アニメーション起点
 
   // ── V-Flash 演出用 ──
   late final AnimationController _flashController;
@@ -343,14 +344,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (isVFlash) {
       HapticFeedback.heavyImpact();
       _flashController.forward(from: 0);
-      _flamesKey.currentState?.addFlame(isGold: true);
+      _flamesKey.currentState?.addFlame(isGold: true, bottomOffset: _flameBottomOffset);
     } else {
       if (emoji != null) {
         HapticFeedback.heavyImpact();
         _explosionKey.currentState?.explode(emoji);
       } else {
         HapticFeedback.mediumImpact();
-        _flamesKey.currentState?.addFlame(isGold: false);
+        _flamesKey.currentState?.addFlame(isGold: false, bottomOffset: _flameBottomOffset);
       }
     }
 
@@ -545,6 +546,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     });
 
+    _flameBottomOffset = MediaQuery.paddingOf(context).bottom + 120.0;
 
     return Scaffold(
       backgroundColor: AppColors.black,
@@ -1581,14 +1583,14 @@ class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
   int _counter = 0;
   final Map<int, Widget> _flames = {};
 
-  void addFlame({bool isGold = false}) {
+  void addFlame({bool isGold = false, double bottomOffset = 120.0}) {
     final id = _counter++;
     final randomX = (Random().nextDouble() - 0.5) * 60;
 
     setState(() {
       _flames[id] = Positioned(
         key: ValueKey(id),
-        bottom: 120,
+        bottom: bottomOffset,
         right: 40 + randomX,
         child: _FloatingFlameWidget(
           key: ValueKey('flame_$id'),
