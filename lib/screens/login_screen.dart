@@ -9,6 +9,7 @@ import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../widgets/animated_v_logo.dart';
+import '../widgets/responsive_container.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
@@ -189,20 +190,22 @@ class _LoginScreenState extends State<LoginScreen>
           SafeArea(
             child: FadeTransition(
               opacity: _fadeAnim,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 60),
-                    _buildLogo(),
-                    const SizedBox(height: 48),
-                    _buildForm(),
-                    const SizedBox(height: 32),
-                    _buildSocialSection(),
-                    const SizedBox(height: 32),
-                    _buildFooter(),
-                    const SizedBox(height: 32),
-                  ],
+              child: ResponsiveContainer(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 60),
+                      _buildLogo(),
+                      const SizedBox(height: 48),
+                      _buildForm(),
+                      const SizedBox(height: 32),
+                      _buildSocialSection(),
+                      const SizedBox(height: 32),
+                      _buildFooter(),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
             ),

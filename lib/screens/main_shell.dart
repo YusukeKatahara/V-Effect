@@ -52,24 +52,23 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final bool isTablet = mq.size.width > 600;
+    final double extraBottom = isTablet ? 80 : 30;
+
     return Scaffold(
       backgroundColor: AppColors.black,
       body: Stack(
         children: [
           // ── Screens ── MediaQueryをオーバーライドしてNavBarの高さ分だけ
           // 子画面のSafeArea.bottomを増やし、コンテンツが重ならないようにする
-          Builder(
-            builder: (context) {
-              final mq = MediaQuery.of(context);
-              return MediaQuery(
-                data: mq.copyWith(
-                  padding: mq.padding.copyWith(
-                    bottom: mq.padding.bottom + _kNavBarExtraBottom,
-                  ),
-                ),
-                child: IndexedStack(index: _currentIndex, children: _screens),
-              );
-            },
+          MediaQuery(
+            data: mq.copyWith(
+              padding: mq.padding.copyWith(
+                bottom: mq.padding.bottom + extraBottom,
+              ),
+            ),
+            child: IndexedStack(index: _currentIndex, children: _screens),
           ),
 
           // ── Bottom spatial nav ──

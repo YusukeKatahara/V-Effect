@@ -9,6 +9,7 @@ import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../widgets/animated_v_logo.dart';
+import '../widgets/responsive_container.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -193,20 +194,22 @@ class _RegisterScreenState extends State<RegisterScreen>
                   ),
 
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 28),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 24),
-                            _buildLogo(),
-                            const SizedBox(height: 36),
-                            _buildForm(),
-                            const SizedBox(height: 28),
-                            _buildSocialSection(),
-                            const SizedBox(height: 32),
-                          ],
+                    child: ResponsiveContainer(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 28),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 24),
+                              _buildLogo(),
+                              const SizedBox(height: 36),
+                              _buildForm(),
+                              const SizedBox(height: 28),
+                              _buildSocialSection(),
+                              const SizedBox(height: 32),
+                            ],
+                          ),
                         ),
                       ),
                     ),

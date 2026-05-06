@@ -17,6 +17,7 @@ import '../services/push_notification_service.dart';
 import '../services/invite_service.dart';
 import 'qr_display_screen.dart';
 import 'qr_scanner_screen.dart';
+import '../widgets/responsive_container.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -472,27 +473,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         _buildTitleBar(),
         Expanded(
-          child: RefreshIndicator(
-            onRefresh: _loadProfile,
-            color: AppColors.primary,
-            backgroundColor: AppColors.bgSurface,
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(child: _buildProfileHeader()),
-
-                // ---── スケジュール設定 ─────────────────────────────
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  sliver: SliverToBoxAdapter(child: _buildScheduleSection()),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 32)),
-
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  sliver: SliverToBoxAdapter(child: _buildTaskSection()),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 120)),
-              ],
+          child: ResponsiveContainer(
+            maxWidth: 600, // Profile can be slightly wider
+            child: RefreshIndicator(
+              onRefresh: _loadProfile,
+              color: AppColors.primary,
+              backgroundColor: AppColors.bgSurface,
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(child: _buildProfileHeader()),
+  
+                  // ---── スケジュール設定 ─────────────────────────────
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverToBoxAdapter(child: _buildScheduleSection()),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+  
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverToBoxAdapter(child: _buildTaskSection()),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                ],
+              ),
             ),
           ),
         ),

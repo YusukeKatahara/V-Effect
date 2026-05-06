@@ -20,8 +20,13 @@ class VEffectHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isTablet = MediaQuery.of(context).size.width > 600;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 32 : 16,
+        vertical: isTablet ? 16 : 8,
+      ),
       child: Row(
         children: [
           // Left
@@ -40,10 +45,10 @@ class VEffectHeader extends StatelessWidget {
               child: Text(
                 'V EFFECT',
                 style: GoogleFonts.outfit(
-                  fontSize: 18,
+                  fontSize: isTablet ? 24 : 18,
                   fontWeight: FontWeight.w800,
                   color: AppColors.white,
-                  letterSpacing: 4.0,
+                  letterSpacing: isTablet ? 6.0 : 4.0,
                 ),
               ),
             ),
