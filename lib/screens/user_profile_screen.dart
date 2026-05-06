@@ -703,6 +703,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           backgroundColor: bgColor,
           foregroundColor: fgColor,
           elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: border,
@@ -714,7 +715,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+            : Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  height: 1.1,
+                ),
+              ),
       ),
     );
   }
