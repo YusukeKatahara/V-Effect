@@ -474,7 +474,7 @@ class _LoginScreenState extends State<LoginScreen>
           ],
         ),
         TextButton(
-          onPressed: () => _launchURL('https://forms.gle/Zj29yQmSSKCZ4Kar8'),
+          onPressed: () => _launchURL('https://veffect.web.app/support/'),
           child: const Text(
             'ログインできない等のご相談・お問い合わせ',
             style: TextStyle(
@@ -482,6 +482,50 @@ class _LoginScreenState extends State<LoginScreen>
               fontSize: 12,
               decoration: TextDecoration.underline,
             ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                'ログインすることで、',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, AppRoutes.terms),
+                child: const Text(
+                  '利用規約',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+              Text(
+                'および',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, AppRoutes.privacyPolicy),
+                child: const Text(
+                  'プライバシーポリシー',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+              Text(
+                'に同意したものとみなされます。',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+              ),
+            ],
           ),
         ),
       ],

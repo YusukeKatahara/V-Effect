@@ -9,6 +9,8 @@ import '../services/block_service.dart';
 import '../services/friend_service.dart';
 import '../services/post_service.dart';
 import '../widgets/swipe_back_gate.dart';
+import '../widgets/full_screen_image_viewer.dart';
+
 
 /// 他ユーザーのプロフィール閲覧画面
 ///
@@ -552,11 +554,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             gradient: photoUrl == null ? AppColors.primaryGradient : null,
           ),
           child: photoUrl != null
-              ? CircleAvatar(
-                  radius: 40,
-                  backgroundImage: ResizeImage(
-                    CachedNetworkImageProvider(photoUrl),
-                    width: 240,
+              ? GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        opaque: false,
+                        barrierColor: Colors.black.withValues(alpha: 0.9),
+                        pageBuilder: (context, _, __) => FullScreenImageViewer(
+                          imageUrl: photoUrl,
+                          heroTag: 'profile_image_${_targetUid}',
+                        ),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(opacity: animation, child: child);
+                        },
+                      ),
+                    );
+                  },
+                  child: Hero(
+                    tag: 'profile_image_${_targetUid}',
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundImage: ResizeImage(
+                        CachedNetworkImageProvider(photoUrl),
+                        width: 240,
+                      ),
+                    ),
                   ),
                 )
               : const CircleAvatar(
@@ -568,6 +591,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     color: AppColors.black,
                   ),
                 ),
+
         ),
         const SizedBox(width: 20),
         Expanded(

@@ -1,5 +1,6 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const { onCall, HttpsError, onRequest } = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -291,3 +292,61 @@ exports.loginWithUserId = onCall(async (request) => {
     throw new HttpsError("internal", "認証トークンの生成に失敗しました。");
   }
 });
+
+/**
+ * 毎日 21:00 に、今日まだ投稿していないストリーク保持者に警告通知を送る
+ */
+exports.sendStreakWarning = onSchedule(
+  {
+    schedule: "0 21 * * *",
+    timeZone: "Asia/Tokyo",
+    memory: "256MiB",
+  },
+  async (event) => {
+    const db = getFirestore();
+    const now = new Date();
+    // 日本時間での今日の日付文字列を取得 (YYYY-MM-DD)
+    const today = now.toLocaleDateString("ja-JP", {
+      timeZone: "Asia/Tokyo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).replace(/\//g, "-");
+
+    const usersSnap = await db.collection("users").where("streak", ">", 0).get();
+    
+    const promises = [];
+    usersSnap.forEach((doc) => {
+      const userData = doc.data();
+      
+      // 通知設定の確認
+      const pushEnabled = userData.pushNotifications !== false;
+      const warningEnabled = userData.streakWarningNotifications !== false;
+      if (!pushEnabled || !warningEnabled) return;
+
+      if (userData.lastPostedDate !== today) {
+        const streak = userData.streak || 0;
+        
+        const title = "⚠️ ストリークの危機！";
+        const body = `今日のV Questがまだ完了していません。このままでは${streak}日間の継続が途切れてしまいます！`;
+
+        promises.push(
+          db.collection("notifications").add({
+            toUid: doc.id,
+            type: "streakWarning",
+            title: title,
+            body: body,
+            isRead: false,
+            sendPush: true,
+            createdAt: FieldValue.serverTimestamp(),
+          })
+        );
+      }
+    });
+
+    if (promises.length > 0) {
+      await Promise.all(promises);
+    }
+    console.log(`Scheduled streak warning: Sent ${promises.length} notifications.`);
+  }
+);

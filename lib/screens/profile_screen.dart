@@ -18,6 +18,8 @@ import '../services/invite_service.dart';
 import 'qr_display_screen.dart';
 import 'qr_scanner_screen.dart';
 import '../widgets/responsive_container.dart';
+import '../widgets/full_screen_image_viewer.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -624,13 +626,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child:
                     _user!.photoUrl != null
-                        ? CircleAvatar(
-                          radius: 40,
-                          backgroundImage: ResizeImage(
-                            CachedNetworkImageProvider(_user!.photoUrl!),
-                            width: 240,
-                          ),
-                        )
+                        ? GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                PageRouteBuilder(
+                                  opaque: false,
+                                  barrierColor: Colors.black.withValues(alpha: 0.9),
+                                  pageBuilder: (context, _, __) => FullScreenImageViewer(
+                                    imageUrl: _user!.photoUrl!,
+                                    heroTag: 'profile_image_${_user!.uid}',
+                                  ),
+                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                    return FadeTransition(opacity: animation, child: child);
+                                  },
+                                ),
+                              );
+                            },
+                            child: Hero(
+                              tag: 'profile_image_${_user!.uid}',
+                              child: CircleAvatar(
+                                radius: 40,
+                                backgroundImage: ResizeImage(
+                                  CachedNetworkImageProvider(_user!.photoUrl!),
+                                  width: 240,
+                                ),
+                              ),
+                            ),
+                          )
                         : const CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.transparent,
@@ -640,6 +663,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: AppColors.black,
                           ),
                         ),
+
               ),
               const SizedBox(width: 20),
               Expanded(

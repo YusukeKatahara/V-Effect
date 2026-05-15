@@ -21,6 +21,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final List<AppUser> _results = [];
   String _query = '';
   String? _errorMessage;
+  final Set<String> _pendingUids = {}; // 申請中状態を管理
 
   String get _currentUid => FirebaseAuth.instance.currentUser?.uid ?? '';
 
@@ -65,10 +66,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           );
         }
       } else {
-        await _friendService.followUser(targetUser.uid);
+        // フォローリクエストを送る (直接フォローを廃止)
+        await _friendService.sendRequest(targetUser.uid);
         if (mounted) {
+          setState(() {
+            _pendingUids.add(targetUser.uid);
+          });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${targetUser.username}さんをフォローしました')),
+            SnackBar(content: Text('${targetUser.username}さんにフォローリクエストを送りました')),
           );
         }
       }
@@ -200,11 +205,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                         elevation: isFollowing ? 0 : 2,
                                         minimumSize: Size.zero,
                                       ),
-                                      onPressed: followingAsync.isLoading
+                                      onPressed: followingAsync.isLoading || _pendingUids.contains(user.uid)
                                           ? null
                                           : () => _toggleFollow(user, isFollowing),
                                       child: Text(
-                                        isFollowing ? 'フォロー中' : 'フォロー',
+                                        isFollowing 
+                                          ? 'フォロー中' 
+                                          : (_pendingUids.contains(user.uid) ? '申請中' : 'フォロー'),
                                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                                       ),
                                     ),

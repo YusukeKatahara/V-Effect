@@ -228,6 +228,8 @@ class UserService {
     bool? reactionNotifications,
     bool? protectionNotifications,
     bool? vFireNotifications,
+    bool? streakCelebrationNotifications,
+    bool? streakWarningNotifications,
     bool? isPrivateAccount,
   }) async {
     final uid = _auth.currentUser?.uid;
@@ -239,6 +241,8 @@ class UserService {
     if (reactionNotifications != null) data['reactionNotifications'] = reactionNotifications;
     if (protectionNotifications != null) data['protectionNotifications'] = protectionNotifications;
     if (vFireNotifications != null) data['vFireNotifications'] = vFireNotifications;
+    if (streakCelebrationNotifications != null) data['streakCelebrationNotifications'] = streakCelebrationNotifications;
+    if (streakWarningNotifications != null) data['streakWarningNotifications'] = streakWarningNotifications;
     if (isPrivateAccount != null) data['isPrivateAccount'] = isPrivateAccount;
 
     if (data.isNotEmpty) {

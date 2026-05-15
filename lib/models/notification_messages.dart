@@ -59,10 +59,46 @@ abstract class NotificationMessages {
 
     // ── フレンドリクエスト（機能的通知：単一テンプレート） ──
     NotificationType.friendRequestReceived: [
-      _Template(title: 'フォローリクエスト', body: '{username} さんからフォローリクエストが届きました'),
+      _Template(
+        title: '🔥 仲間の予感',
+        body: '{username} さんがあなたの努力に惹かれています！仲間リクエストが届きました',
+      ),
+      _Template(
+        title: '👀 注目されています',
+        body: '{username} さんがあなたに注目しています。共に成長する仲間に加えますか？',
+      ),
     ],
     NotificationType.friendRequestAccepted: [
-      _Template(title: 'リクエスト承認', body: '{username} さんがフォローリクエストを承認しました'),
+      _Template(
+        title: '🤝 仲間が誕生しました',
+        body: '{username} さんと仲間になりました！お互いのV Questを高め合いましょう！',
+      ),
+      _Template(
+        title: '⚔️ 戦友の合流',
+        body: '{username} さんがリクエストを承認しました！共に高みを目指しましょう',
+      ),
+    ],
+    // ── ストリーク達成祝い ──
+    NotificationType.streakCelebration: [
+      _Template(
+        title: '🎉 伝説の始まり',
+        body: '素晴らしい！{streak}日連続で自分に勝ち続けています。この調子で伝説を刻みましょう！',
+      ),
+      _Template(
+        title: '🏆 圧倒的な継続力',
+        body: '{streak}日間の継続達成！あなたの意志の強さは本物です。',
+      ),
+    ],
+    // ── ストリーク危機通知 ──
+    NotificationType.streakWarning: [
+      _Template(
+        title: '⚠️ 危機が迫っています',
+        body: '今日のV Questがまだ完了していません！このままでは{streak}日間のストリークが途切れてしまいます！',
+      ),
+      _Template(
+        title: '🔥 最後の踏ん張り',
+        body: 'ストリークを維持する時間は残りわずかです。自分との約束を果たしましょう！',
+      ),
     ],
   };
 

@@ -12,6 +12,7 @@ import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
+import '../services/block_service.dart';
 import '../widgets/v_effect_header.dart';
 import '../widgets/weekly_review_banner.dart';
 import 'weekly_review_screen.dart';
@@ -451,6 +452,137 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
+  void _showPostOptions(Post post) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.grey30,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.block_rounded, color: AppColors.textPrimary),
+              title: const Text('ユーザーをブロック', style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmBlock(post.userId);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.report_problem_rounded, color: AppColors.error),
+              title: const Text('不適切な投稿を通報する', style: TextStyle(color: AppColors.error)),
+              onTap: () {
+                Navigator.pop(context);
+                _showReportDialog(post);
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmBlock(String targetUid) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSurface,
+        title: const Text('ブロックしますか？', style: TextStyle(color: AppColors.textPrimary)),
+        content: const Text('このユーザーの投稿が表示されなくなります。', style: TextStyle(color: AppColors.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await BlockService.instance.blockUser(targetUid);
+                ref.invalidate(homeDataProvider);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('ユーザーをブロックしました')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('ブロックに失敗しました')),
+                  );
+                }
+              }
+            },
+            child: const Text('ブロックする', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportDialog(Post post) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSurface,
+        title: const Text('通報する理由を選択', style: TextStyle(color: AppColors.textPrimary)),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _reportOption(ctx, post, 'スパム', 'spam'),
+            _reportOption(ctx, post, 'ハラスメント', 'harassment'),
+            _reportOption(ctx, post, '不適切なコンテンツ', 'inappropriate'),
+            _reportOption(ctx, post, 'その他', 'other'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reportOption(BuildContext ctx, Post post, String label, String reason) {
+    return ListTile(
+      title: Text(label, style: const TextStyle(color: AppColors.textPrimary)),
+      onTap: () async {
+        Navigator.pop(ctx);
+        try {
+          await BlockService.instance.reportPost(post.id, post.userId, reason);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('通報しました。ご協力ありがとうございます。')),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('通報に失敗しました')),
+            );
+          }
+        }
+      },
+    );
+  }
+
   Color _getTierColor(int streak) {
     if (streak >= 100) return const Color(0xFFE5E4E2); // Platinum
     if (streak >= 30) return AppColors.accentGoldLight;
@@ -789,6 +921,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   child: const SizedBox.expand(),
                                 ),
                               ),
+
+                              // 三点リーダーのタップ領域（オーバーレイ側でキャッチしてVFIRE誤爆を防ぐ）
+                              Positioned(
+                                top: 4,
+                                right: 0,
+                                width: 64, // タップしやすいように少し広めに
+                                height: 64,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    _showPostOptions(post);
+                                  },
+                                ),
+                              ),
                               // (以下略: 他のボタン等も必要に応じて AnimatedBuilder で参照可能)
 
                           // 2. アバタータップエリア (中心をVFIREと合わせる: bottom 32 + text 16 + gap 16 + avatar 40 = 104 -> center 84)
@@ -1078,6 +1224,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               tierColor: tierColor,
               userPhotos: _userPhotos,
               reactionCountNotifier: _flameNotifiers[post.id],
+              onOptionsTap: () => _showPostOptions(post),
               onProfileTap: () {
                 Navigator.pushNamed(
                   context,
@@ -1243,6 +1390,7 @@ class _FeedCard extends StatelessWidget {
     required this.tierColor,
     required this.userPhotos,
     this.onProfileTap,
+    this.onOptionsTap,
     this.reactionCountNotifier,
   });
 
@@ -1255,6 +1403,7 @@ class _FeedCard extends StatelessWidget {
   final Color tierColor;
   final Map<String, String?> userPhotos;
   final VoidCallback? onProfileTap;
+  final VoidCallback? onOptionsTap;
   final ValueNotifier<int>? reactionCountNotifier;
 
   @override
@@ -1360,6 +1509,20 @@ class _FeedCard extends StatelessWidget {
                     color: AppColors.grey50,
                     letterSpacing: 1,
                   ),
+                ),
+              ),
+            ),
+
+            // 三点リーダーボタン
+            Positioned(
+              top: 14,
+              right: 10,
+              child: IconButton(
+                icon: const Icon(Icons.more_horiz_rounded, color: AppColors.white),
+                onPressed: onOptionsTap,
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.black.withValues(alpha: 0.2),
+                  padding: const EdgeInsets.all(8),
                 ),
               ),
             ),

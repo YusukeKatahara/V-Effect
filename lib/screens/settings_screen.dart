@@ -165,7 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: AppColors.textMuted,
                 size: 16,
               ),
-              onTap: () => _launchURL('https://forms.gle/Zj29yQmSSKCZ4Kar8'),
+              onTap: () => _launchURL('https://veffect.web.app/support/'),
             ),
             ListTile(
               title: const Text(

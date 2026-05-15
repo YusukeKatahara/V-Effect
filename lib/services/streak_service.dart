@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/date_helper.dart';
+import 'notification_service.dart';
+import '../models/app_notification.dart';
 
 /// ストリーク（連続記録）に関するロジックを専門に担当するサービス
 class StreakService {
@@ -82,8 +85,8 @@ class StreakService {
       currentProtections = 0;
     }
 
-    if (newStreak > 1 && newStreak % 10 == 0) {
-      if (currentProtections < 2) {
+    if (newStreak > 1 && newStreak % 3 == 0) {
+      if (currentProtections < 1) {
         currentProtections += 1;
       }
     }
@@ -100,6 +103,21 @@ class StreakService {
     }
 
     await userRef.update(updates);
+
+    // ── ストリーク達成祝いの通知 ──
+    final pushEnabled = data['pushNotifications'] ?? true;
+    final celebrationEnabled = data['streakCelebrationNotifications'] ?? true;
+    
+    if (pushEnabled && celebrationEnabled) {
+      final milestones = [7, 30, 50, 100, 200, 365];
+      if (milestones.contains(newStreak)) {
+        NotificationService.instance.createNotification(
+          toUid: uid,
+          type: NotificationType.streakCelebration,
+          params: {'streak': newStreak.toString()},
+        ).catchError((e) => debugPrint('Celebration notification error: $e'));
+      }
+    }
 
     return {'newStreak': newStreak, 'isRecordUpdating': isRecordUpdating};
   }

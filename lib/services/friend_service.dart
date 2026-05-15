@@ -269,7 +269,7 @@ class FriendService {
       final myUsername = mySnap.data()?['username'] ?? '誰か';
       await _notificationService.createNotification(
         toUid: targetUid,
-        type: NotificationType.friendRequestAccepted,
+        type: NotificationType.friendRequestReceived, // 修正：直接フォロー時もリクエスト受信として扱う
         params: {'username': myUsername},
         fromUid: myUid,
       );

@@ -466,8 +466,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                 SizedBox(
                   height: 76, // 固定高さで全画面統一
                   child: Center(
-                    child: (_streak > 0 &&
-                            !(_isAllTasksCompleted && !_isSublimating))
+                    child: _streak > 0
                         ? _buildStreakRow()
                         : const SizedBox.shrink(),
                   ),

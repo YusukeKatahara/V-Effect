@@ -15,7 +15,7 @@ class SoundService {
       await AudioPlayer.global.setAudioContext(AudioContext(
         iOS: AudioContextIOS(
           category: AVAudioSessionCategory.playback,
-          options: {
+          options: const {
             AVAudioSessionOptions.mixWithOthers,
             AVAudioSessionOptions.defaultToSpeaker,
           },
@@ -29,8 +29,8 @@ class SoundService {
         ),
       ));
 
+      // audioplayers v6では setSource だけで十分
       await _player.setSource(AssetSource('sounds/task_complete_sync.mp3'));
-      _player.setPlayerMode(PlayerMode.lowLatency);
     } catch (e) {
       debugPrint('Error initializing sound service: $e');
     }
@@ -39,15 +39,14 @@ class SoundService {
   /// タスク完了時のドーパミンサウンドを再生
   Future<void> playTaskCompleteSound() async {
     try {
-      // 連続で完了した場合でも、一度停止して即座に鳴らし直す
       if (_player.state == PlayerState.playing) {
         await _player.stop();
       }
-      await _player.resume(); // すでにsetSourceされているのでresumeで最速再生
+      // lowLatency は iOS で mp3 の再生に失敗する原因になることがあるため外す
+      // stop() してから play() で最速再生
+      await _player.play(AssetSource('sounds/task_complete_sync.mp3'));
     } catch (e) {
       debugPrint('Error playing sound: $e');
-      // 万が一resumeに失敗した場合は直接再生
-      await _player.play(AssetSource('sounds/task_complete_sync.mp3'), mode: PlayerMode.lowLatency);
     }
   }
 }

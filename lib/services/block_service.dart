@@ -126,4 +126,19 @@ class BlockService {
       'status': 'pending',
     });
   }
+
+  /// 投稿を通報する
+  Future<void> reportPost(String postId, String targetUid, String reason) async {
+    final myUid = _auth.currentUser!.uid;
+
+    await _db.collection('reports').add({
+      'reporterUid': myUid,
+      'reportedPostId': postId,
+      'reportedUid': targetUid,
+      'reason': reason,
+      'createdAt': FieldValue.serverTimestamp(),
+      'status': 'pending',
+      'type': 'post',
+    });
+  }
 }

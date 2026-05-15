@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -9,6 +10,10 @@ import 'package:timezone/timezone.dart' as tz;
 import 'analytics_service.dart';
 import '../models/app_notification.dart';
 import '../models/notification_messages.dart';
+import '../main.dart';
+import '../widgets/premium_notification_toast.dart';
+import 'friend_service.dart';
+import 'notification_service.dart';
 
 /// バックグラウンドメッセージハンドラー（トップレベル関数である必要がある）
 @pragma('vm:entry-point')
@@ -189,23 +194,84 @@ class PushNotificationService {
     final notification = message.notification;
     if (notification == null) return;
 
-    // ローカル通知として表示
-    await _localNotifications.show(
-      notification.hashCode,
-      notification.title,
-      notification.body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channel.id,
-          _channel.name,
-          channelDescription: _channel.description,
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
+    final context = VEffectApp.navigatorKey.currentContext;
+    if (context == null) return;
+
+    final typeStr = message.data['type'] as String?;
+    final relatedId = message.data['relatedId'] as String?;
+    final fromUid = message.data['fromUid'] as String?;
+
+    List<ToastAction>? actions;
+
+    // フォローリクエストの場合は承認ボタンを出す
+    if (typeStr == NotificationType.friendRequestReceived.name &&
+        relatedId != null) {
+      actions = [
+        ToastAction(
+          label: '承認',
+          isPrimary: true,
+          onPressed: () async {
+            try {
+              final friendService = FriendService.instance;
+              final request = await friendService.getRequestById(relatedId);
+              if (request != null) {
+                await friendService.acceptRequest(request);
+                // 通知を既読にする
+                final notifSnap = await FirebaseFirestore.instance
+                    .collection('notifications')
+                    .where('relatedId', isEqualTo: relatedId)
+                    .where('type', isEqualTo: typeStr)
+                    .limit(1)
+                    .get();
+                if (notifSnap.docs.isNotEmpty) {
+                  await NotificationService.instance
+                      .deleteNotification(notifSnap.docs.first.id);
+                }
+              }
+            } catch (e) {
+              debugPrint('Toast accept error: $e');
+            }
+          },
         ),
-        iOS: const DarwinNotificationDetails(),
-      ),
+        ToastAction(
+          label: 'あとで',
+          onPressed: () {},
+        ),
+      ];
+    }
+
+    PremiumNotificationToast.show(
+      context,
+      title: notification.title ?? '',
+      body: notification.body ?? '',
+      icon: _iconForType(typeStr),
+      actions: actions,
+      onTap: () {
+        if (fromUid != null) {
+          VEffectApp.navigatorKey.currentState?.pushNamed(
+            '/user-profile',
+            arguments: fromUid,
+          );
+        }
+      },
     );
+  }
+
+  IconData _iconForType(String? typeStr) {
+    if (typeStr == NotificationType.friendRequestReceived.name) {
+      return Icons.person_add;
+    } else if (typeStr == NotificationType.friendRequestAccepted.name) {
+      return Icons.how_to_reg;
+    } else if (typeStr == NotificationType.reactionReceived.name) {
+      return Icons.whatshot;
+    } else if (typeStr == NotificationType.friendTaskCompleted.name) {
+      return Icons.emoji_events;
+    } else if (typeStr == NotificationType.streakCelebration.name) {
+      return Icons.workspace_premium;
+    } else if (typeStr == NotificationType.streakWarning.name) {
+      return Icons.warning_amber_rounded;
+    }
+    return Icons.notifications;
   }
 
   /// 通知タップによるアプリ起動を Analytics に記録
@@ -358,15 +424,9 @@ class PushNotificationService {
     await _localNotifications.cancel(_protectionAlertNotificationId1);
     await _localNotifications.cancel(_protectionAlertNotificationId2);
 
-    if (taskTimeStr == null || taskTimeStr.isEmpty || streakProtections <= 0 || lastPostedDateStr == null) {
+    if (streakProtections <= 0 || lastPostedDateStr == null) {
       return;
     }
-
-    final parts = taskTimeStr.split(':');
-    if (parts.length != 2) return;
-    final hour = int.tryParse(parts[0]);
-    final minute = int.tryParse(parts[1]);
-    if (hour == null || minute == null) return;
 
     final partsDate = lastPostedDateStr.split('-');
     if (partsDate.length != 3) return;
@@ -376,7 +436,8 @@ class PushNotificationService {
     if (year == null || month == null || day == null) return;
 
     final now = tz.TZDateTime.now(tz.local);
-    final baseDate = tz.TZDateTime(tz.local, year, month, day, hour, minute);
+    // 日付を超えた瞬間（00:00）に通知を送るように設定
+    final baseDate = tz.TZDateTime(tz.local, year, month, day, 0, 0);
 
     const bodyText = 'ストリーク保護プロトコル、作動中！';
 
@@ -470,7 +531,7 @@ class PushNotificationService {
           .get();
       if (!privateSnap.exists) return;
 
-      final taskTime = privateSnap.data()?['taskTime'] as String?;
+      final taskTime = privateSnap.data()?['taskTime'] as String? ?? '08:00';
       await scheduleVAlert(taskTime);
 
       final publicSnap = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();

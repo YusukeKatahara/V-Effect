@@ -17,6 +17,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   bool _focusTimeNotifications = true;
   bool _vFireNotifications = true;
   bool _protectionNotifications = true;
+  bool _streakCelebrationNotifications = true;
+  bool _streakWarningNotifications = true;
   bool _isLoading = true;
 
   @override
@@ -39,6 +41,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               _focusTimeNotifications = data['focusTimeNotifications'] ?? true;
               _vFireNotifications = data['vFireNotifications'] ?? true;
               _protectionNotifications = data['protectionNotifications'] ?? true;
+              _streakCelebrationNotifications = data['streakCelebrationNotifications'] ?? true;
+              _streakWarningNotifications = data['streakWarningNotifications'] ?? true;
               _isLoading = false;
             });
           }
@@ -62,11 +66,15 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           _focusTimeNotifications = value;
           _vFireNotifications = value;
           _protectionNotifications = value;
+          _streakCelebrationNotifications = value;
+          _streakWarningNotifications = value;
           break;
         case 'reactionNotifications': _reactionNotifications = value; break;
         case 'focusTimeNotifications': _focusTimeNotifications = value; break;
         case 'vFireNotifications': _vFireNotifications = value; break;
         case 'protectionNotifications': _protectionNotifications = value; break;
+        case 'streakCelebrationNotifications': _streakCelebrationNotifications = value; break;
+        case 'streakWarningNotifications': _streakWarningNotifications = value; break;
       }
     });
 
@@ -79,6 +87,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           focusTimeNotifications: value,
           vFireNotifications: value,
           protectionNotifications: value,
+          streakCelebrationNotifications: value,
+          streakWarningNotifications: value,
         );
       } else {
         // 個別スイッチ：その項目のみ更新
@@ -87,6 +97,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           focusTimeNotifications: key == 'focusTimeNotifications' ? value : null,
           vFireNotifications: key == 'vFireNotifications' ? value : null,
           protectionNotifications: key == 'protectionNotifications' ? value : null,
+          streakCelebrationNotifications: key == 'streakCelebrationNotifications' ? value : null,
+          streakWarningNotifications: key == 'streakWarningNotifications' ? value : null,
         );
       }
     } catch (e) {
@@ -140,6 +152,18 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 'シールドによるストリーク維持のお知らせ',
                 _protectionNotifications,
                 (v) => _updateSetting('protectionNotifications', v),
+              ),
+              _buildSwitch(
+                'ストリーク達成祝いを許可',
+                '30日や100日などの大きな節目のお知らせ',
+                _streakCelebrationNotifications,
+                (v) => _updateSetting('streakCelebrationNotifications', v),
+              ),
+              _buildSwitch(
+                'ストリーク危機通知を許可',
+                '夜になってもタスクが完了していない時のリマインダー',
+                _streakWarningNotifications,
+                (v) => _updateSetting('streakWarningNotifications', v),
               ),
             ],
           ),

@@ -37,7 +37,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   File? _newProfileImage;
   String? _currentPhotoUrl;
 
-  TimeOfDay? _taskTime;
+
   bool _showTimestamp = true;
 
   bool _isRestricted = false;
@@ -59,7 +59,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _userIdCtrl = TextEditingController(text: widget.user.userId);
     _currentPhotoUrl = widget.user.photoUrl;
 
-    _taskTime = _parseTimeOfDay(widget.privateData['taskTime'] as String?);
+
     _showTimestamp = widget.privateData['showTimestamp'] ?? true;
 
     _checkRestriction();
@@ -92,16 +92,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  TimeOfDay? _parseTimeOfDay(String? timeStr) {
-    if (timeStr == null || !timeStr.contains(':')) return null;
-    final parts = timeStr.split(':');
-    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-  }
-
-  String _formatTimeOfDay(TimeOfDay time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
-
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
@@ -115,104 +105,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<void> _pickTime() async {
-    final initialTime = _taskTime ?? const TimeOfDay(hour: 8, minute: 0);
-    final now = DateTime.now();
-    DateTime tempDateTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      initialTime.hour,
-      initialTime.minute,
-    );
-
-    await showCupertinoModalPopup(
-      context: context,
-      builder:
-          (context) => Container(
-            height: 300,
-            padding: const EdgeInsets.only(top: 6.0),
-            margin: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            color: AppColors.bgElevated,
-            child: SafeArea(
-              top: false,
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: AppColors.white.withValues(alpha: 0.1),
-                          width: 0.5,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CupertinoButton(
-                          child: const Text(
-                            'キャンセル',
-                            style: TextStyle(color: AppColors.grey50),
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        CupertinoButton(
-                          child: const Text(
-                            '完了',
-                            style: TextStyle(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _taskTime = TimeOfDay.fromDateTime(
-                                tempDateTime,
-                              );
-                            });
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: CupertinoTheme(
-                      data: const CupertinoThemeData(
-                        brightness: Brightness.dark,
-                        textTheme: CupertinoTextThemeData(
-                          dateTimePickerTextStyle: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 22,
-                          ),
-                        ),
-                      ),
-                      child: CupertinoDatePicker(
-                        mode: CupertinoDatePickerMode.time,
-                        use24hFormat: true,
-                        initialDateTime: tempDateTime,
-                        onDateTimeChanged: (DateTime newDate) {
-                          tempDateTime = newDate;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-    );
-  }
-
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
     final newUserId = _userIdCtrl.text.trim();
     final newUsername = _usernameCtrl.text.trim();
-    final taskTimeStr = _taskTime != null ? _formatTimeOfDay(_taskTime!) : null;
+
 
     bool isRestrictedFieldsChanged = false;
 
@@ -295,14 +193,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         username: newUsername,
         userId: newUserId,
         photoUrl: updatedPhotoUrl,
-        taskTime: taskTimeStr,
         showTimestamp: _showTimestamp,
         updateEditDate: isRestrictedFieldsChanged,
       );
-
-      // taskTime が変更された場合、V Alert を即座に再スケジュール
-      PushNotificationService().scheduleVAlert(taskTimeStr)
-          .catchError((e) => debugPrint('V Alert schedule error: $e'));
 
       if (mounted) {
         // 保存中にユーザーが手動で戻った場合に二重 pop（ブラックアウト）するのを防ぐ
@@ -387,8 +280,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           // Section: Preferences
                           const SectionTitle(title: 'アプリ設定'),
                           const SizedBox(height: 12),
-                          _buildTimePickerRow(),
-                          const SizedBox(height: 16),
+
                           _buildTimestampToggle(),
                           const SizedBox(height: 32),
 
@@ -543,48 +435,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTimePickerRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildTimeButton(
-            'Focus Time',
-            _taskTime,
-            () => _pickTime(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTimeButton(String label, TimeOfDay? time, VoidCallback onTap) {
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        alignment: Alignment.centerLeft,
-        side: const BorderSide(color: AppColors.border),
-      ),
-      onPressed: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            time != null ? _formatTimeOfDay(time) : '--:--',
-            style: const TextStyle(
-              fontSize: 16,
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTimestampToggle() {
     return Container(

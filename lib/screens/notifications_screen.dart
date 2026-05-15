@@ -43,6 +43,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.whatshot;
       case NotificationType.friendTaskCompleted:
         return Icons.emoji_events;
+      case NotificationType.streakCelebration:
+        return Icons.workspace_premium;
+      case NotificationType.streakWarning:
+        return Icons.warning_amber_rounded;
     }
   }
 
@@ -58,6 +62,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return AppColors.grey95;
       case NotificationType.friendTaskCompleted:
         return AppColors.grey85;
+      case NotificationType.streakCelebration:
+        return AppColors.accentGold;
+      case NotificationType.streakWarning:
+        return AppColors.error;
     }
   }
 
@@ -91,6 +99,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       badge = _buildBadge('👤+');
     } else if (notif.type == NotificationType.friendTaskCompleted) {
       badge = _buildBadge('🏆');
+    } else if (notif.type == NotificationType.streakCelebration) {
+      badge = _buildBadge('🎉');
+    } else if (notif.type == NotificationType.streakWarning) {
+      badge = _buildBadge('⚠️');
     }
 
     if (badge == null) return avatarBody;
