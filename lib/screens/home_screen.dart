@@ -1506,7 +1506,7 @@ class _FeedCard extends StatelessWidget {
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.grey50,
+                    color: AppColors.white,
                     letterSpacing: 1,
                   ),
                 ),

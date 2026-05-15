@@ -462,9 +462,9 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
                       ],
                       Text(
                         post.taskName,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: AppColors.textPrimary.withValues(alpha: 0.6),
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ],

@@ -24,19 +24,19 @@ abstract class NotificationMessages {
     NotificationType.taskReminder: [
       _Template(
         title: 'V Alert',
-        body: '「天才とは努力する凡才のことである」 Albert Einstein',
+        body: '「天才とは努力する凡才のことである」 - Albert Einstein',
       ),
       _Template(
         title: 'V Alert',
-        body: '「楽観的？悲観的？そんなことは知らん。やる。やり遂げる。必ずやり遂げると神に誓うんだ」 Elon Musk',
+        body: '「楽観的？悲観的？そんなことは知らん。やる。やり遂げる。必ずやり遂げると神に誓うんだ」 - Elon Musk',
       ),
       _Template(
         title: 'V Alert',
-        body: '「時間をかけることを恐れてはいけないよ。それは、いちばん洗練されたかたちでの復讐なんだ」 村上春樹',
+        body: '「時間をかけることを恐れてはいけないよ。それは、いちばん洗練されたかたちでの復讐なんだ」 - 村上春樹',
       ),
       _Template(
         title: 'V Alert',
-        body: '「貪欲であれ、愚かであれ」 Steve Jobs',
+        body: '「貪欲であれ、愚かであれ」 - Steve Jobs',
       ),
     ],
 

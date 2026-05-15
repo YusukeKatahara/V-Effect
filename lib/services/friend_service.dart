@@ -114,6 +114,8 @@ class FriendService {
     return results;
   }
 
+  final Set<String> _processingLocks = {};
+
   /// フォロー申請を送ります
   ///
   /// 相手から既に申請が来ていた場合は自動的に承認します。
@@ -121,125 +123,171 @@ class FriendService {
     final myUid = _auth.currentUser!.uid;
     if (myUid == targetUid) throw Exception('自分自身にリクエストできません');
 
-    // 既にフォロー中なら何もしない
-    if (await isFollowing(targetUid)) return;
+    final lockKey = 'sendReq_${myUid}_$targetUid';
+    if (_processingLocks.contains(lockKey)) return;
+    _processingLocks.add(lockKey);
 
-    // 相手から既に申請が来ているかチェック（来ていれば自動承認）
-    final reverseSnap = await _db
-        .collection('friend_requests')
-        .where('fromUid', isEqualTo: targetUid)
-        .where('toUid', isEqualTo: myUid)
-        .where('status', isEqualTo: 'pending')
-        .limit(1)
-        .get();
-    if (reverseSnap.docs.isNotEmpty) {
-      final reverseRequest = FriendRequest.fromFirestore(reverseSnap.docs.first);
-      await acceptRequest(reverseRequest);
-      return;
+    try {
+      // 既にフォロー中なら何もしない
+      if (await isFollowing(targetUid)) return;
+
+      // 相手から既に申請が来ているかチェック（来ていれば自動承認）
+      final reverseSnap = await _db
+          .collection('friend_requests')
+          .where('fromUid', isEqualTo: targetUid)
+          .where('toUid', isEqualTo: myUid)
+          .where('status', isEqualTo: 'pending')
+          .limit(1)
+          .get();
+      if (reverseSnap.docs.isNotEmpty) {
+        final reverseRequest = FriendRequest.fromFirestore(reverseSnap.docs.first);
+        await acceptRequest(reverseRequest);
+        return;
+      }
+
+      // 既に申請中かチェック
+      if (await hasPendingRequest(targetUid)) return;
+
+      // ブロックチェック（自分 → 相手、または相手 → 自分のいずれか）
+      final isBlocked = await BlockService.instance.isBlocked(targetUid);
+      final isBlockedBy = await BlockService.instance.isBlockedBy(targetUid);
+      if (isBlocked || isBlockedBy) {
+        throw Exception('blocked');
+      }
+
+      // 自分のユーザー情報を取得
+      final mySnap = await _db.collection('users').doc(myUid).get();
+      final myUsername = mySnap.data()?['username'] ?? '';
+      final myUserId = mySnap.data()?['userId'] ?? '';
+
+      // 相手のユーザー情報を取得
+      final targetSnap = await _db.collection('users').doc(targetUid).get();
+      final targetUsername = targetSnap.data()?['username'] ?? '';
+      final targetUserId = targetSnap.data()?['userId'] ?? '';
+
+      // friend_requests に追加
+      final docRef = await _db.collection('friend_requests').add({
+        'fromUid': myUid,
+        'toUid': targetUid,
+        'fromUserId': myUserId,
+        'fromUsername': myUsername,
+        'toUserId': targetUserId,
+        'toUsername': targetUsername,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // 相手に通知を送る
+      await _notificationService.createNotification(
+        toUid: targetUid,
+        type: NotificationType.friendRequestReceived,
+        params: {'username': myUsername},
+        fromUid: myUid,
+        relatedId: docRef.id,
+      );
+
+      _analytics.logFriendRequestSent();
+    } finally {
+      _processingLocks.remove(lockKey);
     }
-
-    // 既に申請中かチェック
-    if (await hasPendingRequest(targetUid)) return;
-
-    // ブロックチェック（自分 → 相手、または相手 → 自分のいずれか）
-    final isBlocked = await BlockService.instance.isBlocked(targetUid);
-    final isBlockedBy = await BlockService.instance.isBlockedBy(targetUid);
-    if (isBlocked || isBlockedBy) {
-      throw Exception('blocked');
-    }
-
-    // 自分のユーザー情報を取得
-    final mySnap = await _db.collection('users').doc(myUid).get();
-    final myUsername = mySnap.data()?['username'] ?? '';
-    final myUserId = mySnap.data()?['userId'] ?? '';
-
-    // 相手のユーザー情報を取得
-    final targetSnap = await _db.collection('users').doc(targetUid).get();
-    final targetUsername = targetSnap.data()?['username'] ?? '';
-    final targetUserId = targetSnap.data()?['userId'] ?? '';
-
-    // friend_requests に追加
-    final docRef = await _db.collection('friend_requests').add({
-      'fromUid': myUid,
-      'toUid': targetUid,
-      'fromUserId': myUserId,
-      'fromUsername': myUsername,
-      'toUserId': targetUserId,
-      'toUsername': targetUsername,
-      'status': 'pending',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    // 相手に通知を送る
-    await _notificationService.createNotification(
-      toUid: targetUid,
-      type: NotificationType.friendRequestReceived,
-      params: {'username': myUsername},
-      fromUid: myUid,
-      relatedId: docRef.id,
-    );
-
-    _analytics.logFriendRequestSent();
   }
 
   /// 申請を承認します（followers / following 配列を更新）
   Future<void> acceptRequest(FriendRequest request) async {
     final myUid = _auth.currentUser!.uid;
-    final batch = _db.batch();
+    final lockKey = 'acceptReq_${request.id}';
+    if (_processingLocks.contains(lockKey)) return;
+    _processingLocks.add(lockKey);
 
-    // リクエストのステータスを承認に更新
-    batch.update(
-      _db.collection('friend_requests').doc(request.id),
-      {'status': 'accepted'},
-    );
+    try {
+      final reqSnap = await _db.collection('friend_requests').doc(request.id).get();
+      if (!reqSnap.exists || reqSnap.data()?['status'] != 'pending') return;
 
-    // 承認者（自分）の followers に申請者を追加
-    batch.update(
-      _db.collection('users').doc(myUid),
-      {'followers': FieldValue.arrayUnion([request.fromUid])},
-    );
+      final userSnap = await _db.collection('users').doc(myUid).get();
+      final followers = userSnap.data()?['followers'];
+      bool alreadyFollowing = false;
+      if (followers is List) {
+        alreadyFollowing = followers.map((e) => e.toString()).contains(request.fromUid);
+      } else if (followers is Map) {
+        alreadyFollowing = followers.keys.map((k) => k.toString()).contains(request.fromUid);
+      }
 
-    // 申請者の following に承認者（自分）を追加
-    batch.update(
-      _db.collection('users').doc(request.fromUid),
-      {'following': FieldValue.arrayUnion([myUid])},
-    );
+      final batch = _db.batch();
 
-    await batch.commit();
+      // リクエストのステータスを承認に更新
+      batch.update(
+        _db.collection('friend_requests').doc(request.id),
+        {'status': 'accepted'},
+      );
 
-    // 申請者に承認通知を送る
-    final mySnap = await _db.collection('users').doc(myUid).get();
-    final myUsername = mySnap.data()?['username'] ?? '';
+      if (!alreadyFollowing) {
+        // 承認者（自分）の followers に申請者を追加
+        batch.update(
+          _db.collection('users').doc(myUid),
+          {'followers': FieldValue.arrayUnion([request.fromUid])},
+        );
 
-    await _notificationService.createNotification(
-      toUid: request.fromUid,
-      type: NotificationType.friendRequestAccepted,
-      params: {'username': myUsername},
-      fromUid: myUid,
-      relatedId: request.id,
-    );
+        // 申請者の following に承認者（自分）を追加
+        batch.update(
+          _db.collection('users').doc(request.fromUid),
+          {'following': FieldValue.arrayUnion([myUid])},
+        );
+      }
+
+      await batch.commit();
+
+      if (!alreadyFollowing) {
+        // 申請者に承認通知を送る
+        final myUsername = userSnap.data()?['username'] ?? '';
+        await _notificationService.createNotification(
+          toUid: request.fromUid,
+          type: NotificationType.friendRequestAccepted,
+          params: {'username': myUsername},
+          fromUid: myUid,
+          relatedId: request.id,
+        );
+      }
+    } finally {
+      _processingLocks.remove(lockKey);
+    }
   }
 
   /// 申請を拒否します
   Future<void> rejectRequest(FriendRequest request) async {
-    await _db
-        .collection('friend_requests')
-        .doc(request.id)
-        .update({'status': 'rejected'});
+    final lockKey = 'rejectReq_${request.id}';
+    if (_processingLocks.contains(lockKey)) return;
+    _processingLocks.add(lockKey);
+
+    try {
+      await _db
+          .collection('friend_requests')
+          .doc(request.id)
+          .update({'status': 'rejected'});
+    } finally {
+      _processingLocks.remove(lockKey);
+    }
   }
 
   /// 自分が送った申請をキャンセルします
   Future<void> cancelRequest(String targetUid) async {
     final myUid = _auth.currentUser!.uid;
-    final snap = await _db
-        .collection('friend_requests')
-        .where('fromUid', isEqualTo: myUid)
-        .where('toUid', isEqualTo: targetUid)
-        .where('status', isEqualTo: 'pending')
-        .limit(1)
-        .get();
-    if (snap.docs.isEmpty) return;
-    await snap.docs.first.reference.delete();
+    final lockKey = 'cancelReq_${myUid}_$targetUid';
+    if (_processingLocks.contains(lockKey)) return;
+    _processingLocks.add(lockKey);
+
+    try {
+      final snap = await _db
+          .collection('friend_requests')
+          .where('fromUid', isEqualTo: myUid)
+          .where('toUid', isEqualTo: targetUid)
+          .where('status', isEqualTo: 'pending')
+          .limit(1)
+          .get();
+      if (snap.docs.isEmpty) return;
+      await snap.docs.first.reference.delete();
+    } finally {
+      _processingLocks.remove(lockKey);
+    }
   }
 
   /// ユーザーをフォローします
@@ -247,56 +295,74 @@ class FriendService {
     final myUid = _auth.currentUser!.uid;
     if (myUid == targetUid) throw Exception('自分自身はフォローできません');
 
-    final batch = _db.batch();
+    final lockKey = 'follow_${myUid}_$targetUid';
+    if (_processingLocks.contains(lockKey)) return;
+    _processingLocks.add(lockKey);
 
-    // 自分の following に相手を追加
-    batch.update(
-      _db.collection('users').doc(myUid),
-      {'following': FieldValue.arrayUnion([targetUid])},
-    );
-
-    // 相手の followers に自分を追加
-    batch.update(
-      _db.collection('users').doc(targetUid),
-      {'followers': FieldValue.arrayUnion([myUid])},
-    );
-
-    await batch.commit();
-
-    // 通知を送る
     try {
-      final mySnap = await _db.collection('users').doc(myUid).get();
-      final myUsername = mySnap.data()?['username'] ?? '誰か';
-      await _notificationService.createNotification(
-        toUid: targetUid,
-        type: NotificationType.friendRequestReceived, // 修正：直接フォロー時もリクエスト受信として扱う
-        params: {'username': myUsername},
-        fromUid: myUid,
-      );
-    } catch (e) {
-      debugPrint('Failed to send follow notification: $e');
-    }
+      if (await isFollowing(targetUid)) return;
 
-    _analytics.logFriendRequestSent();
+      final batch = _db.batch();
+
+      // 自分の following に相手を追加
+      batch.update(
+        _db.collection('users').doc(myUid),
+        {'following': FieldValue.arrayUnion([targetUid])},
+      );
+
+      // 相手の followers に自分を追加
+      batch.update(
+        _db.collection('users').doc(targetUid),
+        {'followers': FieldValue.arrayUnion([myUid])},
+      );
+
+      await batch.commit();
+
+      // 通知を送る
+      try {
+        final mySnap = await _db.collection('users').doc(myUid).get();
+        final myUsername = mySnap.data()?['username'] ?? '誰か';
+        await _notificationService.createNotification(
+          toUid: targetUid,
+          type: NotificationType.friendRequestReceived, // 修正：直接フォロー時もリクエスト受信として扱う
+          params: {'username': myUsername},
+          fromUid: myUid,
+        );
+      } catch (e) {
+        debugPrint('Failed to send follow notification: $e');
+      }
+
+      _analytics.logFriendRequestSent();
+    } finally {
+      _processingLocks.remove(lockKey);
+    }
   }
 
   /// フォローを解除します
   Future<void> unfollowUser(String targetUid) async {
     final myUid = _auth.currentUser!.uid;
-    final batch = _db.batch();
+    final lockKey = 'unfollow_${myUid}_$targetUid';
+    if (_processingLocks.contains(lockKey)) return;
+    _processingLocks.add(lockKey);
 
-    batch.update(
-      _db.collection('users').doc(myUid),
-      {'following': FieldValue.arrayRemove([targetUid])},
-    );
+    try {
+      final batch = _db.batch();
 
-    batch.update(
-      _db.collection('users').doc(targetUid),
-      {'followers': FieldValue.arrayRemove([myUid])},
-    );
+      batch.update(
+        _db.collection('users').doc(myUid),
+        {'following': FieldValue.arrayRemove([targetUid])},
+      );
 
-    await batch.commit();
-    _analytics.logFriendRemoved();
+      batch.update(
+        _db.collection('users').doc(targetUid),
+        {'followers': FieldValue.arrayRemove([myUid])},
+      );
+
+      await batch.commit();
+      _analytics.logFriendRemoved();
+    } finally {
+      _processingLocks.remove(lockKey);
+    }
   }
 
   /// 受信した申請一覧をリアルタイムで取得します（pending のみ）

@@ -57,6 +57,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _toggleFollow(AppUser targetUser, bool isFollowing) async {
+    // Optimistic UI Update
+    if (!isFollowing) {
+      setState(() {
+        _pendingUids.add(targetUser.uid);
+      });
+    }
+
     try {
       if (isFollowing) {
         await _friendService.unfollowUser(targetUser.uid);
@@ -69,9 +76,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         // フォローリクエストを送る (直接フォローを廃止)
         await _friendService.sendRequest(targetUser.uid);
         if (mounted) {
-          setState(() {
-            _pendingUids.add(targetUser.uid);
-          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${targetUser.username}さんにフォローリクエストを送りました')),
           );
@@ -79,6 +83,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       }
     } catch (e) {
       if (mounted) {
+        if (!isFollowing) {
+          setState(() {
+            _pendingUids.remove(targetUser.uid);
+          });
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('操作に失敗しました: $e')),
         );
