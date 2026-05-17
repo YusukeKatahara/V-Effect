@@ -84,6 +84,17 @@ def init_db():
             conn.execute("ALTER TABLE user_snapshots ADD COLUMN task_names TEXT DEFAULT NULL")
         except Exception:
             pass
+        # workout 系タスクが Work カテゴリに誤キャッシュされている場合は削除して再分類させる
+        conn.execute("""
+            DELETE FROM task_category_cache
+            WHERE is_manual = 0
+              AND category_large = 'Work'
+              AND (
+                LOWER(task_name_translated) LIKE '%work out%'
+                OR LOWER(task_name_translated) LIKE '%workout%'
+                OR LOWER(task_name_translated) LIKE '%work-out%'
+              )
+        """)
         conn.commit()
 
 
