@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -187,12 +188,61 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
               color: AppColors.grey20, thickness: 0.5, height: 0),
         ),
 
-        Text(
-          post.body,
-          style: GoogleFonts.notoSansJp(
-            fontSize: 15,
-            color: AppColors.grey85,
-            height: 1.8,
+        MarkdownBody(
+          data: post.body,
+          selectable: true,
+          styleSheet: MarkdownStyleSheet(
+            h1: GoogleFonts.notoSansJp(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppColors.white,
+                height: 1.4),
+            h2: GoogleFonts.notoSansJp(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.white,
+                height: 1.4),
+            h3: GoogleFonts.notoSansJp(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.white),
+            p: GoogleFonts.notoSansJp(
+                fontSize: 15, color: AppColors.grey85, height: 1.8),
+            strong: GoogleFonts.notoSansJp(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.white),
+            em: GoogleFonts.notoSansJp(
+                fontSize: 15,
+                color: AppColors.grey85,
+                fontStyle: FontStyle.italic),
+            listBullet: GoogleFonts.notoSansJp(
+                fontSize: 15, color: AppColors.grey85, height: 1.8),
+            blockquote: GoogleFonts.notoSansJp(
+                fontSize: 15, color: AppColors.grey50, height: 1.8),
+            code: GoogleFonts.sourceCodePro(
+                fontSize: 13,
+                color: AppColors.grey85,
+                backgroundColor: Colors.transparent),
+            codeblockDecoration: BoxDecoration(
+              color: AppColors.grey10,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.grey20, width: 0.5),
+            ),
+            codeblockPadding: const EdgeInsets.all(12),
+            blockquoteDecoration: const BoxDecoration(
+              border: Border(
+                left: BorderSide(color: AppColors.grey30, width: 3),
+              ),
+            ),
+            blockquotePadding:
+                const EdgeInsets.only(left: 16, top: 4, bottom: 4),
+            horizontalRuleDecoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: AppColors.grey20, width: 0.5),
+              ),
+            ),
+            blockSpacing: 16,
           ),
         ),
       ],
