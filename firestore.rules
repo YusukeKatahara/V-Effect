@@ -88,6 +88,22 @@ service cloud.firestore {
     }
 
     // ────────────────────────────────────────
+    // contactInquiries コレクション
+    // ────────────────────────────────────────
+    match /contactInquiries/{docId} {
+      // サポートページは未ログインでもアクセス可のため、未認証でも作成を許可
+      // 必須フィールドの存在とサイズ制限のみ検証
+      allow create: if request.resource.data.keys().hasAll(['email', 'category', 'message', 'createdAt'])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 2000
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 0;
+      // 管理者以外は読み取り・更新・削除不可
+      allow read, update, delete: if false;
+    }
+
+    // ────────────────────────────────────────
     // posts コレクション
     // ────────────────────────────────────────
     match /posts/{postId} {

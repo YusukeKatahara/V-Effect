@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V EFFECT - サポート</title>
+    <title>V EFFECT - お問い合わせ</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #000000;
+            background-color: #111111;
             color: #FFFFFF;
             line-height: 1.6;
             margin: 0;
@@ -19,84 +22,326 @@
             max-width: 600px;
             width: 100%;
             margin-top: 40px;
+            margin-bottom: 60px;
         }
-        h1 {
-            font-size: 24px;
-            margin-bottom: 24px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 10px;
+        .header {
+            margin-bottom: 28px;
         }
-        p {
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            letter-spacing: 0.02em;
+        }
+        .header p {
             color: #AAAAAA;
+            font-size: 14px;
+            margin: 0;
+        }
+        .form-card {
+            background-color: #1A1A1A;
+            border-radius: 16px;
+            padding: 24px;
+        }
+        .field {
             margin-bottom: 20px;
         }
-        .contact-box {
-            background-color: #1A1A1A;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
+        .field:last-of-type {
+            margin-bottom: 0;
         }
-        .contact-box h2 {
-            font-size: 18px;
-            margin-top: 0;
-            margin-bottom: 12px;
-        }
-        .email {
-            font-size: 16px;
-            color: #FFFFFF;
-            font-weight: bold;
+        label {
             display: block;
-            margin-bottom: 16px;
-            word-break: break-all;
+            font-size: 13px;
+            font-weight: 600;
+            color: #AAAAAA;
+            margin-bottom: 8px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
-        .btn {
-            display: inline-block;
-            background-color: #FFFFFF;
-            color: #000000;
-            text-decoration: none;
-            padding: 12px 24px;
-            border-radius: 24px;
-            font-weight: bold;
-            font-size: 14px;
+        .required-badge {
+            color: #E53935;
+            margin-left: 4px;
+        }
+        .optional-badge {
+            font-size: 11px;
+            color: #666666;
+            font-weight: 400;
+            margin-left: 6px;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        input[type="text"],
+        input[type="email"],
+        select,
+        textarea {
+            width: 100%;
+            background-color: #2A2A2A;
+            border: 1px solid #333333;
+            border-radius: 10px;
+            color: #FFFFFF;
+            font-size: 15px;
+            font-family: inherit;
+            padding: 12px 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #E53935;
+        }
+        input::placeholder,
+        textarea::placeholder {
+            color: #555555;
+        }
+        .select-wrapper {
+            position: relative;
+        }
+        .select-wrapper::after {
+            content: '▼';
+            font-size: 10px;
+            color: #666666;
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+        select option {
+            background-color: #2A2A2A;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 140px;
+        }
+        .char-count {
+            font-size: 12px;
+            color: #666666;
+            text-align: right;
+            margin-top: 6px;
+        }
+        .char-count.over {
+            color: #E53935;
+        }
+        .error-msg {
+            font-size: 12px;
+            color: #E53935;
+            margin-top: 6px;
+            display: none;
+        }
+        .submit-btn {
+            width: 100%;
+            background-color: #E53935;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            padding: 14px;
+            margin-top: 24px;
+            cursor: pointer;
             transition: opacity 0.2s;
+            letter-spacing: 0.04em;
         }
-        .btn:hover {
-            opacity: 0.8;
+        .submit-btn:hover:not(:disabled) {
+            opacity: 0.85;
+        }
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .form-error {
+            background-color: rgba(229, 57, 53, 0.15);
+            border: 1px solid #E53935;
+            border-radius: 10px;
+            color: #FF6B6B;
+            font-size: 13px;
+            padding: 12px 14px;
+            margin-top: 16px;
+            display: none;
+        }
+        .success-view {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+        .success-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+        }
+        .success-view h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 12px 0;
+        }
+        .success-view p {
+            color: #AAAAAA;
+            font-size: 14px;
+            margin: 0;
+            line-height: 1.7;
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid #2A2A2A;
+            margin: 24px 0;
+        }
+        .alt-contact {
+            font-size: 13px;
+            color: #666666;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .alt-contact a {
+            color: #AAAAAA;
+            text-decoration: none;
+        }
+        .alt-contact a:hover {
+            color: #FFFFFF;
         }
         .footer {
             margin-top: 40px;
             font-size: 12px;
-            color: #666666;
+            color: #444444;
             text-align: center;
-        }
-        a {
-            color: #FFFFFF;
-            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>V EFFECT サポート窓口</h1>
-        
-        <p>V EFFECTをご利用いただきありがとうございます。<br>
-        アプリに関するご質問、不具合の報告、アカウント削除のご依頼などは、以下の窓口にて承っております。</p>
-
-        <div class="contact-box">
-            <h2>メールでのお問い合わせ</h2>
-            <p>以下のメールアドレス宛にご連絡ください。通常、2〜3営業日以内に返信いたします。</p>
-            <a href="mailto:V.EFFECT.developer@gmail.com" class="email">V.EFFECT.developer@gmail.com</a>
+        <div class="header">
+            <h1>お問い合わせ</h1>
+            <p>V EFFECTに関するご質問・ご意見をお送りください。</p>
         </div>
 
-        <div class="contact-box">
-            <h2>お問い合わせフォーム</h2>
-            <p>Googleフォームからもお問い合わせいただけます。<br>（※Googleアカウントへのログインが必要な場合があります）</p>
-            <a href="https://forms.gle/Zj29yQmSSKCZ4Kar8" target="_blank" class="btn">フォームを開く</a>
+        <div class="form-card">
+            <form id="contact-form">
+                <div class="field">
+                    <label for="category">カテゴリ<span class="required-badge">*</span></label>
+                    <div class="select-wrapper">
+                        <select id="category" name="category">
+                            <option value="" disabled selected>選択してください</option>
+                            <option value="バグ報告">バグ報告</option>
+                            <option value="機能要望">機能要望</option>
+                            <option value="アカウント関連">アカウント関連</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+                    <div class="error-msg" id="category-error">カテゴリを選択してください。</div>
+                </div>
+
+                <div class="field">
+                    <label for="name">お名前<span class="optional-badge">（任意）</span></label>
+                    <input type="text" id="name" name="name" placeholder="例：山田 太郎" maxlength="50">
+                </div>
+
+                <div class="field">
+                    <label for="email">メールアドレス<span class="required-badge">*</span></label>
+                    <input type="email" id="email" name="email" placeholder="例：example@gmail.com">
+                    <div class="error-msg" id="email-error">有効なメールアドレスを入力してください。</div>
+                </div>
+
+                <div class="field">
+                    <label for="message">お問い合わせ内容<span class="required-badge">*</span></label>
+                    <textarea id="message" name="message" placeholder="できるだけ詳しくご記入ください。" maxlength="2000"></textarea>
+                    <div class="char-count"><span id="char-count">0</span> / 2000</div>
+                    <div class="error-msg" id="message-error">お問い合わせ内容を入力してください。</div>
+                </div>
+
+                <div class="form-error" id="form-error"></div>
+                <button type="submit" class="submit-btn" id="submit-btn">送信する</button>
+            </form>
+
+            <div class="success-view" id="success-view">
+                <div class="success-icon">✅</div>
+                <h2>送信しました</h2>
+                <p>お問い合わせいただきありがとうございます。<br>通常 2〜3 営業日以内にご返信いたします。</p>
+            </div>
+        </div>
+
+        <div class="alt-contact">
+            メールでのお問い合わせ：<a href="mailto:V.EFFECT.developer@gmail.com">V.EFFECT.developer@gmail.com</a>
         </div>
 
         <div class="footer">
             &copy; 2026 V EFFECT Development Team
         </div>
     </div>
+
+    <!-- Firebase SDK (Firebase Hosting 予約 URL) -->
+    <script src="/__/firebase/10.12.0/firebase-app-compat.js"></script>
+    <script src="/__/firebase/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="/__/firebase/init.js"></script>
+
+    <script>
+        const db = firebase.firestore();
+
+        // 文字数カウンター
+        const messageEl = document.getElementById('message');
+        const charCountEl = document.getElementById('char-count');
+        messageEl.addEventListener('input', () => {
+            const len = messageEl.value.length;
+            charCountEl.textContent = len;
+            charCountEl.parentElement.classList.toggle('over', len >= 2000);
+        });
+
+        // バリデーション
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function showError(id, show) {
+            document.getElementById(id).style.display = show ? 'block' : 'none';
+        }
+
+        // フォーム送信
+        document.getElementById('contact-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const category = document.getElementById('category').value;
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const message = document.getElementById('message').value.trim();
+
+            // バリデーション
+            let hasError = false;
+            showError('category-error', !category);
+            showError('email-error', !email || !validateEmail(email));
+            showError('message-error', !message);
+            if (!category || !email || !validateEmail(email) || !message) {
+                hasError = true;
+            }
+            if (hasError) return;
+
+            const submitBtn = document.getElementById('submit-btn');
+            const formError = document.getElementById('form-error');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '送信中...';
+            formError.style.display = 'none';
+
+            try {
+                await db.collection('contactInquiries').add({
+                    category: category,
+                    name: name,
+                    email: email,
+                    message: message,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    userAgent: navigator.userAgent,
+                });
+
+                document.getElementById('contact-form').style.display = 'none';
+                document.getElementById('success-view').style.display = 'block';
+            } catch (err) {
+                console.error('送信エラー:', err);
+                formError.textContent = '送信に失敗しました。しばらく経ってから再度お試しください。';
+                formError.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = '送信する';
+            }
+        });
+    </script>
 </body>
 </html>
