@@ -173,10 +173,11 @@ class PostService {
   }) async {
     final uid = _auth.currentUser!.uid;
 
-    // べき等性（二重投稿防止）のための固定ID生成
+    // 複数回投稿を許容するため、タイムスタンプを付与
     final dateStr = DateHelper.toDateString(DateTime.now());
     final taskHash = taskName.hashCode.abs();
-    final postId = 'post_${uid}_${dateStr}_$taskHash';
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final postId = 'post_${uid}_${dateStr}_${taskHash}_$timestamp';
 
     // Step1: Firebase Storage に画像を保存
     final ref = _storage.ref().child('posts/$uid/$postId.jpg');

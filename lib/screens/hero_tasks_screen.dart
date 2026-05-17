@@ -26,10 +26,16 @@ import '../widgets/post_success_dialog.dart';
 /// 内部管理用のタスクアイテム
 class _HeroTaskItem {
   final String name;
-  final Post? completedPost;
+  final List<Post> completedPosts;
   final bool isOneTime;
-  bool get isCompleted => completedPost != null;
-  _HeroTaskItem({required this.name, this.completedPost, this.isOneTime = false});
+  bool get isCompleted => completedPosts.isNotEmpty;
+
+  Post? get latestPost {
+    if (completedPosts.isEmpty) return null;
+    return completedPosts.reduce((a, b) => a.createdAt.isAfter(b.createdAt) ? a : b);
+  }
+
+  _HeroTaskItem({required this.name, this.completedPosts = const [], this.isOneTime = false});
 }
 
 class HeroTasksScreen extends StatefulWidget {
@@ -202,16 +208,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
       final List<_HeroTaskItem> items = [];
       for (final task in allTasks) {
-        Post? completedPost;
-        for (final p in postedPosts) {
-          if (p.taskName == task.title) {
-            completedPost = p;
-            break;
-          }
-        }
+        final taskPosts = postedPosts.where((p) => p.taskName == task.title).toList();
         items.add(_HeroTaskItem(
           name: task.title, 
-          completedPost: completedPost,
+          completedPosts: taskPosts,
           isOneTime: task.isOneTime,
         ));
       }
@@ -219,9 +219,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       // リアクションしたユーザーの情報を取得
       final Set<String> uidsToFetch = {};
       for (final item in items) {
-        if (item.completedPost != null) {
-          uidsToFetch.addAll(item.completedPost!.emojiReactedUserIds);
-          uidsToFetch.addAll(item.completedPost!.userReactions.keys);
+        final latest = item.latestPost;
+        if (latest != null) {
+          uidsToFetch.addAll(latest.emojiReactedUserIds);
+          uidsToFetch.addAll(latest.userReactions.keys);
         }
       }
 
@@ -393,9 +394,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
       // 1. 一時的に「完了」状態にしてUI上の反映漏れを防ぐ
       final originalItem = _taskItems[index];
-      _taskItems[index] = _HeroTaskItem(
-        name: originalItem.name,
-        completedPost: Post(
+      final newTempPosts = List<Post>.from(originalItem.completedPosts)
+        ..add(Post(
           id: 'temp',
           userId: 'temp',
           imageUrl: null, // まだURLはないが、後続の演出でlocalImagePathを使う
@@ -404,7 +404,12 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           emojiReactedUserIds: const [],
           createdAt: DateTime.now(),
           expiresAt: DateTime.now().add(const Duration(hours: 24)),
-        ),
+        ));
+
+      _taskItems[index] = _HeroTaskItem(
+        name: originalItem.name,
+        completedPosts: newTempPosts,
+        isOneTime: originalItem.isOneTime,
       );
 
       setState(() {
@@ -640,7 +645,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                     right: 0,
                     child: IconButton(
                       onPressed:
-                          () => _deleteHeroPost(focusedTask!.completedPost!.id),
+                          () => _deleteHeroPost(focusedTask!.latestPost!.id),
                       icon: const Icon(
                         Icons.delete_outline_rounded,
                         color: AppColors.error,
@@ -741,7 +746,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                                 // 全体検知（タップで拡大・タスク選択）
                                 GestureDetector(
                                   behavior: HitTestBehavior.opaque,
-                                  onTap: () {
+                                  onTapUp: (details) {
                                     if (_expandedIndex != null) {
                                       setState(() => _expandedIndex = null);
                                       return;
@@ -758,10 +763,18 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                                     }
                                     final item = _taskItems[actualIndex];
                                     if (item.isCompleted) {
-                                      // タップで拡大
-                                      HapticFeedback.mediumImpact();
-                                      setState(
-                                          () => _expandedIndex = actualIndex);
+                                      // カードの真ん中付近（追いVボタン）か判定
+                                      final cardCenter = Offset(finalCardWidth / 2, maxCardHeight / 2);
+                                      final tapPos = details.localPosition;
+                                      final dist = (tapPos - cardCenter).distance;
+                                      if (dist < 60) { // 半径60以内なら追加撮影へ
+                                        _selectHeroTask(actualIndex);
+                                      } else {
+                                        // それ以外は拡大
+                                        HapticFeedback.mediumImpact();
+                                        setState(
+                                            () => _expandedIndex = actualIndex);
+                                      }
                                     } else {
                                       // 未完了ならカメラへ
                                       _selectHeroTask(actualIndex);
@@ -871,15 +884,13 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                 index: index + 1,
                 total: total,
                 depth: smoothDepth.round(),
-                showCamera:
-                    !item.isCompleted && !_isSublimating && index == _focusedIndex,
+                showCamera: !_isSublimating && index == _focusedIndex,
                 tierColor: _getTierColor(_streak),
                 isExpanded: isExpanded,
                 userPhotos: _userPhotos,
-                onDelete:
-                    item.completedPost != null
-                        ? () => _deleteHeroPost(item.completedPost!.id)
-                        : null,
+                onDelete: item.latestPost != null
+                    ? () => _deleteHeroPost(item.latestPost!.id)
+                    : null,
               ),
             ),
           ),
@@ -927,16 +938,20 @@ class _TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isTop = depth == 0;
     final isCompleted = item.isCompleted;
+    final postCount = item.completedPosts.length;
+    final latestPost = item.latestPost;
     const bgColorTop = Color(0xFF1C1D21);
     const bgColorBottom = Color(0xFF121316);
 
     final borderColor = isCompleted
         ? (isTop
-            ? AppColors.accentGold.withValues(alpha: 0.8)
+            ? (postCount >= 2 ? AppColors.accentGold : AppColors.accentGold.withValues(alpha: 0.8))
             : tierColor.withValues(alpha: 0.1))
         : (isTop
             ? AppColors.white.withValues(alpha: 0.12)
             : AppColors.white.withValues(alpha: 0.05));
+
+    final blurRadius = isTop ? (postCount >= 2 ? 40.0 : 30.0) : 10.0;
 
     return Container(
       decoration: BoxDecoration(
@@ -954,10 +969,10 @@ class _TaskCard extends StatelessWidget {
                 ],
                 stops: const [0.0, 0.4, 1.0],
               ),
-        image: isCompleted && item.completedPost?.imageUrl != null
+        image: isCompleted && latestPost?.imageUrl != null
             ? DecorationImage(
                 image: ResizeImage(
-                  CachedNetworkImageProvider(item.completedPost!.imageUrl!),
+                  CachedNetworkImageProvider(latestPost!.imageUrl!),
                   width: 540,
                 ),
                 fit: BoxFit.cover,
@@ -971,7 +986,7 @@ class _TaskCard extends StatelessWidget {
             : null,
         border: Border.all(
           color: borderColor,
-          width: isCompleted ? (isTop ? 1.5 : 0.5) : 0.8,
+          width: isCompleted ? (isTop ? (postCount >= 2 ? 2.5 : 1.5) : 0.5) : 0.8,
         ),
         boxShadow: [
           BoxShadow(
@@ -983,10 +998,10 @@ class _TaskCard extends StatelessWidget {
           if (isTop) // 二重の重いシャドウは最前面のみにし、ぼかしを軽減
             BoxShadow(
               color: isCompleted
-                  ? AppColors.accentGold.withValues(alpha: 0.3)
+                  ? AppColors.accentGold.withValues(alpha: postCount >= 2 ? 0.6 : 0.3)
                   : tierColor.withValues(alpha: 0.04),
-              blurRadius: 30, // 以前は80など過剰だったため30に制限
-              spreadRadius: 2,
+              blurRadius: blurRadius,
+              spreadRadius: postCount >= 2 ? 4 : 2,
             ),
         ],
       ),
@@ -999,6 +1014,8 @@ class _TaskCard extends StatelessWidget {
 
   Widget _buildStack() {
     final isCompleted = item.isCompleted;
+    final postCount = item.completedPosts.length;
+    final latestPost = item.latestPost;
     return Stack(
       children: [
         // テキスト上部エリア（カメラは別レイヤー）
@@ -1031,7 +1048,7 @@ class _TaskCard extends StatelessWidget {
                     Container(width: 16, height: 1, color: AppColors.accentGold),
                     const SizedBox(width: 8),
                     Text(
-                      'DONE',
+                      postCount >= 2 ? 'VICTORY x$postCount' : 'DONE',
                       style: GoogleFonts.outfit(
                         fontSize: 10,
                         color: AppColors.accentGold,
@@ -1090,11 +1107,61 @@ class _TaskCard extends StatelessWidget {
           ),
         ),
 
+        // カウントバッジ
+        if (isCompleted && postCount > 1 && depth == 0)
+          Positioned(
+            top: 24,
+            right: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.accentGold.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.accentGold,
+                  width: 1.5,
+                ),
+              ),
+              child: Text(
+                'x$postCount',
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.accentGold,
+                ),
+              ),
+            ),
+          ),
+
         // カメラボタン：ど真ん中に絶対配置
         if (!isCompleted && showCamera && depth == 0)
           Positioned.fill(
             child: Center(
               child: _PulseCameraButton(tierColor: tierColor),
+            ),
+          ),
+
+        // 達成済みの場合の「追いV」カメラアイコン（中央）
+        if (isCompleted && showCamera && depth == 0 && !isExpanded)
+          Positioned.fill(
+            child: Center(
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.black.withValues(alpha: 0.4),
+                  border: Border.all(
+                    color: AppColors.white.withValues(alpha: 0.5),
+                    width: 1.5,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.camera_alt_outlined,
+                  color: AppColors.white,
+                  size: 28,
+                ),
+              ),
             ),
           ),
 
@@ -1141,7 +1208,7 @@ class _TaskCard extends StatelessWidget {
                   SizedBox(
                     height: 16,
                     child: Text(
-                      '${item.completedPost?.reactionCount ?? 0}',
+                      '${latestPost?.reactionCount ?? 0}',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1155,17 +1222,17 @@ class _TaskCard extends StatelessWidget {
           ),
 
           // リアクションアバター (V FIREの左横)
-          if (item.completedPost != null &&
-              (item.completedPost!.reactionCount > 0))
+          if (latestPost != null &&
+              (latestPost.reactionCount > 0))
             Positioned(
               bottom: 54,  // Y=84pxの中心に合わせる (44px / 2 = 22, 84-22-8=54)
               right: 88,  // VFIRE(56+20) + 余白(12) = 88
               child: IgnorePointer(
                 child: ReactionAvatarsStack(
-                  userReactions: item.completedPost!.userReactions,
-                  reactorUids: item.completedPost!.emojiReactedUserIds,
+                  userReactions: latestPost.userReactions,
+                  reactorUids: latestPost.emojiReactedUserIds,
                   userPhotos: userPhotos,
-                  reactionCount: item.completedPost!.reactionCount,
+                  reactionCount: latestPost.reactionCount,
                   avatarSize: 44,
                   overlapOffset: 28,
                 ),

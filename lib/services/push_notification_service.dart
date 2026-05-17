@@ -191,17 +191,20 @@ class PushNotificationService {
 
   /// フォアグラウンドで通知を受信した場合の処理
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    final notification = message.notification;
-    if (notification == null) return;
+    try {
+      final notification = message.notification;
+      if (notification == null) return;
 
-    final context = VEffectApp.navigatorKey.currentContext;
-    if (context == null) return;
+      final context = VEffectApp.navigatorKey.currentContext;
+      if (context == null || !context.mounted) return;
 
-    final typeStr = message.data['type'] as String?;
-    final relatedId = message.data['relatedId'] as String?;
-    final fromUid = message.data['fromUid'] as String?;
+      final typeStr = message.data['type'] as String?;
+      final relatedId = message.data['relatedId'] as String?;
+      final fromUid = message.data['fromUid'] as String?;
 
-    List<ToastAction>? actions;
+      List<ToastAction>? actions;
+      
+      // 中略... (actions の設定ロジックは維持)
 
     // フォローリクエストの場合は承認ボタンを出す
     if (typeStr == NotificationType.friendRequestReceived.name &&
@@ -240,21 +243,25 @@ class PushNotificationService {
       ];
     }
 
-    PremiumNotificationToast.show(
-      context,
-      title: notification.title ?? '',
-      body: notification.body ?? '',
-      icon: _iconForType(typeStr),
-      actions: actions,
-      onTap: () {
-        if (fromUid != null) {
-          VEffectApp.navigatorKey.currentState?.pushNamed(
-            '/user-profile',
-            arguments: fromUid,
-          );
-        }
-      },
-    );
+      PremiumNotificationToast.show(
+        context,
+        title: notification.title ?? '',
+        body: notification.body ?? '',
+        icon: _iconForType(typeStr),
+        actions: actions,
+        onTap: () {
+          if (fromUid != null) {
+            VEffectApp.navigatorKey.currentState?.pushNamed(
+              '/user-profile',
+              arguments: fromUid,
+            );
+          }
+        },
+      );
+    } catch (e, stack) {
+      debugPrint('通知処理エラー（非致命的）: $e');
+      debugPrint(stack.toString());
+    }
   }
 
   IconData _iconForType(String? typeStr) {

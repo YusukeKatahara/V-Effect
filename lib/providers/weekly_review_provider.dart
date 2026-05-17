@@ -10,7 +10,7 @@ class WeeklyReviewData {
   WeeklyReviewData({required this.posts, required this.streak});
 }
 
-final weeklyReviewProvider = FutureProvider<WeeklyReviewData>((ref) async {
+final weeklyReviewProvider = FutureProvider.autoDispose<WeeklyReviewData>((ref) async {
   final postService = PostService.instance;
   
   // 自分のストリーク数と、直近7日間の投稿を並列で取得

@@ -61,6 +61,10 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) => _precacheImages());
     }
     _pageController = PageController(initialPage: 0);
+    _pageController.addListener(() {
+      if (mounted) setState(() {});
+    });
+    
     if (_isDataInitialized && _posts.isNotEmpty) {
       _startAutoTimer();
     }

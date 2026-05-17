@@ -3,6 +3,6 @@ import '../models/app_user.dart';
 import '../services/friend_service.dart';
 
 /// ログインユーザーがフォローしているユーザーのリストをストリームで監視し、提供するProvider
-final followingProvider = StreamProvider<List<AppUser>>((ref) {
+final followingProvider = StreamProvider.autoDispose<List<AppUser>>((ref) {
   return FriendService.instance.getFollowing();
 });
