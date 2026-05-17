@@ -1,0 +1,73 @@
+1 Structure
+1.1 Directory
+analytics   ┬app_state  ┬dau.log
+            │           └mau.log
+            └user       ┬AAAAAA ┬profile.txt
+                        │       ├posts.log
+                        │       ├streaks.log
+                        │       └tasks.csv
+                        ├AAAAAB ┬posts.log
+                        ⋮       ⋮
+
+1.2 caption
+dau.log: number of Daily Active Users
+mau.log: number of Monthly Active Users
+profile.txt: profile updated by themselves or automatically, and states LLM caculated
+posts.log: log of posts
+streaks.log: log of streaks, and current streak
+tasks.csv
+
+2. File examples
+2.1 dau.log
+<ddmmyyyy>: <number>
+06-05-2026: 20
+07-05-2026: 24
+08-05-2026: 19
+
+2.2 mau.log
+<mmyyyy>: <number>
+04-2026: 72
+05-2026: 89
+
+2.3 profile.txt
+sign-up date: 26-04-2026
+age: blank
+gender: blank
+job: blank
+follower: 8
+tasks: Run, Study, Cold shower, Nutrition
+monthly active rate: 0.82
+persona: blank
+
+[NOTE]
+Monthly active rate is updated at the end of every month.
+Persona is made with age, gender, job, monthly active rate, and other files (posts.log, streaks.log) by LLM or developer.
+
+2.4 posts.log
+<task name>         <posted time>               <number of received reactions>  <comments>
+Run                 06-05-2026 06:12            43
+Run                 07-05-2026 06:33            69                              new record!
+Nutrition           07-05-2026 17:02            23
+Run                 07-05-2026 07:01            55                              rainy...
+
+[NOTE]
+All of objects are filled all at once.
+
+2.5 streaks.log
+<updated time>  <streak>    <action>
+28-04-2026      1           break
+01-05-2026      1           shield
+03-05-2026      3           break
+08-05-2026      6           break
+
+[NOTE]
+Streaks are recorded when streak is over or user uses their streak shield. Current streak is always listed at last.
+streak is not broken (that means be not reset), if they use shield.
+
+2.6 tasks.log
+<time stamp>     <action>   <task name>
+29-04-2026 18:28 add        Run
+29-04-2026 18:29 add        study
+01-05-2026 14:28 add        Drink water
+03-05-2026 18:01 delete     Drink water
+03-05-2026 18:03 add        Nutrition

@@ -104,6 +104,20 @@ service cloud.firestore {
     }
 
     // ────────────────────────────────────────
+    // analytics コレクション（Admin SDK 専用）
+    // Flutter アプリからは一切アクセス不可
+    // ────────────────────────────────────────
+    match /analytics_users/{userId} {
+      allow read, write: if false;
+      match /posts/{postId} { allow read, write: if false; }
+      match /streaks/{entryId} { allow read, write: if false; }
+      match /tasks/{entryId} { allow read, write: if false; }
+    }
+    match /analytics_app_state/{docId} {
+      allow read, write: if false;
+    }
+
+    // ────────────────────────────────────────
     // posts コレクション
     // ────────────────────────────────────────
     match /posts/{postId} {

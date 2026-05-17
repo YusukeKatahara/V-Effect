@@ -53,31 +53,26 @@ if df_other.empty:
 else:
     task_options = df_other["task_name_original"].tolist()
 
-    with st.form("labeling_form"):
-        selected_task = st.selectbox(
-            "タスクを選択",
-            task_options,
-            format_func=lambda x: x,
-        )
+    selected_task = st.selectbox("タスクを選択", task_options, key="label_task")
 
-        # 選択中のタスクの翻訳を表示
-        selected_row = df_other[df_other["task_name_original"] == selected_task]
-        if not selected_row.empty:
-            translated = selected_row.iloc[0]["task_name_translated"]
-            st.caption(f"翻訳: {translated}")
+    # 選択中のタスクの翻訳を表示
+    selected_row = df_other[df_other["task_name_original"] == selected_task]
+    if not selected_row.empty:
+        st.caption(f"翻訳: {selected_row.iloc[0]['task_name_translated']}")
 
-        large_cats = list(CATEGORY_HIERARCHY.keys())
-        selected_large = st.selectbox("大カテゴリ", large_cats)
+    large_cats = list(CATEGORY_HIERARCHY.keys())
+    selected_large = st.selectbox("大カテゴリ", large_cats, key="label_large")
 
-        medium_cats = list(CATEGORY_HIERARCHY[selected_large].keys())
-        selected_medium = st.selectbox("中カテゴリ", medium_cats)
+    # 大カテゴリ変更時に中カテゴリを連動させるため form の外に置く
+    medium_cats = list(CATEGORY_HIERARCHY[selected_large].keys())
+    selected_medium = st.selectbox("中カテゴリ", medium_cats, key="label_medium")
 
-        submitted = st.form_submit_button("保存する", type="primary")
+    submitted = st.button("保存する", type="primary")
 
     if submitted:
         now_str = datetime.datetime.now().isoformat()
         translated_val = (
-            df_other[df_other["task_name_original"] == selected_task]["task_name_translated"].iloc[0]
+            selected_row.iloc[0]["task_name_translated"]
             if not selected_row.empty else selected_task
         )
 

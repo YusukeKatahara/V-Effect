@@ -26,8 +26,12 @@ class FirebaseClient:
                 "Firebase Console > プロジェクトの設定 > サービスアカウント > "
                 "「新しい秘密鍵を生成」でJSONをダウンロードし、analytics/config/firebase_admin_key.json に配置してください。"
             )
-        cred = credentials.Certificate(key_path)
-        cls._app = firebase_admin.initialize_app(cred)
+        try:
+            # 既に initialize_app() 済みの場合（Streamlit のページ遷移など）はそのまま使う
+            cls._app = firebase_admin.get_app()
+        except ValueError:
+            cred = credentials.Certificate(key_path)
+            cls._app = firebase_admin.initialize_app(cred)
         cls._db = firestore.client()
 
     @classmethod
