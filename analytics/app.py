@@ -39,10 +39,20 @@ with col_btn:
                     "「今日分を強制上書き」にチェックを入れると再取得できます。"
                 )
             else:
-                st.success(
-                    f"完了！ ユーザー {summary['total_users']} 件、"
-                    f"投稿 {summary['total_posts']} 件を保存しました。"
-                )
+                fa = summary.get("firestore_analytics", {})
+                if "error" in fa:
+                    st.success(
+                        f"完了！ ユーザー {summary['total_users']} 件、"
+                        f"投稿 {summary['total_posts']} 件を SQLite に保存しました。"
+                    )
+                    st.warning(f"Firestore analytics 書き込み中にエラーが発生しました: {fa['error']}")
+                else:
+                    event_writes = fa.get("streak_event_writes", 0) + fa.get("task_event_writes", 0)
+                    st.success(
+                        f"完了！ ユーザー {summary['total_users']} 件、投稿 {summary['total_posts']} 件を保存しました。  \n"
+                        f"Firestore analytics — プロフィール: {fa.get('profile_writes', 0)} 件 ／ "
+                        f"投稿: {fa.get('post_writes', 0)} 件 ／ イベント: {event_writes} 件"
+                    )
             st.rerun()
         except FileNotFoundError as e:
             st.error(str(e))

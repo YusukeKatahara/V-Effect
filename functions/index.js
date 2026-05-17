@@ -6,6 +6,7 @@ const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const { getAuth } = require("firebase-admin/auth");
 const { getStorage } = require("firebase-admin/storage");
+const nodemailer = require("nodemailer");
 
 initializeApp();
 
@@ -292,6 +293,49 @@ exports.loginWithUserId = onCall(async (request) => {
     throw new HttpsError("internal", "認証トークンの生成に失敗しました。");
   }
 });
+
+/**
+ * contactInquiries コレクションに新しいお問い合わせが届いたとき、
+ * V.EFFECT.developer@gmail.com にメール通知を送る
+ */
+exports.onContactInquiry = onDocumentCreated(
+  { document: "contactInquiries/{docId}", secrets: ["GMAIL_APP_PASSWORD"] },
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+
+    const { category, name, email, message, createdAt } = data;
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "V.EFFECT.developer@gmail.com",
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    });
+
+    const timestamp = createdAt
+      ? createdAt.toDate().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })
+      : "不明";
+
+    await transporter.sendMail({
+      from: "V.EFFECT.developer@gmail.com",
+      to: "V.EFFECT.developer@gmail.com",
+      subject: `[V-Effect お問い合わせ] ${category}`,
+      text: `
+カテゴリ: ${category}
+お名前: ${name || "（未記入）"}
+メール: ${email}
+日時: ${timestamp}
+
+--- お問い合わせ内容 ---
+${message}
+      `.trim(),
+    });
+
+    console.log(`Contact inquiry email sent. Category: ${category}, From: ${email}`);
+  }
+);
 
 /**
  * 毎日 21:00 に、今日まだ投稿していないストリーク保持者に警告通知を送る

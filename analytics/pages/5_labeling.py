@@ -13,83 +13,104 @@ st.set_page_config(page_title="手動ラベリング | V-EFFECT Analytics", page
 init_db()
 
 st.title("🏷️ 手動ラベリング")
-st.caption("機械分類で「Other」になったタスクに、開発者が直接カテゴリを設定できます。手動ラベルは機械分類より常に優先されます。")
+st.caption("誤分類・未分類のタスクに手動でカテゴリを設定します。手動ラベルは機械分類より常に優先されます。")
 
-# --- セクション1: 未ラベルタスク一覧 ---
-st.subheader("未ラベルタスク一覧")
+# ── カテゴリフィルター ────────────────────────────────────────────────────
+all_large = ["Other"] + list(CATEGORY_HIERARCHY.keys())
+filter_large = st.selectbox(
+    "表示するカテゴリ（誤分類の修正はここでカテゴリを選択して対象タスクを探してください）",
+    all_large,
+    key="filter_large",
+)
 
-df_other = read_df("""
+# ── セクション1: タスク一覧 ───────────────────────────────────────────────
+label = "未ラベルタスク一覧" if filter_large == "Other" else f"「{filter_large}」に分類されているタスク一覧"
+st.subheader(label)
+
+df_tasks = read_df(
+    """
     SELECT
         p.task_name_original,
         p.task_name_translated,
+        p.category_large,
+        p.category_medium,
         COUNT(*) AS post_count
     FROM post_snapshots p
-    WHERE p.category_large = 'Other'
-    GROUP BY p.task_name_original, p.task_name_translated
+    WHERE p.category_large = ?
+    GROUP BY p.task_name_original, p.task_name_translated, p.category_large, p.category_medium
     ORDER BY post_count DESC
-""")
+    """,
+    (filter_large,),
+)
 
-if df_other.empty:
-    st.success("未ラベルのタスクはありません。全タスクが分類済みです。")
+if df_tasks.empty:
+    if filter_large == "Other":
+        st.success("未ラベルのタスクはありません。全タスクが分類済みです。")
+    else:
+        st.info(f"「{filter_large}」に分類されているタスクはありません。")
 else:
+    col_rename = {
+        "task_name_original": "タスク名（原文）",
+        "task_name_translated": "翻訳",
+        "category_large": "大カテゴリ",
+        "category_medium": "中カテゴリ",
+        "post_count": "投稿数",
+    }
+    show_cols = ["task_name_original", "task_name_translated", "post_count"] if filter_large == "Other" \
+        else ["task_name_original", "task_name_translated", "category_large", "category_medium", "post_count"]
     st.dataframe(
-        df_other.rename(columns={
-            "task_name_original": "タスク名（原文）",
-            "task_name_translated": "翻訳",
-            "post_count": "投稿数",
-        }),
+        df_tasks[show_cols].rename(columns=col_rename),
         use_container_width=True,
         hide_index=True,
     )
-    st.caption(f"合計 {len(df_other)} 件の未ラベルタスクがあります。")
+    st.caption(f"合計 {len(df_tasks)} 件")
 
 st.divider()
 
-# --- セクション2: ラベル付与フォーム ---
-st.subheader("ラベルを付与する")
+# ── セクション2: ラベル付与フォーム ─────────────────────────────────────
+st.subheader("ラベルを付与 / 修正する")
 
-if df_other.empty:
-    st.info("未ラベルタスクがないため、ラベル付与フォームは表示されません。")
+if df_tasks.empty:
+    st.info("対象タスクがありません。")
 else:
-    task_options = df_other["task_name_original"].tolist()
+    task_options = df_tasks["task_name_original"].tolist()
+    selected_task = st.selectbox("タスクを選択", task_options, key="label_task")
 
-    with st.form("labeling_form"):
-        selected_task = st.selectbox(
-            "タスクを選択",
-            task_options,
-            format_func=lambda x: x,
+    selected_row = df_tasks[df_tasks["task_name_original"] == selected_task]
+    if not selected_row.empty:
+        r = selected_row.iloc[0]
+        st.caption(
+            f"翻訳: {r['task_name_translated']}　／　"
+            f"現在の分類: **{r['category_large']} / {r['category_medium']}**"
         )
 
-        # 選択中のタスクの翻訳を表示
-        selected_row = df_other[df_other["task_name_original"] == selected_task]
-        if not selected_row.empty:
-            translated = selected_row.iloc[0]["task_name_translated"]
-            st.caption(f"翻訳: {translated}")
+    large_cats = list(CATEGORY_HIERARCHY.keys())
+    # 現在の分類を初期値にする
+    current_large = selected_row.iloc[0]["category_large"] if not selected_row.empty else large_cats[0]
+    default_large_idx = large_cats.index(current_large) if current_large in large_cats else 0
+    selected_large = st.selectbox("大カテゴリ", large_cats, index=default_large_idx, key="label_large")
 
-        large_cats = list(CATEGORY_HIERARCHY.keys())
-        selected_large = st.selectbox("大カテゴリ", large_cats)
+    medium_cats = list(CATEGORY_HIERARCHY[selected_large].keys())
+    current_medium = selected_row.iloc[0]["category_medium"] if not selected_row.empty else medium_cats[0]
+    default_medium_idx = medium_cats.index(current_medium) if current_medium in medium_cats else 0
+    selected_medium = st.selectbox("中カテゴリ", medium_cats, index=default_medium_idx, key="label_medium")
 
-        medium_cats = list(CATEGORY_HIERARCHY[selected_large].keys())
-        selected_medium = st.selectbox("中カテゴリ", medium_cats)
-
-        submitted = st.form_submit_button("保存する", type="primary")
+    submitted = st.button("保存する", type="primary")
 
     if submitted:
         now_str = datetime.datetime.now().isoformat()
         translated_val = (
-            df_other[df_other["task_name_original"] == selected_task]["task_name_translated"].iloc[0]
+            selected_row.iloc[0]["task_name_translated"]
             if not selected_row.empty else selected_task
         )
 
         with get_conn() as conn:
-            # task_category_cache を手動ラベルで上書き
             conn.execute(
                 """INSERT OR REPLACE INTO task_category_cache
                    (task_name_original, task_name_translated, category_large, category_medium, classified_at, is_manual)
                    VALUES (?, ?, ?, ?, ?, 1)""",
                 (selected_task, translated_val, selected_large, selected_medium, now_str),
             )
-            # post_snapshots の該当タスクも一括更新
             updated = conn.execute(
                 """UPDATE post_snapshots
                    SET category_large = ?, category_medium = ?
@@ -105,7 +126,7 @@ else:
 
 st.divider()
 
-# --- セクション3: 手動ラベル済み一覧 ---
+# ── セクション3: 手動ラベル済み一覧 ─────────────────────────────────────
 st.subheader("手動ラベル済みタスク")
 
 df_manual = read_df("""

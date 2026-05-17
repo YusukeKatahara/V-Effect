@@ -1,9 +1,11 @@
 import datetime
+import json
 from typing import Optional
 
 from .anonymizer import anonymize_uid, anonymize_user
 from .db import get_conn, init_db
 from .firebase_client import FirebaseClient
+from .firestore_analytics_writer import write_analytics_snapshot
 from .task_classifier import TaskClassifier
 from .translator import translate_batch
 from .user_typer import infer_user_type
@@ -136,9 +138,11 @@ def run_daily_snapshot(target_date: Optional[datetime.date] = None, force: bool 
     })
     task_translation_map = translate_batch(all_task_names)
 
+    anon_users = {}  # uid -> anonymize_user() の結果（Firestore analytics 書き込みで使用）
     user_rows = []
     for user in users:
         anon = anonymize_user(user)
+        anon_users[user["uid"]] = anon
         task_titles_en = [task_translation_map.get(t, t) for t in anon["tasks"]]
         task_categories = [classifier.classify(t)["large"] for t in task_titles_en]
         primary_type = infer_user_type(task_categories)
@@ -152,14 +156,16 @@ def run_daily_snapshot(target_date: Optional[datetime.date] = None, force: bool 
             anon["followers_count"],
             primary_type,
             anon["last_posted_date"],
+            anon.get("streak_protections", 0),
+            json.dumps(anon["tasks"], ensure_ascii=False),
         ))
 
     with get_conn() as conn:
         conn.executemany(
             """INSERT OR REPLACE INTO user_snapshots
                (date, anon_user_id, streak, max_streak, following_count, followers_count,
-                primary_user_type, last_posted_date)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                primary_user_type, last_posted_date, streak_protections, task_names)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             user_rows,
         )
 
@@ -184,6 +190,18 @@ def run_daily_snapshot(target_date: Optional[datetime.date] = None, force: bool 
         "posts_today": posts_today,
     }
     print(f"[snapshot] 完了: {summary}")
+
+    # --- 4. Firestore analytics コレクションへの書き込み ---
+    analytics_result = write_analytics_snapshot(
+        users=users,
+        active_posts=active_posts,
+        anon_users=anon_users,
+        date_str=date_str,
+        dau=dau,
+        total_users=len(users),
+    )
+    summary["firestore_analytics"] = analytics_result
+
     return summary
 
 

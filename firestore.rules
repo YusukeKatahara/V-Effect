@@ -88,6 +88,57 @@ service cloud.firestore {
     }
 
     // ────────────────────────────────────────
+    // contactInquiries コレクション
+    // ────────────────────────────────────────
+    match /contactInquiries/{docId} {
+      // サポートページは未ログインでもアクセス可のため、未認証でも作成を許可
+      // 必須フィールドの存在とサイズ制限のみ検証
+      allow create: if request.resource.data.keys().hasAll(['email', 'category', 'message', 'createdAt'])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 2000
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 0;
+      // 管理者以外は読み取り・更新・削除不可
+      allow read, update, delete: if false;
+    }
+
+    // ────────────────────────────────────────
+    // analytics コレクション（Admin SDK 専用）
+    // Flutter アプリからは一切アクセス不可
+    // ────────────────────────────────────────
+    match /analytics_users/{userId} {
+      allow read, write: if false;
+      match /posts/{postId} { allow read, write: if false; }
+      match /streaks/{entryId} { allow read, write: if false; }
+      match /tasks/{entryId} { allow read, write: if false; }
+    }
+    match /analytics_app_state/{docId} {
+      allow read, write: if false;
+    }
+
+    // ────────────────────────────────────────
+    // dev_blog コレクション（V-Practice ブログ）
+    // ────────────────────────────────────────
+    match /dev_blog/{postId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null
+        && get(/databases/$(database)/documents/app_config/developers)
+            .data.developerUids.hasAny([
+              get(/databases/$(database)/documents/users/$(request.auth.uid))
+                .data.userId
+            ]);
+    }
+
+    // ────────────────────────────────────────
+    // app_config（開発者UID管理など）
+    // ────────────────────────────────────────
+    match /app_config/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // ────────────────────────────────────────
     // posts コレクション
     // ────────────────────────────────────────
     match /posts/{postId} {
