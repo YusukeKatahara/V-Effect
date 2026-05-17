@@ -83,11 +83,11 @@ class HomeData {
   }
 }
 
-final postUpdateProvider = StreamProvider<void>((ref) {
+final postUpdateProvider = StreamProvider.autoDispose<void>((ref) {
   return PostService.instance.updateStream;
 });
 
-final homeDataProvider = FutureProvider<HomeData>((ref) async {
+final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
   // PostService からの更新信号を監視。信号が届くたびにこの Provider は再実行される。
   ref.watch(postUpdateProvider);
   

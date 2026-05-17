@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
@@ -47,9 +48,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     const adminEmails = [
       'ren0930ren0930@gmail.com', 
       'yusuke@example.com',
-      'yusukekatahara@gmail.com'
+      'yusukekatahara@gmail.com',
+      'y.katahara.academia@gmail.com'
     ];
-    return adminEmails.contains(widget.user.email);
+    final email = widget.user.email ?? widget.privateData['email'] as String?;
+    return email != null && adminEmails.contains(email);
   }
 
   @override
@@ -99,9 +102,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       imageQuality: 70,
     );
     if (pickedFile != null) {
-      setState(() {
-        _newProfileImage = File(pickedFile.path);
-      });
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: '画像を調整',
+            toolbarColor: AppColors.bgSurface,
+            toolbarWidgetColor: AppColors.textPrimary,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+            hideBottomControls: true,
+            cropStyle: CropStyle.circle,
+          ),
+          IOSUiSettings(
+            title: '画像を調整',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+            cropStyle: CropStyle.circle,
+          ),
+        ],
+      );
+
+      if (croppedFile != null) {
+        setState(() {
+          _newProfileImage = File(croppedFile.path);
+        });
+      }
     }
   }
 

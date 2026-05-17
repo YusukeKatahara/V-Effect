@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import '../../config/app_colors.dart';
 import '../../config/routes.dart';
 import '../../services/user_service.dart';
@@ -77,7 +78,31 @@ class _OnboardingProfileSettingsScreenState
       imageQuality: 80,
     );
     if (picked != null && !kIsWeb && mounted) {
-      setState(() => _profileImage = File(picked.path));
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: '画像を調整',
+            toolbarColor: AppColors.bgSurface,
+            toolbarWidgetColor: AppColors.textPrimary,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+            hideBottomControls: true,
+            cropStyle: CropStyle.circle,
+          ),
+          IOSUiSettings(
+            title: '画像を調整',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+            cropStyle: CropStyle.circle,
+          ),
+        ],
+      );
+
+      if (croppedFile != null && mounted) {
+        setState(() => _profileImage = File(croppedFile.path));
+      }
     }
   }
 
