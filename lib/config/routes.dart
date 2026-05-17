@@ -28,6 +28,8 @@ import '../screens/terms_screen.dart';
 import '../screens/privacy_policy_screen.dart';
 import '../screens/notification_settings_screen.dart';
 import '../screens/security_settings_screen.dart';
+import '../screens/blog_post_detail_screen.dart';
+import '../screens/blog_post_editor_screen.dart';
 
 /// アプリ全体のルート（画面の住所）定義
 class AppRoutes {
@@ -56,6 +58,8 @@ class AppRoutes {
   static const String notificationSettings = '/notification-settings';
   static const String securitySettings = '/security-settings';
   static const String vPractice = '/v-practice';
+  static const String blogPostDetail = '/blog-post-detail';
+  static const String blogPostEditor = '/blog-post-editor';
   static const String onboardingVEffect     = '/onboarding/v-effect';
   static const String onboardingCoreFeature = '/onboarding/core-feature';
   static const String onboardingProfile     = '/onboarding/profile';
@@ -90,6 +94,8 @@ class AppRoutes {
         notificationSettings: (context) => const NotificationSettingsScreen(),
         securitySettings: (context) => const SecuritySettingsScreen(),
         vPractice: (context) => const VPracticeScreen(),
+        blogPostDetail: (context) => const BlogPostDetailScreen(),
+        blogPostEditor: (context) => const BlogPostEditorScreen(),
         onboardingVEffect: (context) => const VEffectScreen(),
         onboardingCoreFeature: (context) => const CoreFeatureScreen(),
         onboardingProfile: (context) => const OnboardingProfileSettingsScreen(),

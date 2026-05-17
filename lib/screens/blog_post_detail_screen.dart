@@ -1,0 +1,269 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+
+import '../config/app_colors.dart';
+import '../config/routes.dart';
+import '../models/dev_blog_post.dart';
+import '../providers/dev_blog_provider.dart';
+import '../services/dev_blog_service.dart';
+
+class BlogPostDetailScreen extends ConsumerStatefulWidget {
+  const BlogPostDetailScreen({super.key});
+
+  @override
+  ConsumerState<BlogPostDetailScreen> createState() =>
+      _BlogPostDetailScreenState();
+}
+
+class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
+  late DevBlogPost _initialPost;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _initialPost =
+        ModalRoute.of(context)!.settings.arguments as DevBlogPost;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDev = ref.watch(isDeveloperProvider).valueOrNull ?? false;
+
+    return Scaffold(
+      backgroundColor: AppColors.black,
+      body: StreamBuilder<DevBlogPost?>(
+        stream: DevBlogService.instance.getPost(_initialPost.id),
+        builder: (context, snapshot) {
+          final post = snapshot.data ?? _initialPost;
+
+          return CustomScrollView(
+            slivers: [
+              _buildSliverAppBar(context, post, isDev),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+                  child: _buildContent(post),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSliverAppBar(
+      BuildContext context, DevBlogPost post, bool isDev) {
+    return SliverAppBar(
+      expandedHeight: 240,
+      pinned: true,
+      backgroundColor: AppColors.black,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded,
+            color: AppColors.white, size: 20),
+        onPressed: () => Navigator.pop(context),
+      ),
+      actions: isDev
+          ? [
+              IconButton(
+                icon: const Icon(Icons.edit_rounded,
+                    color: AppColors.white, size: 20),
+                onPressed: () => Navigator.pushNamed(
+                  context,
+                  AppRoutes.blogPostEditor,
+                  arguments: post,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded,
+                    color: AppColors.grey50, size: 20),
+                onPressed: () => _confirmDelete(context, post),
+              ),
+            ]
+          : null,
+      flexibleSpace: FlexibleSpaceBar(
+        background: post.coverImageUrl != null
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: post.coverImageUrl!,
+                    fit: BoxFit.cover,
+                  ),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          AppColors.black.withValues(alpha: 0.85),
+                        ],
+                        stops: const [0.4, 1.0],
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Container(
+                color: AppColors.grey10,
+                child: Center(
+                  child: Icon(
+                    Icons.article_outlined,
+                    size: 48,
+                    color: AppColors.grey30,
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildContent(DevBlogPost post) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _CategoryChip(category: post.category),
+            if (post.isPinned) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.push_pin_rounded,
+                  size: 13, color: AppColors.accentGold),
+            ],
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        Text(
+          post.title,
+          style: GoogleFonts.notoSansJp(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: AppColors.white,
+            height: 1.4,
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        Row(
+          children: [
+            Text(
+              post.authorName,
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                color: AppColors.grey70,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Container(
+                  width: 3,
+                  height: 3,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.grey30,
+                  )),
+            ),
+            Text(
+              DateFormat('yyyy年M月d日').format(post.createdAt),
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                color: AppColors.grey50,
+              ),
+            ),
+          ],
+        ),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Divider(
+              color: AppColors.grey20, thickness: 0.5, height: 0),
+        ),
+
+        Text(
+          post.body,
+          style: GoogleFonts.notoSansJp(
+            fontSize: 15,
+            color: AppColors.grey85,
+            height: 1.8,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _confirmDelete(BuildContext context, DevBlogPost post) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.grey10,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          '記事を削除しますか？',
+          style: GoogleFonts.notoSansJp(
+              color: AppColors.white, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'この操作は取り消せません。',
+          style: GoogleFonts.notoSansJp(
+              color: AppColors.grey50, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('キャンセル',
+                style:
+                    GoogleFonts.outfit(color: AppColors.grey50)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final nav = Navigator.of(context);
+              nav.pop();
+              await DevBlogService.instance.deletePost(post.id);
+              if (mounted) nav.pop();
+            },
+            child: Text('削除',
+                style: GoogleFonts.outfit(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip({required this.category});
+
+  final BlogCategory category;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.grey15,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.grey30, width: 0.5),
+      ),
+      child: Text(
+        category.label,
+        style: GoogleFonts.outfit(
+          fontSize: 12,
+          color: AppColors.grey70,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+}
