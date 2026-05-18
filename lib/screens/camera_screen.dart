@@ -4,13 +4,10 @@ import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../services/post_service.dart';
 
@@ -22,7 +19,7 @@ import '../providers/home_provider.dart';
 /// カメラ起動時にボトムシートを表示せず、即座にカメラプレビューを表示。
 /// 左下にアルバムボタン、中央にシャッターボタンを配置したカスタムカメラUI。
 /// [heroTaskName] が渡された場合、ヒーロータスク名は固定表示されます。
-/// 投稿成功時は `Navigator.pop(context, true)` で結果を返します。
+/// 投稿成功時は `Navigator.pop(context, Map<String, dynamic>)` で結果を返します。
 class CameraScreen extends ConsumerStatefulWidget {
   const CameraScreen({super.key, this.heroTaskName});
 
@@ -37,10 +34,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   final ImagePicker _picker = ImagePicker();
   final PostService _postService = PostService.instance;
   XFile? _image;
-  DateTime? _captureTime;
   bool _isUploading = false;
-  bool _showTimestamp = true;
   final TextEditingController _captionController = TextEditingController();
+  final GlobalKey _boundaryKey = GlobalKey();
+  final TransformationController _transformationController = TransformationController();
 
   // ── カメラ制御 ──
   CameraController? _cameraController;
@@ -49,6 +46,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   bool _isCapturing = false; // シャッター連打防止
   int _currentCameraIndex = 0; // 0: 背面, 1: 前面
   FlashMode _flashMode = FlashMode.off; // フラッシュモード
+  bool _isInitializing = false; // カメラ初期化中フラグ（二重起動防止）
+
+  // ── ズーム制御 ──
+  double _minAvailableZoom = 1.0;
+  double _maxAvailableZoom = 1.0;
+  double _currentZoomLevel = 1.0;
+  double _baseZoomLevel = 1.0;
 
   String? get _taskName {
     // ルート引数 or コンストラクタ引数
@@ -62,7 +66,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadSettings();
     _initCamera();
   }
 
@@ -71,12 +74,18 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     WidgetsBinding.instance.removeObserver(this);
     _cameraController?.dispose();
     _captionController.dispose();
+    _transformationController.dispose();
     super.dispose();
   }
 
   /// アプリがバックグラウンドから復帰したときにカメラを再初期化
+  /// ※ カメラ権限ダイアログ表示中にも inactive → resumed が発生するため、
+  ///   _isInitializing ガードで初期化中の二重破棄・二重起動を防ぐ。
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 初期化中（権限ダイアログ含む）は何もしない
+    if (_isInitializing) return;
+
     final controller = _cameraController;
     if (controller == null || !controller.value.isInitialized) return;
 
@@ -94,24 +103,14 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     }
   }
 
-  Future<void> _loadSettings() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    final snap = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('private')
-        .doc('data')
-        .get();
-    if (mounted) {
-      setState(() {
-        _showTimestamp = snap.data()?['showTimestamp'] ?? true;
-      });
-    }
-  }
+
 
   /// カメラを初期化してプレビューを開始
+  /// 二重呼び出しを防ぐために _isInitializing フラグで排他制御する。
   Future<void> _initCamera() async {
+    if (_isInitializing) return; // 二重起動防止
+    _isInitializing = true;
+
     try {
       _cameras = await availableCameras();
       if (_cameras.isEmpty) {
@@ -128,13 +127,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       await _startCamera(_cameras[_currentCameraIndex]);
     } catch (e) {
       debugPrint('CAMERA INIT ERROR: $e');
+    } finally {
+      _isInitializing = false;
     }
   }
 
   /// 指定のカメラでコントローラーを起動
   Future<void> _startCamera(CameraDescription camera) async {
-    // 既存のコントローラーを破棄
-    await _cameraController?.dispose();
+    // 既存のコントローラーを安全に破棄
+    final oldController = _cameraController;
+    _cameraController = null;
+    await oldController?.dispose();
 
     final controller = CameraController(
       camera,
@@ -146,6 +149,15 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
     try {
       await controller.initialize();
+      // 初期化完了後、まだこのコントローラーが有効か確認
+      if (!mounted || _cameraController != controller) return;
+      
+      // ズームレベルの初期化
+      _minAvailableZoom = await controller.getMinZoomLevel();
+      _maxAvailableZoom = await controller.getMaxZoomLevel();
+      _currentZoomLevel = _minAvailableZoom;
+      _baseZoomLevel = _minAvailableZoom;
+
       // 現在のフラッシュモードを適用
       await controller.setFlashMode(_flashMode);
       if (mounted) {
@@ -275,8 +287,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         photoPath = await _mirrorImage(photoPath);
       }
 
-      // 撮影後にクロップ画面へ
-      await _cropImage(photoPath);
+      // カメラでの撮影時はクロップ画面をスキップして直接プレビュー（Instagramライクな挙動）
+      if (mounted) {
+        setState(() {
+          _image = XFile(photoPath);
+        });
+      }
     } catch (e) {
       debugPrint('CAPTURE ERROR: $e');
     } finally {
@@ -294,46 +310,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         imageQuality: 80,
       );
       if (photo != null && mounted) {
-        await _cropImage(photo.path);
-      }
-    } catch (e) {
-      debugPrint('GALLERY PICK ERROR: $e');
-    }
-  }
-
-  Future<void> _cropImage(String path) async {
-    try {
-      final croppedFile = await ImageCropper().cropImage(
-        sourcePath: path,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'クロップ',
-            toolbarColor: AppColors.black,
-            toolbarWidgetColor: AppColors.white,
-            initAspectRatio: CropAspectRatioPreset.original,
-            lockAspectRatio: true,
-            activeControlsWidgetColor: AppColors.accentGold,
-          ),
-          IOSUiSettings(
-            title: 'クロップ',
-            aspectRatioLockEnabled: true,
-            resetAspectRatioEnabled: false,
-          ),
-          WebUiSettings(
-            context: context,
-          ),
-        ],
-        aspectRatio: const CropAspectRatio(ratioX: 9, ratioY: 16),
-      );
-
-      if (croppedFile != null && mounted) {
         setState(() {
-          _image = XFile(croppedFile.path);
-          _captureTime = DateTime.now();
+          _image = XFile(photo.path);
         });
       }
     } catch (e) {
-      debugPrint('CROP IMAGE ERROR: $e');
+      debugPrint('GALLERY PICK ERROR: $e');
     }
   }
 
@@ -341,12 +323,24 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   Future<void> _retake() async {
     setState(() {
       _image = null;
-      _captureTime = null;
       _captionController.clear();
     });
     // カメラが破棄されている場合は再初期化
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       await _initCamera();
+    }
+  }
+
+  Future<Uint8List?> _capturePng() async {
+    try {
+      final boundary = _boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+      final img = await boundary.toImage(pixelRatio: 2.0);
+      final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('Capture PNG Error: $e');
+      return null;
     }
   }
 
@@ -358,7 +352,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     setState(() => _isUploading = true);
 
     try {
-      final bytes = await _image!.readAsBytes();
+      final bytes = await _capturePng() ?? await _image!.readAsBytes();
       final captionText = _captionController.text.trim();
 
       final result = await _postService.createPost(
@@ -448,7 +442,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         children: [
           IconButton(
             icon: const Icon(Icons.close, color: AppColors.white),
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context),
           ),
           const Spacer(),
           if (taskName != null)
@@ -511,11 +505,30 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 width: 1,
               ),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: _isCameraReady && _cameraController != null
-                  ? _buildCameraPreview()
-                  : _buildCameraLoading(),
+            child: GestureDetector(
+              onScaleStart: (details) {
+                _baseZoomLevel = _currentZoomLevel;
+              },
+              onScaleUpdate: (details) async {
+                final controller = _cameraController;
+                if (controller == null || !controller.value.isInitialized) return;
+                
+                final zoom = (_baseZoomLevel * details.scale).clamp(_minAvailableZoom, _maxAvailableZoom);
+                if (zoom != _currentZoomLevel) {
+                  _currentZoomLevel = zoom;
+                  try {
+                    await controller.setZoomLevel(zoom);
+                  } catch (e) {
+                    debugPrint('ZOOM ERROR: $e');
+                  }
+                }
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: _isCameraReady && _cameraController != null
+                    ? _buildCameraPreview()
+                    : _buildCameraLoading(),
+              ),
             ),
           ),
         ),
@@ -673,6 +686,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   /// ── 写真プレビュー（撮影済み） ──
   Widget _buildPreview() {
+    final taskName = _taskName ?? '今日のヒーロータスク';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       decoration: BoxDecoration(
@@ -683,8 +698,15 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.white.withValues(alpha: 0.03),
-            blurRadius: 40,
+            color: AppColors.black.withValues(alpha: 0.5),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+            spreadRadius: -2,
+          ),
+          BoxShadow(
+            color: AppColors.accentGold.withValues(alpha: 0.15),
+            blurRadius: 30,
+            spreadRadius: 2,
           ),
         ],
       ),
@@ -693,32 +715,166 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            kIsWeb
-                ? Image.network(_image!.path, fit: BoxFit.cover)
-                : Image.file(File(_image!.path), fit: BoxFit.cover),
-
-            // Timestamp
-            if (_captureTime != null && _showTimestamp)
-              Positioned(
-                bottom: 20,
-                right: 20,
-                child: Text(
-                  DateFormat('yy/MM/dd\nHH:mm').format(_captureTime!),
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    shadows: [
-                      Shadow(
-                        color: AppColors.black.withValues(alpha: 0.6),
-                        offset: const Offset(1, 1),
-                        blurRadius: 2,
-                      ),
-                    ],
-                  ),
+            // ドラッグ＆ピンチズーム用の領域（画像部分のみをRepaintBoundaryで囲んで切り取る）
+            RepaintBoundary(
+              key: _boundaryKey,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: InteractiveViewer(
+                  transformationController: _transformationController,
+                  minScale: 1.0,
+                  maxScale: 3.0,
+                  panEnabled: true,
+                  scaleEnabled: true,
+                  child: kIsWeb
+                      ? Image.network(
+                          _image!.path,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        )
+                      : Image.file(
+                          File(_image!.path),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
                 ),
               ),
+            ),
+
+            // ダークフィルタ（ホーム画面のカードに重なる暗み）
+            IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  color: AppColors.black.withValues(alpha: 0.35),
+                ),
+              ),
+            ),
+
+            // ヒーロータスク枠のデザイン：上部テキスト（タスク名 ＆ DONE）
+            Positioned(
+              top: 32,
+              left: 32,
+              right: 32,
+              child: IgnorePointer(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      taskName,
+                      style: GoogleFonts.notoSerifJp(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.white,
+                        height: 1.4,
+                        letterSpacing: 1.5,
+                        shadows: [
+                          Shadow(
+                            color: AppColors.black.withValues(alpha: 0.8),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          )
+                        ],
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Container(
+                          width: 16,
+                          height: 1,
+                          color: AppColors.accentGold,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'DONE',
+                          style: GoogleFonts.outfit(
+                            fontSize: 10,
+                            color: AppColors.accentGold,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ヒーロータスク枠のデザイン：右下のV FIREボタン
+            Positioned(
+              bottom: 24,
+              right: 20,
+              child: IgnorePointer(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.white.withValues(alpha: 0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.local_fire_department,
+                        color: AppColors.accentGold,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '0',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // 指示テキスト（調整可能なことをユーザーに示すマイクロUX）
+            Positioned(
+              bottom: 20,
+              left: 20,
+              child: IgnorePointer(
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.zoom_out_map_rounded,
+                      color: AppColors.white.withValues(alpha: 0.6),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'ドラッグ・ピンチで位置調整',
+                      style: GoogleFonts.notoSansJp(
+                        fontSize: 10,
+                        color: AppColors.white.withValues(alpha: 0.6),
+                        shadows: [
+                          const Shadow(
+                            color: AppColors.black,
+                            blurRadius: 4,
+                          )
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

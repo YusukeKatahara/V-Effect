@@ -116,15 +116,15 @@ class _PremiumNotificationToastState extends State<PremiumNotificationToast>
             borderRadius: BorderRadius.circular(20),
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.bgSurface.withOpacity(0.9),
+                color: AppColors.bgSurface.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: AppColors.accentGold.withOpacity(0.4),
+                  color: AppColors.accentGold.withValues(alpha: 0.4),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.black.withOpacity(0.4),
+                    color: AppColors.black.withValues(alpha: 0.4),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -142,7 +142,7 @@ class _PremiumNotificationToastState extends State<PremiumNotificationToast>
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.accentGold.withOpacity(0.1),
+                              color: AppColors.accentGold.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -185,7 +185,7 @@ class _PremiumNotificationToastState extends State<PremiumNotificationToast>
                         decoration: BoxDecoration(
                           border: Border(
                             top: BorderSide(
-                              color: AppColors.white.withOpacity(0.1),
+                              color: AppColors.white.withValues(alpha: 0.1),
                               width: 0.5,
                             ),
                           ),

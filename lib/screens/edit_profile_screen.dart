@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 
@@ -12,7 +11,7 @@ import '../widgets/gradient_button.dart';
 import '../widgets/section_title.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/swipe_back_gate.dart';
-import '../services/push_notification_service.dart';
+
 
 class EditProfileScreen extends StatefulWidget {
   final AppUser user;

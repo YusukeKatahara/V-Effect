@@ -563,7 +563,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         barrierColor: Colors.black.withValues(alpha: 0.9),
                         pageBuilder: (context, _, __) => FullScreenImageViewer(
                           imageUrl: photoUrl,
-                          heroTag: 'profile_image_${_targetUid}',
+                          heroTag: 'profile_image_$_targetUid',
                         ),
                         transitionsBuilder: (context, animation, secondaryAnimation, child) {
                           return FadeTransition(opacity: animation, child: child);
@@ -572,7 +572,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     );
                   },
                   child: Hero(
-                    tag: 'profile_image_${_targetUid}',
+                    tag: 'profile_image_$_targetUid',
                     child: CircleAvatar(
                       radius: 40,
                       backgroundImage: ResizeImage(

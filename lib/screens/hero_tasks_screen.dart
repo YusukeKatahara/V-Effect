@@ -60,7 +60,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   bool _postedToday = false;
   bool _loading = true;
   List<_HeroTaskItem> _taskItems = [];
-  bool _isAllTasksCompleted = false;
 
   // ── Card Expansion ──
   int? _expandedIndex; // 長押しで拡大中のカードインデックス
@@ -243,8 +242,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         _streak = (homeData['streak'] as num?)?.toInt() ?? 0;
         _streakProtections = (homeData['streakProtections'] as num?)?.toInt() ?? 0;
         _postedToday = homeData['postedToday'] as bool? ?? false;
-        _isAllTasksCompleted =
-            homeData['isAllTasksCompleted'] as bool? ?? false;
         _taskItems = items;
         _userPhotos.addAll(photoMap);
         _userNames.addAll(nameMap);

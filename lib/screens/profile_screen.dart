@@ -14,7 +14,6 @@ import 'settings_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/push_notification_service.dart';
-import '../services/invite_service.dart';
 import 'qr_display_screen.dart';
 import 'qr_scanner_screen.dart';
 import '../widgets/responsive_container.dart';
@@ -583,22 +582,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _shareInviteCard() async {
-    final userId = _user?.userId;
-    final username = _user?.username;
-    if (userId == null || userId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ユーザーIDが設定されていません')),
-      );
-      return;
-    }
-    await InviteService.instance.shareInviteCard(
-      userId: userId,
-      username: username ?? 'V EFFECT User',
-    );
-  }
 
-  // ---
   // ---プロフィールヘッダー
   // ---
   Widget _buildProfileHeader() {
@@ -707,26 +691,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   tooltip: 'QRコードで繋がる',
                   onPressed: _showQrActionDialog,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.grey15.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.white.withValues(alpha: 0.08),
-                    width: 0.5,
-                  ),
-                ),
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.card_giftcard,
-                    color: AppColors.accentGold,
-                    size: 26,
-                  ),
-                  tooltip: '名刺でフレンドを招待',
-                  onPressed: _shareInviteCard,
                 ),
               ),
             ],

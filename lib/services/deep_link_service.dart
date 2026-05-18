@@ -66,13 +66,14 @@ class DeepLinkService {
     try {
       final user = await FriendService.instance.searchByUserId(userId);
       final context = VEffectApp.navigatorKey.currentContext;
-      if (context == null) return;
+      if (context == null || !context.mounted) return;
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('ユーザーが見つかりません')),
         );
         return;
       }
+      if (!context.mounted) return;
       Navigator.of(context).pushNamed(
         AppRoutes.userProfile,
         arguments: {
@@ -101,7 +102,7 @@ class DeepLinkService {
       );
       
       final context = VEffectApp.navigatorKey.currentContext;
-      if (context != null) {
+      if (context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
         // ラッパーに戻して、認証状態を再評価させる
         Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.wrapper, (r) => false);
@@ -109,7 +110,7 @@ class DeepLinkService {
     } catch (e) {
       debugPrint('Error verifying email: $e');
       final context = VEffectApp.navigatorKey.currentContext;
-      if (context != null) {
+      if (context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('認証に失敗しました。リンクが無効か期限切れの可能性があります。: $e')),
         );

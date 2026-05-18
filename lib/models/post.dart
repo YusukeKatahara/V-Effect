@@ -55,7 +55,7 @@ class Post {
     return Post.fromMap(doc.id, data ?? {});
   }
 
-  /// Map<String, dynamic> からモデルを生成します (withConverter用)
+  /// `Map<String, dynamic>` からモデルを生成します (withConverter用)
   factory Post.fromMap(String id, Map<String, dynamic> data) {
     Map<String, String> userReactions = {};
     List<String> emojiReactedUserIds = [];

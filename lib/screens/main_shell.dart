@@ -7,10 +7,6 @@ import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'hero_tasks_screen.dart';
 
-// NavBarがコンテンツに被らないようSafeAreaのbottomに追加するオフセット
-// 60(bar) + 12(margin) + 8(buffer) = 80
-const double _kNavBarExtraBottom = 30;
-
 /// Spatial Shell — ジェスチャー主導のUI空間
 ///
 /// ボトムナビゲーションを排除。
