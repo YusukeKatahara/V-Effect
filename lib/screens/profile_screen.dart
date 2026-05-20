@@ -225,6 +225,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ---── ヒーロータスクの追加 ──
   Future<void> _addTask() async {
     final controller = TextEditingController();
+    final triggerController = TextEditingController();
     bool isOneTime = false;
 
     final result = await showDialog<Map<String, dynamic>>(
@@ -238,42 +239,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'タスクを追加',
                     style: TextStyle(color: AppColors.white),
                   ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: controller,
-                        autofocus: true,
-                        style: const TextStyle(color: AppColors.white),
-                        decoration: const InputDecoration(
-                          hintText: '例: 読書を30分する',
-                          hintStyle: TextStyle(color: AppColors.grey30),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SwitchListTile(
-                        title: const Text(
-                          'One-Time Task',
-                          style: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 14,
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildTaskDialogHints(triggerController),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: triggerController,
+                          style: const TextStyle(color: AppColors.white),
+                          decoration: const InputDecoration(
+                            hintText: 'タイミング (任意)',
+                            hintStyle: TextStyle(color: AppColors.grey30),
                           ),
                         ),
-                        subtitle: const Text(
-                          '完了から24時間後に自動削除されます',
-                          style: TextStyle(
-                            color: AppColors.grey50,
-                            fontSize: 11,
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: controller,
+                          autofocus: true,
+                          style: const TextStyle(color: AppColors.white),
+                          decoration: const InputDecoration(
+                            hintText: 'タスク名 (例: 読書)',
+                            hintStyle: TextStyle(color: AppColors.grey30),
                           ),
                         ),
-                        value: isOneTime,
-                        activeColor: AppColors.accentGold,
-                        onChanged: (val) {
-                          setModalState(() => isOneTime = val);
-                        },
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: const Text(
+                            'One-Time Task',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            '完了から24時間後に自動削除されます',
+                            style: TextStyle(
+                              color: AppColors.grey50,
+                              fontSize: 11,
+                            ),
+                          ),
+                          value: isOneTime,
+                          activeColor: AppColors.accentGold,
+                          onChanged: (val) {
+                            setModalState(() => isOneTime = val);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
                   ),
                   actions: [
                     TextButton(
@@ -287,6 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed:
                           () => Navigator.pop(ctx, {
                             'title': controller.text,
+                            'trigger': triggerController.text,
                             'isOneTime': isOneTime,
                           }),
                       child: const Text(
@@ -303,6 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updatedTasks = List<AppTask>.from(_user!.tasks)..add(
         AppTask(
           title: result['title'].toString().trim(),
+          trigger: result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim(),
           isOneTime: result['isOneTime'] as bool,
         ),
       );
@@ -315,6 +332,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _editTask(int index) async {
     final task = _user!.tasks[index];
     final controller = TextEditingController(text: task.title);
+    final triggerController = TextEditingController(text: task.trigger);
     bool isOneTime = task.isOneTime;
 
     final result = await showDialog<Map<String, dynamic>>(
@@ -328,42 +346,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'タスクを編集',
                     style: TextStyle(color: AppColors.white),
                   ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: controller,
-                        autofocus: true,
-                        style: const TextStyle(color: AppColors.white),
-                        decoration: const InputDecoration(
-                          hintText: '例: 読書を30分する',
-                          hintStyle: TextStyle(color: AppColors.grey30),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SwitchListTile(
-                        title: const Text(
-                          'One-Time Task',
-                          style: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 14,
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildTaskDialogHints(triggerController),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: triggerController,
+                          style: const TextStyle(color: AppColors.white),
+                          decoration: const InputDecoration(
+                            hintText: 'タイミング (任意)',
+                            hintStyle: TextStyle(color: AppColors.grey30),
                           ),
                         ),
-                        subtitle: const Text(
-                          '完了から24時間後に自動削除されます',
-                          style: TextStyle(
-                            color: AppColors.grey50,
-                            fontSize: 11,
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: controller,
+                          autofocus: true,
+                          style: const TextStyle(color: AppColors.white),
+                          decoration: const InputDecoration(
+                            hintText: 'タスク名 (例: 読書)',
+                            hintStyle: TextStyle(color: AppColors.grey30),
                           ),
                         ),
-                        value: isOneTime,
-                        activeColor: AppColors.accentGold,
-                        onChanged: (val) {
-                          setModalState(() => isOneTime = val);
-                        },
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: const Text(
+                            'One-Time Task',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            '完了から24時間後に自動削除されます',
+                            style: TextStyle(
+                              color: AppColors.grey50,
+                              fontSize: 11,
+                            ),
+                          ),
+                          value: isOneTime,
+                          activeColor: AppColors.accentGold,
+                          onChanged: (val) {
+                            setModalState(() => isOneTime = val);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
                   ),
                   actions: [
                     TextButton(
@@ -377,6 +409,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed:
                           () => Navigator.pop(ctx, {
                             'title': controller.text,
+                            'trigger': triggerController.text,
                             'isOneTime': isOneTime,
                           }),
                       child: const Text(
@@ -393,6 +426,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updatedTasks = List<AppTask>.from(_user!.tasks);
       updatedTasks[index] = task.copyWith(
         title: result['title'].toString().trim(),
+        trigger: result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim(),
         isOneTime: result['isOneTime'] as bool,
       );
       await _userService.updateProfile(tasks: updatedTasks);
@@ -433,9 +467,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirmed == true) {
       final updatedTasks = List<AppTask>.from(_user!.tasks)..removeAt(index);
-      await _userService.updateProfile(tasks: updatedTasks);
-      _loadProfile();
+      if (updatedTasks.length != _user!.tasks.length) {
+        await _userService.updateProfile(tasks: updatedTasks);
+        _loadProfile();
+      }
     }
+  }
+
+  Widget _buildTaskDialogHints(TextEditingController ctrl) {
+    final triggers = ['朝起きたら', '帰宅したら', 'お風呂から上がったら', '机に座ったら'];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.grey15.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    '習慣化のコツ',
+                    style: GoogleFonts.notoSansJp(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accentGold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '• 2分間ルール\nまずは「本を1ページ読む」「スクワットを10回する」など極小の行動から始めましょう。',
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 12,
+                  color: AppColors.grey50,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '• ハビット・スタッキング\nすでに毎日やっている行動の後に新しい習慣をくっつけると効果的です。',
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 12,
+                  color: AppColors.grey50,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: triggers.map((trigger) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: ActionChip(
+                  backgroundColor: AppColors.grey10,
+                  side: const BorderSide(color: AppColors.border),
+                  label: Text(
+                    trigger,
+                    style: GoogleFonts.notoSansJp(
+                      fontSize: 12,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  onPressed: () {
+                    ctrl.text = trigger;
+                    ctrl.selection = TextSelection.fromPosition(
+                      TextPosition(offset: ctrl.text.length),
+                    );
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
   }
 
   @override

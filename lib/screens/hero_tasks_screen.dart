@@ -26,16 +26,19 @@ import '../widgets/post_success_dialog.dart';
 /// 内部管理用のタスクアイテム
 class _HeroTaskItem {
   final String name;
+  final String? trigger;
   final List<Post> completedPosts;
   final bool isOneTime;
   bool get isCompleted => completedPosts.isNotEmpty;
+
+  String get displayName => (trigger != null && trigger!.isNotEmpty) ? '$trigger：$name' : name;
 
   Post? get latestPost {
     if (completedPosts.isEmpty) return null;
     return completedPosts.reduce((a, b) => a.createdAt.isAfter(b.createdAt) ? a : b);
   }
 
-  _HeroTaskItem({required this.name, this.completedPosts = const [], this.isOneTime = false});
+  _HeroTaskItem({required this.name, this.trigger, this.completedPosts = const [], this.isOneTime = false});
 }
 
 class HeroTasksScreen extends StatefulWidget {
@@ -210,6 +213,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         final taskPosts = postedPosts.where((p) => p.taskName == task.title).toList();
         items.add(_HeroTaskItem(
           name: task.title, 
+          trigger: task.trigger,
           completedPosts: taskPosts,
           isOneTime: task.isOneTime,
         ));
@@ -403,11 +407,12 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           expiresAt: DateTime.now().add(const Duration(hours: 24)),
         ));
 
-      _taskItems[index] = _HeroTaskItem(
-        name: originalItem.name,
-        completedPosts: newTempPosts,
-        isOneTime: originalItem.isOneTime,
-      );
+        _taskItems[index] = _HeroTaskItem(
+          name: originalItem.name,
+          trigger: originalItem.trigger,
+          completedPosts: newTempPosts,
+          isOneTime: originalItem.isOneTime,
+        );
 
       setState(() {
         _heroIndex = index;
@@ -871,6 +876,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       },
       child: Stack(
         alignment: Alignment.center,
+        clipBehavior: Clip.none,
         children: [
           RepaintBoundary(
             child: SizedBox(
@@ -898,6 +904,45 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                   decoration: BoxDecoration(
                     color: AppColors.black.withValues(alpha: dimAlpha),
                     borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+              ),
+            ),
+          if (index == _focusedIndex && 
+              item.name == 'Welcome to V EFFECT' && 
+              !item.isCompleted &&
+              !_isSublimating)
+            Positioned(
+              top: -80,
+              child: IgnorePointer(
+                child: Container(
+                  width: cardWidth * 0.95,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentGold,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.accentGold.withValues(alpha: 0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'V EFFECTへ、ようこそ。\nここはあなたにとって最適な居場所です。\n\nまずはカメラアイコンをタップして、\n最初のVを証明しましょう。',
+                        style: GoogleFonts.notoSansJp(
+                          color: AppColors.black,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1023,7 +1068,7 @@ class _TaskCard extends StatelessWidget {
             children: [
               if (isCompleted && depth == 0) ...[
                 Text(
-                  item.name,
+                  item.displayName,
                   style: GoogleFonts.notoSerifJp(
                     fontSize: 22,
                     fontWeight: FontWeight.w600,
@@ -1057,7 +1102,7 @@ class _TaskCard extends StatelessWidget {
                 ),
               ] else ...[
                 Text(
-                  item.name,
+                  item.displayName,
                   style: GoogleFonts.notoSerifJp(
                     fontSize: depth == 0 ? 22 : 16,
                     fontWeight: FontWeight.w500,

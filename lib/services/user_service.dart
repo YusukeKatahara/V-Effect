@@ -320,16 +320,22 @@ class UserService {
   }
 
   /// 最初のV Questを保存しオンボーディングを完了させます
-  Future<void> saveFirstVQuest({String? questTitle}) async {
+  Future<void> saveFirstVQuest({String? questTitle, String? questTrigger}) async {
     final uid = _auth.currentUser!.uid;
     final data = <String, dynamic>{
       'onboardingCompleted': true,
       'templateCompleted': true, // 後方互換
       'onboardingStep': 'completed',
     };
+    
+    final tasks = <Map<String, dynamic>>[];
+    // ウェルカムチュートリアルタスクを追加
+    tasks.add(AppTask(title: 'Welcome to V EFFECT', isOneTime: true).toFirestore());
+    
     if (questTitle != null && questTitle.isNotEmpty) {
-      data['tasks'] = [AppTask(title: questTitle).toFirestore()];
+      tasks.add(AppTask(title: questTitle, trigger: questTrigger).toFirestore());
     }
+    data['tasks'] = tasks;
 
     // 🚀 【爆速化 1】次回起動時のゼロディレイルーティングのためにローカルキャッシュを保存
     final prefs = await SharedPreferences.getInstance();

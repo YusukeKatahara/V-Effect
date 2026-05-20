@@ -16,6 +16,7 @@ class FirstVQuestScreen extends StatefulWidget {
 class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     with TickerProviderStateMixin {
   final _questCtrl = TextEditingController();
+  final _triggerCtrl = TextEditingController();
   final _userService = UserService.instance;
   bool _isSaving = false;
 
@@ -78,6 +79,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     _ctrlA.forward();
 
     _questCtrl.addListener(() => setState(() {}));
+    _triggerCtrl.addListener(() => setState(() {}));
   }
 
   void _startPlaceholderTimer() {
@@ -93,6 +95,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
   @override
   void dispose() {
     _questCtrl.dispose();
+    _triggerCtrl.dispose();
     _ctrlA.dispose();
     _ctrlB.dispose();
     _placeholderTimer?.cancel();
@@ -104,6 +107,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     try {
       await _userService.saveFirstVQuest(
         questTitle: skip ? null : _questCtrl.text.trim(),
+        questTrigger: skip ? null : _triggerCtrl.text.trim(),
       );
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(
@@ -183,7 +187,11 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                           color: AppColors.white,
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      _buildHabitHints(),
                       const SizedBox(height: 16),
+                      _buildTriggerChips(),
+                      const SizedBox(height: 12),
                       _buildInputField(),
                       const Spacer(),
                       GradientButton(
@@ -225,17 +233,26 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
 
   Widget _buildInputField() {
     final showPlaceholder = _questCtrl.text.isEmpty;
-    return Stack(
-      alignment: Alignment.centerLeft,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          'タイミング (任意)',
+          style: GoogleFonts.notoSansJp(
+            fontSize: 12,
+            color: AppColors.grey50,
+          ),
+        ),
+        const SizedBox(height: 8),
         TextField(
-          controller: _questCtrl,
+          controller: _triggerCtrl,
           style: GoogleFonts.notoSansJp(
             color: AppColors.textPrimary,
             fontSize: 15,
           ),
           decoration: InputDecoration(
-            hintText: '',
+            hintText: '例: 朝起きたら',
+            hintStyle: const TextStyle(color: AppColors.grey30),
             filled: true,
             fillColor: AppColors.grey10,
             contentPadding: const EdgeInsets.symmetric(
@@ -244,48 +261,153 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.grey50),
+              borderSide: BorderSide.none,
             ),
           ),
         ),
-        if (showPlaceholder)
-          Positioned(
-            left: 16,
-            right: 16,
-            child: IgnorePointer(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 350),
-                transitionBuilder:
-                    (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.4),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      ),
-                    ),
-                child: Text(
-                  '例: ${_placeholders[_placeholderIndex]}',
-                  key: ValueKey(_placeholderIndex),
-                  style: GoogleFonts.notoSansJp(
-                    color: AppColors.grey30,
-                    fontSize: 14,
-                  ),
+        const SizedBox(height: 16),
+        Text(
+          'タスク名',
+          style: GoogleFonts.notoSansJp(
+            fontSize: 12,
+            color: AppColors.grey50,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Stack(
+          alignment: Alignment.centerLeft,
+          children: [
+            TextField(
+              controller: _questCtrl,
+              style: GoogleFonts.notoSansJp(
+                color: AppColors.textPrimary,
+                fontSize: 15,
+              ),
+              decoration: InputDecoration(
+                hintText: '',
+                filled: true,
+                fillColor: AppColors.grey10,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
               ),
             ),
-          ),
+            if (showPlaceholder)
+              Positioned(
+                left: 16,
+                right: 16,
+                child: IgnorePointer(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    transitionBuilder:
+                        (child, animation) => FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.4),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        ),
+                    child: Text(
+                      '例: ${_placeholders[_placeholderIndex]}',
+                      key: ValueKey<int>(_placeholderIndex),
+                      style: GoogleFonts.notoSansJp(
+                        color: AppColors.grey30,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ],
+    );
+  }
+
+  Widget _buildHabitHints() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.grey15.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                '習慣化のコツ',
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.accentGold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '• 2分間ルール\nまずは「本を1ページ読む」「スクワットを10回する」など極小の行動から始めましょう。',
+            style: GoogleFonts.notoSansJp(
+              fontSize: 12,
+              color: AppColors.grey50,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '• ハビット・スタッキング\nすでに毎日やっている行動の後に新しい習慣をくっつけると効果的です。',
+            style: GoogleFonts.notoSansJp(
+              fontSize: 12,
+              color: AppColors.grey50,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTriggerChips() {
+    final triggers = ['朝起きたら', '帰宅したら', 'お風呂から上がったら', '机に座ったら'];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: triggers.map((trigger) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ActionChip(
+              backgroundColor: AppColors.grey10,
+              side: const BorderSide(color: AppColors.border),
+              label: Text(
+                trigger,
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 12,
+                  color: AppColors.white,
+                ),
+              ),
+              onPressed: () {
+                _triggerCtrl.text = trigger;
+                _triggerCtrl.selection = TextSelection.fromPosition(
+                  TextPosition(offset: _triggerCtrl.text.length),
+                );
+              },
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
