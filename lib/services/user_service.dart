@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'push_notification_service.dart';
 import '../models/app_task.dart';
 import '../models/app_user.dart';
@@ -89,6 +90,9 @@ class UserService {
       },
       SetOptions(merge: true),
     );
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboardingCompleted_$uid', true);
   }
 
   /// ヒーロータスク設定を保存します（新規登録フロー Step2）
@@ -114,6 +118,9 @@ class UserService {
       publicData,
       SetOptions(merge: true),
     );
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboardingCompleted_$uid', true);
 
     // 非公開情報
     batch.set(
@@ -323,6 +330,11 @@ class UserService {
     if (questTitle != null && questTitle.isNotEmpty) {
       data['tasks'] = [AppTask(title: questTitle).toFirestore()];
     }
+
+    // 🚀 【爆速化 1】次回起動時のゼロディレイルーティングのためにローカルキャッシュを保存
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboardingCompleted_$uid', true);
+
     await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
   }
 

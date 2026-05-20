@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/routes.dart';
 import '../services/analytics_service.dart';
 import '../widgets/splash_loading.dart';
@@ -21,7 +22,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   static bool _isFirstLaunch = true;
   bool _navigating = false;
   // FutureBuilder の再ビルドで同じ future が再利用されるようキャッシュ
-  Future<DocumentSnapshot>? _userDocFuture;
+  Future<DocumentSnapshot?>? _userDocFuture;
   String? _lastUid;
 
   void _navigateTo(String route) {
@@ -32,6 +33,22 @@ class _AuthWrapperState extends State<AuthWrapper> {
         Navigator.pushReplacementNamed(context, route);
       }
     });
+  }
+
+  /// 🚀 【爆速化 1】ローカルキャッシュを利用したゼロ・ディレイルーティング
+  Future<DocumentSnapshot?> _fetchUserDocWithCacheBypass(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isCompleted = prefs.getBool('onboardingCompleted_$uid') ?? false;
+    
+    if (isCompleted) {
+      // キャッシュ上でオンボーディング完了済みと判定できれば、Firestoreの取得を待たずに即時 Home へルーティング！
+      _isFirstLaunch = false;
+      _navigateTo(AppRoutes.home);
+      return null; 
+    }
+    
+    // キャッシュがない場合、または未完了の場合は通常通りFirestoreから状態を取得
+    return FirebaseFirestore.instance.collection('users').doc(uid).get();
   }
 
   @override
@@ -60,17 +77,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
           _lastUid = user.uid;
           _navigating = false;
           AnalyticsService.instance.setUserId(user.uid);
-          // タイムアウト付きで取得を試みる（Firestore自体のタイムアウト設定は難しいため、FutureBuilder側で明示的にはしないが、
-          // _SplashWithTimeout が背後で動くようにする）
-          _userDocFuture =
-              FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .get();
+          
+          _userDocFuture = _fetchUserDocWithCacheBypass(user.uid);
         }
 
         // 3. ログイン済み → Firestore のデータを確認して分岐
-        return FutureBuilder<DocumentSnapshot>(
+        return FutureBuilder<DocumentSnapshot?>(
           future: _userDocFuture,
           builder: (context, docSnapshot) {
             if (docSnapshot.connectionState == ConnectionState.waiting) {
@@ -81,8 +93,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
               return GlobalErrorWidget(error: 'Firestore読み込みエラー: ${docSnapshot.error}');
             }
 
+            // docSnapshot.data が null の場合は、キャッシュによる早期ルーティング中
+            if (docSnapshot.data == null) {
+              return const _SplashWithTimeout();
+            }
+
+            final actualDoc = docSnapshot.data!;
+
             // ドキュメントが存在しない → オンボーディング開始
-            if (!docSnapshot.hasData || !docSnapshot.data!.exists) {
+            if (!actualDoc.exists) {
               if (_isFirstLaunch) {
                 _isFirstLaunch = false;
                 AuthService().deleteAccount().catchError((e) {
@@ -95,9 +114,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
               return const _SplashWithTimeout();
             }
 
-            final data = docSnapshot.data!.data() as Map<String, dynamic>?;
+            final data = actualDoc.data() as Map<String, dynamic>?;
 
             final isOnboardingCompleted = data?['onboardingCompleted'] == true;
+
+            // 取得した最新状態が「完了」なら、次回のゼロ・ディレイルーティングのためにキャッシュに保存！
+            if (isOnboardingCompleted) {
+              SharedPreferences.getInstance().then((prefs) {
+                prefs.setBool('onboardingCompleted_${user.uid}', true);
+              });
+            }
 
             // アプリ起動時にオンボーディング未完了ならアカウントを削除してやり直させる
             if (_isFirstLaunch && !isOnboardingCompleted) {
@@ -114,7 +140,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
               _navigateTo(AppRoutes.home);
             } else {
               // onboardingStep を唯一の進捗ソースとして使う
-              // profileCompleted は Screen 3 内で保存されるが、ナビゲーション判定には使わない
               final step = data?['onboardingStep'] as String?;
               if (step == 'core_feature') {
                 _navigateTo(AppRoutes.onboardingCoreFeature);

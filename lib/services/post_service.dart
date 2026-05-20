@@ -179,13 +179,29 @@ class PostService {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final postId = 'post_${uid}_${dateStr}_${taskHash}_$timestamp';
 
-    // Step1: Firebase Storage に画像を保存
+    // Step1: Firebase Storage に画像アップロードを開始
     final ref = _storage.ref().child('posts/$uid/$postId.jpg');
-    // Web互換のため、putData(Uint8List) を使用
-    await ref.putData(imageBytes, SettableMetadata(contentType: 'image/jpeg'));
+    final uploadTask = ref.putData(imageBytes, SettableMetadata(contentType: 'image/jpeg'));
+
+    // 🚀 【爆速化 1】Storageのアップロードと並列で、Firestoreからユーザー情報を事前フェッチ
+    final fetchDataFuture = Future.wait([
+      _db.collection('users').doc(uid).get(),
+      _db.collection('users').doc(uid).collection('private').doc('data').get(),
+    ]);
+
+    // 両方の完了を同時に待つことで、シーケンシャルな待ち時間を劇的に削減
+    final results = await Future.wait<dynamic>([
+      uploadTask,
+      fetchDataFuture,
+    ]);
+
+    final fetchResults = results[1] as List<DocumentSnapshot>;
+    final userSnap = fetchResults[0];
+    final userPrivateSnap = fetchResults[1];
+
     final imageUrl = await ref.getDownloadURL();
 
-    // 🚀 【爆速化】ローカルキャッシュに先回りして保存 (Optimistic Cache Seeding)
+    // 🚀 ローカルキャッシュに先回りして保存 (Optimistic Cache Seeding)
     try {
       await DefaultCacheManager().putFile(
         imageUrl,
@@ -196,16 +212,13 @@ class PostService {
       debugPrint('CACHE SEEDING ERROR: $e');
     }
 
-    // Step2: Firestoreに投稿データを保存
+    // Step2: Firestoreに投稿データを保存する準備
     final now = DateTime.now();
     final expiresAt = DateTime(now.year, now.month, now.day + 1); // 翌日0:00
 
-    // ユーザー設定（タイムスタンプ表示）を取得
-    final userSnap = await _db.collection('users').doc(uid).get();
-    final userData = userSnap.data() as Map<String, dynamic>;
-    
-    final userPrivateSnap = await _db.collection('users').doc(uid).collection('private').doc('data').get();
-    final showTimestamp = userPrivateSnap.data()?['showTimestamp'] ?? true;
+    final userData = userSnap.data() as Map<String, dynamic>? ?? {};
+    final userPrivateData = userPrivateSnap.data() as Map<String, dynamic>? ?? {};
+    final showTimestamp = userPrivateData['showTimestamp'] ?? true;
 
     final newPost = Post(
       id: postId,
@@ -221,8 +234,6 @@ class PostService {
       userReactions: const {},
     );
 
-    await _postsRef.doc(postId).set(newPost);
-
     // ワンタイムタスクの完了時間を記録
     final tasks = (userData['tasks'] as List? ?? [])
         .map((item) => AppTask.fromFirestore(item))
@@ -237,14 +248,30 @@ class PostService {
       return t;
     }).toList();
 
+    // 🚀 【爆速化 2】ストリーク計算をメモリ上で行い、書き込み用更新データを取得
+    final streakResultData = _streakService.calculateStreakUpdates(
+      userData: userData,
+      now: now,
+      uid: uid,
+    );
+    final streakUpdates = streakResultData['updates'] as Map<String, dynamic>;
+    final streakResult = streakResultData['result'] as Map<String, dynamic>;
+
+    // 🚀 【爆速化 3】タスク更新とストリーク更新のクエリを1つのドキュメント更新にマージ
+    final combinedUserUpdates = Map<String, dynamic>.from(streakUpdates);
     if (taskUpdated) {
-      await _db.collection('users').doc(uid).update({
-        'tasks': updatedTasks.map((t) => t.toFirestore()).toList(),
-      });
+      combinedUserUpdates['tasks'] = updatedTasks.map((t) => t.toFirestore()).toList();
     }
 
-    // Step3: ストリークを更新
-    final streakResult = await _streakService.updateStreak(uid, now);
+    // 🚀 【爆速化 4】「投稿の保存（新規ドキュメント）」と「ユーザー情報の更新（既存ドキュメント）」を並列実行
+    final List<Future> writeFutures = [
+      _postsRef.doc(postId).set(newPost),
+    ];
+    if (combinedUserUpdates.isNotEmpty) {
+      writeFutures.add(_db.collection('users').doc(uid).update(combinedUserUpdates));
+    }
+
+    await Future.wait(writeFutures);
 
     // Step4: Analytics イベント送信
     _analytics.logPostCreated(taskName: taskName);
@@ -253,10 +280,16 @@ class PostService {
     final isRecord = streakResult['isRecordUpdating'] as bool;
     _analytics.logStreakUpdate(streak: newStreak, isRecord: isRecord);
     _analytics.setStreakTier(newStreak);
-    // マイルストーン判定（7, 30, 100, 365日）
     if (const [7, 30, 100, 365].contains(newStreak)) {
       _analytics.logStreakMilestone(streak: newStreak);
     }
+
+    // お祝い通知のトリガー
+    _streakService.triggerMilestoneNotification(
+      uid: uid,
+      newStreak: newStreak,
+      userData: userData,
+    );
 
     // Step5: フレンドに通知を送る（バックグラウンドで処理、エラーハンドリング付き）
     _sendPostNotifications(uid).catchError((_) {

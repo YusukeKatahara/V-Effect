@@ -12,7 +12,9 @@ import '../config/app_colors.dart';
 import '../services/post_service.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../providers/home_provider.dart';
+import '../widgets/black_hole_loading_overlay.dart';
 
 /// Hero Task 撮影画面
 ///
@@ -335,7 +337,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     try {
       final boundary = _boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
-      final img = await boundary.toImage(pixelRatio: 2.0);
+      // pixelRatio を 2.0 から 1.5 に最適化し、画質を十分維持しつつファイルサイズを約44%削減（アップロード速度向上）
+      final img = await boundary.toImage(pixelRatio: 1.5);
       final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
       return byteData?.buffer.asUint8List();
     } catch (e) {
@@ -348,29 +351,47 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     if (_image == null) return;
     final taskName = _taskName ?? '今日のヒーロータスク';
 
-    HapticFeedback.mediumImpact();
     setState(() => _isUploading = true);
 
     try {
-      final bytes = await _capturePng() ?? await _image!.readAsBytes();
+      final rawBytes = await _capturePng() ?? await _image!.readAsBytes();
       final captionText = _captionController.text.trim();
 
-      final result = await _postService.createPost(
-        imageBytes: bytes,
-        taskName: taskName,
-        caption: captionText.isNotEmpty ? captionText : null,
+      // 超高速ネイティブ圧縮：巨大なPNG（約2〜4MB）を軽量JPEG（約200KB）へ変換
+      final compressedBytes = await FlutterImageCompress.compressWithList(
+        rawBytes,
+        minWidth: 1080,
+        minHeight: 1920,
+        quality: 80,
+        format: CompressFormat.jpeg,
       );
 
-      // Provider を明示的に更新（データの整合性を保証するためのガードレール）
-      ref.invalidate(homeDataProvider);
+      final finalBytes = compressedBytes.isNotEmpty ? compressedBytes : rawBytes;
 
-      if (mounted) {
+      Map<String, dynamic>? uploadResult;
+
+      // Wrap the actual upload network call in a Future
+      final uploadFuture = () async {
+        uploadResult = await _postService.createPost(
+          imageBytes: finalBytes,
+          taskName: taskName,
+          caption: captionText.isNotEmpty ? captionText : null,
+        );
+        // Provider を明示的に更新（データの整合性を保証するためのガードレール）
+        ref.invalidate(homeDataProvider);
+      }();
+
+      if (!mounted) return;
+      // Show the black hole loading overlay while uploading
+      await BlackHoleLoadingOverlay.show(context, uploadTask: uploadFuture);
+
+      if (mounted && uploadResult != null) {
         // 投稿成功データを返して前画面（HeroTasksScreen）で演出を制御させる
         Navigator.pop(context, {
           'posted': true,
           'imagePath': _image!.path,
-          'newStreak': result['newStreak'] as int,
-          'isRecordUpdating': result['isRecordUpdating'] as bool,
+          'newStreak': uploadResult!['newStreak'] as int,
+          'isRecordUpdating': uploadResult!['isRecordUpdating'] as bool,
         });
       }
     } catch (e, st) {

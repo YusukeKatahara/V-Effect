@@ -9,6 +9,7 @@ import '../config/app_colors.dart';
 import '../models/post.dart';
 import '../services/analytics_service.dart';
 import '../services/post_service.dart';
+import '../services/sound_service.dart';
 
 /// Stories風のフルスクリーン投稿ビューアー
 ///
@@ -50,6 +51,10 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   int _pendingFlameCount = 0;
   String? _pendingFlamePostId;
 
+  // ── VFIRE コンボ状態 ──
+  int _comboCount = 0;
+  Timer? _comboResetTimer;
+
   // ── フレンドアイコン行のスクロール制御 ──
   final ScrollController _iconScrollController = ScrollController();
   static const double _iconItemWidth = 52.0; // 44px avatar + 4px padding × 2
@@ -70,6 +75,7 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   void dispose() {
     _autoTimer?.cancel();
     _flameDebounceTimer?.cancel();
+    _comboResetTimer?.cancel();
     _iconScrollController.dispose();
     super.dispose();
   }
@@ -192,9 +198,42 @@ class _FriendFeedScreenState extends State<FriendFeedScreen> {
   Future<void> _sendReaction() async {
     if (_posts.isEmpty) return;
     
-    // ドーパミン誘発：軽いバイブレーションと炎アニメーション (即座)
-    HapticFeedback.lightImpact();
-    _flamesKey.currentState?.addFlame();
+    // コンボ処理
+    _comboResetTimer?.cancel();
+    _comboCount++;
+    _comboResetTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        setState(() => _comboCount = 0);
+      }
+    });
+
+    // コンボレベル（赤オレンジ ➔ 黄 ➔ 青）の決定
+    Color flameColor;
+    Color glowColor;
+    double soundPitch;
+
+    if (_comboCount <= 9) {
+      flameColor = AppColors.accentGold;
+      glowColor = AppColors.accentGoldLight;
+      HapticFeedback.lightImpact();
+    } else if (_comboCount <= 19) {
+      flameColor = const Color(0xFF00E5FF);
+      glowColor = const Color(0xFF80DEEA);
+      HapticFeedback.mediumImpact();
+    } else {
+      // 20以降は虹色（タップするごとに色相が変わる）
+      final hue = ((_comboCount - 20) * 20.0) % 360.0;
+      flameColor = HSLColor.fromAHSL(1.0, hue, 1.0, 0.6).toColor();
+      glowColor = HSLColor.fromAHSL(1.0, hue, 1.0, 0.8).toColor();
+      HapticFeedback.heavyImpact();
+    }
+    
+    // タップするごとに少しずつ連続的に音階を上げる（最大2.0まで）
+    soundPitch = (1.0 + (_comboCount * 0.02)).clamp(1.0, 2.0);
+
+    // 視覚＋聴覚ご褒美の即座再生
+    _flamesKey.currentState?.addFlame(color: flameColor, glowColor: glowColor);
+    SoundService.instance.playFireTapSound(playbackRate: soundPitch);
 
     final post = _posts[_currentPostIndex];
     
@@ -610,7 +649,7 @@ class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
   int _counter = 0;
   final Map<int, Widget> _flames = {};
 
-  void addFlame() {
+  void addFlame({required Color color, required Color glowColor}) {
     final id = _counter++;
     final randomX = (Random().nextDouble() - 0.5) * 40;
 
@@ -621,6 +660,8 @@ class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
         right: 20 + randomX,
         child: _FloatingFlameWidget(
           key: ValueKey('flame_$id'),
+          color: color,
+          glowColor: glowColor,
           onComplete: () {
             if (mounted) {
               setState(() => _flames.remove(id));
@@ -641,9 +682,16 @@ class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
 
 /// ── 連打で飛んでいく🔥アニメーションヴィジェット ──
 class _FloatingFlameWidget extends StatefulWidget {
+  final Color color;
+  final Color glowColor;
   final VoidCallback onComplete;
 
-  const _FloatingFlameWidget({super.key, required this.onComplete});
+  const _FloatingFlameWidget({
+    super.key,
+    required this.color,
+    required this.glowColor,
+    required this.onComplete,
+  });
 
   @override
   State<_FloatingFlameWidget> createState() => _FloatingFlameWidgetState();
@@ -702,9 +750,14 @@ class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
       },
       child: Icon(
         Icons.whatshot,
-        color: AppColors.primary,
+        color: widget.color,
         size: 40,
-        shadows: [Shadow(color: AppColors.white.withValues(alpha: 0.5), blurRadius: 12)],
+        shadows: [
+          Shadow(
+            color: widget.glowColor.withValues(alpha: 0.6),
+            blurRadius: 14,
+          )
+        ],
       ),
     );
   }

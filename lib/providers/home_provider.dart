@@ -94,12 +94,18 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
   final postService = PostService.instance;
   final myUid = FirebaseAuth.instance.currentUser?.uid;
   
-  // 1. 基本的なホームデータ（自分のステータス、タスク、フレンドUID）を取得
-  final homeDataMap = await postService.getHomeData();
+  // 🚀 【爆速化 2】ホームデータとブロックリストのフェッチを並列化
+  final initialParallelResults = await Future.wait([
+    postService.getHomeData(),
+    BlockService.instance.getBlockedUids(),
+  ]);
+
+  final homeDataMap = initialParallelResults[0] as Map<String, dynamic>;
+  final blockedUids = initialParallelResults[1] as List<String>;
+
   final allFriendUids = (homeDataMap['friends'] as List<dynamic>?)?.cast<String>() ?? [];
 
   // ブロックしたユーザーをフィードから除外
-  final blockedUids = await BlockService.instance.getBlockedUids();
   final friendUids = allFriendUids
       .where((uid) => !blockedUids.contains(uid))
       .toList();

@@ -117,7 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await showCupertinoModalPopup(
       context: context,
       builder:
-          (context) => Container(
+          (modalContext) => Container(
             height: 300,
             padding: const EdgeInsets.only(top: 6.0),
             margin: EdgeInsets.only(
@@ -182,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               }
                             } catch (e) {
                               debugPrint('Error updating taskTime: $e');
-                              if (mounted) {
+                              if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('時刻の更新に失敗しました')),
                                 );

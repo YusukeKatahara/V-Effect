@@ -13,6 +13,7 @@ import '../config/routes.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
 import '../services/block_service.dart';
+import '../services/sound_service.dart';
 import '../widgets/v_effect_header.dart';
 import '../widgets/weekly_review_banner.dart';
 import 'weekly_review_screen.dart';
@@ -50,6 +51,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final Map<String, int> _localFlameIncrements = {};
   // パフォーマンス最適化: 個別の投稿のリアクション数をリビルドなしで更新するためのNotifier
   final Map<String, ValueNotifier<int>> _flameNotifiers = {};
+
+  // ── VFIRE コンボ状態 ──
+  int _comboCount = 0;
+  Timer? _comboResetTimer;
 
   // ── Card Swiping ──
   // ── Card Swiping (Performance: Using AnimatedBuilder instead of setState) ──
@@ -130,6 +135,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _shuffleController.dispose();
     _spreadController.dispose();
     _flameDebounceTimer?.cancel();
+    _comboResetTimer?.cancel();
     super.dispose();
   }
 
@@ -345,14 +351,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (isVFlash) {
       HapticFeedback.heavyImpact();
       _flashController.forward(from: 0);
-      _flamesKey.currentState?.addFlame(isGold: true, bottomOffset: _flameBottomOffset);
+      _flamesKey.currentState?.addFlame(
+          color: AppColors.accentGold,
+          glowColor: AppColors.accentGoldLight,
+          size: 60.0,
+          bottomOffset: _flameBottomOffset);
     } else {
       if (emoji != null) {
         HapticFeedback.heavyImpact();
         _explosionKey.currentState?.explode(emoji);
       } else {
-        HapticFeedback.mediumImpact();
-        _flamesKey.currentState?.addFlame(isGold: false, bottomOffset: _flameBottomOffset);
+        // --- VFIRE コンボ処理 ---
+        _comboResetTimer?.cancel();
+        _comboCount++;
+        _comboResetTimer = Timer(const Duration(milliseconds: 1500), () {
+          if (mounted) {
+            setState(() => _comboCount = 0);
+          }
+        });
+
+        Color flameColor;
+        Color glowColor;
+        double soundPitch;
+
+        if (_comboCount <= 9) {
+          flameColor = AppColors.accentGold;
+          glowColor = AppColors.accentGoldLight;
+          HapticFeedback.lightImpact();
+        } else if (_comboCount <= 19) {
+          flameColor = const Color(0xFF00E5FF);
+          glowColor = const Color(0xFF80DEEA);
+          HapticFeedback.mediumImpact();
+        } else {
+          // 20以降は虹色（タップするごとに色相が変わる）
+          final hue = ((_comboCount - 20) * 20.0) % 360.0;
+          flameColor = HSLColor.fromAHSL(1.0, hue, 1.0, 0.6).toColor();
+          glowColor = HSLColor.fromAHSL(1.0, hue, 1.0, 0.8).toColor();
+          HapticFeedback.heavyImpact();
+        }
+        
+        // タップするごとに少しずつ連続的に音階を上げる（最大2.0まで）
+        soundPitch = (1.0 + (_comboCount * 0.02)).clamp(1.0, 2.0);
+
+        _flamesKey.currentState?.addFlame(
+          color: flameColor,
+          glowColor: glowColor,
+          bottomOffset: _flameBottomOffset,
+        );
+        SoundService.instance.playFireTapSound(playbackRate: soundPitch);
       }
     }
 
@@ -1746,7 +1792,13 @@ class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
   int _counter = 0;
   final Map<int, Widget> _flames = {};
 
-  void addFlame({bool isGold = false, double bottomOffset = 120.0}) {
+  void addFlame({
+    Color? color,
+    Color? glowColor,
+    double? size,
+    bool isGold = false,
+    double bottomOffset = 120.0,
+  }) {
     final id = _counter++;
     final randomX = (Random().nextDouble() - 0.5) * 60;
 
@@ -1758,6 +1810,9 @@ class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
         child: _FloatingFlameWidget(
           key: ValueKey('flame_$id'),
           isGold: isGold,
+          color: color,
+          glowColor: glowColor,
+          size: size,
           onComplete: () {
             if (mounted) {
               setState(() => _flames.remove(id));
@@ -1780,11 +1835,17 @@ class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
 class _FloatingFlameWidget extends StatefulWidget {
   final VoidCallback onComplete;
   final bool isGold;
+  final Color? color;
+  final Color? glowColor;
+  final double? size;
 
   const _FloatingFlameWidget({
     super.key,
     required this.onComplete,
     this.isGold = false,
+    this.color,
+    this.glowColor,
+    this.size,
   });
 
   @override
@@ -1849,11 +1910,11 @@ class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
       },
       child: Icon(
         Icons.whatshot,
-        color: widget.isGold ? AppColors.accentGoldLight : AppColors.accentGold,
-        size: widget.isGold ? 64 : 44,
+        color: widget.color ?? (widget.isGold ? AppColors.accentGoldLight : AppColors.accentGold),
+        size: widget.size ?? (widget.isGold ? 64 : 44),
         shadows: [
           Shadow(
-            color: widget.isGold ? AppColors.white : AppColors.white.withValues(alpha: 0.24),
+            color: widget.glowColor ?? (widget.isGold ? AppColors.white : AppColors.white.withValues(alpha: 0.24)),
             blurRadius: widget.isGold ? 24 : 12,
           ),
         ],

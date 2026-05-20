@@ -58,6 +58,125 @@ class StreakService {
     }
 
     final data = userSnap.data()!;
+    final streakCalculation = calculateStreakUpdates(
+      userData: data,
+      now: now,
+      uid: uid,
+    );
+    final updates = streakCalculation['updates'] as Map<String, dynamic>;
+    final result = streakCalculation['result'] as Map<String, dynamic>;
+
+    if (updates.isNotEmpty) {
+      await userRef.update(updates);
+    }
+
+    // ── ストリーク達成祝いの通知 ──
+    final newStreak = result['newStreak'] as int;
+    triggerMilestoneNotification(uid: uid, newStreak: newStreak, userData: data);
+
+    return result;
+  }
+
+  /// ストリーク（連続記録）の計算を行い、Firestoreの更新用マップと結果を返します（書き込み・読み込みは行いません）
+  Map<String, dynamic> calculateStreakUpdates({
+    required Map<String, dynamic> userData,
+    required DateTime now,
+    required String uid,
+  }) {
+    final today = DateHelper.toDateString(now);
+    final rawLastPostedDate = userData['lastPostedDate'];
+    final lastPostedDate = rawLastPostedDate is String ? rawLastPostedDate : rawLastPostedDate?.toString();
+
+    final currentStreak = (userData['streak'] as num?)?.toInt() ?? 0;
+    final maxStreak = (userData['maxStreak'] as num?)?.toInt() ?? 0;
+    int currentProtections = (userData['streakProtections'] as num?)?.toInt() ?? 0;
+
+    if (lastPostedDate == today) {
+      return {
+        'updates': <String, dynamic>{},
+        'result': {'newStreak': currentStreak, 'isRecordUpdating': false},
+      };
+    }
+
+    final yesterday = now.subtract(const Duration(days: 1));
+    final yesterdayStr = DateHelper.toDateString(yesterday);
+    final dayBeforeYesterday = now.subtract(const Duration(days: 2));
+    final dayBeforeYesterdayStr = DateHelper.toDateString(dayBeforeYesterday);
+
+    int newStreak;
+    if (lastPostedDate == yesterdayStr) {
+      newStreak = currentStreak + 1;
+    } else if (lastPostedDate == dayBeforeYesterdayStr && currentProtections > 0) {
+      newStreak = currentStreak + 1;
+      currentProtections -= 1;
+    } else {
+      newStreak = 1;
+      currentProtections = 0;
+    }
+
+    if (newStreak > 1 && newStreak % 3 == 0) {
+      if (currentProtections < 1) {
+        currentProtections += 1;
+      }
+    }
+
+    // 最大記録更新チェック
+    final isRecordUpdating = newStreak > maxStreak;
+    final updates = {
+      'streak': newStreak,
+      'streakProtections': currentProtections,
+      'lastPostedDate': today
+    };
+    if (isRecordUpdating) {
+      updates['maxStreak'] = newStreak;
+    }
+
+    return {
+      'updates': updates,
+      'result': {'newStreak': newStreak, 'isRecordUpdating': isRecordUpdating},
+    };
+  }
+
+  /// マイルストーン達成時の通知を送信
+  void triggerMilestoneNotification({
+    required String uid,
+    required int newStreak,
+    required Map<String, dynamic> userData,
+  }) {
+    final pushEnabled = userData['pushNotifications'] ?? true;
+    final celebrationEnabled = userData['streakCelebrationNotifications'] ?? true;
+    
+    if (pushEnabled && celebrationEnabled) {
+      final milestones = [7, 30, 50, 100, 200, 365];
+      if (milestones.contains(newStreak)) {
+        NotificationService.instance.createNotification(
+          toUid: uid,
+          type: NotificationType.streakCelebration,
+          params: {'streak': newStreak.toString()},
+        ).catchError((e) => debugPrint('Celebration notification error: $e'));
+      }
+    }
+  }
+
+  /// 実際のストリークの更新（下位互換性維持のためのメソッド）
+  Future<Map<String, dynamic>> updateStreakLegacy(String uid, DateTime now) async {
+    final today = DateHelper.toDateString(now);
+    final userRef = _db.collection('users').doc(uid);
+    final userSnap = await userRef.get();
+
+    if (!userSnap.exists) {
+      await userRef.set({
+        'streak': 1,
+        'maxStreak': 1,
+        'streakProtections': 0,
+        'lastPostedDate': today,
+        'email': _auth.currentUser!.email,
+        'friends': [],
+      });
+      return {'newStreak': 1, 'isRecordUpdating': true};
+    }
+
+    final data = userSnap.data()!;
     final rawLastPostedDate = data['lastPostedDate'];
     final lastPostedDate = rawLastPostedDate is String ? rawLastPostedDate : rawLastPostedDate?.toString();
 
