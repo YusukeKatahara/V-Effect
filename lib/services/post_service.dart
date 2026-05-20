@@ -285,12 +285,29 @@ class PostService {
       friends = rawFriends.keys.map((k) => k.toString()).toList();
     }
 
+    // 今日の合計投稿数を取得する (expiresAtが未来の投稿をカウント)
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final postsSnap = await _postsRef
+        .where(Post.fieldUserId, isEqualTo: uid)
+        .where('expiresAt', isGreaterThan: now)
+        .get();
+
+    final todayPostCount = postsSnap.docs
+        .map((doc) => doc.data())
+        .where((post) =>
+            post.createdAt.isAfter(startOfToday) ||
+            post.createdAt.isAtSameMomentAs(startOfToday))
+        .length;
 
     for (final friendUid in friends) {
       await _notificationService.createNotification(
         toUid: friendUid,
         type: NotificationType.friendTaskCompleted,
-        params: {'username': username},
+        params: {
+          'username': username,
+          'count': todayPostCount.toString(),
+        },
         fromUid: uid,
       );
     }

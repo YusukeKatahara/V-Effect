@@ -496,9 +496,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       children: [
         // カメラプレビュー
         Expanded(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Center(
+              child: AspectRatio(
+                aspectRatio: 9 / 16,
+                child: Container(
+                  decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: AppColors.white.withValues(alpha: 0.06),
@@ -528,10 +532,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 child: _isCameraReady && _cameraController != null
                     ? _buildCameraPreview()
                     : _buildCameraLoading(),
+                  ),
+                ),
               ),
             ),
           ),
         ),
+      ),
 
         // ── カメラ操作バー: 左にアルバム / 中央にシャッター / 右にカメラ切替 ──
         _buildCameraControls(),
@@ -688,9 +695,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   Widget _buildPreview() {
     final taskName = _taskName ?? '今日のヒーロータスク';
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Center(
+        child: AspectRatio(
+          aspectRatio: 9 / 16,
+          child: Container(
+            decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: AppColors.white.withValues(alpha: 0.08),
@@ -875,8 +886,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 ),
               ),
             ),
-          ],
+            ],
+          ),
         ),
+      ),
+      ),
       ),
     );
   }

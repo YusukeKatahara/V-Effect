@@ -102,11 +102,46 @@ abstract class NotificationMessages {
     ],
   };
 
+  /// 2つ目以上の複数タスク完了時の特別テンプレート（ランダムで選ばれる）
+  static final _multipleTaskTemplates = [
+    const _Template(
+      title: '🛡️ 勝ち癖の引力',
+      body: '{username}さんに勝利が吸い寄せられています！本日早くも{count}つ目のタスクを制破🔥',
+    ),
+    const _Template(
+      title: '⚡️ 勝利者効果 / V EFFECT',
+      body: '勝利の連鎖がさらなる挑戦を熱くする！{username}さんが本日{count}回目の勝利を呼び込みました🔥',
+    ),
+    const _Template(
+      title: '📈 成長の複利ループ',
+      body: '1.01の積み重ねが未来を劇的に変える！{username}さんが本日{count}つ目の行動を重ね、複利で進化中🚀',
+    ),
+    const _Template(
+      title: '🧠 意志を超えた習慣化',
+      body: 'もはや努力は呼吸と同じ。{username}さんが本日{count}つ目のタスクを「当たり前」のように突破⚡️',
+    ),
+  ];
+
   /// 通知タイプ・パラメータからメッセージをランダムに生成します
   static NotificationContent build(
     NotificationType type, [
     Map<String, String> params = const {},
   ]) {
+    // 2回目以降のヒーロータスク達成の場合は、専用のランダムテンプレートを使用する
+    if (type == NotificationType.friendTaskCompleted) {
+      final countStr = params['count'];
+      if (countStr != null) {
+        final count = int.tryParse(countStr) ?? 1;
+        if (count > 1) {
+          final template = _multipleTaskTemplates[_random.nextInt(_multipleTaskTemplates.length)];
+          return NotificationContent(
+            title: _replacePlaceholders(template.title, params),
+            body: _replacePlaceholders(template.body, params),
+          );
+        }
+      }
+    }
+
     final templates = _templates[type];
     if (templates == null || templates.isEmpty) {
       return NotificationContent(title: type.name, body: '');
