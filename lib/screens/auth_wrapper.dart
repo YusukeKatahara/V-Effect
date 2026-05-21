@@ -142,7 +142,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
               // onboardingStep を唯一の進捗ソースとして使う
               final step = data?['onboardingStep'] as String?;
               if (step == 'core_feature') {
-                _navigateTo(AppRoutes.onboardingCoreFeature);
+                _navigateTo(AppRoutes.onboardingVEffect);
               } else if (step == 'profile_settings') {
                 _navigateTo(AppRoutes.onboardingProfile);
               } else if (step == 'first_v_quest') {

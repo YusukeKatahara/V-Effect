@@ -17,7 +17,6 @@ import '../screens/v_practice_screen.dart';
 
 import '../screens/initial_friend_screen.dart';
 import '../screens/onboarding/v_effect_screen.dart';
-import '../screens/onboarding/core_feature_screen.dart';
 import '../screens/onboarding/profile_settings_screen.dart';
 import '../screens/onboarding/first_v_quest_screen.dart';
 import '../screens/forgot_password_screen.dart';
@@ -61,7 +60,6 @@ class AppRoutes {
   static const String blogPostDetail = '/blog-post-detail';
   static const String blogPostEditor = '/blog-post-editor';
   static const String onboardingVEffect     = '/onboarding/v-effect';
-  static const String onboardingCoreFeature = '/onboarding/core-feature';
   static const String onboardingProfile     = '/onboarding/profile';
   static const String onboardingFirstQuest  = '/onboarding/first-quest';
 
@@ -97,7 +95,6 @@ class AppRoutes {
         blogPostDetail: (context) => const BlogPostDetailScreen(),
         blogPostEditor: (context) => const BlogPostEditorScreen(),
         onboardingVEffect: (context) => const VEffectScreen(),
-        onboardingCoreFeature: (context) => const CoreFeatureScreen(),
         onboardingProfile: (context) => const OnboardingProfileSettingsScreen(),
         onboardingFirstQuest: (context) => const FirstVQuestScreen(),
       };

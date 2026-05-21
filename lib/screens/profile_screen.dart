@@ -250,7 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           controller: triggerController,
                           style: const TextStyle(color: AppColors.white),
                           decoration: const InputDecoration(
-                            hintText: 'タイミング (任意)',
+                            hintText: 'トリガー (任意)',
                             hintStyle: TextStyle(color: AppColors.grey30),
                           ),
                         ),
@@ -357,7 +357,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           controller: triggerController,
                           style: const TextStyle(color: AppColors.white),
                           decoration: const InputDecoration(
-                            hintText: 'タイミング (任意)',
+                            hintText: 'トリガー (任意)',
                             hintStyle: TextStyle(color: AppColors.grey30),
                           ),
                         ),

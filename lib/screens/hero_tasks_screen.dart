@@ -22,6 +22,7 @@ import 'camera_screen.dart';
 import '../widgets/reaction_avatars.dart';
 import '../widgets/entropic_conversion_overlay.dart';
 import '../widgets/post_success_dialog.dart';
+import '../widgets/friend_invite_prompt_sheet.dart';
 
 /// 内部管理用のタスクアイテム
 class _HeroTaskItem {
@@ -444,7 +445,39 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         // 4. 最後にデータを最新化して、NetworkImageなどへの切り替えを完了させる
         await _loadData();
         await _checkAndShowPostTutorial();
+
+        // 5. 初めてのタスク投稿後にフレンド登録・招待を促すプロンプトを表示
+        if (mounted) {
+          await _checkAndShowFriendInvitePrompt();
+        }
       }
+    }
+  }
+
+  /// 初めての投稿完了時にのみ、フレンド招待・登録を促すプロンプト（ボトムシート）を表示します
+  Future<void> _checkAndShowFriendInvitePrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final uid = _userService.currentUid;
+    if (uid == null) return;
+
+    // すでに表示済みの場合は何もしません
+    final hasShown = prefs.getBool('friend_invite_prompt_shown_$uid') ?? false;
+    if (hasShown) return;
+
+    try {
+      // 最新のユーザー情報をFirestoreから取得します
+      final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (!snap.exists) return;
+      final user = AppUser.fromFirestore(snap);
+
+      if (mounted) {
+        // ハーフモーダル (下からせり出るシート) を表示
+        await FriendInvitePromptSheet.show(context, user);
+        // 次回以降表示されないようにフラグを保存します
+        await prefs.setBool('friend_invite_prompt_shown_$uid', true);
+      }
+    } catch (e) {
+      debugPrint('フレンド招待プロンプト表示エラー: $e');
     }
   }
 
@@ -933,7 +966,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'V EFFECTへ、ようこそ。\nここはあなたにとって最適な居場所です。\n\nまずはカメラアイコンをタップして、\n最初のVを証明しましょう。',
+                        'V EFFECTへようこそ。\nここはあなたにとって最適な環境です。\n\nまずはカメラアイコンをタップして、\n最初のVを証明しましょう。',
                         style: GoogleFonts.notoSansJp(
                           color: AppColors.black,
                           fontSize: 13,
