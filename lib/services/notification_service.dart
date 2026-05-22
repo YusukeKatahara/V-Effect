@@ -105,6 +105,41 @@ class NotificationService {
     await _db.collection('notifications').doc(notificationId).delete();
   }
 
+  /// 関連ID(relatedId)に基づいて通知を削除します（フレンド申請処理後など）
+  Future<void> deleteNotificationByRelatedId(String relatedId) async {
+    final snap = await _db
+        .collection('notifications')
+        .where('relatedId', isEqualTo: relatedId)
+        .get();
+    
+    if (snap.docs.isEmpty) return;
+
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
+  /// 特定のユーザーから届いたフレンド申請通知を全て削除します
+  Future<void> deleteFriendRequestNotification(String fromUid) async {
+    final myUid = _auth.currentUser!.uid;
+    final snap = await _db
+        .collection('notifications')
+        .where('toUid', isEqualTo: myUid)
+        .where('fromUid', isEqualTo: fromUid)
+        .where('type', isEqualTo: NotificationType.friendRequestReceived.name)
+        .get();
+    
+    if (snap.docs.isEmpty) return;
+
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
   /// 全通知を削除します
   Future<void> deleteAllNotifications() async {
     final myUid = _auth.currentUser!.uid;

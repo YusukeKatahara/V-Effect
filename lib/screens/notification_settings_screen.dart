@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_colors.dart';
 import '../services/user_service.dart';
+import '../widgets/notification_prompt_sheet.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -165,6 +168,46 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 _streakWarningNotifications,
                 (v) => _updateSetting('streakWarningNotifications', v),
               ),
+              if (kDebugMode) ...[
+                const Divider(color: AppColors.grey30, height: 40),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    '開発者向けデバッグ機能',
+                    style: TextStyle(
+                      color: AppColors.accentGold,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  title: const Text('通知プレ・ダイアログの表示フラグをリセット', style: TextStyle(color: AppColors.textPrimary)),
+                  subtitle: const Text('「一度のみ表示」の制限フラグを消去します', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  trailing: const Icon(Icons.refresh, color: AppColors.textPrimary),
+                  onTap: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    final uid = FirebaseAuth.instance.currentUser?.uid;
+                    if (uid != null) {
+                      await prefs.remove('notification_prompt_shown_$uid');
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('通知ダイアログ表示フラグをリセットしました。')),
+                        );
+                      }
+                    }
+                  },
+                ),
+                ListTile(
+                  title: const Text('通知プレ・ダイアログをテスト表示', style: TextStyle(color: AppColors.textPrimary)),
+                  subtitle: const Text('現在の通知許可状態に関わらずモーダルを表示します', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  trailing: const Icon(Icons.play_arrow, color: AppColors.textPrimary),
+                  onTap: () {
+                    NotificationPromptSheet.show(context);
+                  },
+                ),
+              ],
             ],
           ),
     );

@@ -30,15 +30,11 @@ class _NotificationPromptSheetState extends State<NotificationPromptSheet> {
   @override
   void initState() {
     super.initState();
-    // 画面が描画された直後にOSのパーミッション要求を呼び出します
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _triggerPermissionRequest();
-    });
+    // 以前はここで自動的にOSダイアログを呼び出していましたが、
+    // ユーザーが文章を読み終わってからボタンで呼び出せるように削除しました。
   }
 
   Future<void> _triggerPermissionRequest() async {
-    // モーダルのスライドアニメーション完了を待つために少し遅延を挟みます
-    await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
 
     // システム標準の通知許可ダイアログを呼び出します（ユーザーの選択を待ちます）
@@ -121,16 +117,50 @@ class _NotificationPromptSheetState extends State<NotificationPromptSheet> {
             ),
             const SizedBox(height: 32),
 
-            // ── インジケータ ──
-            const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentGold),
+            // ── アクションボタン群 ──
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _triggerPermissionRequest,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accentGold,
+                  foregroundColor: AppColors.bgBase, // ゴールド背景に黒文字で目立たせる
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  '次へ',
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+
+            // ── あとでボタン ──
+            TextButton(
+              onPressed: () {
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+              ),
+              child: Text(
+                '今はしない',
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ],
         ),
       ),

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../config/app_colors.dart';
@@ -62,7 +63,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
   int _streak = 0;
   int _streakProtections = 0;
-  bool _postedToday = false;
   bool _loading = true;
   List<_HeroTaskItem> _taskItems = [];
 
@@ -86,6 +86,14 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   late final PageController _pageController;
   late final ValueNotifier<double> _scrollPositionNotifier;
 
+  // ── Swipe Guide Tutorial ──
+  // 初回スワイプチュートリアルの表示状態を管理するフラグ
+  bool _showSwipeGuide = false;
+  // チュートリアル矢印の揺れ（バウンスアニメーション）を制御するコントローラー
+  late final AnimationController _swipeGuideController;
+  // チュートリアル矢印の移動量を表すアニメーション
+  late final Animation<double> _swipeGuideTranslation;
+
   int get _focusedIndex {
     if (_taskItems.isEmpty) return 0;
     final len = _taskItems.length;
@@ -108,12 +116,14 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               setState(() => _expandedIndex = null);
             }
             _scrollPositionNotifier.value = page;
+            // ユーザーがスワイプ（画面移動）を開始したら、ガイドを非表示にする
+            if (_showSwipeGuide) {
+              _dismissSwipeGuide();
+            }
           }
         }
       });
-    _loadData().then((_) {
-      _checkAndShowTutorial();
-    });
+    _loadData();
 
     _sublimationController = AnimationController(
       vsync: this,
@@ -161,6 +171,27 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       ),
     );
 
+    // ── Swipe Guide Tutorial ──
+    // スワイプガイド用のアニメーションコントローラーを初期化
+    _swipeGuideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    // 左右に揺れる動き（0.0 から 8.0 の位置への往復）を設定
+    _swipeGuideTranslation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 0.0, end: 8.0).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 50,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 8.0, end: 0.0).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 50,
+      ),
+    ]).animate(_swipeGuideController);
+
+    // チュートリアルの表示状態を判定して初期化
+    _initSwipeGuide();
+
     // データの更新通知を監視
     _updateSubscription = _postService.updateStream.listen((_) {
       if (mounted) _loadData();
@@ -177,7 +208,35 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     _userUpdateSubscription?.cancel();
     _pageController.dispose();
     _sublimationController.dispose();
+    _swipeGuideController.dispose();
     super.dispose();
+  }
+
+  /// 初回スワイプチュートリアルの表示状態を判定して初期化します。
+  /// (SharedPreferences からフラグを読み込み、表示が必要な場合はアニメーションを開始します)
+  Future<void> _initSwipeGuide() async {
+    final prefs = await SharedPreferences.getInstance();
+    // すでにチュートリアルが表示されたかどうかを確認します
+    final hasShown = prefs.getBool('v_quest_swipe_tutorial_shown') ?? false;
+    if (!hasShown && mounted) {
+      setState(() {
+        _showSwipeGuide = true;
+      });
+      // バウンスアニメーションをリピート開始（リバースありで往復させます）
+      _swipeGuideController.repeat(reverse: true);
+    }
+  }
+
+  /// スワイプ操作を検知した際に、ガイドを非表示にし、表示済みフラグを保存します。
+  Future<void> _dismissSwipeGuide() async {
+    if (!mounted) return;
+    setState(() {
+      _showSwipeGuide = false;
+    });
+    _swipeGuideController.stop();
+    final prefs = await SharedPreferences.getInstance();
+    // 次回以降表示されないようにフラグを保存します
+    await prefs.setBool('v_quest_swipe_tutorial_shown', true);
   }
 
   Future<void> _loadData() async {
@@ -247,7 +306,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       setState(() {
         _streak = (homeData['streak'] as num?)?.toInt() ?? 0;
         _streakProtections = (homeData['streakProtections'] as num?)?.toInt() ?? 0;
-        _postedToday = homeData['postedToday'] as bool? ?? false;
         _taskItems = items;
         _userPhotos.addAll(photoMap);
         _userNames.addAll(nameMap);
@@ -311,74 +369,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     }
   }
 
-  Future<void> _checkAndShowTutorial() async {
-    if (!mounted || _postedToday || _taskItems.isEmpty) return;
-    final prefs = await SharedPreferences.getInstance();
-    final hasShown = prefs.getBool('v_quest_tutorial_shown') ?? false;
-    if (hasShown) return;
 
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              backgroundColor: AppColors.bgElevated,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: const Text(
-                'V-Quest',
-                style: TextStyle(color: AppColors.white),
-              ),
-              content: const Text(
-                '今日の挑戦を選んでタップしましょう。\n証拠写真を投稿して Victory を獲得！',
-                style: TextStyle(color: AppColors.grey70),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('了解'),
-                ),
-              ],
-            ),
-      );
-      await prefs.setBool('v_quest_tutorial_shown', true);
-    }
-  }
-
-  Future<void> _checkAndShowPostTutorial() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasShown = prefs.getBool('v_feed_tutorial_shown') ?? false;
-    if (hasShown) return;
-
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              backgroundColor: AppColors.bgElevated,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: const Text(
-                'Victory!',
-                style: TextStyle(color: AppColors.white),
-              ),
-              content: const Text(
-                '投稿が完了しました！\nHOMEタブから仲間の努力を見に行きましょう。',
-                style: TextStyle(color: AppColors.grey70),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('了解'),
-                ),
-              ],
-            ),
-      );
-      await prefs.setBool('v_feed_tutorial_shown', true);
-    }
-  }
 
   Future<void> _selectHeroTask(int index) async {
     HapticFeedback.lightImpact();
@@ -418,7 +409,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
       setState(() {
         _heroIndex = index;
-        _postedToday = true;
         _isSublimating = true;
       });
 
@@ -445,7 +435,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         
         // 4. 最後にデータを最新化して、NetworkImageなどへの切り替えを完了させる
         await _loadData();
-        await _checkAndShowPostTutorial();
 
         // 5. 初めてのタスク投稿後に通知推奨モーダル（プレ・ダイアログ）を表示
         if (mounted) {
@@ -868,6 +857,50 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                     ),
                   ),
                 ),
+
+                // ── Swipe Guide Tutorial UI ──
+                // 初めてのユーザー向けに左右のスワイプガイド矢印を表示（揺れるアニメーション付き）
+                if (_showSwipeGuide && _taskItems.length > 1)
+                  IgnorePointer(
+                    child: SizedBox(
+                      width: finalCardWidth + 64, // カードの左右端の少し外側（32pxずつ）にガイドを配置
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // 左側のゴールド矢印（◀）をバウンス（往復）移動させます
+                          AnimatedBuilder(
+                            animation: _swipeGuideTranslation,
+                            builder: (context, child) {
+                              return Transform.translate(
+                                offset: Offset(-_swipeGuideTranslation.value, 0),
+                                child: child,
+                              );
+                            },
+                            child: Icon(
+                              Icons.chevron_left_rounded,
+                              color: AppColors.accentGold.withValues(alpha: 0.7),
+                              size: 40,
+                            ),
+                          ),
+                          // 右側のゴールド矢印（▶）をバウンス（往復）移動させます
+                          AnimatedBuilder(
+                            animation: _swipeGuideTranslation,
+                            builder: (context, child) {
+                              return Transform.translate(
+                                offset: Offset(_swipeGuideTranslation.value, 0),
+                                child: child,
+                              );
+                            },
+                            child: Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.accentGold.withValues(alpha: 0.7),
+                              size: 40,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             );
           },

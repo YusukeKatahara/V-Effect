@@ -235,9 +235,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             builder:
                 (context, setModalState) => AlertDialog(
                   backgroundColor: AppColors.bgElevated,
-                  title: const Text(
-                    'タスクを追加',
-                    style: TextStyle(color: AppColors.white),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'タスクを追加',
+                        style: TextStyle(color: AppColors.white),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.lightbulb_outline,
+                          color: AppColors.accentGold,
+                          size: 20,
+                        ),
+                        onPressed: () => _showHabitTipsDialog(context),
+                      ),
+                    ],
                   ),
                   // キーボード表示時にコンテンツがオーバーフローしないよう、スクロール可能にしています
                   content: SizedBox(
@@ -345,9 +358,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             builder:
                 (context, setModalState) => AlertDialog(
                   backgroundColor: AppColors.bgElevated,
-                  title: const Text(
-                    'タスクを編集',
-                    style: TextStyle(color: AppColors.white),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'タスクを編集',
+                        style: TextStyle(color: AppColors.white),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.lightbulb_outline,
+                          color: AppColors.accentGold,
+                          size: 20,
+                        ),
+                        onPressed: () => _showHabitTipsDialog(context),
+                      ),
+                    ],
                   ),
                   // キーボード表示時にコンテンツがオーバーフローしないよう、スクロール可能にしています
                   content: SizedBox(
@@ -440,6 +466,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // ---── 習慣化のコツをポップアップ表示 ──
+  void _showHabitTipsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: AppColors.bgElevated,
+            title: Row(
+              children: [
+                const Icon(
+                  Icons.lightbulb_outline,
+                  color: AppColors.accentGold,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '習慣化のコツ',
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.accentGold,
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '• 2分間ルール\nまずは「本を1ページ読む」「スクワットを10回する」など極小の行動から始めましょう。',
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 13,
+                    color: AppColors.grey50,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '• ハビット・スタッキング\nすでに毎日やっている行動の後に新しい習慣をくっつけると効果的です。',
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 13,
+                    color: AppColors.grey50,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  '閉じる',
+                  style: TextStyle(color: AppColors.white),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
   // ---── ヒーロータスクの削除 ──
   Future<void> _deleteTask(int index) async {
     final confirmed = await showDialog<bool>(
@@ -485,52 +572,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.grey15.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    '習慣化のコツ',
-                    style: GoogleFonts.notoSansJp(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.accentGold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '• 2分間ルール\nまずは「本を1ページ読む」「スクワットを10回する」など極小の行動から始めましょう。',
-                style: GoogleFonts.notoSansJp(
-                  fontSize: 12,
-                  color: AppColors.grey50,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '• ハビット・スタッキング\nすでに毎日やっている行動の後に新しい習慣をくっつけると効果的です。',
-                style: GoogleFonts.notoSansJp(
-                  fontSize: 12,
-                  color: AppColors.grey50,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(

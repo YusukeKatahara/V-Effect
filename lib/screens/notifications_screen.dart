@@ -203,25 +203,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _handleFriendRequest(AppNotification notif, bool accept) async {
-    if (notif.relatedId == null) return;
+    if (notif.relatedId == null) {
+      // 古いデータなどで relatedId が無い場合、処理しようがないので通知だけ削除する
+      await _notificationService.deleteNotification(notif.id);
+      return;
+    }
 
     setState(() => _isProcessing = true);
     try {
       final request = await _friendService.getRequestById(notif.relatedId!);
-      if (request == null) {
-        throw Exception('リクエストが見つかりませんでした。すでに処理されている可能性があります。');
+      
+      if (request != null) {
+        if (accept) {
+          await _friendService.acceptRequest(request);
+        } else {
+          await _friendService.rejectRequest(request);
+        }
       }
 
-      if (accept) {
-        await _friendService.acceptRequest(request);
-      } else {
-        await _friendService.rejectRequest(request);
-      }
-
-      // 完了したら通知を削除
+      // 処理が完了した、または既にリクエストが削除・処理済みだった場合は通知を削除
       await _notificationService.deleteNotification(notif.id);
 
-      if (mounted) {
+      if (mounted && request != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(accept ? 'フォローリクエストを承認しました！' : 'フォローリクエストを拒否しました。'),
@@ -233,7 +236,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('承認に失敗しました。もう一度お試しください。')));
+        ).showSnackBar(const SnackBar(content: Text('承認に失敗しました。もう一度お試しください。')));
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);

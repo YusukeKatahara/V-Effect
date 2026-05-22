@@ -138,7 +138,7 @@ class _QrDisplayScreenState extends State<QrDisplayScreen> {
                                     'assets/icon/app_icon.png'),
                                 embeddedImageStyle:
                                     const QrEmbeddedImageStyle(
-                                  size: Size(80, 80),
+                                  size: Size(36, 36),
                                 ),
                                 eyeStyle: const QrEyeStyle(
                                   eyeShape: QrEyeShape.square,

@@ -191,7 +191,9 @@ class FriendInvitePromptSheet extends StatelessWidget {
                   onPressed: () async {
                     // システムのシェアシートを開いて紹介リンクを送ります
                     await InviteService.instance.shareInviteCard(
-                      userId: user.uid,
+                      userId: (user.userId != null && user.userId!.isNotEmpty)
+                          ? user.userId!
+                          : user.uid,
                       username: user.username ?? 'ユーザー',
                     );
                   },

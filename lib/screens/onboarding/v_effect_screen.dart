@@ -35,23 +35,7 @@ class _VEffectScreenState extends State<VEffectScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // スキップボタン（右上）
-            Positioned(
-              top: 16,
-              right: 16,
-              child: TextButton(
-                onPressed: _next,
-                child: Text(
-                  'スキップ',
-                  style: GoogleFonts.notoSansJp(
-                    color: AppColors.grey50,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-            
+
             // メインコンテンツ (PageView)
             Positioned.fill(
               child: PageView(

@@ -88,18 +88,18 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     // 初期化中（権限ダイアログ含む）は何もしない
     if (_isInitializing) return;
 
-    final controller = _cameraController;
-    if (controller == null || !controller.value.isInitialized) return;
-
-    if (state == AppLifecycleState.inactive) {
-      controller.dispose();
-      setState(() {
-        _isCameraReady = false;
-        _cameraController = null;
-      });
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      final controller = _cameraController;
+      if (controller != null && controller.value.isInitialized) {
+        controller.dispose();
+        setState(() {
+          _isCameraReady = false;
+          _cameraController = null;
+        });
+      }
     } else if (state == AppLifecycleState.resumed) {
-      // プレビュー表示中（写真確認画面でない）なら再初期化
-      if (_image == null) {
+      // プレビュー表示中（写真確認画面でない）かつカメラが未初期化なら再起動
+      if (_image == null && _cameraController == null) {
         _initCamera();
       }
     }
@@ -114,9 +114,25 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     _isInitializing = true;
 
     try {
-      _cameras = await availableCameras();
-      if (_cameras.isEmpty) {
+      final allCameras = await availableCameras();
+      if (allCameras.isEmpty) {
         debugPrint('CAMERA: No cameras available');
+        return;
+      }
+
+      // 複数のレンズ（広角・超広角など）が搭載されている端末に対応するため、
+      // 背面カメラと前面カメラをそれぞれ最初の1つずつ（標準カメラ）のみに絞り込みます。
+      final backCamera = allCameras.where((c) => c.lensDirection == CameraLensDirection.back).firstOrNull;
+      final frontCamera = allCameras.where((c) => c.lensDirection == CameraLensDirection.front).firstOrNull;
+
+      // 取得したカメラのみを保持するリストを再構築（最大2つ）
+      _cameras = [
+        if (backCamera != null) backCamera,
+        if (frontCamera != null) frontCamera,
+      ];
+
+      if (_cameras.isEmpty) {
+        debugPrint('CAMERA: No suitable cameras found');
         return;
       }
 
@@ -337,8 +353,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     try {
       final boundary = _boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
-      // pixelRatio を 2.0 から 1.5 に最適化し、画質を十分維持しつつファイルサイズを約44%削減（アップロード速度向上）
-      final img = await boundary.toImage(pixelRatio: 1.5);
+      // pixelRatio を 3.0 に最適化し、アップロード時の画質低下を防ぐ
+      final img = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
       return byteData?.buffer.asUint8List();
     } catch (e) {
@@ -748,10 +764,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           fit: StackFit.expand,
           children: [
             // ドラッグ＆ピンチズーム用の領域（画像部分のみをRepaintBoundaryで囲んで切り取る）
-            RepaintBoundary(
-              key: _boundaryKey,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
+            // ClipRRectを外側にすることで、保存される画像に角丸（白枠）が焼き付かないようにする
+            ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: RepaintBoundary(
+                key: _boundaryKey,
                 child: InteractiveViewer(
                   transformationController: _transformationController,
                   minScale: 1.0,

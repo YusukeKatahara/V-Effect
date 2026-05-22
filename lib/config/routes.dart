@@ -7,7 +7,6 @@ import '../screens/profile_setup_screen.dart';
 import '../screens/task_setup_screen.dart';
 import '../screens/task_template_screen.dart';
 import '../screens/profile_screen.dart';
-import '../screens/friends_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/follow_list_screen.dart';
@@ -40,7 +39,6 @@ class AppRoutes {
   static const String profileSetup = '/profile-setup';
   static const String taskSetup = '/task-setup';
   static const String taskTemplate = '/task-template';
-  static const String friends = '/friends';
   static const String profile = '/profile';
   static const String notifications = '/notifications';
   static const String search = '/search';
@@ -77,7 +75,6 @@ class AppRoutes {
         taskSetup: (context) => const TaskSetupScreen(),
         taskTemplate: (context) => const TaskTemplateScreen(),
         profile: (context) => const ProfileScreen(),
-        friends: (context) => const FriendsScreen(),
         notifications: (context) => const NotificationsScreen(),
         search: (context) => const SearchScreen(),
         userProfile: (context) => const UserProfileScreen(),

@@ -81,8 +81,10 @@ class PushNotificationService {
     // バックグラウンドハンドラーの登録
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // 通知権限のリクエスト
-    await requestPermission();
+    // 以前はここで通知権限をリクエストしていましたが、
+    // プッシュ通知推奨UI（プレ・モーダル）のタイミングに合わせるため
+    // 初期化時の自動リクエストはスキップします。
+    // await requestPermission();
 
     // ローカル通知の初期化（フォアグラウンド表示用）
     await _initializeLocalNotifications();
@@ -121,6 +123,17 @@ class PushNotificationService {
       // バッジのみをリセットするように変更。
       // iOS の場合、バッジリセットで通知センターの通知も一部消えるが、
       // スケジュールを維持するために cancelAll は避ける。
+
+      // iOS では、通知許可が得られていない状態でバッジを操作しようとすると
+      // OS の通知許可ダイアログが自動的に表示されてしまう可能性があるため、ガードする。
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final settings = await FirebaseMessaging.instance.getNotificationSettings();
+        if (settings.authorizationStatus != AuthorizationStatus.authorized &&
+            settings.authorizationStatus != AuthorizationStatus.provisional) {
+          debugPrint('Badgeリセットスキップ: iOSで通知許可が得られていません');
+          return;
+        }
+      }
       
       // アプリバッジをリセット
       final bool isSupported = await FlutterAppBadger.isAppBadgeSupported();
@@ -153,6 +166,14 @@ class PushNotificationService {
         badge: true,
         sound: true,
       );
+    }
+
+    // 権限が許可された場合、または暫定許可された場合は、
+    // 即座に FCM トークンを保存（または更新）し、ローカル通知のスケジュールを復元します。
+    if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional) {
+      await saveFcmToken();
+      await restoreVAlertSchedule();
     }
   }
 
@@ -293,6 +314,18 @@ class PushNotificationService {
     if (user == null) return;
 
     try {
+      // iOS では、通知許可が得られていない状態で getToken / getAPNSToken を呼ぶと
+      // OS の通知許可ダイアログが自動的に表示されてしまうフリクションを防ぐため、
+      // 許可ステータスを確認し、許可されていない場合は処理をスキップします。
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final settings = await _messaging.getNotificationSettings();
+        if (settings.authorizationStatus != AuthorizationStatus.authorized &&
+            settings.authorizationStatus != AuthorizationStatus.provisional) {
+          debugPrint('FCMトークン保存スキップ: iOSで通知許可が得られていません');
+          return;
+        }
+      }
+
       // iOS の場合は APNs トークンの取得状況を確認し、必要に応じて待機する
       if (defaultTargetPlatform == TargetPlatform.iOS) {
         String? apnsToken;
@@ -530,6 +563,18 @@ class PushNotificationService {
     if (user == null) return;
 
     try {
+      // iOS では、通知許可が得られていない状態でローカル通知をスケジュールすると
+      // OS の通知許可ダイアログが自動的に表示されてしまうフリクションを防ぐため、
+      // 許可ステータスを確認し、許可されていない場合は処理をスキップします。
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final settings = await FirebaseMessaging.instance.getNotificationSettings();
+        if (settings.authorizationStatus != AuthorizationStatus.authorized &&
+            settings.authorizationStatus != AuthorizationStatus.provisional) {
+          debugPrint('V Alertスケジュールスキップ: iOSで通知許可が得られていません');
+          return;
+        }
+      }
+
       final privateSnap = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)

@@ -3,6 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../models/app_user.dart';
 import '../services/friend_service.dart';
 
 class QrScannerScreen extends StatefulWidget {
@@ -36,9 +37,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     setState(() => _isProcessing = true);
     _controller.stop();
 
-    final userId = Uri.decodeComponent(segments[1]);
+    final parsedId = Uri.decodeComponent(segments[1]);
     try {
-      final user = await FriendService.instance.searchByUserId(userId);
+      // まずはユーザー設定の ID (userId) で検索
+      AppUser? user = await FriendService.instance.searchByUserId(parsedId);
+      
+      // 見つからない場合は、システムID (uid) での取得を試みる
+      user ??= await FriendService.instance.getUserByUid(parsedId);
+
       if (!mounted) return;
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(

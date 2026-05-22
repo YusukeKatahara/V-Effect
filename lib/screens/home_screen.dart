@@ -19,6 +19,9 @@ import '../widgets/weekly_review_banner.dart';
 import 'weekly_review_screen.dart';
 import '../providers/home_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/friend_service.dart';
+import '../models/friend_request.dart';
+import '../models/app_user.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final ValueChanged<bool>? onLoadingChanged;
@@ -42,6 +45,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final Set<String> _reactingPostIds = {}; // 通信中の投稿IDを追跡
   // 送信済みだが Firestore 未確認の emoji。{emoji, uid} を記録して myUid null 問題を回避
   final Map<String, ({String emoji, String uid})> _pendingEmojis = {};
+
+  // ── フレンド申請の楽観的UI用 ──
+  final Set<String> _hiddenRequestIds = {};
 
   // ── VFIRE デバウンス用 ──
   Timer? _flameDebounceTimer;
@@ -148,7 +154,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final nextPost = _feedPosts[nextIndex];
       if (nextPost.imageUrl != null) {
         precacheImage(
-          ResizeImage(CachedNetworkImageProvider(nextPost.imageUrl!), width: 800),
+          ResizeImage(CachedNetworkImageProvider(nextPost.imageUrl!), width: 1600),
           context,
         );
       }
@@ -162,7 +168,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final post = _feedPosts[i];
       if (post.imageUrl != null) {
         precacheImage(
-          ResizeImage(CachedNetworkImageProvider(post.imageUrl!), width: 800),
+          ResizeImage(CachedNetworkImageProvider(post.imageUrl!), width: 1600),
           context,
         );
       }
@@ -807,6 +813,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       child: Column(
         children: [
           _buildTitleBar(),
+          _buildFriendRequestBanner(),
           SizedBox(
             height: 76,
             child: Center(
@@ -863,6 +870,279 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ),
     trailing: const NotificationBellIcon(),
   );
+
+  Widget _buildFriendRequestBanner() {
+    return StreamBuilder<List<FriendRequest>>(
+      stream: FriendService.instance.getReceivedRequests(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        // ローカルで非表示（処理中）にしたリクエストを除外
+        final requests = snapshot.data!
+            .where((req) => !_hiddenRequestIds.contains(req.id))
+            .toList();
+            
+        if (requests.isEmpty) return const SizedBox.shrink();
+        
+        return AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOutCubic,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: requests.length == 1
+                ? _buildSingleRequestCard(requests.first)
+                : _buildMultipleRequestsCard(requests),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSingleRequestCard(FriendRequest request) {
+    return FutureBuilder<AppUser?>(
+      future: FriendService.instance.getUserByUid(request.fromUid),
+      builder: (context, snapshot) {
+        final user = snapshot.data;
+        final photoUrl = user?.photoUrl;
+        
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.white.withValues(alpha: 0.12),
+              width: 0.5,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                color: AppColors.white.withValues(alpha: 0.05),
+                child: Row(
+                  children: [
+                    // アバター部分（タップでプロフィール遷移）
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.userProfile,
+                        arguments: {
+                          'uid': request.fromUid,
+                          'username': request.fromUsername,
+                          'photoUrl': photoUrl,
+                        },
+                      ),
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.grey10,
+                        backgroundImage: photoUrl != null
+                            ? NetworkImage(photoUrl)
+                            : null,
+                        child: photoUrl == null
+                            ? const Icon(Icons.person, size: 20, color: AppColors.grey50)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // 名前とID（タップでプロフィール遷移）
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.userProfile,
+                          arguments: {
+                            'uid': request.fromUid,
+                            'username': request.fromUsername,
+                            'photoUrl': photoUrl,
+                          },
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              request.fromUsername,
+                              style: const TextStyle(
+                                color: AppColors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '@${request.fromUserId}',
+                              style: const TextStyle(
+                                color: AppColors.grey50,
+                                fontSize: 11,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // 承認・拒否ボタン (丸いアイコンで誤タップ防止＆スタイリッシュに)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 承認ボタン (✓)
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () async {
+                            final reqId = request.id;
+                            // 楽観的UI: タップした瞬間にUIから消す
+                            setState(() => _hiddenRequestIds.add(reqId));
+                            try {
+                              await FriendService.instance.acceptRequest(request);
+                            } catch (e) {
+                              // エラー時はフワッと復活させてエラー通知
+                              if (context.mounted) {
+                                setState(() => _hiddenRequestIds.remove(reqId));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('承認に失敗しました: $e')),
+                                );
+                              }
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              color: Color(0xFF00E5FF),
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // 拒否ボタン (×)
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () async {
+                            final reqId = request.id;
+                            // 楽観的UI: タップした瞬間にUIから消す
+                            setState(() => _hiddenRequestIds.add(reqId));
+                            try {
+                              await FriendService.instance.rejectRequest(request);
+                            } catch (e) {
+                              // エラー時はフワッと復活させてエラー通知
+                              if (context.mounted) {
+                                setState(() => _hiddenRequestIds.remove(reqId));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('処理に失敗しました: $e')),
+                                );
+                              }
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.grey50.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.white.withValues(alpha: 0.15),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              color: AppColors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMultipleRequestsCard(List<FriendRequest> requests) {
+    final latestReq = requests.first;
+    final otherCount = requests.length - 1;
+    
+    return FutureBuilder<AppUser?>(
+      future: FriendService.instance.getUserByUid(latestReq.fromUid),
+      builder: (context, snapshot) {
+        final user = snapshot.data;
+        final photoUrl = user?.photoUrl;
+        
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.white.withValues(alpha: 0.12),
+              width: 0.5,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: InkWell(
+                onTap: () => Navigator.pushNamed(context, '/pending-requests'),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  color: AppColors.white.withValues(alpha: 0.05),
+                  child: Row(
+                    children: [
+                      // アバター
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: AppColors.grey10,
+                        backgroundImage: photoUrl != null
+                            ? NetworkImage(photoUrl)
+                            : null,
+                        child: photoUrl == null
+                            ? const Icon(Icons.person, size: 18, color: AppColors.grey50)
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      // メッセージ
+                      Expanded(
+                        child: Text(
+                          '${latestReq.fromUsername}さん他$otherCount名から申請が届いています',
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.grey50,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildEmptyState() {
     return Center(
@@ -1488,42 +1768,41 @@ class _FeedCard extends StatelessWidget {
             RepaintBoundary(
               child:
                   post.imageUrl != null
-                      ? AspectRatio(
-                        aspectRatio: 9 / 16,
-                        child: CachedNetworkImage(
-                          imageUrl: post.imageUrl!,
-                          fit: BoxFit.cover,
-                          memCacheWidth: 800,
-                          placeholder:
-                              (ctx, url) => Container(
-                                color: AppColors.grey10,
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.accentGold,
-                                    strokeWidth: 2,
+                      ? SizedBox.expand(
+                          child: CachedNetworkImage(
+                            imageUrl: post.imageUrl!,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 1600,
+                            placeholder:
+                                (ctx, url) => Container(
+                                  color: AppColors.grey10,
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.accentGold,
+                                      strokeWidth: 2,
+                                    ),
                                   ),
                                 ),
-                              ),
-                          errorWidget:
-                              (ctx, url, error) => const Center(
-                                child: Icon(
-                                  Icons.broken_image,
-                                  color: AppColors.grey30,
-                                  size: 40,
+                            errorWidget:
+                                (ctx, url, error) => const Center(
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    color: AppColors.grey30,
+                                    size: 40,
+                                  ),
                                 ),
-                              ),
-                        ),
-                      )
+                          ),
+                        )
                       : Container(
-                        color: AppColors.grey10,
-                        child: const Center(
-                          child: Icon(
-                            Icons.image,
-                            color: AppColors.grey30,
-                            size: 60,
+                          color: AppColors.grey10,
+                          child: const Center(
+                            child: Icon(
+                              Icons.image,
+                              color: AppColors.grey30,
+                              size: 60,
+                            ),
                           ),
                         ),
-                      ),
             ),
 
             // [New] タスク名を左上に配置

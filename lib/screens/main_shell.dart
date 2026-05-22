@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../config/app_colors.dart';
+import '../services/friend_service.dart';
+import '../models/friend_request.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'hero_tasks_screen.dart';
@@ -132,10 +134,17 @@ class _MainShellState extends State<MainShell> {
                     ),
 
                     // Profile
-                    _SpatialNavItem(
-                      icon: Icons.person_rounded,
-                      isActive: _currentIndex == 2,
-                      onTap: () => _onTap(2),
+                    StreamBuilder<List<FriendRequest>>(
+                      stream: FriendService.instance.getReceivedRequests(),
+                      builder: (context, snapshot) {
+                        final hasRequests = snapshot.hasData && snapshot.data!.isNotEmpty;
+                        return _SpatialNavItem(
+                          icon: Icons.person_rounded,
+                          isActive: _currentIndex == 2,
+                          onTap: () => _onTap(2),
+                          hasBadge: hasRequests,
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -156,11 +165,13 @@ class _SpatialNavItem extends StatelessWidget {
     required this.icon,
     required this.isActive,
     required this.onTap,
+    this.hasBadge = false,
   });
 
   final IconData icon;
   final bool isActive;
   final VoidCallback onTap;
+  final bool hasBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -174,10 +185,28 @@ class _SpatialNavItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 22,
-              color: isActive ? AppColors.white : AppColors.grey30,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  icon,
+                  size: 22,
+                  color: isActive ? AppColors.white : AppColors.grey30,
+                ),
+                if (hasBadge)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 4),
             AnimatedContainer(
