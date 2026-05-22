@@ -239,10 +239,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'タスクを追加',
                     style: TextStyle(color: AppColors.white),
                   ),
+                  // キーボード表示時にコンテンツがオーバーフローしないよう、スクロール可能にしています
                   content: SizedBox(
                     width: double.maxFinite,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildTaskDialogHints(triggerController),
                         const SizedBox(height: 16),
@@ -288,6 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           contentPadding: EdgeInsets.zero,
                         ),
                       ],
+                    ),
                     ),
                   ),
                   actions: [
@@ -346,55 +349,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'タスクを編集',
                     style: TextStyle(color: AppColors.white),
                   ),
+                  // キーボード表示時にコンテンツがオーバーフローしないよう、スクロール可能にしています
                   content: SizedBox(
                     width: double.maxFinite,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildTaskDialogHints(triggerController),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: triggerController,
-                          style: const TextStyle(color: AppColors.white),
-                          decoration: const InputDecoration(
-                            hintText: 'トリガー (任意)',
-                            hintStyle: TextStyle(color: AppColors.grey30),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: controller,
-                          autofocus: true,
-                          style: const TextStyle(color: AppColors.white),
-                          decoration: const InputDecoration(
-                            hintText: 'タスク名 (例: 読書)',
-                            hintStyle: TextStyle(color: AppColors.grey30),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        SwitchListTile(
-                          title: const Text(
-                            'One-Time Task',
-                            style: TextStyle(
-                              color: AppColors.white,
-                              fontSize: 14,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildTaskDialogHints(triggerController),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: triggerController,
+                            style: const TextStyle(color: AppColors.white),
+                            decoration: const InputDecoration(
+                              hintText: 'トリガー (任意)',
+                              hintStyle: TextStyle(color: AppColors.grey30),
                             ),
                           ),
-                          subtitle: const Text(
-                            '完了から24時間後に自動削除されます',
-                            style: TextStyle(
-                              color: AppColors.grey50,
-                              fontSize: 11,
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: controller,
+                            autofocus: true,
+                            style: const TextStyle(color: AppColors.white),
+                            decoration: const InputDecoration(
+                              hintText: 'タスク名 (例: 読書)',
+                              hintStyle: TextStyle(color: AppColors.grey30),
                             ),
                           ),
-                          value: isOneTime,
-                          activeColor: AppColors.accentGold,
-                          onChanged: (val) {
-                            setModalState(() => isOneTime = val);
-                          },
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          SwitchListTile(
+                            title: const Text(
+                              'One-Time Task',
+                              style: TextStyle(
+                                color: AppColors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              '完了から24時間後に自動削除されます',
+                              style: TextStyle(
+                                color: AppColors.grey50,
+                                fontSize: 11,
+                              ),
+                            ),
+                            value: isOneTime,
+                            activeColor: AppColors.accentGold,
+                            onChanged: (val) {
+                              setModalState(() => isOneTime = val);
+                            },
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   actions: [
