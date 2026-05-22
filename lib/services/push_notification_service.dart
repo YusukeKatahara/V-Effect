@@ -82,7 +82,7 @@ class PushNotificationService {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     // 通知権限のリクエスト
-    await _requestPermission();
+    await requestPermission();
 
     // ローカル通知の初期化（フォアグラウンド表示用）
     await _initializeLocalNotifications();
@@ -136,7 +136,7 @@ class PushNotificationService {
   }
 
   /// 通知権限をリクエスト
-  Future<void> _requestPermission() async {
+  Future<void> requestPermission() async {
     final settings = await _messaging.requestPermission(
       alert: true,
       badge: true,

@@ -23,6 +23,7 @@ import '../widgets/reaction_avatars.dart';
 import '../widgets/entropic_conversion_overlay.dart';
 import '../widgets/post_success_dialog.dart';
 import '../widgets/friend_invite_prompt_sheet.dart';
+import '../widgets/notification_prompt_sheet.dart';
 
 /// 内部管理用のタスクアイテム
 class _HeroTaskItem {
@@ -446,11 +447,46 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         await _loadData();
         await _checkAndShowPostTutorial();
 
-        // 5. 初めてのタスク投稿後にフレンド登録・招待を促すプロンプトを表示
+        // 5. 初めてのタスク投稿後に通知推奨モーダル（プレ・ダイアログ）を表示
+        if (mounted) {
+          await _checkAndShowNotificationPrompt();
+        }
+
+        // 6. その後、フレンド登録・招待を促すプロンプトを表示
         if (mounted) {
           await _checkAndShowFriendInvitePrompt();
         }
       }
+    }
+  }
+
+  /// 初めての投稿完了時に、通知推奨モーダル（プレ・ダイアログ）を表示します
+  Future<void> _checkAndShowNotificationPrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final uid = _userService.currentUid;
+    if (uid == null) return;
+
+    // すでに表示済みの場合は何もしません
+    final hasShown = prefs.getBool('notification_prompt_shown_$uid') ?? false;
+    if (hasShown) return;
+
+    try {
+      // すでに通知許可済みの場合はモーダルを表示する必要がないため、フラグだけ立ててスキップします
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        await prefs.setBool('notification_prompt_shown_$uid', true);
+        return;
+      }
+
+      if (mounted) {
+        // ハーフモーダル (プレ・ダイアログ) を表示し、その中で自動でOS通知パーミッション要求をトリガーします
+        await NotificationPromptSheet.show(context);
+        
+        // 次回以降表示されないようにフラグを保存します
+        await prefs.setBool('notification_prompt_shown_$uid', true);
+      }
+    } catch (e) {
+      debugPrint('通知プロンプト表示エラー: $e');
     }
   }
 
