@@ -471,10 +471,17 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       final user = AppUser.fromFirestore(snap);
 
       if (mounted) {
-        // ハーフモーダル (下からせり出るシート) を表示
-        await FriendInvitePromptSheet.show(context, user);
+        // ハーフモーダル (下からせり出るシート) を表示し、結果を受け取ります
+        final result = await FriendInvitePromptSheet.show(context, user);
+
         // 次回以降表示されないようにフラグを保存します
         await prefs.setBool('friend_invite_prompt_shown_$uid', true);
+
+        // 「QRコードで繋がる」が選択された場合、呼び出し元（この画面）のcontextでダイアログを表示
+        // ※ ボトムシート内のcontextは閉じた後に無効になるため、ここで処理するのが正しいパターンです
+        if (result == FriendInviteResult.qrCode && mounted) {
+          FriendInvitePromptSheet.showQrDialog(context, user);
+        }
       }
     } catch (e) {
       debugPrint('フレンド招待プロンプト表示エラー: $e');

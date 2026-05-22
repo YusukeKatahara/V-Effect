@@ -6,6 +6,14 @@ import '../services/invite_service.dart';
 import '../screens/qr_display_screen.dart';
 import '../screens/qr_scanner_screen.dart';
 
+/// ハーフモーダルの結果を表す列挙型（どのアクションが選ばれたか）
+enum FriendInviteResult {
+  /// 「QRコードで繋がる」ボタンが押された
+  qrCode,
+  /// 閉じた（スキップした）
+  dismissed,
+}
+
 /// 初めてのタスク投稿後にフレンド登録・招待を促すハーフモーダル (下から出てくるシート)
 class FriendInvitePromptSheet extends StatelessWidget {
   final AppUser user;
@@ -16,12 +24,74 @@ class FriendInvitePromptSheet extends StatelessWidget {
   });
 
   /// ハーフモーダルを表示する静的メソッド
-  static Future<void> show(BuildContext context, AppUser user) {
-    return showModalBottomSheet(
+  /// 戻り値で「QRコードを選んだか」を呼び出し元に伝えます
+  static Future<FriendInviteResult?> show(BuildContext context, AppUser user) {
+    return showModalBottomSheet<FriendInviteResult>(
       context: context,
       backgroundColor: Colors.transparent, // 背景を透過させてカスタムの角丸を適用します
       isScrollControlled: true, // 高さをコンテンツに合わせるための設定です
-      builder: (context) => FriendInvitePromptSheet(user: user),
+      builder: (_) => FriendInvitePromptSheet(user: user),
+    );
+  }
+
+  /// QRコード表示 or 読み取り を選択するダイアログを表示
+  /// 呼び出し元のcontextを使うことで、ボトムシート破棄後もナビゲーションが正常に機能します
+  static void showQrDialog(BuildContext context, AppUser user) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        backgroundColor: AppColors.bgSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          'QRコード',
+          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+        ),
+        children: [
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => QrDisplayScreen(user: user),
+                ),
+              );
+            },
+            child: const Row(
+              children: [
+                Icon(Icons.qr_code_rounded, color: AppColors.textSecondary),
+                SizedBox(width: 12),
+                Text(
+                  'マイQRコードを表示',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                ),
+              ],
+            ),
+          ),
+          const Divider(color: AppColors.border, height: 1),
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+              );
+            },
+            child: const Row(
+              children: [
+                Icon(Icons.qr_code_scanner_rounded, color: AppColors.textSecondary),
+                SizedBox(width: 12),
+                Text(
+                  'QRコードをスキャン',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -46,7 +116,8 @@ class FriendInvitePromptSheet extends StatelessWidget {
         ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: MainShellSafeArea(
+      child: SafeArea(
+        top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min, // コンテンツの大きさに合わせます
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -146,14 +217,16 @@ class FriendInvitePromptSheet extends StatelessWidget {
             const SizedBox(height: 14),
 
             // ── ボタン2: 近くの友達と繋がる (QRコード) ──
+            // ※ タップ時にボトムシートを閉じて結果を返し、呼び出し元でQRダイアログを表示します
+            // ※ ボトムシート内のcontextは閉じた瞬間に無効になるため、
+            //    ここではNavigator.pop()で結果だけ返すのが正しいパターンです
             SizedBox(
               width: double.infinity,
               height: 52,
               child: OutlinedButton.icon(
                 onPressed: () {
-                  // ハーフモーダルを閉じた後に、QRコードの選択肢ダイアログを表示します
-                  Navigator.pop(context);
-                  _showQrDialog(context);
+                  // 結果として FriendInviteResult.qrCode を返し、ハーフモーダルを閉じます
+                  Navigator.pop(context, FriendInviteResult.qrCode);
                 },
                 icon: const Icon(Icons.qr_code_2_rounded, color: AppColors.accentGold, size: 20),
                 label: const Text(
@@ -179,7 +252,7 @@ class FriendInvitePromptSheet extends StatelessWidget {
 
             // ── スキップボタン (今はしない) ──
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(context, FriendInviteResult.dismissed),
               child: Text(
                 '今はしない',
                 style: GoogleFonts.notoSansJp(
@@ -193,81 +266,6 @@ class FriendInvitePromptSheet extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  /// QRコード表示 or 読み取り を選択するダイアログを表示
-  void _showQrDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        backgroundColor: AppColors.bgSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          'QRコード',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
-        ),
-        children: [
-          SimpleDialogOption(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => QrDisplayScreen(user: user),
-                ),
-              );
-            },
-            child: const Row(
-              children: [
-                Icon(Icons.qr_code_rounded, color: AppColors.textSecondary),
-                SizedBox(width: 12),
-                Text(
-                  'マイQRコードを表示',
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
-                ),
-              ],
-            ),
-          ),
-          const Divider(color: AppColors.border, height: 1),
-          SimpleDialogOption(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-              );
-            },
-            child: const Row(
-              children: [
-                Icon(Icons.qr_code_scanner_rounded, color: AppColors.textSecondary),
-                SizedBox(width: 12),
-                Text(
-                  'QRコードをスキャン',
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// セーフエリアとMainShell（メイン画面の構造）でのレイアウト崩れを防ぐためのラッパー
-class MainShellSafeArea extends StatelessWidget {
-  final Widget child;
-  const MainShellSafeArea({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    // 画面下部のナビゲーションバー（システムバー）に被らないようにSafeAreaで囲みます
-    return SafeArea(
-      top: false,
-      child: child,
     );
   }
 }
