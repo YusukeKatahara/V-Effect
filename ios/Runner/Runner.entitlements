@@ -9,7 +9,7 @@
 		<string>applinks:veffect.firebaseapp.com</string>
 	</array>
 	<key>aps-environment</key>
-	<string>development</string>
+	<string>production</string>
 	<key>com.apple.developer.applesignin</key>
 	<array>
 		<string>Default</string>
