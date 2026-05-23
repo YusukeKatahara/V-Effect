@@ -23,6 +23,7 @@ class AppNotification {
   final int reactionCount;
   final String? emoji; // 絵文字リアクション用
   final bool isRead;
+  final bool isProcessed; // 処理済みかどうか
   final bool sendPush; // プッシュ通知を送るかどうかのフラグ
   final DateTime createdAt;
 
@@ -37,6 +38,7 @@ class AppNotification {
     this.emoji,
     this.reactionCount = 0,
     this.isRead = false,
+    this.isProcessed = false,
     this.sendPush = true,
     required this.createdAt,
   });
@@ -57,6 +59,7 @@ class AppNotification {
       emoji: data['emoji'],
       reactionCount: data['reactionCount'] as int? ?? 0,
       isRead: data['isRead'] ?? false,
+      isProcessed: data['isProcessed'] ?? false,
       sendPush: data['sendPush'] ?? true,
       createdAt:
           (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -73,6 +76,7 @@ class AppNotification {
         'emoji': emoji,
         'reactionCount': reactionCount,
         'isRead': isRead,
+        'isProcessed': isProcessed,
         'sendPush': sendPush,
         'createdAt': FieldValue.serverTimestamp(),
       };

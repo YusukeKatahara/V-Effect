@@ -23,6 +23,43 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   bool _isProcessing = false;
   final Set<String> _initialUnreadIds = {};
   bool _hasMarkedRead = false;
+  final Map<String, bool> _followingStatusCache = {};
+
+  Future<bool> _checkIsFollowing(String targetUid) async {
+    if (_followingStatusCache.containsKey(targetUid)) {
+      return _followingStatusCache[targetUid]!;
+    }
+    final isFollowing = await _friendService.isFollowing(targetUid);
+    if (mounted) {
+      setState(() {
+        _followingStatusCache[targetUid] = isFollowing;
+      });
+    }
+    return isFollowing;
+  }
+
+  Future<void> _followBack(String targetUid) async {
+    setState(() => _isProcessing = true);
+    try {
+      await _friendService.followUser(targetUid);
+      setState(() {
+        _followingStatusCache[targetUid] = true;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('フォローしました！')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('フォローに失敗しました。')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
 
   @override
   void initState() {
@@ -219,10 +256,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         } else {
           await _friendService.rejectRequest(request);
         }
+      } else {
+        if (notif.fromUid != null) {
+          await _notificationService.markFriendRequestNotificationAsProcessed(notif.fromUid!);
+        }
       }
-
-      // 処理が完了した、または既にリクエストが削除・処理済みだった場合は通知を削除
-      await _notificationService.deleteNotification(notif.id);
 
       if (mounted && request != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -437,29 +475,58 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 if (notif.type ==
                                     NotificationType.friendRequestReceived) ...[
                                   const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      _buildCompactButton(
-                                        label: '承認',
-                                        onPressed:
-                                            () => _handleFriendRequest(
-                                              notif,
-                                              true,
+                                  if (notif.isProcessed) ...[
+                                    FutureBuilder<bool>(
+                                      future: _checkIsFollowing(notif.fromUid!),
+                                      builder: (context, snapshot) {
+                                        final isFollowing = snapshot.data ?? false;
+                                        if (isFollowing) {
+                                          return const Text(
+                                            'フォロー中',
+                                            style: TextStyle(
+                                              color: AppColors.textMuted,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
                                             ),
-                                        isPrimary: true,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      _buildCompactButton(
-                                        label: 'あとで',
-                                        onPressed:
-                                            () => _handleFriendRequest(
-                                              notif,
-                                              false,
-                                            ),
-                                        isPrimary: false,
-                                      ),
-                                    ],
-                                  ),
+                                          );
+                                        } else {
+                                          return Row(
+                                            children: [
+                                              _buildCompactButton(
+                                                label: 'フォローしますか？',
+                                                onPressed: () => _followBack(notif.fromUid!),
+                                                isPrimary: true,
+                                              ),
+                                            ],
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ] else ...[
+                                    Row(
+                                      children: [
+                                        _buildCompactButton(
+                                          label: '承認',
+                                          onPressed:
+                                              () => _handleFriendRequest(
+                                                notif,
+                                                true,
+                                              ),
+                                          isPrimary: true,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        _buildCompactButton(
+                                          label: 'あとで',
+                                          onPressed:
+                                              () => _handleFriendRequest(
+                                                notif,
+                                                false,
+                                              ),
+                                          isPrimary: false,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ],
                             ),

@@ -121,8 +121,8 @@ class NotificationService {
     await batch.commit();
   }
 
-  /// 特定のユーザーから届いたフレンド申請通知を全て削除します
-  Future<void> deleteFriendRequestNotification(String fromUid) async {
+  /// 特定のユーザーから届いたフレンド申請通知を処理済みにします
+  Future<void> markFriendRequestNotificationAsProcessed(String fromUid) async {
     final myUid = _auth.currentUser!.uid;
     final snap = await _db
         .collection('notifications')
@@ -135,7 +135,7 @@ class NotificationService {
 
     final batch = _db.batch();
     for (final doc in snap.docs) {
-      batch.delete(doc.reference);
+      batch.update(doc.reference, {'isProcessed': true});
     }
     await batch.commit();
   }

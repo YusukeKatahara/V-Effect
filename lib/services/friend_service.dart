@@ -248,8 +248,8 @@ class FriendService {
         );
       }
       
-      // ホーム等で承認した場合、通知画面に残っている「申請が届きました」通知を削除する
-      await _notificationService.deleteFriendRequestNotification(request.fromUid);
+      // ホーム等で承認した場合、通知画面に残っている「申請が届きました」通知を処理済みにする
+      await _notificationService.markFriendRequestNotificationAsProcessed(request.fromUid);
       
     } finally {
       _processingLocks.remove(lockKey);
@@ -268,8 +268,8 @@ class FriendService {
           .doc(request.id)
           .update({'status': 'rejected'});
           
-      // 拒否した場合も、通知画面に残っている「申請が届きました」通知を削除する
-      await _notificationService.deleteFriendRequestNotification(request.fromUid);
+      // 拒否した場合も、通知画面に残っている「申請が届きました」通知を処理済みにする
+      await _notificationService.markFriendRequestNotificationAsProcessed(request.fromUid);
     } finally {
       _processingLocks.remove(lockKey);
     }
@@ -294,8 +294,8 @@ class FriendService {
       final docId = snap.docs.first.id;
       await snap.docs.first.reference.delete();
       
-      // 申請をキャンセルした場合、相手に送られた通知も削除する
-      await _notificationService.deleteFriendRequestNotification(myUid);
+      // 申請をキャンセルした場合、相手に送られた通知も処理済みにする
+      await _notificationService.markFriendRequestNotificationAsProcessed(myUid);
     } finally {
       _processingLocks.remove(lockKey);
     }

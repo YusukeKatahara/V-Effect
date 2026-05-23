@@ -1737,14 +1737,6 @@ class _FeedCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        color: AppColors.grey15,
-        border: Border.all(
-          color:
-              isTop
-                  ? AppColors.accentGold.withValues(alpha: 0.8)
-                  : tierColor.withValues(alpha: 0.1),
-          width: isTop ? 1.5 : 0.5,
-        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.black.withValues(alpha: 0.6),
@@ -1764,6 +1756,9 @@ class _FeedCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // 背景色 (白枠対策で内側に移動)
+            Container(color: AppColors.grey15),
+
             // 写真 (RepaintBoundary + CachedNetworkImage)
             RepaintBoundary(
               child:
@@ -2050,6 +2045,24 @@ class _FeedCard extends StatelessWidget {
                   color: AppColors.black.withValues(alpha: dimAlpha),
                 ),
               ),
+
+            // 最前面にボーダーを配置してアンチエイリアスの隙間(白枠)を隠す
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isTop
+                          ? AppColors.accentGold.withValues(alpha: 0.8)
+                          : tierColor.withValues(alpha: 0.1),
+                      width: isTop ? 1.5 : 0.5,
+                      strokeAlign: BorderSide.strokeAlignInside,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
