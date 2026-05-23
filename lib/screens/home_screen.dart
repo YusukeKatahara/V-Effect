@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
@@ -65,6 +66,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // ── Card Swiping ──
   // ── Card Swiping (Performance: Using AnimatedBuilder instead of setState) ──
   late final PageController _pageController;
+
+  // ── Swipe Guide Tutorial ──
+  bool _showSwipeGuide = false;
+  late final AnimationController _swipeGuideController;
+  late final Animation<double> _swipeGuideTranslation;
+
   // pageController.page を直接参照するように変更
   int get _focusedIndex {
     if (_feedPosts.isEmpty) return 0;
@@ -115,7 +122,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // _pulseController と _shakeController は _GuardedStateLayer 内に移動
 
     final initialPage = 10000;
-    _pageController = PageController(initialPage: initialPage);
+    _pageController = PageController(initialPage: initialPage)
+      ..addListener(() {
+        if (mounted && _pageController.hasClients) {
+          final page = _pageController.page;
+          if (page != null && !page.isNaN) {
+            if (_showSwipeGuide && (page - initialPage).abs() > 0.1) {
+              _dismissSwipeGuide();
+            }
+          }
+        }
+      });
+
+    _swipeGuideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _swipeGuideTranslation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 0.0, end: 8.0).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 50,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 8.0, end: 0.0).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 50,
+      ),
+    ]).animate(_swipeGuideController);
+    _initSwipeGuide();
     // addListener 内の setState を削除（全画面リビルド回避）
 
     // データの読み込みは homeDataProvider (Riverpod) が担当するため
@@ -142,7 +175,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _spreadController.dispose();
     _flameDebounceTimer?.cancel();
     _comboResetTimer?.cancel();
+    _swipeGuideController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initSwipeGuide() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasShown = prefs.getBool('home_swipe_tutorial_shown') ?? false;
+    if (!hasShown && mounted) {
+      setState(() {
+        _showSwipeGuide = true;
+      });
+      _swipeGuideController.repeat(reverse: true);
+    }
+  }
+
+  Future<void> _dismissSwipeGuide() async {
+    if (!mounted) return;
+    setState(() {
+      _showSwipeGuide = false;
+    });
+    _swipeGuideController.stop();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('home_swipe_tutorial_shown', true);
   }
 
   void _onPageChanged(int index) {
@@ -1428,6 +1483,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 },
               ),
             ),
+
+            // ── Swipe Guide Tutorial UI ──
+            if (_showSwipeGuide && _feedPosts.length > 1)
+              IgnorePointer(
+                child: SizedBox(
+                  width: finalCardWidth + 64, // カードの左右端の少し外側に配置
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      AnimatedBuilder(
+                        animation: _swipeGuideTranslation,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(-_swipeGuideTranslation.value, 0),
+                            child: child,
+                          );
+                        },
+                        child: Icon(
+                          Icons.chevron_left_rounded,
+                          color: AppColors.accentGold.withValues(alpha: 0.7),
+                          size: 40,
+                        ),
+                      ),
+                      AnimatedBuilder(
+                        animation: _swipeGuideTranslation,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(_swipeGuideTranslation.value, 0),
+                            child: child,
+                          );
+                        },
+                        child: Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColors.accentGold.withValues(alpha: 0.7),
+                          size: 40,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       );
