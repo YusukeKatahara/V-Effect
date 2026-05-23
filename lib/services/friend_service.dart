@@ -201,7 +201,10 @@ class FriendService {
 
     try {
       final reqSnap = await _db.collection('friend_requests').doc(request.id).get();
-      if (!reqSnap.exists || reqSnap.data()?['status'] != 'pending') return;
+      if (!reqSnap.exists || reqSnap.data()?['status'] != 'pending') {
+        await _notificationService.markFriendRequestNotificationAsProcessed(request.fromUid);
+        return;
+      }
 
       final userSnap = await _db.collection('users').doc(myUid).get();
       final followers = userSnap.data()?['followers'];
@@ -263,6 +266,12 @@ class FriendService {
     _processingLocks.add(lockKey);
 
     try {
+      final reqSnap = await _db.collection('friend_requests').doc(request.id).get();
+      if (!reqSnap.exists || reqSnap.data()?['status'] != 'pending') {
+        await _notificationService.markFriendRequestNotificationAsProcessed(request.fromUid);
+        return;
+      }
+
       await _db
           .collection('friend_requests')
           .doc(request.id)

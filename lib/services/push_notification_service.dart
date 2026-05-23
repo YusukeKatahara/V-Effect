@@ -329,14 +329,15 @@ class PushNotificationService {
       // iOS の場合は APNs トークンの取得状況を確認し、必要に応じて待機する
       if (defaultTargetPlatform == TargetPlatform.iOS) {
         String? apnsToken;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 15; i++) {
           apnsToken = await _messaging.getAPNSToken();
           if (apnsToken != null) break;
           await Future.delayed(const Duration(seconds: 1));
         }
         debugPrint('APNs Token: $apnsToken');
         if (apnsToken == null) {
-          debugPrint('警告: iOS で APNs トークンが取得できていません。実機かつ正しく設定されている必要があります。');
+          debugPrint('警告: iOS で APNs トークンが取得できなかったため、FCMトークンの保存をスキップします。実機かつプロビジョニング設定が正しい必要があります。');
+          return;
         }
       }
 
