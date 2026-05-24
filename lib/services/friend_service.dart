@@ -202,7 +202,7 @@ class FriendService {
     try {
       final reqSnap = await _db.collection('friend_requests').doc(request.id).get();
       if (!reqSnap.exists || reqSnap.data()?['status'] != 'pending') {
-        await _notificationService.markFriendRequestNotificationAsProcessed(request.fromUid);
+        await _notificationService.markNotificationAsProcessedByRelatedId(request.id);
         return;
       }
 
@@ -252,7 +252,7 @@ class FriendService {
       }
       
       // ホーム等で承認した場合、通知画面に残っている「申請が届きました」通知を処理済みにする
-      await _notificationService.markFriendRequestNotificationAsProcessed(request.fromUid);
+      await _notificationService.markNotificationAsProcessedByRelatedId(request.id);
       
     } finally {
       _processingLocks.remove(lockKey);
@@ -268,7 +268,7 @@ class FriendService {
     try {
       final reqSnap = await _db.collection('friend_requests').doc(request.id).get();
       if (!reqSnap.exists || reqSnap.data()?['status'] != 'pending') {
-        await _notificationService.markFriendRequestNotificationAsProcessed(request.fromUid);
+        await _notificationService.markNotificationAsProcessedByRelatedId(request.id);
         return;
       }
 
@@ -278,7 +278,7 @@ class FriendService {
           .update({'status': 'rejected'});
           
       // 拒否した場合も、通知画面に残っている「申請が届きました」通知を処理済みにする
-      await _notificationService.markFriendRequestNotificationAsProcessed(request.fromUid);
+      await _notificationService.markNotificationAsProcessedByRelatedId(request.id);
     } finally {
       _processingLocks.remove(lockKey);
     }
@@ -300,11 +300,11 @@ class FriendService {
           .limit(1)
           .get();
       if (snap.docs.isEmpty) return;
-      final docId = snap.docs.first.id;
+      final reqId = snap.docs.first.id;
       await snap.docs.first.reference.delete();
       
-      // 申請をキャンセルした場合、相手に送られた通知も処理済みにする
-      await _notificationService.markFriendRequestNotificationAsProcessed(myUid);
+      // 申請をキャンセルした場合、相手に送られた通知を削除する
+      await _notificationService.deleteNotificationByRelatedId(reqId, isSender: true);
     } finally {
       _processingLocks.remove(lockKey);
     }

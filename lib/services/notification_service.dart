@@ -106,11 +106,12 @@ class NotificationService {
   }
 
   /// 関連ID(relatedId)に基づいて通知を削除します（フレンド申請処理後など）
-  Future<void> deleteNotificationByRelatedId(String relatedId) async {
-    final snap = await _db
-        .collection('notifications')
-        .where('relatedId', isEqualTo: relatedId)
-        .get();
+  Future<void> deleteNotificationByRelatedId(String relatedId, {bool isSender = false}) async {
+    final myUid = _auth.currentUser!.uid;
+    final query = _db.collection('notifications').where('relatedId', isEqualTo: relatedId);
+    final snap = await (isSender 
+        ? query.where('fromUid', isEqualTo: myUid) 
+        : query.where('toUid', isEqualTo: myUid)).get();
     
     if (snap.docs.isEmpty) return;
 
@@ -121,14 +122,13 @@ class NotificationService {
     await batch.commit();
   }
 
-  /// 特定のユーザーから届いたフレンド申請通知を処理済みにします
-  Future<void> markFriendRequestNotificationAsProcessed(String fromUid) async {
+  /// 特定の関連ID(フレンド申請IDなど)に紐づく通知を処理済みにします
+  Future<void> markNotificationAsProcessedByRelatedId(String relatedId) async {
     final myUid = _auth.currentUser!.uid;
     final snap = await _db
         .collection('notifications')
         .where('toUid', isEqualTo: myUid)
-        .where('fromUid', isEqualTo: fromUid)
-        .where('type', isEqualTo: NotificationType.friendRequestReceived.name)
+        .where('relatedId', isEqualTo: relatedId)
         .get();
     
     if (snap.docs.isEmpty) return;

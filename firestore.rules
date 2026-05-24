@@ -61,10 +61,10 @@ service cloud.firestore {
         && (resource.data.toUid == request.auth.uid
             || resource.data.fromUid == request.auth.uid);
 
-      // 通知更新（既読マーク）: 自分宛ての通知のみ & isRead のみ変更可
+      // 通知更新（既読・処理済みマーク）: 自分宛ての通知のみ & isRead, isProcessed のみ変更可
       allow update: if request.auth != null
         && resource.data.toUid == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'isProcessed']);
 
       // 通知削除:
       //   - 自分宛ての通知（ユーザーが通知を消す）

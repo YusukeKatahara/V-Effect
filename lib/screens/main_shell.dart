@@ -5,6 +5,10 @@ import 'package:flutter/services.dart';
 import '../config/app_colors.dart';
 import '../services/friend_service.dart';
 import '../models/friend_request.dart';
+import '../services/user_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import '../widgets/notification_prompt_sheet.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'hero_tasks_screen.dart';
@@ -29,6 +33,41 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+
+    // 再インストール時やオンボーディングスキップ時のためのフォールバック
+    // ホーム画面が表示された直後に通知許可ダイアログをチェック・表示する
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkNotificationPrompt();
+    });
+  }
+
+  Future<void> _checkNotificationPrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final uid = UserService.instance.currentUid;
+    if (uid == null) return;
+
+    // すでに表示済みの場合は何もしません
+    final hasShown = prefs.getBool('notification_prompt_shown_$uid') ?? false;
+    if (hasShown) return;
+
+    try {
+      // すでに通知許可済みの場合はモーダルを表示する必要がないため、フラグだけ立ててスキップします
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        await prefs.setBool('notification_prompt_shown_$uid', true);
+        return;
+      }
+
+      if (mounted) {
+        // ハーフモーダル (プレ・ダイアログ) を表示し、その中で自動でOS通知パーミッション要求をトリガーします
+        await NotificationPromptSheet.show(context);
+        
+        // 次回以降表示されないようにフラグを保存します
+        await prefs.setBool('notification_prompt_shown_$uid', true);
+      }
+    } catch (e) {
+      debugPrint('通知プロンプト表示エラー: $e');
+    }
   }
 
   late final List<Widget> _screens = [

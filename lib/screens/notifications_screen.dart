@@ -257,8 +257,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           await _friendService.rejectRequest(request);
         }
       } else {
-        if (notif.fromUid != null) {
-          await _notificationService.markFriendRequestNotificationAsProcessed(notif.fromUid!);
+        if (notif.relatedId != null) {
+          await _notificationService.markNotificationAsProcessedByRelatedId(notif.relatedId!);
         }
       }
 
@@ -306,6 +306,80 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
+  Widget _buildFriendRequestTrailing(AppNotification notif) {
+    if (notif.isProcessed) {
+      return FutureBuilder<bool>(
+        future: _checkIsFollowing(notif.fromUid!),
+        builder: (context, snapshot) {
+          final isFollowing = snapshot.data ?? false;
+          if (isFollowing) {
+            return ElevatedButton(
+              onPressed: null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.bgSurface,
+                disabledBackgroundColor: AppColors.bgSurface,
+                disabledForegroundColor: AppColors.textPrimary,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('フォロー中', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            );
+          } else {
+            return ElevatedButton(
+              onPressed: () => _followBack(notif.fromUid!),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.bgSurface,
+                foregroundColor: AppColors.textPrimary,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('フォローバック', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            );
+          }
+        },
+      );
+    } else {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ElevatedButton(
+            onPressed: () => _handleFriendRequest(notif, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.white,
+              foregroundColor: AppColors.black,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              minimumSize: const Size(80, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('承認', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: () => _handleFriendRequest(notif, false),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: AppColors.textSecondary,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              minimumSize: const Size(80, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('削除', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -430,7 +504,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         vertical: 14,
                       ),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           // アバター
                           SizedBox(
@@ -470,67 +544,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                     ],
                                   ],
                                 ),
-
-                                // フレンド申請ボタン (プレミアム化)
-                                if (notif.type ==
-                                    NotificationType.friendRequestReceived) ...[
-                                  const SizedBox(height: 12),
-                                  if (notif.isProcessed) ...[
-                                    FutureBuilder<bool>(
-                                      future: _checkIsFollowing(notif.fromUid!),
-                                      builder: (context, snapshot) {
-                                        final isFollowing = snapshot.data ?? false;
-                                        if (isFollowing) {
-                                          return const Text(
-                                            'フォロー中',
-                                            style: TextStyle(
-                                              color: AppColors.textMuted,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          );
-                                        } else {
-                                          return Row(
-                                            children: [
-                                              _buildCompactButton(
-                                                label: 'フォローしますか？',
-                                                onPressed: () => _followBack(notif.fromUid!),
-                                                isPrimary: true,
-                                              ),
-                                            ],
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ] else ...[
-                                    Row(
-                                      children: [
-                                        _buildCompactButton(
-                                          label: '承認',
-                                          onPressed:
-                                              () => _handleFriendRequest(
-                                                notif,
-                                                true,
-                                              ),
-                                          isPrimary: true,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        _buildCompactButton(
-                                          label: 'あとで',
-                                          onPressed:
-                                              () => _handleFriendRequest(
-                                                notif,
-                                                false,
-                                              ),
-                                          isPrimary: false,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
                               ],
                             ),
                           ),
+                          if (notif.type == NotificationType.friendRequestReceived) ...[
+                            const SizedBox(width: 12),
+                            _buildFriendRequestTrailing(notif),
+                          ],
                         ],
                       ),
                     ),

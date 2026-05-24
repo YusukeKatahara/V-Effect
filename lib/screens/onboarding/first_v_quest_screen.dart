@@ -5,6 +5,9 @@ import '../../config/app_colors.dart';
 import '../../config/routes.dart';
 import '../../services/user_service.dart';
 import '../../widgets/gradient_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import '../../widgets/notification_prompt_sheet.dart';
 
 class FirstVQuestScreen extends StatefulWidget {
   const FirstVQuestScreen({super.key});
@@ -105,6 +108,35 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     super.dispose();
   }
 
+  Future<void> _checkAndShowNotificationPrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final uid = _userService.currentUid;
+    if (uid == null) return;
+
+    // すでに表示済みの場合は何もしません
+    final hasShown = prefs.getBool('notification_prompt_shown_$uid') ?? false;
+    if (hasShown) return;
+
+    try {
+      // すでに通知許可済みの場合はモーダルを表示する必要がないため、フラグだけ立ててスキップします
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        await prefs.setBool('notification_prompt_shown_$uid', true);
+        return;
+      }
+
+      if (mounted) {
+        // ハーフモーダル (プレ・ダイアログ) を表示し、その中で自動でOS通知パーミッション要求をトリガーします
+        await NotificationPromptSheet.show(context);
+        
+        // 次回以降表示されないようにフラグを保存します
+        await prefs.setBool('notification_prompt_shown_$uid', true);
+      }
+    } catch (e) {
+      debugPrint('通知プロンプト表示エラー: $e');
+    }
+  }
+
   Future<void> _complete({bool skip = false}) async {
     setState(() => _isSaving = true);
     try {
@@ -113,12 +145,17 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
         questTrigger: skip ? null : _triggerCtrl.text.trim(),
       );
       if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.home,
-          (r) => false,
-          arguments: 1, // HeroTasks タブ
-        );
+        // オンボーディング完了後（ホーム画面へ遷移する前）に通知許可プロンプトを表示
+        await _checkAndShowNotificationPrompt();
+        
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.home,
+            (r) => false,
+            arguments: 1, // HeroTasks タブ
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
