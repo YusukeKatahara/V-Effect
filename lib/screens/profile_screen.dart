@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -455,13 +456,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (result != null && result['title'].toString().trim().isNotEmpty) {
+      final oldTitle = task.title;
+      final newTitle = result['title'].toString().trim();
+      
       final updatedTasks = List<AppTask>.from(_user!.tasks);
       updatedTasks[index] = task.copyWith(
-        title: result['title'].toString().trim(),
+        title: newTitle,
         trigger: result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim(),
         isOneTime: result['isOneTime'] as bool,
       );
       await _userService.updateProfile(tasks: updatedTasks);
+      
+      if (oldTitle != newTitle) {
+        await _postService.updateTaskNameForPosts(oldTitle, newTitle);
+      }
+      
       _loadProfile();
     }
   }
@@ -1038,7 +1047,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
         else
           Column(
             children: [
-              ...List.generate(_user!.tasks.length, (i) => _buildQuestCard(i)),
+              ReorderableListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                proxyDecorator: (child, index, animation) {
+                  return AnimatedBuilder(
+                    animation: animation,
+                    builder: (BuildContext context, Widget? child) {
+                      final double animValue = Curves.easeInOut.transform(animation.value);
+                      final double elevation = lerpDouble(0, 12, animValue)!;
+                      return Material(
+                        elevation: elevation,
+                        color: Colors.transparent,
+                        shadowColor: AppColors.black,
+                        borderRadius: BorderRadius.circular(16),
+                        child: child,
+                      );
+                    },
+                    child: child,
+                  );
+                },
+                onReorder: (int oldIndex, int newIndex) async {
+                  if (oldIndex < newIndex) {
+                    newIndex -= 1;
+                  }
+                  final updatedTasks = List<AppTask>.from(_user!.tasks);
+                  final task = updatedTasks.removeAt(oldIndex);
+                  updatedTasks.insert(newIndex, task);
+                  
+                  setState(() {
+                    _user!.tasks.clear();
+                    _user!.tasks.addAll(updatedTasks);
+                  });
+                  
+                  await _userService.updateProfile(tasks: updatedTasks);
+                  _loadProfile();
+                },
+                itemCount: _user!.tasks.length,
+                itemBuilder: (context, index) {
+                  return _buildQuestCard(index, key: ObjectKey(_user!.tasks[index]));
+                },
+              ),
               _buildAddTaskSlot(),
             ],
           ),
@@ -1115,8 +1164,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildQuestCard(int index) {
+  Widget _buildQuestCard(int index, {Key? key}) {
     return Padding(
+      key: key,
       padding: const EdgeInsets.only(bottom: 8), // よりコンパクトに
       child: Container(
         decoration: BoxDecoration(

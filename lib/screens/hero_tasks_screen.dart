@@ -22,7 +22,6 @@ import 'camera_screen.dart';
 import '../widgets/reaction_avatars.dart';
 import '../widgets/entropic_conversion_overlay.dart';
 import '../widgets/post_success_dialog.dart';
-import '../widgets/friend_invite_prompt_sheet.dart';
 
 /// 内部管理用のタスクアイテム
 class _HeroTaskItem {
@@ -433,50 +432,13 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         
         // 4. 最後にデータを最新化して、NetworkImageなどへの切り替えを完了させる
         await _loadData();
-
-        // 5. その後、フレンド登録・招待を促すプロンプトを表示
-        if (mounted) {
-          await _checkAndShowFriendInvitePrompt();
-        }
       }
     }
   }
 
 
 
-  /// 初めての投稿完了時にのみ、フレンド招待・登録を促すプロンプト（ボトムシート）を表示します
-  Future<void> _checkAndShowFriendInvitePrompt() async {
-    final prefs = await SharedPreferences.getInstance();
-    final uid = _userService.currentUid;
-    if (uid == null) return;
 
-    // すでに表示済みの場合は何もしません
-    final hasShown = prefs.getBool('friend_invite_prompt_shown_$uid') ?? false;
-    if (hasShown) return;
-
-    try {
-      // 最新のユーザー情報をFirestoreから取得します
-      final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      if (!snap.exists) return;
-      final user = AppUser.fromFirestore(snap);
-
-      if (mounted) {
-        // ハーフモーダル (下からせり出るシート) を表示し、結果を受け取ります
-        final result = await FriendInvitePromptSheet.show(context, user);
-
-        // 次回以降表示されないようにフラグを保存します
-        await prefs.setBool('friend_invite_prompt_shown_$uid', true);
-
-        // 「QRコードで繋がる」が選択された場合、呼び出し元（この画面）のcontextでダイアログを表示
-        // ※ ボトムシート内のcontextは閉じた後に無効になるため、ここで処理するのが正しいパターンです
-        if (result == FriendInviteResult.qrCode && mounted) {
-          FriendInvitePromptSheet.showQrDialog(context, user);
-        }
-      }
-    } catch (e) {
-      debugPrint('フレンド招待プロンプト表示エラー: $e');
-    }
-  }
 
   Color _getTierColor(int streak) {
     if (streak >= 100) return const Color(0xFFE5E4E2); // Platinum
@@ -625,7 +587,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
   Widget _buildTitleBar() => VEffectHeader(
         leading: IconButton(
-          icon: const Icon(Icons.menu_book_rounded, color: AppColors.grey50),
+          // 左上のブックマーク（本）アイコン。ベルマークの色と統一するために白（AppColors.white）に設定
+          icon: const Icon(Icons.menu_book_rounded, color: AppColors.white),
           onPressed: () => Navigator.pushNamed(context, AppRoutes.vPractice),
         ),
         trailing: const NotificationBellIcon(),
@@ -1027,7 +990,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   }
 }
 
-class _TaskCard extends StatelessWidget {
+class _TaskCard extends StatefulWidget {
   final _HeroTaskItem item;
   final int index;
   final int total;
@@ -1051,11 +1014,78 @@ class _TaskCard extends StatelessWidget {
   });
 
   @override
+  State<_TaskCard> createState() => _TaskCardState();
+}
+
+class _TaskCardState extends State<_TaskCard> {
+  late PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void didUpdateWidget(covariant _TaskCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.isExpanded && oldWidget.isExpanded) {
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(0);
+      }
+      _currentPage = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  List<Post> get _sortedPosts {
+    final posts = List<Post>.from(widget.item.completedPosts);
+    posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return posts;
+  }
+
+  Widget _buildBackgroundImage(String? imageUrl, bool isExpanded, bool isTop) {
+    if (imageUrl == null) return const SizedBox.shrink();
+    return ColorFiltered(
+      colorFilter: ColorFilter.mode(
+        AppColors.black.withValues(
+          alpha: isExpanded ? 0.1 : (isTop ? 0.3 : 0.6),
+        ),
+        BlendMode.darken,
+      ),
+      child: Image(
+        image: ResizeImage(
+          CachedNetworkImageProvider(imageUrl),
+          width: 540,
+        ),
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final item = widget.item;
+    final depth = widget.depth;
+    final tierColor = widget.tierColor;
+    final isExpanded = widget.isExpanded;
+    final showCamera = widget.showCamera;
+    final userPhotos = widget.userPhotos;
+
     final isTop = depth == 0;
     final isCompleted = item.isCompleted;
-    final postCount = item.completedPosts.length;
-    final latestPost = item.latestPost;
+    final sortedPosts = _sortedPosts;
+    final postCount = sortedPosts.length;
+    final currentPost = (isExpanded && postCount > 1) 
+        ? sortedPosts[_currentPage] 
+        : (sortedPosts.isNotEmpty ? sortedPosts.first : null);
+
     const bgColorTop = Color(0xFF1C1D21);
     const bgColorBottom = Color(0xFF121316);
 
@@ -1085,21 +1115,6 @@ class _TaskCard extends StatelessWidget {
                 ],
                 stops: const [0.0, 0.4, 1.0],
               ),
-        image: isCompleted && latestPost?.imageUrl != null
-            ? DecorationImage(
-                image: ResizeImage(
-                  CachedNetworkImageProvider(latestPost!.imageUrl!),
-                  width: 540,
-                ),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  AppColors.black.withValues(
-                    alpha: isExpanded ? 0.1 : (isTop ? 0.3 : 0.6),
-                  ),
-                  BlendMode.darken,
-                ),
-              )
-            : null,
         border: Border.all(
           color: borderColor,
           width: isCompleted ? (isTop ? (postCount >= 2 ? 2.5 : 1.5) : 0.5) : 0.8,
@@ -1111,7 +1126,7 @@ class _TaskCard extends StatelessWidget {
             offset: Offset(0, isTop ? 10 : 5),
             spreadRadius: -2,
           ),
-          if (isTop) // 二重の重いシャドウは最前面のみにし、ぼかしを軽減
+          if (isTop)
             BoxShadow(
               color: isCompleted
                   ? AppColors.accentGold.withValues(alpha: postCount >= 2 ? 0.6 : 0.3)
@@ -1123,15 +1138,46 @@ class _TaskCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: _buildStack(),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (isCompleted && sortedPosts.isNotEmpty)
+              if (isExpanded && postCount > 1)
+                PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: (idx) {
+                    setState(() {
+                      _currentPage = idx;
+                    });
+                  },
+                  itemCount: postCount,
+                  itemBuilder: (context, i) {
+                    final p = sortedPosts[i];
+                    return _buildBackgroundImage(p.imageUrl, isExpanded, isTop);
+                  },
+                )
+              else
+                _buildBackgroundImage(sortedPosts.first.imageUrl, isExpanded, isTop),
+
+            _buildStack(item, isCompleted, postCount, isTop, depth, isExpanded, showCamera, tierColor, currentPost, userPhotos),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildStack() {
-    final isCompleted = item.isCompleted;
-    final postCount = item.completedPosts.length;
-    final latestPost = item.latestPost;
+  Widget _buildStack(
+    _HeroTaskItem item,
+    bool isCompleted,
+    int postCount,
+    bool isTop,
+    int depth,
+    bool isExpanded,
+    bool showCamera,
+    Color tierColor,
+    Post? currentPost,
+    Map<String, String?> userPhotos,
+  ) {
     return Stack(
       children: [
         // テキスト上部エリア（カメラは別レイヤー）
@@ -1324,7 +1370,7 @@ class _TaskCard extends StatelessWidget {
                   SizedBox(
                     height: 16,
                     child: Text(
-                      '${latestPost?.reactionCount ?? 0}',
+                      '${currentPost?.reactionCount ?? 0}',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1338,23 +1384,46 @@ class _TaskCard extends StatelessWidget {
           ),
 
           // リアクションアバター (V FIREの左横)
-          if (latestPost != null &&
-              (latestPost.reactionCount > 0))
+          if (currentPost != null && (currentPost.reactionCount > 0))
             Positioned(
-              bottom: 54,  // Y=84pxの中心に合わせる (44px / 2 = 22, 84-22-8=54)
-              right: 88,  // VFIRE(56+20) + 余白(12) = 88
+              bottom: 54,
+              right: 88,
               child: IgnorePointer(
                 child: ReactionAvatarsStack(
-                  userReactions: latestPost.userReactions,
-                  reactorUids: latestPost.emojiReactedUserIds,
+                  userReactions: currentPost.userReactions,
+                  reactorUids: currentPost.emojiReactedUserIds,
                   userPhotos: userPhotos,
-                  reactionCount: latestPost.reactionCount,
+                  reactionCount: currentPost.reactionCount,
                   avatarSize: 44,
                   overlapOffset: 28,
                 ),
               ),
             ),
         ],
+
+        // ドットインジケーター
+        if (isExpanded && postCount > 1 && depth == 0)
+          Positioned(
+            bottom: 16,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(postCount, (i) {
+                final isActive = i == _currentPage;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: isActive ? 12 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isActive ? AppColors.accentGold : AppColors.white.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                );
+              }),
+            ),
+          ),
       ],
     );
   }

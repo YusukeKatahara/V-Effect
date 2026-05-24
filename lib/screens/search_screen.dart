@@ -6,6 +6,7 @@ import '../models/app_user.dart';
 import '../services/friend_service.dart';
 import '../providers/following_provider.dart';
 import '../widgets/swipe_back_gate.dart';
+import 'qr_scanner_screen.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -122,13 +123,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
         actions: [
           IconButton(
-            icon: const Icon(Icons.clear, color: AppColors.grey50),
+            icon: const Icon(Icons.qr_code_scanner, color: AppColors.grey50),
             onPressed: () {
-              _searchController.clear();
-              setState(() {
-                _query = '';
-                _results.clear();
-              });
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+              );
             },
           ),
         ],

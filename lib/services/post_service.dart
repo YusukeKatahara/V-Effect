@@ -820,4 +820,22 @@ class PostService {
     // 保護スケジュールを再計算
     PushNotificationService().restoreVAlertSchedule().catchError((_) {});
   }
+
+  /// タスク名が変更された際に、該当ユーザーの既存の投稿のタスク名も一括更新します
+  Future<void> updateTaskNameForPosts(String oldTaskName, String newTaskName) async {
+    final uid = _auth.currentUser!.uid;
+    final postsSnap = await _db.collection('posts')
+        .where('userId', isEqualTo: uid)
+        .where('taskName', isEqualTo: oldTaskName)
+        .get();
+        
+    if (postsSnap.docs.isEmpty) return;
+    
+    final batch = _db.batch();
+    for (final doc in postsSnap.docs) {
+      batch.update(doc.reference, {'taskName': newTaskName});
+    }
+    await batch.commit();
+    _updateController.add(null);
+  }
 }

@@ -7,8 +7,10 @@ import '../../services/user_service.dart';
 import '../../widgets/gradient_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/app_user.dart';
 import '../../widgets/notification_prompt_sheet.dart';
-
+import '../../widgets/friend_invite_prompt_sheet.dart';
 class FirstVQuestScreen extends StatefulWidget {
   const FirstVQuestScreen({super.key});
 
@@ -137,6 +139,38 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     }
   }
 
+  Future<void> _checkAndShowFriendInvitePrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final uid = _userService.currentUid;
+    if (uid == null) return;
+
+    // すでに表示済みの場合は何もしません
+    final hasShown = prefs.getBool('friend_invite_prompt_shown_$uid') ?? false;
+    if (hasShown) return;
+
+    try {
+      // 最新のユーザー情報をFirestoreから取得します
+      final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (!snap.exists) return;
+      final user = AppUser.fromFirestore(snap);
+
+      if (mounted) {
+        // ハーフモーダル (下からせり出るシート) を表示し、結果を受け取ります
+        final result = await FriendInvitePromptSheet.show(context, user);
+
+        // 次回以降表示されないようにフラグを保存します
+        await prefs.setBool('friend_invite_prompt_shown_$uid', true);
+
+        // 「QRコードで繋がる」が選択された場合、呼び出し元（この画面）のcontextでダイアログを表示
+        if (result == FriendInviteResult.qrCode && mounted) {
+          FriendInvitePromptSheet.showQrDialog(context, user);
+        }
+      }
+    } catch (e) {
+      debugPrint('フレンド招待プロンプト表示エラー: $e');
+    }
+  }
+
   Future<void> _complete({bool skip = false}) async {
     setState(() => _isSaving = true);
     try {
@@ -148,6 +182,11 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
         // オンボーディング完了後（ホーム画面へ遷移する前）に通知許可プロンプトを表示
         await _checkAndShowNotificationPrompt();
         
+        // 通知許可の後にフレンド招待プロンプトを表示
+        if (mounted) {
+          await _checkAndShowFriendInvitePrompt();
+        }
+
         if (mounted) {
           Navigator.pushNamedAndRemoveUntil(
             context,

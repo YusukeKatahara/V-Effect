@@ -35,7 +35,14 @@ exports.sendPushNotification = onDocumentCreated(
     const userDoc = await db.collection("users").doc(toUid).get();
     if (!userDoc.exists) return;
 
-    const fcmToken = userDoc.data().fcmToken;
+    const userData = userDoc.data();
+    
+    // マスターのプッシュ通知設定をチェック
+    if (userData.pushNotifications === false) {
+      return;
+    }
+
+    const fcmToken = userData.fcmToken;
     if (!fcmToken) return;
 
     // FCM メッセージを送信

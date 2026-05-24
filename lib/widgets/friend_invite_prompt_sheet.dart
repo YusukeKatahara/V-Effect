@@ -160,7 +160,7 @@ class FriendInvitePromptSheet extends StatelessWidget {
 
             // ── 説明文 ──
             Text(
-              '最初のタスク投稿が完了しました！\n習慣化を成功させる鍵は、仲間とお互いの「やり遂げた証明 (V)」を監視・応援し合うことです。さあ、フレンドを登録しましょう！',
+              '最初のV Questの設定が完了しました！\n努力と勝利を共有するフレンドを誘いましょう！',
               textAlign: TextAlign.center,
               style: GoogleFonts.notoSansJp(
                 fontSize: 13,

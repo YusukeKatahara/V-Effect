@@ -1406,6 +1406,61 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               ),
                             ),
 
+                          // 絵文字＋ボタンのコーチマーク（初回のみ）
+                          if (_showSwipeGuide && !alreadyReacted)
+                            Positioned(
+                              bottom: 110, // ＋ボタンの上
+                              right: 64, // しっぽが＋ボタンの中心（right: 110）を指すように調整
+                              child: IgnorePointer(
+                                child: AnimatedBuilder(
+                                  animation: _swipeGuideTranslation,
+                                  builder: (context, child) {
+                                    // 縦方向にバウンスさせる
+                                    return Transform.translate(
+                                      offset: Offset(0, -_swipeGuideTranslation.value),
+                                      child: child,
+                                    );
+                                  },
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.accentGold,
+                                          borderRadius: BorderRadius.circular(8),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.black.withValues(alpha: 0.3),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Text(
+                                          'タップして絵文字で応援！',
+                                          style: TextStyle(
+                                            color: AppColors.black,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                      // 吹き出しのしっぽ
+                                      Container(
+                                        margin: const EdgeInsets.only(right: 40),
+                                        width: 12,
+                                        height: 8,
+                                        child: CustomPaint(
+                                          painter: _TooltipTailPainter(color: AppColors.accentGold),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+
                           // ＋ または ✓ トグルボタン
                           Positioned(
                             bottom: 62, // 中心を84に合わせる (44 / 2 = 22)
@@ -1426,6 +1481,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                     } else {
                                       _reactionMenuController.reverse();
                                     }
+                                    if (_showSwipeGuide) _dismissSwipeGuide();
                                   },
                                   child: AnimatedBuilder(
                                     animation: _reactionMenuController,
@@ -2698,4 +2754,23 @@ class _RefreshRingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RefreshRingPainter old) => old.color != color;
+}
+
+class _TooltipTailPainter extends CustomPainter {
+  final Color color;
+  _TooltipTailPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

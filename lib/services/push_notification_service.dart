@@ -585,11 +585,17 @@ class PushNotificationService {
       if (!privateSnap.exists) return;
 
       final taskTime = privateSnap.data()?['taskTime'] as String? ?? '08:00';
-      await scheduleVAlert(taskTime);
-
       final publicSnap = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (publicSnap.exists) {
         final data = publicSnap.data()!;
+        
+        final focusTimeEnabled = data['focusTimeNotifications'] ?? true;
+        if (focusTimeEnabled) {
+          await scheduleVAlert(taskTime);
+        } else {
+          await scheduleVAlert(null);
+        }
+
         final protections = (data['streakProtections'] as num?)?.toInt() ?? 0;
         final lastPostedDate = data['lastPostedDate'] as String?;
         final allowProtection = data['protectionNotifications'] ?? true;
