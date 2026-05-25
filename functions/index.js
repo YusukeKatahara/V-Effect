@@ -402,3 +402,68 @@ exports.sendStreakWarning = onSchedule(
     console.log(`Scheduled streak warning: Sent ${promises.length} notifications.`);
   }
 );
+
+/**
+ * seasons コレクションに新しいドキュメントが作成されたとき、
+ * 全ユーザーの tasks 配列にシーズンタスクを追加し、通知を送信する
+ */
+exports.onSeasonCreated = onDocumentCreated(
+  "seasons/{seasonId}",
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+
+    const seasonId = event.params.seasonId;
+    const taskName = data.taskName;
+    if (!taskName) return;
+
+    const db = getFirestore();
+    const usersSnap = await db.collection("users").get();
+    
+    // 全ユーザーに通知とタスク追加をバッチで処理（最大500件の操作制限を考慮）
+    let batch = db.batch();
+    let count = 0;
+    
+    const newTask = {
+      title: taskName,
+      isOneTime: false,
+      isSeason: true,
+      seasonId: seasonId,
+    };
+
+    for (const doc of usersSnap.docs) {
+      const userRef = doc.ref;
+      
+      // タスク追加
+      batch.update(userRef, {
+        tasks: FieldValue.arrayUnion(newTask)
+      });
+      
+      // 通知追加
+      const notificationRef = db.collection("notifications").doc();
+      batch.set(notificationRef, {
+        toUid: doc.id,
+        type: "seasonTaskReceived",
+        title: "おや、シーズンタスクが届いたようです...！",
+        body: `期間限定タスク「${taskName}」が追加されました。`,
+        isRead: false,
+        sendPush: true,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      
+      count += 2; // 1ユーザーにつき update と set の2操作
+      
+      if (count >= 490) {
+        await batch.commit();
+        batch = db.batch();
+        count = 0;
+      }
+    }
+    
+    if (count > 0) {
+      await batch.commit();
+    }
+    
+    console.log(`Distributed season task "${taskName}" to ${usersSnap.size} users.`);
+  }
+);

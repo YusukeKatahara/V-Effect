@@ -7,9 +7,11 @@ import 'package:image_picker/image_picker.dart';
 
 import '../config/app_colors.dart';
 import '../models/dev_blog_post.dart';
+import '../models/season.dart';
 import '../services/dev_blog_service.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/v_effect_header.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BlogPostEditorScreen extends StatefulWidget {
   const BlogPostEditorScreen({super.key});
@@ -29,6 +31,14 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
   String? _existingCoverUrl;
   bool _isSaving = false;
   bool _previewMode = false;
+
+  bool _isSeasonTask = false;
+  final _seasonTaskNameController = TextEditingController();
+  final _seasonDurationController = TextEditingController(text: '7');
+  final _seasonHintTitleController = TextEditingController();
+  final _seasonHintBodyController = TextEditingController();
+  final _seasonBadgeImageUrlController = TextEditingController();
+  String _seasonBadgeAnimation = 'none';
 
   @override
   void didChangeDependencies() {
@@ -50,6 +60,11 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
     _titleController.dispose();
     _bodyController.dispose();
     _bodyFocusNode.dispose();
+    _seasonTaskNameController.dispose();
+    _seasonDurationController.dispose();
+    _seasonHintTitleController.dispose();
+    _seasonHintBodyController.dispose();
+    _seasonBadgeImageUrlController.dispose();
     super.dispose();
   }
 
@@ -203,6 +218,23 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           updatedAt: now,
         );
         await DevBlogService.instance.createPost(post);
+
+        // シーズンタスクの設定があれば保存
+        if (_isSeasonTask) {
+          final durationDays = int.tryParse(_seasonDurationController.text) ?? 7;
+          final season = Season(
+            id: postId,
+            taskName: _seasonTaskNameController.text.trim(),
+            startDate: now,
+            endDate: now.add(Duration(days: durationDays)),
+            hintTitle: _seasonHintTitleController.text.trim().isEmpty ? null : _seasonHintTitleController.text.trim(),
+            hintBody: _seasonHintBodyController.text.trim().isEmpty ? null : _seasonHintBodyController.text.trim(),
+            relatedBlogId: postId,
+            badgeImageUrl: _seasonBadgeImageUrlController.text.trim().isEmpty ? null : _seasonBadgeImageUrlController.text.trim(),
+            badgeAnimation: _seasonBadgeAnimation,
+          );
+          await FirebaseFirestore.instance.collection('seasons').doc(postId).set(season.toFirestore());
+        }
       } else {
         String? coverUrl = _existingCoverUrl;
         if (_coverImageFile != null) {
@@ -218,6 +250,22 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           updatedAt: now,
         );
         await DevBlogService.instance.updatePost(updated);
+
+        if (_isSeasonTask) {
+          final durationDays = int.tryParse(_seasonDurationController.text) ?? 7;
+          final season = Season(
+            id: _editingPost!.id,
+            taskName: _seasonTaskNameController.text.trim(),
+            startDate: now, // 既存開始日を保持すべきだが簡易的に現在時刻とするか、今回は新規作成メインで考慮
+            endDate: now.add(Duration(days: durationDays)),
+            hintTitle: _seasonHintTitleController.text.trim().isEmpty ? null : _seasonHintTitleController.text.trim(),
+            hintBody: _seasonHintBodyController.text.trim().isEmpty ? null : _seasonHintBodyController.text.trim(),
+            relatedBlogId: _editingPost!.id,
+            badgeImageUrl: _seasonBadgeImageUrlController.text.trim().isEmpty ? null : _seasonBadgeImageUrlController.text.trim(),
+            badgeAnimation: _seasonBadgeAnimation,
+          );
+          await FirebaseFirestore.instance.collection('seasons').doc(_editingPost!.id).set(season.toFirestore());
+        }
       }
 
       if (mounted) Navigator.pop(context);
@@ -338,6 +386,12 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           _buildTitleField(),
           const SizedBox(height: 16),
           _buildBodyField(),
+          const SizedBox(height: 24),
+          _buildSeasonTaskToggle(),
+          if (_isSeasonTask) ...[
+            const SizedBox(height: 16),
+            _buildSeasonTaskForm(),
+          ],
           const SizedBox(height: 32),
           GradientButton(
             isLoading: _isSaving,
@@ -756,6 +810,88 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           decoration: _inputDecoration('本文を入力\n\n## 見出し\n**太字** *斜体*\n- 箇条書き'),
         ),
       ],
+    );
+  }
+
+  Widget _buildSeasonTaskToggle() {
+    return SwitchListTile(
+      title: Text(
+        'シーズンタスクを配布する',
+        style: GoogleFonts.notoSansJp(
+            fontSize: 15, color: AppColors.white, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        'このお知らせと一緒に全ユーザーへシーズンタスクを配布・通知します。',
+        style: GoogleFonts.notoSansJp(fontSize: 12, color: AppColors.grey50),
+      ),
+      value: _isSeasonTask,
+      activeColor: AppColors.accentGold,
+      onChanged: (val) => setState(() => _isSeasonTask = val),
+      contentPadding: EdgeInsets.zero,
+    );
+  }
+
+  Widget _buildSeasonTaskForm() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.grey10,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.grey20, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _seasonTaskNameController,
+            style: GoogleFonts.notoSansJp(color: AppColors.white),
+            decoration: _inputDecoration('タスク名 (例: 1日1回親に感謝を伝える)'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _seasonDurationController,
+            keyboardType: TextInputType.number,
+            style: GoogleFonts.notoSansJp(color: AppColors.white),
+            decoration: _inputDecoration('実施期間(日数) (例: 7)'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _seasonHintTitleController,
+            style: GoogleFonts.notoSansJp(color: AppColors.white),
+            decoration: _inputDecoration('ヒントタイトル (例: 感謝の言葉のバリエーション)'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _seasonHintBodyController,
+            maxLines: 3,
+            style: GoogleFonts.notoSansJp(color: AppColors.white),
+            decoration: _inputDecoration('ヒント本文'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _seasonBadgeImageUrlController,
+            style: GoogleFonts.notoSansJp(color: AppColors.white),
+            decoration: _inputDecoration('バッジ画像URL (例: Firebase StorageのURL)'),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _seasonBadgeAnimation,
+            dropdownColor: AppColors.grey10,
+            style: GoogleFonts.notoSansJp(color: AppColors.white),
+            decoration: _inputDecoration('バッジのアニメーション'),
+            items: const [
+              DropdownMenuItem(value: 'none', child: Text('なし')),
+              DropdownMenuItem(value: 'shimmer', child: Text('シマー (キラキラ)')),
+              DropdownMenuItem(value: 'heartbeat', child: Text('ハートビート (ドクンドクン)')),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                setState(() => _seasonBadgeAnimation = val);
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 

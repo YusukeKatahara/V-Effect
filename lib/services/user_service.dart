@@ -173,6 +173,8 @@ class UserService {
     List<AppTask>? tasks,
     bool? showTimestamp,
     bool updateEditDate = false,
+    String? equippedBadgeUrl,
+    String? equippedBadgeAnimation,
   }) async {
     final uid = _auth.currentUser!.uid;
     final batch = _db.batch();
@@ -193,6 +195,12 @@ class UserService {
     }
     if (updateEditDate) {
       publicData['lastProfileEditDate'] = DateTime.now().millisecondsSinceEpoch;
+    }
+    if (equippedBadgeUrl != null) {
+      publicData['equippedBadgeUrl'] = equippedBadgeUrl.isEmpty ? null : equippedBadgeUrl;
+    }
+    if (equippedBadgeAnimation != null) {
+      publicData['equippedBadgeAnimation'] = equippedBadgeAnimation.isEmpty ? null : equippedBadgeAnimation;
     }
 
     if (publicData.isNotEmpty) {

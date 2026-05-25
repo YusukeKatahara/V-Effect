@@ -14,6 +14,8 @@ import 'services/analytics_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/deep_link_service.dart';
 import 'services/sound_service.dart';
+import 'services/post_service.dart';
+import 'utils/date_helper.dart';
 import 'widgets/global_error_widget.dart';
 import 'widgets/splash_loading.dart';
 import 'dart:async';
@@ -138,14 +140,45 @@ class VEffectApp extends StatefulWidget {
 
 class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
   final _appLinks = AppLinks();
+  Timer? _midnightTimer;
+  String _lastCheckedDate = '';
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     AnalyticsService.instance.onAppResumed();
+    
+    _lastCheckedDate = DateHelper.toDateString(DateTime.now());
+    _scheduleMidnightTimer();
+
     // メール認証 Deep Link の受信を開始
     _initDeepLinks();
+  }
+
+  void _scheduleMidnightTimer() {
+    _midnightTimer?.cancel();
+    
+    final now = DateTime.now();
+    // 翌日の0時0分0秒を取得します
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    // 0時までの残り時間を計算（安全のため+1秒します）
+    final difference = tomorrow.difference(now) + const Duration(seconds: 1);
+    
+    _midnightTimer = Timer(difference, () {
+      _onDateChanged();
+      _scheduleMidnightTimer();
+    });
+  }
+
+  void _onDateChanged() {
+    final today = DateHelper.toDateString(DateTime.now());
+    if (_lastCheckedDate != today) {
+      _lastCheckedDate = today;
+      // 日付が変わったら、PostServiceを通じてアプリ全体に更新を通知
+      PostService.instance.notifyUpdate();
+      debugPrint('Date changed to $today. Triggered app-wide refresh.');
+    }
   }
 
   /// メール認証リンクをアプリで受け取って処理する
@@ -185,6 +218,7 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _midnightTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     DeepLinkService().dispose();
     super.dispose();
@@ -196,6 +230,9 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
       AnalyticsService.instance.onAppResumed();
       // フォアグラウンド復帰時にバッジをリセット
       PushNotificationService().resetBadge();
+      
+      // フォアグラウンド復帰時に日付が変わっていないかチェック
+      _onDateChanged();
     } else if (state == AppLifecycleState.paused) {
       AnalyticsService.instance.onAppPaused();
     }

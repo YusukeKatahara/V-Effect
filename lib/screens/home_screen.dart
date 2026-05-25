@@ -23,6 +23,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/friend_service.dart';
 import '../models/friend_request.dart';
 import '../models/app_user.dart';
+import '../widgets/v_badge_widget.dart';
+import '../providers/dev_blog_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final ValueChanged<bool>? onLoadingChanged;
@@ -42,6 +44,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Map<String, String> _userNames = {}; // userId -> username
   Map<String, String?> _userPhotos = {}; // userId -> photoUrl
   Map<String, int> _userStreaks = {}; // userId -> streak
+  Map<String, String?> _userBadgeUrls = {};
+  Map<String, String?> _userBadgeAnimations = {};
   HomeData? _lastHomeData;
   final Set<String> _reactingPostIds = {}; // 通信中の投稿IDを追跡
   // 送信済みだが Firestore 未確認の emoji。{emoji, uid} を記録して myUid null 問題を回避
@@ -51,9 +55,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final Set<String> _hiddenRequestIds = {};
 
   // ── VFIRE デバウンス用 ──
-  Timer? _flameDebounceTimer;
-  int _pendingFlameCount = 0;
-  String? _pendingFlamePostId;
+  final Map<String, Timer> _flameDebounceTimers = {};
+  final Map<String, int> _pendingFlameCounts = {};
   // 送信済みだがサーバーからまだ返ってきていない増分を保持（表示上の即時性を確保）
   final Map<String, int> _localFlameIncrements = {};
   // パフォーマンス最適化: 個別の投稿のリアクション数をリビルドなしで更新するためのNotifier
@@ -173,10 +176,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _reactionMenuController.dispose();
     _shuffleController.dispose();
     _spreadController.dispose();
-    _flameDebounceTimer?.cancel();
+    // 画面破棄時に未送信のVFIREをすべて強制送信 (Flush)
+    _flushAllPendingFlames();
     _comboResetTimer?.cancel();
     _swipeGuideController.dispose();
     super.dispose();
+  }
+
+  void _flushAllPendingFlames() {
+    for (final timer in _flameDebounceTimers.values) {
+      timer.cancel();
+    }
+    _flameDebounceTimers.clear();
+
+    _pendingFlameCounts.forEach((postId, count) {
+      if (count > 0) {
+        // バックグラウンドで送信（dispose中のためawaitしない）
+        _postService.incrementFlameCount(postId, count).catchError((e) {
+          debugPrint('Flush flame sync error: $e');
+        });
+      }
+    });
+    _pendingFlameCounts.clear();
   }
 
   Future<void> _initSwipeGuide() async {
@@ -478,35 +499,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     } else {
       // VFIRE はデバウンス（連打が止まってから500msで同期）
-      _pendingFlameCount++;
-      _pendingFlamePostId = post.id;
+      // 投稿ごとに独立してカウントとタイマーを管理する
+      _pendingFlameCounts[post.id] = (_pendingFlameCounts[post.id] ?? 0) + 1;
       _reactingPostIds.add(post.id); 
 
-      _flameDebounceTimer?.cancel();
-      _flameDebounceTimer = Timer(const Duration(milliseconds: 500), () async {
-        final countToSend = _pendingFlameCount;
-        final postIdToSend = _pendingFlamePostId;
+      _flameDebounceTimers[post.id]?.cancel();
+      _flameDebounceTimers[post.id] = Timer(const Duration(milliseconds: 500), () async {
+        final countToSend = _pendingFlameCounts[post.id] ?? 0;
 
         // バッファをリセット
-        _pendingFlameCount = 0;
-        _pendingFlamePostId = null;
+        _pendingFlameCounts.remove(post.id);
+        _flameDebounceTimers.remove(post.id);
 
-        if (postIdToSend != null && countToSend > 0) {
+        if (countToSend > 0) {
           try {
-            await _postService.incrementFlameCount(postIdToSend, countToSend);
+            await _postService.incrementFlameCount(post.id, countToSend);
             
             // 同期成功後、ローカル増分から送信分を差し引く
             if (mounted) {
               // ここでは表示の整合性を取るため setState を行う
               setState(() {
-                final current = _localFlameIncrements[postIdToSend] ?? 0;
-                _localFlameIncrements[postIdToSend] = (current - countToSend).clamp(0, 100000);
+                final current = _localFlameIncrements[post.id] ?? 0;
+                _localFlameIncrements[post.id] = (current - countToSend).clamp(0, 100000);
               });
             }
           } catch (e) {
             debugPrint('Flame sync error: $e');
           } finally {
-            _cleanupReactionLock(postIdToSend);
+            _cleanupReactionLock(post.id);
           }
         }
       });
@@ -714,6 +734,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _userNames = homeData.userNames;
         _userPhotos = homeData.userPhotos;
         _userStreaks = homeData.userStreaks;
+        _userBadgeUrls = homeData.userBadgeUrls;
+        _userBadgeAnimations = homeData.userBadgeAnimations;
         _lastHomeData = homeData;
 
         final myUid = FirebaseAuth.instance.currentUser?.uid;
@@ -869,15 +891,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         children: [
           _buildTitleBar(),
           _buildFriendRequestBanner(),
-          SizedBox(
-            height: 76,
-            child: Center(
-              child: (DateTime.now().weekday == DateTime.saturday ||
-                      DateTime.now().weekday == DateTime.sunday)
-                  ? WeeklyReviewBanner(onTap: _openWeeklyReview)
-                  : const SizedBox.shrink(),
-            ),
-          ),
+          _buildAnnouncementArea(),
           Expanded(
             child: !_postedToday
                 ? _GuardedStateLayer(
@@ -1126,6 +1140,126 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildAnnouncementArea() {
+    final hasUnreadBlog = ref.watch(hasUnreadBlogProvider);
+    final isWeekend = DateTime.now().weekday == DateTime.saturday || DateTime.now().weekday == DateTime.sunday;
+
+    final List<Widget> banners = [];
+    
+    if (hasUnreadBlog) {
+      banners.add(_buildDevBlogBanner());
+    }
+    
+    if (isWeekend) {
+      banners.add(
+        SizedBox(
+          height: 76,
+          child: Center(
+            child: WeeklyReviewBanner(onTap: _openWeeklyReview),
+          ),
+        ),
+      );
+    }
+
+    if (banners.isEmpty) {
+      return const SizedBox(height: 76);
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < banners.length; i++) ...[
+          if (i > 0) const SizedBox(height: 4),
+          banners[i],
+        ],
+        // お知らせバナーだけが表示されていて高さが76に満たない場合でも、
+        // Expandedが画面を埋めるので全体のレイアウトは崩れにくいですが、
+        // 余裕を持たせるためのパディングを入れます
+        if (banners.length == 1 && hasUnreadBlog) const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  Widget _buildDevBlogBanner() {
+    final postsAsync = ref.watch(blogPostsProvider);
+    final posts = postsAsync.valueOrNull;
+    if (posts == null || posts.isEmpty) return const SizedBox.shrink();
+
+    final latestPost = posts.first;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.white.withValues(alpha: 0.12),
+            width: 0.5,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: InkWell(
+              onTap: () => Navigator.pushNamed(context, AppRoutes.vPractice),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                color: AppColors.white.withValues(alpha: 0.05),
+                child: Row(
+                  children: [
+                    // アイコン
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentGold.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.campaign_rounded, size: 18, color: AppColors.accentGold),
+                    ),
+                    const SizedBox(width: 12),
+                    // メッセージ
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '運営からのお知らせ',
+                            style: TextStyle(
+                              color: AppColors.accentGold,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            latestPost.title,
+                            style: const TextStyle(
+                              color: AppColors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.grey50,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1635,6 +1769,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final username = _userNames[post.userId] ?? 'Unknown';
     final photoUrl = _userPhotos[post.userId];
     final streak = _userStreaks[post.userId] ?? 0;
+    final badgeUrl = _userBadgeUrls[post.userId];
+    final badgeAnimation = _userBadgeAnimations[post.userId];
     final tierColor = _getTierColor(streak);
 
     return Transform.translate(
@@ -1696,6 +1832,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               post: post,
               username: username,
               userPhotoUrl: photoUrl,
+              userBadgeUrl: badgeUrl,
+              userBadgeAnimation: badgeAnimation,
               dimAlpha: dimAlpha,
               onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
               isTop: index == _focusedIndex,
@@ -1862,6 +2000,8 @@ class _FeedCard extends StatelessWidget {
     required this.post,
     required this.username,
     this.userPhotoUrl,
+    this.userBadgeUrl,
+    this.userBadgeAnimation,
     required this.dimAlpha,
     required this.onReaction,
     required this.isTop,
@@ -1875,6 +2015,8 @@ class _FeedCard extends StatelessWidget {
   final Post post;
   final String username;
   final String? userPhotoUrl;
+  final String? userBadgeUrl;
+  final String? userBadgeAnimation;
   final double dimAlpha;
   final Function({String? emoji}) onReaction;
   final bool isTop;
@@ -2111,18 +2253,27 @@ class _FeedCard extends StatelessWidget {
                                     : null,
                               ),
                               const SizedBox(height: 14), // チェックマーク側(44px)と同期。中心を84pxに維持。
-                              SizedBox(
-                                height: 16,
-                                child: Text(
-                                  username,
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.outfit(
-                                    color: AppColors.white,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.5,
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    username,
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.outfit(
+                                      color: AppColors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
-                                ),
+                                  if (userBadgeUrl != null && userBadgeUrl!.isNotEmpty)
+                                    VBadgeWidget(
+                                      imageUrl: userBadgeUrl,
+                                      animationType: userBadgeAnimation ?? 'none',
+                                      size: 13, // 名前サイズに合わせる
+                                    ),
+                                ],
                               ),
                             ],
                           ),

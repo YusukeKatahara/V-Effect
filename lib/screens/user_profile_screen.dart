@@ -10,8 +10,7 @@ import '../services/friend_service.dart';
 import '../services/post_service.dart';
 import '../widgets/swipe_back_gate.dart';
 import '../widgets/full_screen_image_viewer.dart';
-
-
+import '../widgets/v_badge_widget.dart';
 /// 他ユーザーのプロフィール閲覧画面
 ///
 /// 引数（ModalRoute.settings.arguments）: String uid
@@ -98,6 +97,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _toggleFollow() async {
     if (_targetUid == null) return;
+    if (_isProcessing) return; // 連打防止
 
     // Optimistic UI Update: サーバーの応答を待たずにUIを切り替える
     final oldFollowing = _isFollowing;
@@ -598,13 +598,29 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                username,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      username,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  if (_user != null &&
+                      _user!.equippedBadgeUrl != null &&
+                      _user!.equippedBadgeUrl!.isNotEmpty) ...[
+                    VBadgeWidget(
+                      imageUrl: _user!.equippedBadgeUrl,
+                      animationType: _user!.equippedBadgeAnimation ?? 'none',
+                      size: 20,
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: 2),
               Text(
@@ -722,7 +738,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
-        onPressed: _isProcessing ? null : _toggleFollow,
+        onPressed: _toggleFollow, // 無効化による色の変化やくるくる表示をなくす
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
           foregroundColor: fgColor,
@@ -733,19 +749,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             side: border,
           ),
         ),
-        child: _isProcessing
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Text(
-                label,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  height: 1.1,
-                ),
-              ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            height: 1.1,
+          ),
+        ),
       ),
     );
   }

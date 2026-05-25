@@ -16,6 +16,12 @@
 
 ## 📝 Recent Changes (直近の変更内容)
 
+### 2026-05-25 (Antigravity)
+- **Smooth Date Reset Implementation:**
+    - `PostService` に `notifyUpdate()` を追加し、手動でのアプリ全体更新トリガーを実装。
+    - `main.dart` に `_scheduleMidnightTimer` を導入し、アプリ起動中に深夜0時をまたいだ際の自動更新を実現。
+    - `AppLifecycleState.resumed` 時に前回確認日（`_lastCheckedDate`）と比較し、スリープ・バックグラウンドからの復帰時に自動で画面をリフレッシュする処理を追加。
+
 ### 2026-04-06 (Antigravity)
 - **Data Hardening & Persistence:**
     - Firestore `withConverter<Post>` による型安全なデータ層を構築。

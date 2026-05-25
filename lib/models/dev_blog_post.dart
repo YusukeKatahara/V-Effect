@@ -4,7 +4,8 @@ enum BlogCategory {
   progress,
   concept,
   howto,
-  thanks;
+  thanks,
+  seasonTask;
 
   String get label {
     switch (this) {
@@ -16,6 +17,8 @@ enum BlogCategory {
         return '使い方';
       case BlogCategory.thanks:
         return '感謝';
+      case BlogCategory.seasonTask:
+        return 'シーズンタスク';
     }
   }
 }

@@ -10,6 +10,9 @@ import '../models/post.dart';
 import '../services/user_service.dart';
 import '../services/post_service.dart';
 import '../widgets/v_effect_header.dart';
+import '../widgets/season_hint_modal.dart';
+import '../models/season.dart';
+import '../widgets/v_badge_widget.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -37,6 +40,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   AppUser? _user;
   List<Post> _todayPosts = [];
   Map<String, dynamic> _privateData = {};
+  Map<String, Season> _seasonsMap = {};
+  Map<String, int> _seasonPostsCountMap = {};
   Stream<DocumentSnapshot>? _userStream;
 
   @override
@@ -77,6 +82,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // ワンタイムタスクの期限切れチェックと削除
         await _checkAndCleanupOneTimeTasks(user);
 
+        // シーズン情報の取得
+        final seasonIds = user.tasks.where((t) => t.isSeason && t.seasonId != null).map((t) => t.seasonId!).toSet().toList();
+        final Map<String, Season> newSeasonsMap = {};
+        final Map<String, int> newSeasonPostsCountMap = {};
+        if (seasonIds.isNotEmpty) {
+          final seasonsSnap = await FirebaseFirestore.instance.collection('seasons').where(FieldPath.documentId, whereIn: seasonIds).get();
+          for (var doc in seasonsSnap.docs) {
+            final season = Season.fromFirestore(doc);
+            newSeasonsMap[doc.id] = season;
+            
+            // シーズンタスクごとの投稿数をカウント（該当タスク名の全投稿を取得して期間内を集計）
+            try {
+              final postsSnap = await FirebaseFirestore.instance
+                  .collection('posts')
+                  .where('userId', isEqualTo: uid)
+                  .where('taskName', isEqualTo: season.taskName)
+                  .get();
+              
+              int count = 0;
+              for (var postDoc in postsSnap.docs) {
+                final createdAt = (postDoc.data()['createdAt'] as Timestamp?)?.toDate();
+                if (createdAt != null &&
+                    createdAt.isAfter(season.startDate) &&
+                    createdAt.isBefore(season.endDate)) {
+                  count++;
+                }
+              }
+              newSeasonPostsCountMap[doc.id] = count;
+            } catch (e) {
+              debugPrint('Error counting season posts: $e');
+              newSeasonPostsCountMap[doc.id] = 0;
+            }
+          }
+        }
+
         // 今日の投稿を取得
         final todayPosts = await _postService.getFriendPostsList(uid);
 
@@ -87,6 +127,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() {
             _user = AppUser.fromFirestore(freshDoc);
             _todayPosts = todayPosts;
+            _seasonsMap = newSeasonsMap;
+            _seasonPostsCountMap = newSeasonPostsCountMap;
             _loading = false;
           });
         }
@@ -460,9 +502,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final newTitle = result['title'].toString().trim();
       
       final updatedTasks = List<AppTask>.from(_user!.tasks);
+      final newTrigger = result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim();
       updatedTasks[index] = task.copyWith(
         title: newTitle,
-        trigger: result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim(),
+        trigger: newTrigger,
+        clearTrigger: newTrigger == null,
         isOneTime: result['isOneTime'] as bool,
       );
       await _userService.updateProfile(tasks: updatedTasks);
@@ -828,13 +872,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _user!.username ?? '',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _user!.username ?? '',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (_user!.equippedBadgeUrl != null && _user!.equippedBadgeUrl!.isNotEmpty) ...[
+                          VBadgeWidget(
+                            imageUrl: _user!.equippedBadgeUrl,
+                            animationType: _user!.equippedBadgeAnimation ?? 'none',
+                            size: 20,
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -1165,6 +1223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildQuestCard(int index, {Key? key}) {
+    final task = _user!.tasks[index];
     return Padding(
       key: key,
       padding: const EdgeInsets.only(bottom: 8), // よりコンパクトに
@@ -1191,7 +1250,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () => _editTask(index),
+            onTap: () {
+              if (task.isSeason) {
+                final season = _seasonsMap[task.seasonId];
+                if (season != null) {
+                  SeasonHintModal.show(context, task, season, (newTrigger) async {
+                    final updatedTasks = List<AppTask>.from(_user!.tasks);
+                    updatedTasks[index] = task.copyWith(
+                      trigger: newTrigger.isEmpty ? null : newTrigger,
+                      clearTrigger: newTrigger.isEmpty,
+                    );
+                    await _userService.updateProfile(tasks: updatedTasks);
+                    _loadProfile();
+                  });
+                }
+              } else {
+                _editTask(index);
+              }
+            },
             borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.symmetric(
@@ -1229,15 +1305,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _user!.tasks[index].title,
+                          task.title,
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+                            color: AppColors.white,
                             letterSpacing: 0.5,
                           ),
                         ),
-                        if (_user!.tasks[index].isOneTime)
+                        if (task.isSeason) ...[
+                          const SizedBox(height: 2),
+                          (() {
+                            final season = _seasonsMap[task.seasonId];
+                            final count = _seasonPostsCountMap[task.seasonId] ?? 0;
+                            final requiredCount = season?.requiredPostsCount ?? 12;
+                            return Text(
+                              'Season ($count/$requiredCount)',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.grey50, // メタリックシルバー風
+                                letterSpacing: 0.5,
+                              ),
+                            );
+                          })(),
+                        ] else if (task.isOneTime) ...[
+                          const SizedBox(height: 2),
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
                             child: Text(
@@ -1252,66 +1345,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ),
+                        ],
                       ],
                     ),
                   ),
-                  // 今日の投稿があれば V FIRE 数を表示
-                  ...() {
-                    final post = _todayPosts.cast<Post?>().firstWhere(
-                      (p) => p?.taskName == _user!.tasks[index].title,
-                      orElse: () => null,
-                    );
-                    if (post != null && post.reactionCount > 0) {
-                      return [
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.accentGold.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.accentGold.withValues(
-                                alpha: 0.2,
-                              ),
-                              width: 0.5,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.local_fire_department,
-                                color: AppColors.accentGold,
-                                size: 14,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${post.reactionCount}',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ];
-                    }
-                    return <Widget>[];
-                  }(),
-                  IconButton(
-                    onPressed: () => _deleteTask(index),
-                    icon: Icon(
-                      Icons.close_rounded,
-                      size: 20,
-                      color: AppColors.white.withValues(alpha: 0.2),
+                  if (!task.isSeason)
+                    IconButton(
+                      onPressed: () => _deleteTask(index),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 20,
+                        color: AppColors.white.withValues(alpha: 0.2),
+                      ),
+                      visualDensity: VisualDensity.compact,
                     ),
-                    visualDensity: VisualDensity.compact,
-                  ),
                 ],
               ),
             ),

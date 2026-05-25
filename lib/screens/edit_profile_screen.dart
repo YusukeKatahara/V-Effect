@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
@@ -36,7 +37,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isSaving = false;
   File? _newProfileImage;
   String? _currentPhotoUrl;
-
+  String? _equippedBadgeUrl;
+  String? _equippedBadgeAnimation;
 
   bool _showTimestamp = true;
 
@@ -60,6 +62,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _usernameCtrl = TextEditingController(text: widget.user.username);
     _userIdCtrl = TextEditingController(text: widget.user.userId);
     _currentPhotoUrl = widget.user.photoUrl;
+    _equippedBadgeUrl = widget.user.equippedBadgeUrl;
+    _equippedBadgeAnimation = widget.user.equippedBadgeAnimation;
 
 
     _showTimestamp = widget.privateData['showTimestamp'] ?? true;
@@ -221,6 +225,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         photoUrl: updatedPhotoUrl,
         showTimestamp: _showTimestamp,
         updateEditDate: isRestrictedFieldsChanged,
+        equippedBadgeUrl: _equippedBadgeUrl,
+        equippedBadgeAnimation: _equippedBadgeAnimation,
       );
 
       if (mounted) {
@@ -304,8 +310,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           const SizedBox(height: 32),
 
                           // Section: Preferences
-                          const SectionTitle(title: 'アプリ設定'),
+                          const SectionTitle(title: 'ステータス'),
                           const SizedBox(height: 12),
+
+                          _buildBadgeRow(),
+                          const SizedBox(height: 16),
 
                           _buildTimestampToggle(),
                           const SizedBox(height: 32),
@@ -502,6 +511,238 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             activeColor: AppColors.primary,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBadgeRow() {
+    return InkWell(
+      onTap: _showBadgeSelector,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.stars_rounded, color: AppColors.textMuted),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'バッジ',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (_equippedBadgeUrl != null && _equippedBadgeUrl!.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_equippedBadgeUrl == 'tester')
+                      const Text(
+                        'T',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      )
+                    else
+                      const Icon(Icons.verified, color: AppColors.primary, size: 14),
+                    const SizedBox(width: 4),
+                    const Text(
+                      '装着中',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.only(right: 8.0),
+                child: Text(
+                  '未設定',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.grey20,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                '変更',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showBadgeSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'バッジを選択',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _buildBadgeOption('なし', ''),
+                    _buildBadgeOption('テスター', 'tester'),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBadgeOption(String label, String badgeUrl) {
+    final isSelected = (_equippedBadgeUrl ?? '') == badgeUrl;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _equippedBadgeUrl = badgeUrl;
+          if (badgeUrl == 'tester') {
+            _equippedBadgeAnimation = 'shimmer';
+          } else {
+            _equippedBadgeAnimation = '';
+          }
+        });
+        Navigator.pop(context);
+      },
+      child: Container(
+        width: 100,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.2) : AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            if (badgeUrl == 'tester')
+              Container(
+                height: 40,
+                alignment: Alignment.center,
+                child: Transform(
+                  transform: Matrix4.skewX(-0.15),
+                  alignment: Alignment.center,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                    Text(
+                      'T',
+                      style: GoogleFonts.outfit(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        fontStyle: FontStyle.italic,
+                        foreground: Paint()
+                          ..style = PaintingStyle.stroke
+                          ..strokeWidth = 3.5
+                          ..color = AppColors.black.withValues(alpha: 0.8),
+                      ),
+                    ),
+                    ShaderMask(
+                      shaderCallback: (bounds) => const LinearGradient(
+                        colors: [
+                          Color(0xFFFFF2CC),
+                          Color(0xFFFFD700),
+                          Color(0xFFD4AF37),
+                          Color(0xFFFFF2CC),
+                        ],
+                        stops: [0.0, 0.4, 0.8, 1.0],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ).createShader(bounds),
+                      child: Text(
+                        'T',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                ),
+              )
+            else
+              const Icon(
+                Icons.do_disturb_alt_rounded,
+                color: AppColors.textMuted,
+                size: 40,
+              ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

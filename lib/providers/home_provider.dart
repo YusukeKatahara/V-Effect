@@ -18,6 +18,8 @@ class HomeData {
   final Map<String, String> userNames; // userId -> username
   final Map<String, String?> userPhotos; // userId -> photoUrl
   final Map<String, int> userStreaks; // userId -> streak
+  final Map<String, String?> userBadgeUrls; // userId -> badgeUrl
+  final Map<String, String?> userBadgeAnimations; // userId -> badgeAnimation
 
   HomeData({
     required this.streak,
@@ -31,6 +33,8 @@ class HomeData {
     required this.userNames,
     required this.userPhotos,
     required this.userStreaks,
+    required this.userBadgeUrls,
+    required this.userBadgeAnimations,
   });
 
   @override
@@ -48,7 +52,9 @@ class HomeData {
           _listEquals(postedFriends, other.postedFriends) &&
           _mapEquals(userNames, other.userNames) &&
           _mapEquals(userPhotos, other.userPhotos) &&
-          _mapEquals(userStreaks, other.userStreaks);
+          _mapEquals(userStreaks, other.userStreaks) &&
+          _mapEquals(userBadgeUrls, other.userBadgeUrls) &&
+          _mapEquals(userBadgeAnimations, other.userBadgeAnimations);
 
   @override
   int get hashCode =>
@@ -62,7 +68,9 @@ class HomeData {
       postedFriends.hashCode ^
       userNames.hashCode ^
       userPhotos.hashCode ^
-      userStreaks.hashCode;
+      userStreaks.hashCode ^
+      userBadgeUrls.hashCode ^
+      userBadgeAnimations.hashCode;
 
   bool _listEquals(List? a, List? b) {
     if (a == null) return b == null;
@@ -128,11 +136,15 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
   final names = <String, String>{};
   final photos = <String, String?>{};
   final streaks = <String, int>{};
+  final badgeUrls = <String, String?>{};
+  final badgeAnimations = <String, String?>{};
   for (final f in friendStatuses) {
     final uid = f['uid'] as String;
     names[uid] = f['username'] as String;
     photos[uid] = f['photoUrl'] as String?;
     streaks[uid] = (f['streak'] as num?)?.toInt() ?? 0;
+    badgeUrls[uid] = f['equippedBadgeUrl'] as String?;
+    badgeAnimations[uid] = f['equippedBadgeAnimation'] as String?;
   }
 
   // 4. 投稿済みのフレンドを抽出
@@ -162,5 +174,7 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
     userNames: names,
     userPhotos: photos,
     userStreaks: streaks,
+    userBadgeUrls: badgeUrls,
+    userBadgeAnimations: badgeAnimations,
   );
 });

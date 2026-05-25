@@ -58,6 +58,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _toggleFollow(AppUser targetUser, bool isFollowing) async {
+    // 処理中の連打防止
+    if (_pendingUids.contains(targetUser.uid)) return;
+
     // Optimistic UI Update
     if (!isFollowing) {
       setState(() {
@@ -214,9 +217,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                         elevation: isFollowing ? 0 : 2,
                                         minimumSize: Size.zero,
                                       ),
-                                      onPressed: followingAsync.isLoading || _pendingUids.contains(user.uid)
-                                          ? null
-                                          : () => _toggleFollow(user, isFollowing),
+                                      onPressed: () => _toggleFollow(user, isFollowing),
                                       child: Text(
                                         isFollowing 
                                           ? 'フォロー中' 

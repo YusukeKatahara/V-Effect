@@ -12,6 +12,7 @@ import '../config/routes.dart';
 import '../models/post.dart';
 import '../models/app_task.dart';
 import '../models/app_user.dart';
+import '../models/season.dart';
 import '../services/analytics_service.dart';
 import '../services/post_service.dart';
 import '../services/user_service.dart';
@@ -22,6 +23,9 @@ import 'camera_screen.dart';
 import '../widgets/reaction_avatars.dart';
 import '../widgets/entropic_conversion_overlay.dart';
 import '../widgets/post_success_dialog.dart';
+import '../widgets/season_hint_modal.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/dev_blog_provider.dart';
 
 /// 内部管理用のタスクアイテム
 class _HeroTaskItem {
@@ -29,6 +33,9 @@ class _HeroTaskItem {
   final String? trigger;
   final List<Post> completedPosts;
   final bool isOneTime;
+  final bool isSeason;
+  final String? seasonId;
+  final Season? season;
   bool get isCompleted => completedPosts.isNotEmpty;
 
   String get displayName => (trigger != null && trigger!.isNotEmpty) ? '$trigger：$name' : name;
@@ -38,7 +45,15 @@ class _HeroTaskItem {
     return completedPosts.reduce((a, b) => a.createdAt.isAfter(b.createdAt) ? a : b);
   }
 
-  _HeroTaskItem({required this.name, this.trigger, this.completedPosts = const [], this.isOneTime = false});
+  _HeroTaskItem({
+    required this.name,
+    this.trigger,
+    this.completedPosts = const [],
+    this.isOneTime = false,
+    this.isSeason = false,
+    this.seasonId,
+    this.season,
+  });
 }
 
 class HeroTasksScreen extends StatefulWidget {
@@ -266,6 +281,16 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       final postedPosts =
           (homeData['postedTasksToday'] as List<dynamic>?)?.cast<Post>() ?? [];
 
+      // Seasonタスクが含まれていればFirestoreからSeason情報をフェッチ
+      final seasonIds = allTasks.where((t) => t.isSeason && t.seasonId != null).map((t) => t.seasonId!).toSet().toList();
+      final Map<String, Season> seasonsMap = {};
+      if (seasonIds.isNotEmpty) {
+        final seasonsSnap = await FirebaseFirestore.instance.collection('seasons').where(FieldPath.documentId, whereIn: seasonIds).get();
+        for (var doc in seasonsSnap.docs) {
+          seasonsMap[doc.id] = Season.fromFirestore(doc);
+        }
+      }
+
       final List<_HeroTaskItem> items = [];
       for (final task in allTasks) {
         final taskPosts = postedPosts.where((p) => p.taskName == task.title).toList();
@@ -274,6 +299,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           trigger: task.trigger,
           completedPosts: taskPosts,
           isOneTime: task.isOneTime,
+          isSeason: task.isSeason,
+          seasonId: task.seasonId,
+          season: (task.isSeason && task.seasonId != null) ? seasonsMap[task.seasonId] : null,
         ));
       }
 
@@ -586,10 +614,33 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   }
 
   Widget _buildTitleBar() => VEffectHeader(
-        leading: IconButton(
-          // 左上のブックマーク（本）アイコン。ベルマークの色と統一するために白（AppColors.white）に設定
-          icon: const Icon(Icons.menu_book_rounded, color: AppColors.white),
-          onPressed: () => Navigator.pushNamed(context, AppRoutes.vPractice),
+        leading: Consumer(
+          builder: (context, ref, _) {
+            final hasUnreadBlog = ref.watch(hasUnreadBlogProvider);
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  // 左上のブックマーク（本）アイコン。ベルマークの色と統一するために白（AppColors.white）に設定
+                  icon: const Icon(Icons.menu_book_rounded, color: AppColors.white),
+                  onPressed: () => Navigator.pushNamed(context, AppRoutes.vPractice),
+                ),
+                if (hasUnreadBlog)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
         trailing: const NotificationBellIcon(),
         hideLogo: _isSublimating,
@@ -1253,7 +1304,11 @@ class _TaskCardState extends State<_TaskCard> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        item.isOneTime ? 'ONE-TIME' : 'READY',
+                        item.isSeason
+                            ? 'SEASON | 残り${item.season != null ? item.season!.endDate.difference(DateTime.now()).inDays.clamp(0, 999) : 0}日'
+                            : item.isOneTime
+                                ? 'ONE-TIME'
+                                : 'READY',
                         style: GoogleFonts.outfit(
                           fontSize: 10,
                           color: AppColors.accentGold,
@@ -1269,7 +1324,6 @@ class _TaskCardState extends State<_TaskCard> {
           ),
         ),
 
-        // カウントバッジ
         if (isCompleted && postCount > 1 && depth == 0)
           Positioned(
             top: 24,
@@ -1292,6 +1346,43 @@ class _TaskCardState extends State<_TaskCard> {
                   color: AppColors.accentGold,
                 ),
               ),
+            ),
+          ),
+
+        // ヒントボタン（SEASONタスクの場合のみ、右上に配置）
+        if (item.isSeason && item.season != null && depth == 0)
+          Positioned(
+            top: 16,
+            right: (isCompleted && postCount > 1) ? 72 : 16,
+            child: IconButton(
+              icon: const Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 28),
+              onPressed: () {
+                SeasonHintModal.show(
+                  context,
+                  AppTask(title: item.name, trigger: item.trigger, isSeason: item.isSeason, seasonId: item.seasonId),
+                  item.season!,
+                  (newTrigger) async {
+                    // trigger を更新して保存
+                    final uid = UserService.instance.currentUid;
+                    if (uid == null) return;
+                    final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+                    if (!snap.exists) return;
+                    final tasks = (snap.data()?['tasks'] as List? ?? [])
+                        .map((e) => AppTask.fromFirestore(e))
+                        .toList();
+                    final updatedTasks = tasks.map((t) {
+                      if (t.title == item.name) {
+                        return t.copyWith(
+                          trigger: newTrigger.isEmpty ? null : newTrigger,
+                          clearTrigger: newTrigger.isEmpty,
+                        );
+                      }
+                      return t;
+                    }).toList();
+                    await UserService.instance.updateProfile(tasks: updatedTasks);
+                  },
+                );
+              },
             ),
           ),
 

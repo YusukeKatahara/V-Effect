@@ -45,6 +45,11 @@ class PostService {
   final _updateController = StreamController<void>.broadcast();
   Stream<void> get updateStream => _updateController.stream;
 
+  /// 外部から手動で更新シグナルを送るためのメソッド（深夜0時の日付更新など）
+  void notifyUpdate() {
+    _updateController.add(null);
+  }
+
   /// ストリークサービスへの委譲メソッド
   Future<int> getStreak() => _streakService.getStreak();
   Future<bool> hasPostedToday() => _streakService.hasPostedToday();
@@ -160,6 +165,8 @@ class PostService {
         'photoUrl': data['photoUrl'] is String ? data['photoUrl'] as String : data['photoUrl']?.toString(),
         'hasPostedToday': data['lastPostedDate']?.toString() == today,
         'streak': effective['streak'],
+        'equippedBadgeUrl': data['equippedBadgeUrl']?.toString(),
+        'equippedBadgeAnimation': data['equippedBadgeAnimation']?.toString(),
       };
     }).toList();
   }

@@ -30,6 +30,8 @@ class AppUser {
   final bool protectionNotifications;
   final bool vFireNotifications;
   final bool isPrivateAccount;
+  final String? equippedBadgeUrl;
+  final String? equippedBadgeAnimation;
 
   const AppUser({
     required this.uid,
@@ -58,6 +60,8 @@ class AppUser {
     this.protectionNotifications = true,
     this.vFireNotifications = true,
     this.isPrivateAccount = false,
+    this.equippedBadgeUrl,
+    this.equippedBadgeAnimation,
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -123,6 +127,8 @@ class AppUser {
       protectionNotifications: data['protectionNotifications'] ?? true,
       vFireNotifications: data['vFireNotifications'] ?? true,
       isPrivateAccount: data['isPrivateAccount'] ?? false,
+      equippedBadgeUrl: safeString(data['equippedBadgeUrl']),
+      equippedBadgeAnimation: safeString(data['equippedBadgeAnimation']),
     );
   }
 
@@ -154,6 +160,8 @@ class AppUser {
       'protectionNotifications': protectionNotifications,
       'vFireNotifications': vFireNotifications,
       'isPrivateAccount': isPrivateAccount,
+      'equippedBadgeUrl': equippedBadgeUrl,
+      'equippedBadgeAnimation': equippedBadgeAnimation,
     };
   }
 }

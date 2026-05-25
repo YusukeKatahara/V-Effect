@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/app_user.dart';
@@ -92,12 +93,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.bgBase,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title:
-            const Text('QRスキャン', style: TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.bgBase,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: AppColors.textPrimary,
+        title: const Text('QRスキャン',
+            style: TextStyle(color: AppColors.textPrimary)),
         actions: [
           IconButton(
             icon: const Icon(Icons.flashlight_on_outlined),
@@ -106,38 +108,144 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          MobileScanner(
-            controller: _controller,
-            onDetect: _onDetect,
-          ),
-          const _ScanOverlay(),
-          Positioned(
-            bottom: 60,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: TextButton.icon(
-                onPressed: _isProcessing ? null : _pickFromGallery,
-                icon: const Icon(Icons.photo_library_outlined,
-                    color: Colors.white),
-                label: const Text('フォルダーから選択',
-                    style: TextStyle(color: Colors.white, fontSize: 15)),
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.black,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: AppColors.accentGold.withValues(alpha: 0.8),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.black.withValues(alpha: 0.6),
+                        blurRadius: 30,
+                        offset: const Offset(0, 15),
+                      ),
+                      BoxShadow(
+                        color: AppColors.accentGold.withValues(alpha: 0.15),
+                        blurRadius: 40,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(23),
+                    child: Column(
+                      children: [
+                        // ── ブランディング ──────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+                          child: Center(
+                            child: Text(
+                              'V EFFECT',
+                              style: GoogleFonts.outfit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.white,
+                                letterSpacing: 4.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Divider(
+                          color: AppColors.accentGold.withValues(alpha: 0.25),
+                          height: 1,
+                          thickness: 0.5,
+                          indent: 20,
+                          endIndent: 20,
+                        ),
+                        // ── スキャナー ────────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                          child: Container(
+                            width: 224, // QrImageView size 200 + padding 12*2 = 224 に合わせる
+                            height: 224,
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Stack(
+                                children: [
+                                  MobileScanner(
+                                    controller: _controller,
+                                    onDetect: _onDetect,
+                                  ),
+                                  const _ScanOverlay(),
+                                  if (_isProcessing)
+                                    const ColoredBox(
+                                      color: Colors.black54,
+                                      child: Center(
+                                          child: CircularProgressIndicator()),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        // ── 説明テキスト ─────────────────────────────
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(20, 0, 20, 22),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                'QRコードをスキャン',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                '枠内にQRコードを写してください',
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: _isProcessing ? null : _pickFromGallery,
+                icon: const Icon(Icons.photo_library_outlined),
+                label: const Text('フォルダーから選択'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.bgElevated,
+                  foregroundColor: AppColors.textPrimary,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 32, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
           ),
-          if (_isProcessing)
-            const ColoredBox(
-              color: Colors.black54,
-              child: Center(child: CircularProgressIndicator()),
-            ),
-        ],
+        ),
       ),
     );
   }
 }
 
+// スキャナー内の枠線
 class _ScanOverlay extends StatelessWidget {
   const _ScanOverlay();
 
@@ -153,35 +261,17 @@ class _ScanOverlay extends StatelessWidget {
 class _OverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    const frameSize = 240.0;
-    const cornerLen = 24.0;
-    const cornerThickness = 4.0;
+    const cornerLen = 20.0;
+    const cornerThickness = 3.0;
 
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final left = cx - frameSize / 2;
-    final top = cy - frameSize / 2;
-    final right = left + frameSize;
-    final bottom = top + frameSize;
+    const padding = 12.0;
+    final left = padding;
+    final top = padding;
+    final right = size.width - padding;
+    final bottom = size.height - padding;
 
-    // 周囲を半透明の黒でマスク
-    final maskPaint = Paint()..color = Colors.black.withValues(alpha: 0.55);
-    canvas.drawPath(
-      Path.combine(
-        PathOperation.difference,
-        Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height)),
-        Path()
-          ..addRRect(
-            RRect.fromLTRBR(left, top, right, bottom,
-                const Radius.circular(4)),
-          ),
-      ),
-      maskPaint,
-    );
-
-    // 四隅のゴールドコーナー
     final cornerPaint = Paint()
-      ..color = AppColors.accentGold
+      ..color = AppColors.accentGold.withValues(alpha: 0.8)
       ..strokeWidth = cornerThickness
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.square;

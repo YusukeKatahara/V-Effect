@@ -10,11 +10,25 @@ import '../models/dev_blog_post.dart';
 import '../providers/dev_blog_provider.dart';
 import '../widgets/v_effect_header.dart';
 
-class VPracticeScreen extends ConsumerWidget {
+class VPracticeScreen extends ConsumerStatefulWidget {
   const VPracticeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<VPracticeScreen> createState() => _VPracticeScreenState();
+}
+
+class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 画面を開いたタイミングで既読にする
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      markDevBlogAsRead(ref);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final postsAsync = ref.watch(blogPostsProvider);
     final isDeveloperAsync = ref.watch(isDeveloperProvider);
     final isDev = isDeveloperAsync.valueOrNull ?? false;
@@ -25,6 +39,10 @@ class VPracticeScreen extends ConsumerWidget {
         child: Column(
           children: [
             VEffectHeader(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.white, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
               trailing: isDev
                   ? IconButton(
                       icon: const Icon(Icons.add_rounded, color: AppColors.white),
@@ -181,6 +199,8 @@ class _CoverPlaceholder extends StatelessWidget {
         return Icons.menu_book_rounded;
       case BlogCategory.thanks:
         return Icons.favorite_outline_rounded;
+      case BlogCategory.seasonTask:
+        return Icons.star_border_rounded;
     }
   }
 }
@@ -222,13 +242,13 @@ class _EmptyState extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.article_outlined,
+            Icons.campaign_outlined, // Changed icon to match 'notice'
             size: 48,
             color: AppColors.white.withValues(alpha: 0.15),
           ),
           const SizedBox(height: 16),
           Text(
-            '記事はまだありません',
+            'お知らせはまだありません',
             style: GoogleFonts.notoSansJp(
               fontSize: 14,
               color: AppColors.grey50,
