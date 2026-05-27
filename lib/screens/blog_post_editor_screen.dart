@@ -38,6 +38,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
   final _seasonHintTitleController = TextEditingController();
   final _seasonHintBodyController = TextEditingController();
   final _seasonBadgeImageUrlController = TextEditingController();
+  final _distributeBadgeController = TextEditingController();
   String _seasonBadgeAnimation = 'none';
 
   @override
@@ -65,6 +66,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
     _seasonHintTitleController.dispose();
     _seasonHintBodyController.dispose();
     _seasonBadgeImageUrlController.dispose();
+    _distributeBadgeController.dispose();
     super.dispose();
   }
 
@@ -231,7 +233,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             hintBody: _seasonHintBodyController.text.trim().isEmpty ? null : _seasonHintBodyController.text.trim(),
             relatedBlogId: postId,
             badgeImageUrl: _seasonBadgeImageUrlController.text.trim().isEmpty ? null : _seasonBadgeImageUrlController.text.trim(),
-            badgeAnimation: _seasonBadgeAnimation,
+            badgeAnimation: _seasonBadgeImageUrlController.text.trim() == 'tester' ? 'shimmer' : 'none',
           );
           await FirebaseFirestore.instance.collection('seasons').doc(postId).set(season.toFirestore());
         }
@@ -262,7 +264,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             hintBody: _seasonHintBodyController.text.trim().isEmpty ? null : _seasonHintBodyController.text.trim(),
             relatedBlogId: _editingPost!.id,
             badgeImageUrl: _seasonBadgeImageUrlController.text.trim().isEmpty ? null : _seasonBadgeImageUrlController.text.trim(),
-            badgeAnimation: _seasonBadgeAnimation,
+            badgeAnimation: _seasonBadgeImageUrlController.text.trim() == 'tester' ? 'shimmer' : 'none',
           );
           await FirebaseFirestore.instance.collection('seasons').doc(_editingPost!.id).set(season.toFirestore());
         }
@@ -392,6 +394,8 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             const SizedBox(height: 16),
             _buildSeasonTaskForm(),
           ],
+          const SizedBox(height: 32),
+          _buildBadgeDistributionSection(),
           const SizedBox(height: 32),
           GradientButton(
             isLoading: _isSaving,
@@ -601,7 +605,27 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
 
   // ── フォームパーツ ────────────────────────────────────
 
+  Future<void> _pickBadgeImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (picked != null) {
+      setState(() => _isSaving = true);
+      try {
+        final url = await DevBlogService.instance.uploadBadgeImage(File(picked.path));
+        setState(() {
+          _seasonBadgeImageUrlController.text = url;
+        });
+        _showError('バッジ画像をアップロードしました'); // Use _showError to show success as snackbar
+      } catch (e) {
+        _showError('アップロードに失敗しました');
+      } finally {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
   Widget _buildCoverPicker() {
+
     final hasCover = _coverImageFile != null || _existingCoverUrl != null;
 
     return GestureDetector(
@@ -868,31 +892,141 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             decoration: _inputDecoration('ヒント本文'),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _seasonBadgeImageUrlController,
-            style: GoogleFonts.notoSansJp(color: AppColors.white),
-            decoration: _inputDecoration('バッジ画像URL (例: Firebase StorageのURL)'),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _seasonBadgeAnimation,
-            dropdownColor: AppColors.grey10,
-            style: GoogleFonts.notoSansJp(color: AppColors.white),
-            decoration: _inputDecoration('バッジのアニメーション'),
-            items: const [
-              DropdownMenuItem(value: 'none', child: Text('なし')),
-              DropdownMenuItem(value: 'shimmer', child: Text('シマー (キラキラ)')),
-              DropdownMenuItem(value: 'heartbeat', child: Text('ハートビート (ドクンドクン)')),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _seasonBadgeImageUrlController,
+                  style: GoogleFonts.notoSansJp(color: AppColors.white),
+                  decoration: _inputDecoration('バッジ画像URL (例: Firebase StorageのURL)'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.add_photo_alternate, color: AppColors.accentGold),
+                onPressed: _pickBadgeImage,
+                tooltip: '画像を選択してアップロード',
+              ),
             ],
-            onChanged: (val) {
-              if (val != null) {
-                setState(() => _seasonBadgeAnimation = val);
-              }
-            },
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildBadgeDistributionSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.grey10,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.accentGold, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '【管理者用】全ユーザーへバッジを直接配布',
+            style: GoogleFonts.notoSansJp(
+                fontSize: 14, color: AppColors.accentGold, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '記事の投稿やシーズンタスクとは無関係に、今すぐ全員にバッジを装備させます。通知も飛びません。',
+            style: GoogleFonts.notoSansJp(fontSize: 12, color: AppColors.grey50),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _distributeBadgeController,
+                  style: GoogleFonts.notoSansJp(color: AppColors.white),
+                  decoration: _inputDecoration('バッジID (例: tester)'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: _distributeBadge,
+                icon: const Icon(Icons.send_to_mobile_rounded, color: AppColors.accentGold, size: 18),
+                label: Text('配布', style: GoogleFonts.notoSansJp(color: AppColors.accentGold, fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.accentGold),
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _distributeBadge() async {
+    final badgeUrl = _distributeBadgeController.text.trim();
+    if (badgeUrl.isEmpty) {
+      _showError('バッジID（または tester など）を入力してください');
+      return;
+    }
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.grey15,
+        title: Text('全ユーザーに配布', style: GoogleFonts.notoSansJp(color: AppColors.white)),
+        content: Text('現在登録されている全てのユーザーに、バッジ「$badgeUrl」を強制的に装備させますか？',
+            style: GoogleFonts.notoSansJp(color: AppColors.grey70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('キャンセル', style: GoogleFonts.notoSansJp(color: AppColors.white)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('配布する',
+                style: GoogleFonts.notoSansJp(color: AppColors.accentGold, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final db = FirebaseFirestore.instance;
+      final snapshot = await db.collection('users').get();
+      final batch = db.batch();
+      int count = 0;
+      final anim = badgeUrl == 'tester' ? 'shimmer' : 'none';
+      for (var doc in snapshot.docs) {
+        batch.update(doc.reference, {
+          'equippedBadgeUrl': badgeUrl,
+          'equippedBadgeAnimation': anim,
+        });
+        count++;
+        if (count >= 490) {
+          await batch.commit();
+          count = 0;
+        }
+      }
+      if (count > 0) {
+        await batch.commit();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('全ユーザーにバッジ「$badgeUrl」を配布・装備させました！',
+                style: GoogleFonts.notoSansJp(color: AppColors.white)),
+            backgroundColor: AppColors.accentGold,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('配布エラー: $e');
+      _showError('バッジの配布に失敗しました');
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   InputDecoration _inputDecoration(String hint) {

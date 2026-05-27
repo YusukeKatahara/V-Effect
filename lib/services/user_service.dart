@@ -168,6 +168,7 @@ class UserService {
     String? username,
     String? userId,
     String? birthDate,
+    String? gender,
     String? taskTime,
     String? photoUrl,
     List<AppTask>? tasks,
@@ -214,6 +215,7 @@ class UserService {
     // 非公開情報の更新
     final privateData = <String, dynamic>{};
     if (birthDate != null) privateData['birthDate'] = birthDate;
+    if (gender != null) privateData['gender'] = gender;
     if (taskTime != null) privateData['taskTime'] = taskTime;
     if (showTimestamp != null) privateData['showTimestamp'] = showTimestamp;
 

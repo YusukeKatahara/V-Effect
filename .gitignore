@@ -65,3 +65,10 @@ ios/Flutter/app.flx
 ios/Flutter/app.zip
 ios/Flutter/flutter_assets/
 ios/Flutter/flutter_export_environment.sh
+
+# Agent scripts and tests
+/lib/emoji_test.dart
+/lib/emoji_test2.dart
+/lib/ui_emoji_test.dart
+/modify_home_screen.py
+/patch_*.dart

@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app_links/app_links.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'firebase_options.dart';
 import 'config/routes.dart';
 import 'config/theme.dart';
@@ -85,6 +86,11 @@ class _AppInitializerState extends State<AppInitializer> {
   Future<void> _initialize() async {
     try {
       // 非UIブロック項目の初期化
+      try {
+        await MobileAds.instance.initialize();
+      } catch (e) {
+        debugPrint('AdMob初期化エラー: $e');
+      }
       PushNotificationService().initialize().catchError((e) => debugPrint('通知初期化エラー: $e'));
       DeepLinkService().initialize().catchError((e) => debugPrint('DeepLink初期化エラー: $e'));
       SoundService.instance.init().catchError((e) => debugPrint('音声初期化エラー: $e'));

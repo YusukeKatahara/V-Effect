@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -41,6 +42,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _equippedBadgeAnimation;
 
   bool _showTimestamp = true;
+  String? _birthDate;
+  String? _gender;
+  static const _genderOptions = ['男性', '女性', 'その他'];
 
   bool _isRestricted = false;
   int _daysRemaining = 0;
@@ -67,6 +71,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
 
     _showTimestamp = widget.privateData['showTimestamp'] ?? true;
+    _birthDate = widget.privateData['birthDate'] as String?;
+    _gender = widget.privateData['gender'] as String?;
 
     _checkRestriction();
   }
@@ -224,6 +230,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         userId: newUserId,
         photoUrl: updatedPhotoUrl,
         showTimestamp: _showTimestamp,
+        birthDate: _birthDate,
+        gender: _gender,
         updateEditDate: isRestrictedFieldsChanged,
         equippedBadgeUrl: _equippedBadgeUrl,
         equippedBadgeAnimation: _equippedBadgeAnimation,
@@ -307,6 +315,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           _buildTextField(_usernameCtrl, '名前', Icons.badge),
                           const SizedBox(height: 16),
                           _buildUserIdField(),
+                          _buildPersonalInfoFields(),
                           const SizedBox(height: 32),
 
                           // Section: Preferences
@@ -337,6 +346,222 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ],
       ),
     ),
+    );
+  }
+
+  void _showDatePickerBottomSheet() {
+    DateTime initialDate = DateTime(2000, 1, 1);
+    if (_birthDate != null && _birthDate!.isNotEmpty) {
+      try {
+        final parts = _birthDate!.split('-');
+        if (parts.length == 3) {
+          initialDate = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+        }
+      } catch (_) {}
+    }
+
+    DateTime selectedDate = initialDate;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext builder) {
+        return Container(
+          height: 300,
+          padding: const EdgeInsets.only(top: 6.0),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      const Text('生年月日', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                      TextButton(
+                        child: const Text('完了', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          setState(() {
+                            _birthDate = '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+                          });
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoTheme(
+                    data: const CupertinoThemeData(
+                      brightness: Brightness.dark,
+                      textTheme: CupertinoTextThemeData(
+                        dateTimePickerTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 22),
+                      ),
+                    ),
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.date,
+                      initialDateTime: selectedDate,
+                      minimumYear: 1900,
+                      maximumYear: DateTime.now().year,
+                      onDateTimeChanged: (DateTime newDateTime) {
+                        selectedDate = newDateTime;
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showGenderPickerBottomSheet() {
+    int selectedIndex = _genderOptions.indexOf(_gender ?? _genderOptions[0]);
+    if (selectedIndex == -1) selectedIndex = 0;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext builder) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const Text('性別', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                    TextButton(
+                      child: const Text('完了', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        setState(() {
+                          _gender = _genderOptions[selectedIndex];
+                        });
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 216,
+                child: CupertinoTheme(
+                  data: const CupertinoThemeData(
+                    textTheme: CupertinoTextThemeData(
+                      pickerTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 20),
+                    ),
+                  ),
+                  child: CupertinoPicker(
+                    scrollController: FixedExtentScrollController(initialItem: selectedIndex),
+                    itemExtent: 40,
+                    onSelectedItemChanged: (int index) {
+                      selectedIndex = index;
+                    },
+                    children: _genderOptions.map((String value) {
+                      return Center(
+                        child: Text(
+                          value,
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 20),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPersonalInfoFields() {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        InkWell(
+          onTap: _showDatePickerBottomSheet,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: AppColors.bgElevated,
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.cake_outlined, color: AppColors.textMuted),
+                    const SizedBox(width: 12),
+                    Text(
+                      _birthDate ?? '生年月日 (任意)',
+                      style: TextStyle(
+                        color: _birthDate == null ? AppColors.textSecondary : AppColors.textPrimary,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        InkWell(
+          onTap: _showGenderPickerBottomSheet,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: AppColors.bgElevated,
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.person_outline, color: AppColors.textMuted),
+                    const SizedBox(width: 12),
+                    Text(
+                      _gender ?? '性別 (任意)',
+                      style: TextStyle(
+                        color: _gender == null ? AppColors.textSecondary : AppColors.textPrimary,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -608,9 +833,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _showBadgeSelector() {
+    // Generate the list of owned badges, deduplicated
+    final Set<String> badges = {'', 'tester'};
+    badges.addAll(widget.user.ownedBadges);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.bgElevated,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -632,14 +862,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _buildBadgeOption('なし', ''),
-                    _buildBadgeOption('テスター', 'tester'),
-                  ],
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
+                  child: SingleChildScrollView(
+                    child: Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      alignment: WrapAlignment.center,
+                      children: badges.map((badgeUrl) {
+                        String label = '';
+                        if (badgeUrl == '') label = 'なし';
+                        else if (badgeUrl == 'tester') label = 'テスター';
+                        else label = 'シーズンバッジ';
+                        
+                        return _buildBadgeOption(label, badgeUrl);
+                      }).toList(),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -659,7 +898,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           if (badgeUrl == 'tester') {
             _equippedBadgeAnimation = 'shimmer';
           } else {
-            _equippedBadgeAnimation = '';
+            _equippedBadgeAnimation = ''; // Custom animation is handled by Season docs, but for simplicity here we clear it
           }
         });
         Navigator.pop(context);
@@ -725,6 +964,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 ),
               )
+            else if (badgeUrl.isNotEmpty)
+              Container(
+                height: 40,
+                width: 40,
+                alignment: Alignment.center,
+                child: CachedNetworkImage(
+                  imageUrl: badgeUrl,
+                  fit: BoxFit.contain,
+                  errorWidget: (c,u,e) => const Icon(Icons.broken_image, color: AppColors.textMuted),
+                ),
+              )
             else
               const Icon(
                 Icons.do_disturb_alt_rounded,
@@ -740,6 +990,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

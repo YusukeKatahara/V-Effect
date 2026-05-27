@@ -6,8 +6,15 @@ import '../services/post_service.dart';
 class WeeklyReviewData {
   final List<Post> posts;
   final int streak;
+  final int totalVFire;
+  final int totalReactions;
 
-  WeeklyReviewData({required this.posts, required this.streak});
+  WeeklyReviewData({
+    required this.posts,
+    required this.streak,
+    required this.totalVFire,
+    required this.totalReactions,
+  });
 }
 
 final weeklyReviewProvider = FutureProvider.autoDispose<WeeklyReviewData>((ref) async {
@@ -19,8 +26,23 @@ final weeklyReviewProvider = FutureProvider.autoDispose<WeeklyReviewData>((ref) 
     postService.getStreak(),
   ]);
 
+  final posts = results[0] as List<Post>;
+  final streak = results[1] as int;
+
+  // VFIRE(🔥)の合計とその他の絵文字リアクションの合計を計算
+  int totalVFire = 0;
+  int totalReactions = 0;
+  for (final post in posts) {
+    totalVFire += post.reactionCount;
+    // 絵文字リアクションは userReactions のエントリ数、または emojiReactedUserIds の数
+    // emojiReactedUserIds を基準にする方がユニークユーザー数として確実
+    totalReactions += post.emojiReactedUserIds.length;
+  }
+
   return WeeklyReviewData(
-    posts: results[0] as List<Post>,
-    streak: results[1] as int,
+    posts: posts,
+    streak: streak,
+    totalVFire: totalVFire,
+    totalReactions: totalReactions,
   );
 });

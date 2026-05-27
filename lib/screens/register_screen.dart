@@ -99,6 +99,12 @@ class _RegisterScreenState extends State<RegisterScreen>
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text.trim(),
       );
+      // 🚨 【追加】登録直後に認証メールを送信する
+      try {
+        await cred.user?.sendEmailVerification();
+      } catch (e) {
+        debugPrint('Verification email send error: $e');
+      }
       await _analytics.logSignUp('email');
       await _ensureUserDoc(cred.user!);
       if (!mounted) return;

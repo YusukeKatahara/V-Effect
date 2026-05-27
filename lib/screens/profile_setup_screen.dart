@@ -27,15 +27,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   final _userService = UserService.instance;
   bool _isSaving = false;
 
-  // 生年月日
-  int? _birthYear;
-  int? _birthMonth;
-  int? _birthDay;
-
-  // 性別
-  String? _gender;
-  static const _genderOptions = ['男性', '女性', 'その他'];
-
   // 追加項目
   TimeOfDay? _taskTime;
   
@@ -218,23 +209,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     );
   }
 
-  /// 選択中の年月に応じた日数を返す
-  int _daysInMonth(int year, int month) {
-    return DateUtils.getDaysInMonth(year, month);
-  }
-
   Future<void> _saveAndNext() async {
     if (!_formKey.currentState!.validate()) return;
-
-    // 生年月日は任意に変更（Apple審査対応: Guideline 5.1.1(v)）
-    String? birthDate;
-    if (_birthYear != null && _birthMonth != null && _birthDay != null) {
-      birthDate =
-          '${_birthYear!}-${_birthMonth!.toString().padLeft(2, '0')}-${_birthDay!.toString().padLeft(2, '0')}';
-    }
-
-    // 性別も任意に変更
-    final gender = _gender;
 
     // 追加項目のバリデーション
     if (_occupation == null) {
@@ -268,8 +244,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       await _userService.saveProfile(
         username: _usernameCtrl.text.trim(),
         userId: _userIdCtrl.text.trim(),
-        birthDate: birthDate,
-        gender: gender,
         taskTime: '${_taskTime!.hour.toString().padLeft(2, '0')}:${_taskTime!.minute.toString().padLeft(2, '0')}',
         occupation: _occupation!,
       );
@@ -294,8 +268,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
 
   @override
   Widget build(BuildContext context) {
-    final currentYear = DateTime.now().year;
-
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body: Stack(
@@ -422,156 +394,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                 }
                                 return null;
                               },
-                            ),
-                            const SizedBox(height: 24),
-
-                            // 生年月日
-                            const SectionTitle(title: '生年月日（任意）'),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                // 年
-                                Expanded(
-                                  flex: 3,
-                                  child: DropdownButtonFormField<int>(
-                                    value: _birthYear,
-                                    dropdownColor: AppColors.bgElevated,
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      labelText: '年',
-                                    ),
-                                    items:
-                                        List.generate(
-                                              100,
-                                              (i) => currentYear - i,
-                                            )
-                                            .map(
-                                              (y) => DropdownMenuItem(
-                                                value: y,
-                                                child: Text('$y'),
-                                              ),
-                                            )
-                                            .toList(),
-                                    onChanged:
-                                        (v) => setState(() {
-                                          _birthYear = v;
-                                          // 日の上限を再計算
-                                          if (_birthMonth != null &&
-                                              _birthDay != null) {
-                                            final maxDay = _daysInMonth(
-                                              _birthYear!,
-                                              _birthMonth!,
-                                            );
-                                            if (_birthDay! > maxDay) {
-                                              _birthDay = maxDay;
-                                            }
-                                          }
-                                        }),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // 月
-                                Expanded(
-                                  flex: 2,
-                                  child: DropdownButtonFormField<int>(
-                                    value: _birthMonth,
-                                    dropdownColor: AppColors.bgElevated,
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      labelText: '月',
-                                    ),
-                                    items:
-                                        List.generate(12, (i) => i + 1)
-                                            .map(
-                                              (m) => DropdownMenuItem(
-                                                value: m,
-                                                child: Text('$m'),
-                                              ),
-                                            )
-                                            .toList(),
-                                    onChanged:
-                                        (v) => setState(() {
-                                          _birthMonth = v;
-                                          // 日の上限を再計算
-                                          if (_birthYear != null &&
-                                              _birthDay != null) {
-                                            final maxDay = _daysInMonth(
-                                              _birthYear!,
-                                              _birthMonth!,
-                                            );
-                                            if (_birthDay! > maxDay) {
-                                              _birthDay = maxDay;
-                                            }
-                                          }
-                                        }),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // 日
-                                Expanded(
-                                  flex: 2,
-                                  child: DropdownButtonFormField<int>(
-                                    value: _birthDay,
-                                    dropdownColor: AppColors.bgElevated,
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      labelText: '日',
-                                    ),
-                                    items:
-                                        List.generate(
-                                              (_birthYear != null &&
-                                                      _birthMonth != null)
-                                                  ? _daysInMonth(
-                                                    _birthYear!,
-                                                    _birthMonth!,
-                                                  )
-                                                  : 31,
-                                              (i) => i + 1,
-                                            )
-                                            .map(
-                                              (d) => DropdownMenuItem(
-                                                value: d,
-                                                child: Text('$d'),
-                                              ),
-                                            )
-                                            .toList(),
-                                    onChanged:
-                                        (v) => setState(() => _birthDay = v),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-
-                            // 性別
-                            const SectionTitle(title: '性別（任意）'),
-                            const SizedBox(height: 8),
-                            Column(
-                              children: _genderOptions.map((option) {
-                                return RadioListTile<String>(
-                                  title: Text(
-                                    option,
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  value: option,
-                                  groupValue: _gender ?? '',
-                                  onChanged: (v) => setState(() => _gender = v),
-                                  activeColor: AppColors.primary,
-                                  tileColor: AppColors.bgSurface,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  contentPadding: EdgeInsets.zero,
-                                );
-                              }).toList(),
                             ),
                             const SizedBox(height: 24),
 

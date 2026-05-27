@@ -35,7 +35,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('メールアドレスの認証が完了しました。')),
         );
-        Navigator.of(context).pop(true);
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('まだ認証が完了していません。メールをご確認ください。')),

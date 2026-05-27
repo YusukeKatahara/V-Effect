@@ -32,6 +32,7 @@ class AppUser {
   final bool isPrivateAccount;
   final String? equippedBadgeUrl;
   final String? equippedBadgeAnimation;
+  final List<String> ownedBadges;
 
   const AppUser({
     required this.uid,
@@ -62,6 +63,7 @@ class AppUser {
     this.isPrivateAccount = false,
     this.equippedBadgeUrl,
     this.equippedBadgeAnimation,
+    this.ownedBadges = const [],
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -129,6 +131,7 @@ class AppUser {
       isPrivateAccount: data['isPrivateAccount'] ?? false,
       equippedBadgeUrl: safeString(data['equippedBadgeUrl']),
       equippedBadgeAnimation: safeString(data['equippedBadgeAnimation']),
+      ownedBadges: (data['ownedBadges'] as List?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 
@@ -162,6 +165,7 @@ class AppUser {
       'isPrivateAccount': isPrivateAccount,
       'equippedBadgeUrl': equippedBadgeUrl,
       'equippedBadgeAnimation': equippedBadgeAnimation,
+      'ownedBadges': ownedBadges,
     };
   }
 }

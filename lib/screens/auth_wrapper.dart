@@ -81,6 +81,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
           _userDocFuture = _fetchUserDocWithCacheBypass(user.uid);
         }
 
+        // 🚨 【追加】メールアドレス認証の強制（Apple/Google等以外）
+        if (!user.emailVerified && user.providerData.any((p) => p.providerId == 'password')) {
+          _navigateTo(AppRoutes.emailVerification);
+          return const _SplashWithTimeout();
+        }
+
         // 3. ログイン済み → Firestore のデータを確認して分岐
         return FutureBuilder<DocumentSnapshot?>(
           future: _userDocFuture,

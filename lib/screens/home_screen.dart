@@ -16,6 +16,7 @@ import '../services/post_service.dart';
 import '../services/block_service.dart';
 import '../services/sound_service.dart';
 import '../widgets/v_effect_header.dart';
+import '../widgets/native_ad_card.dart';
 import '../widgets/weekly_review_banner.dart';
 import 'weekly_review_screen.dart';
 import '../providers/home_provider.dart';
@@ -39,7 +40,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
   final PostService _postService = PostService.instance;
   bool _postedToday = false;
-  List<Post> _feedPosts = [];
+  List<dynamic> _feedItems = [];
   List<Map<String, dynamic>> _postedFriends = []; // [{uid, username, photoUrl}]
   Map<String, String> _userNames = {}; // userId -> username
   Map<String, String?> _userPhotos = {}; // userId -> photoUrl
@@ -77,8 +78,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   // pageController.page を直接参照するように変更
   int get _focusedIndex {
-    if (_feedPosts.isEmpty) return 0;
-    final len = _feedPosts.length;
+    if (_feedItems.isEmpty) return 0;
+    final len = _feedItems.length;
     final pos = (_pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0).round();
     return (pos % len + len) % len;
   }
@@ -222,15 +223,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _onPageChanged(int index) {
-    if (_feedPosts.isEmpty) return;
+    if (_feedItems.isEmpty) return;
     
     // 次の5枚の画像をプリキャッシュしてスムーズなめくりを実現
     for (int i = 1; i <= 5; i++) {
-      final nextIndex = (index + i) % _feedPosts.length;
-      final nextPost = _feedPosts[nextIndex];
-      if (nextPost.imageUrl != null) {
+      final nextIndex = (index + i) % _feedItems.length;
+      final item = _feedItems[nextIndex];
+      if (item is Post && item.imageUrl != null) {
         precacheImage(
-          ResizeImage(CachedNetworkImageProvider(nextPost.imageUrl!), width: 1600),
+          ResizeImage(CachedNetworkImageProvider(item.imageUrl!), width: 1600),
           context,
         );
       }
@@ -238,13 +239,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _precacheInitialFeed() {
-    if (!mounted || _feedPosts.isEmpty) return;
+    if (!mounted || _feedItems.isEmpty) return;
     // 最初の5枚を先読み
-    for (int i = 0; i < 5 && i < _feedPosts.length; i++) {
-      final post = _feedPosts[i];
-      if (post.imageUrl != null) {
+    for (int i = 0; i < 5 && i < _feedItems.length; i++) {
+      final item = _feedItems[i];
+      if (item is Post && item.imageUrl != null) {
         precacheImage(
-          ResizeImage(CachedNetworkImageProvider(post.imageUrl!), width: 1600),
+          ResizeImage(CachedNetworkImageProvider(item.imageUrl!), width: 1600),
           context,
         );
       }
@@ -311,10 +312,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   double _getShuffleOffsetX(int index) {
     if (!_isRefreshing) return 0.0;
-    if (_feedPosts.length <= 1) return 0.0; // 1枚の時は動かさない
+    if (_feedItems.length <= 1) return 0.0; // 1枚の時は動かさない
 
     final t = _shuffleController.value;
-    final len = _feedPosts.length;
+    final len = _feedItems.length;
     if (len == 0) return 0.0;
 
     // カードごとにタイミングをずらして「配る」
@@ -331,13 +332,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   double _getShuffleOffsetY(int index) {
     if (!_isRefreshing) return 0.0;
-    if (_feedPosts.length <= 1) {
+    if (_feedItems.length <= 1) {
       // 1枚の時: わずかに上下に呼吸するように揺れる
       return sin(_shuffleController.value * pi * 2) * 10.0;
     }
 
     final t = _shuffleController.value;
-    final len = _feedPosts.length;
+    final len = _feedItems.length;
     if (len == 0) return 0.0;
 
     final double cardDelay = index / len;
@@ -351,10 +352,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   double _getShuffleRotation(int index) {
     if (!_isRefreshing) return 0.0;
-    if (_feedPosts.length <= 1) return 0.0; // 1枚の時は3D回転で制御するため0
+    if (_feedItems.length <= 1) return 0.0; // 1枚の時は3D回転で制御するため0
 
     final t = _shuffleController.value;
-    final len = _feedPosts.length;
+    final len = _feedItems.length;
     if (len == 0) return 0.0;
 
     final double cardDelay = index / len;
@@ -368,13 +369,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   double _getShuffleScale(int index) {
     if (!_isRefreshing) return 1.0;
-    if (_feedPosts.length <= 1) {
+    if (_feedItems.length <= 1) {
       // 1枚の時: 少し浮き上がる
       return 1.05 + sin(_shuffleController.value * pi * 2) * 0.02;
     }
 
     final t = _shuffleController.value;
-    final len = _feedPosts.length;
+    final len = _feedItems.length;
     if (len == 0) return 1.0;
 
     final double cardDelay = index / len;
@@ -387,8 +388,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _sendReaction(int index, {String? emoji}) async {
-    if (_feedPosts.isEmpty) return;
-    final post = _feedPosts[index];
+    if (_feedItems.isEmpty) return;
+    final item = _feedItems[index];
+    if (item is! Post) return;
+    final post = item;
     final myUid = FirebaseAuth.instance.currentUser?.uid;
 
     if (myUid == null) return;
@@ -420,7 +423,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           final updatedIds = List<String>.from(post.emojiReactedUserIds);
           if (!updatedIds.contains(myUid)) updatedIds.add(myUid);
           
-          _feedPosts = List.from(_feedPosts)
+          _feedItems = List.from(_feedItems)
             ..[index] = post.copyWith(
               userReactions: newUserReactions,
               emojiReactedUserIds: updatedIds,
@@ -759,10 +762,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           );
 
           if (_reactingPostIds.contains(displayedPost.id)) {
-            final existingLocal = _feedPosts.firstWhere(
-              (p) => p.id == displayedPost.id,
+            final existingLocal = _feedItems.firstWhere(
+              (p) => p is Post && p.id == displayedPost.id,
               orElse: () => displayedPost,
-            );
+            ) as Post;
             
             // 最新サーバーデータ + ローカル増分 でマージ
             newPosts.add(displayedPost);
@@ -784,10 +787,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             newPosts.add(displayedPost);
           }
         }
-        _feedPosts = newPosts;
+        final newItems = <dynamic>[];
+        for (int i = 0; i < newPosts.length; i++) {
+          newItems.add(newPosts[i]);
+          if (i == 0 || (i > 0 && i % 3 == 0)) {
+            newItems.add('ad');
+          }
+        }
+        _feedItems = newItems;
         
         // 初回ロード時またはデータ更新時に先読みを開始
-        if (_feedPosts.isNotEmpty) {
+        if (_feedItems.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _precacheInitialFeed();
           });
@@ -816,7 +826,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           // 2. メインコンテンツ
           // ガードレール: 一度でもデータを受信したら、プロバイダーの
           // loading/refreshing 状態に関わらず、絶対にスケルトンに戻さない。
-          // ローカル状態変数 (_postedToday, _feedPosts 等) が常に最新であり、
+          // ローカル状態変数 (_postedToday, _feedItems 等) が常に最新であり、
           // UIの信頼できる唯一の情報源 (Single Source of Truth) として扱う。
           if (_lastHomeData == null) ...[
             // 初回ロード: まだ一度もデータを受信していない
@@ -895,11 +905,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           Expanded(
             child: !_postedToday
                 ? _GuardedStateLayer(
-                    feedPosts: _feedPosts,
+                    feedPosts: _feedItems.whereType<Post>().toList(),
                     postedFriends: _postedFriends,
                     onRefresh: () => ref.invalidate(homeDataProvider),
                   )
-                : (_feedPosts.isEmpty
+                : (_feedItems.isEmpty
                     ? _buildEmptyState()
                     : _buildCardStack()),
           ),
@@ -1372,7 +1382,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return AnimatedBuilder(
       animation: Listenable.merge([_pageController, _shuffleController, _spreadController]),
       builder: (context, child) {
-        if (_feedPosts.isEmpty) return const SizedBox.shrink();
+        if (_feedItems.isEmpty) return const SizedBox.shrink();
         final scrollPos = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
 
         return LayoutBuilder(
@@ -1404,11 +1414,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     physics: const _FrictionlessPageScrollPhysics(),
                     onPageChanged: _onPageChanged,
                     itemBuilder: (context, index) {
-                      final actualIndex = index % _feedPosts.length;
-                      final post = _feedPosts[actualIndex];
+                      final actualIndex = index % _feedItems.length;
+                      final item = _feedItems[actualIndex];
 
                       final myUid = FirebaseAuth.instance.currentUser?.uid;
-                      final alreadyReacted = post.hasEmojiReacted(myUid);
+                      final alreadyReacted = item is Post ? item.hasEmojiReacted(myUid) : false;
 
                       return Center(
                         child: SizedBox(
@@ -1426,6 +1436,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 child: GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () {
+                                    if (item is! Post) return;
                                     if (_reactionMenuOpen) {
                                       setState(() => _reactionMenuOpen = false);
                                       _reactionMenuController.reverse();
@@ -1438,18 +1449,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               ),
 
                               // 三点リーダーのタップ領域（オーバーレイ側でキャッチしてVFIRE誤爆を防ぐ）
-                              Positioned(
-                                top: 4,
-                                right: 0,
-                                width: 64, // タップしやすいように少し広めに
-                                height: 64,
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () {
-                                    _showPostOptions(post);
-                                  },
+                              if (item is Post)
+                                Positioned(
+                                  top: 4,
+                                  right: 0,
+                                  width: 64, // タップしやすいように少し広めに
+                                  height: 64,
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () {
+                                      _showPostOptions(item);
+                                    },
+                                  ),
                                 ),
-                              ),
                               // (以下略: 他のボタン等も必要に応じて AnimatedBuilder で参照可能)
 
                           // 2. アバタータップエリア (中心をVFIREと合わせる: bottom 32 + text 16 + gap 16 + avatar 40 = 104 -> center 84)
@@ -1461,14 +1473,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () {
-                                final photoUrl = _userPhotos[post.userId];
+                                if (item is! Post) return;
+                                final photoUrl = _userPhotos[item.userId];
                                 final username =
-                                    _userNames[post.userId] ?? 'User';
+                                    _userNames[item.userId] ?? 'User';
                                 Navigator.pushNamed(
                                   context,
                                   AppRoutes.userProfile,
                                   arguments: {
-                                    'uid': post.userId,
+                                    'uid': item.userId,
                                     'username': username,
                                     'photoUrl': photoUrl,
                                   },
@@ -1675,7 +1688,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
 
             // ── Swipe Guide Tutorial UI ──
-            if (_showSwipeGuide && _feedPosts.length > 1)
+            if (_showSwipeGuide && _feedItems.length > 1)
               IgnorePointer(
                 child: SizedBox(
                   width: finalCardWidth + 64, // カードの左右端の少し外側に配置
@@ -1724,19 +1737,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   List<int> _sortedCardIndices(double scrollPosition) {
-    if (_feedPosts.isEmpty) return [];
-    final indices = List.generate(_feedPosts.length, (i) => i);
+    if (_feedItems.isEmpty) return [];
+    final indices = List.generate(_feedItems.length, (i) => i);
     indices.sort((a, b) {
-      final halfLength = _feedPosts.length / 2.0;
+      final halfLength = _feedItems.length / 2.0;
 
-      double distA = (a - scrollPosition) % _feedPosts.length;
-      if (distA > halfLength) distA -= _feedPosts.length;
-      if (distA < -halfLength) distA += _feedPosts.length;
+      double distA = (a - scrollPosition) % _feedItems.length;
+      if (distA > halfLength) distA -= _feedItems.length;
+      if (distA < -halfLength) distA += _feedItems.length;
       final depthA = distA.abs();
 
-      double distB = (b - scrollPosition) % _feedPosts.length;
-      if (distB > halfLength) distB -= _feedPosts.length;
-      if (distB < -halfLength) distB += _feedPosts.length;
+      double distB = (b - scrollPosition) % _feedItems.length;
+      if (distB > halfLength) distB -= _feedItems.length;
+      if (distB < -halfLength) distB += _feedItems.length;
       final depthB = distB.abs();
 
       return depthB.compareTo(depthA);
@@ -1750,10 +1763,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     required double cardHeight,
     required double scrollPosition,
   }) {
-    final halfLength = _feedPosts.length / 2.0;
-    double relativePos = (index - scrollPosition) % _feedPosts.length;
-    if (relativePos > halfLength) relativePos -= _feedPosts.length;
-    if (relativePos < -halfLength) relativePos += _feedPosts.length;
+    final halfLength = _feedItems.length / 2.0;
+    double relativePos = (index - scrollPosition) % _feedItems.length;
+    if (relativePos > halfLength) relativePos -= _feedItems.length;
+    if (relativePos < -halfLength) relativePos += _feedItems.length;
 
     final double smoothDepth = relativePos.abs();
 
@@ -1765,13 +1778,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final double dimAlpha = (smoothDepth * 0.2 * _spreadFactor).clamp(0.0, 0.6);
     final double rotateZ = relativePos * 0.1 * _spreadFactor;
 
-    final post = _feedPosts[index];
-    final username = _userNames[post.userId] ?? 'Unknown';
-    final photoUrl = _userPhotos[post.userId];
-    final streak = _userStreaks[post.userId] ?? 0;
-    final badgeUrl = _userBadgeUrls[post.userId];
-    final badgeAnimation = _userBadgeAnimations[post.userId];
-    final tierColor = _getTierColor(streak);
+    final item = _feedItems[index];
 
     return Transform.translate(
       offset: Offset(
@@ -1781,7 +1788,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       child: AnimatedBuilder(
         animation: _shuffleController,
         builder: (context, child) {
-          final isSingleCard = _feedPosts.length <= 1;
+          final isSingleCard = _feedItems.length <= 1;
           final matrix = Matrix4.identity()..setEntry(3, 2, 0.001); // 遠近感を追加
           
           if (_isRefreshing && isSingleCard) {
@@ -1828,31 +1835,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           child: SizedBox(
             width: cardWidth,
             height: cardHeight,
-            child: _FeedCard(
-              post: post,
-              username: username,
-              userPhotoUrl: photoUrl,
-              userBadgeUrl: badgeUrl,
-              userBadgeAnimation: badgeAnimation,
-              dimAlpha: dimAlpha,
-              onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
-              isTop: index == _focusedIndex,
-              tierColor: tierColor,
-              userPhotos: _userPhotos,
-              reactionCountNotifier: _flameNotifiers[post.id],
-              onOptionsTap: () => _showPostOptions(post),
-              onProfileTap: () {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.userProfile,
-                  arguments: {
-                    'uid': post.userId,
-                    'username': username,
-                    'photoUrl': photoUrl,
-                  },
-                );
-              },
-            ),
+            child: item is String && item == 'ad'
+              ? NativeAdCard(
+                  dimAlpha: dimAlpha,
+                  isTop: index == _focusedIndex,
+                )
+              : () {
+                  final post = item as Post;
+                  final username = _userNames[post.userId] ?? 'Unknown';
+                  final photoUrl = _userPhotos[post.userId];
+                  final streak = _userStreaks[post.userId] ?? 0;
+                  final badgeUrl = _userBadgeUrls[post.userId];
+                  final badgeAnimation = _userBadgeAnimations[post.userId];
+                  final tierColor = _getTierColor(streak);
+                  return _FeedCard(
+                    post: post,
+                    username: username,
+                    userPhotoUrl: photoUrl,
+                    userBadgeUrl: badgeUrl,
+                    userBadgeAnimation: badgeAnimation,
+                    dimAlpha: dimAlpha,
+                    onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
+                    isTop: index == _focusedIndex,
+                    tierColor: tierColor,
+                    userPhotos: _userPhotos,
+                    reactionCountNotifier: _flameNotifiers[post.id],
+                    onOptionsTap: () => _showPostOptions(post),
+                    onProfileTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.userProfile,
+                        arguments: {
+                          'uid': post.userId,
+                          'username': username,
+                          'photoUrl': photoUrl,
+                        },
+                      );
+                    },
+                  );
+                }(),
           ),
         ),
       ),
@@ -1941,7 +1962,9 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> {
                                       : null,
                                   child: widget.postedFriends[i]['photoUrl'] == null
                                       ? Text(
-                                          widget.postedFriends[i]['username'][0].toUpperCase(),
+                                          (widget.postedFriends[i]['username'] as String).characters.isNotEmpty 
+                                              ? (widget.postedFriends[i]['username'] as String).characters.first.toUpperCase() 
+                                              : '?',
                                           style: const TextStyle(fontSize: 10),
                                         )
                                       : null,

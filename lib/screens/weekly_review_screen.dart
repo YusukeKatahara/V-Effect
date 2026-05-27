@@ -15,123 +15,58 @@ import '../providers/weekly_review_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// 今週の振り返りをストーリー形式で表示する画面
+/// 今週の振り返りをVウォール形式で表示する画面
 class WeeklyReviewScreen extends ConsumerStatefulWidget {
   final List<Post>? posts;
   final int? currentStreak;
+  final int? totalVFire;
+  final int? totalReactions;
 
   const WeeklyReviewScreen({
     super.key,
     this.posts,
     this.currentStreak,
+    this.totalVFire,
+    this.totalReactions,
   });
 
   @override
   ConsumerState<WeeklyReviewScreen> createState() => _WeeklyReviewScreenState();
 }
 
-class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
-    with SingleTickerProviderStateMixin {
+class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
   // 表示用データ
   List<Post> _posts = [];
   List<Post> _imagePosts = [];
   int _currentStreak = 0;
+  int _totalVFire = 0;
+  int _totalReactions = 0;
   bool _isDataInitialized = false;
-  int _selectedImageIndex = 0;
 
-  late PageController _pageController;
-  Timer? _autoTimer;
   final GlobalKey _summaryKey = GlobalKey();
   bool _isSharing = false;
-
-  // ひっぱり（Pull-to-dismiss）用の状態
-  double _dragOffset = 0;
-  late AnimationController _snapBackController;
-  late Animation<double> _snapBackAnimation;
 
   @override
   void initState() {
     super.initState();
-    if (widget.posts != null && widget.currentStreak != null) {
+    if (widget.posts != null && widget.currentStreak != null && widget.totalVFire != null && widget.totalReactions != null) {
       _posts = widget.posts!;
       _imagePosts = _posts.where((p) => p.imageUrl != null).toList();
       _currentStreak = widget.currentStreak!;
+      _totalVFire = widget.totalVFire!;
+      _totalReactions = widget.totalReactions!;
       _isDataInitialized = true;
-      // 既にデータがある場合は即座に先読みを開始
       WidgetsBinding.instance.addPostFrameCallback((_) => _precacheImages());
     }
-    _pageController = PageController(initialPage: 0);
-    _pageController.addListener(() {
-      if (mounted) setState(() {});
-    });
-    
-    if (_isDataInitialized && _posts.isNotEmpty) {
-      _startAutoTimer();
-    }
-
-    _snapBackController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _snapBackAnimation = _snapBackController.drive(Tween<double>(begin: 0, end: 0));
-    _snapBackController.addListener(() {
-      setState(() => _dragOffset = _snapBackAnimation.value);
-    });
-  }
-
-  @override
-  void dispose() {
-    _autoTimer?.cancel();
-    _pageController.dispose();
-    _snapBackController.dispose();
-    super.dispose();
   }
 
   void _precacheImages() {
-    if (!mounted || _posts.isEmpty) return;
-    for (final post in _posts) {
-      if (post.imageUrl != null) {
-        precacheImage(
-          CachedNetworkImageProvider(post.imageUrl!),
-          context,
-        );
-      }
-    }
-  }
-
-  void _startAutoTimer() {
-    _autoTimer?.cancel();
-    _autoTimer = Timer(const Duration(seconds: 4), _goNext);
-  }
-
-  void _resetAutoTimer() {
-    _startAutoTimer();
-  }
-
-  void _goNext() {
-    if (_pageController.hasClients) {
-      final totalPages = _posts.length + 1;
-      final int current = _pageController.page?.round() ?? 0;
-      final int next = current + 1;
-      
-      if (next < totalPages) {
-        _pageController.jumpToPage(next);
-      } else {
-        _autoTimer?.cancel();
-      }
-    }
-  }
-
-  void _goPrev() {
-    if (_pageController.hasClients) {
-      final int current = _pageController.page?.round() ?? 0;
-      final int prev = current - 1;
-      
-      if (prev >= 0) {
-        _pageController.jumpToPage(prev);
-      } else {
-        Navigator.pop(context);
-      }
+    if (!mounted || _imagePosts.isEmpty) return;
+    for (final post in _imagePosts) {
+      precacheImage(
+        CachedNetworkImageProvider(post.imageUrl!),
+        context,
+      );
     }
   }
 
@@ -143,7 +78,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
       final boundary = _summaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return;
 
-      // Strava-style images are vertically long, so ensure we capture enough quality
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
@@ -182,18 +116,17 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
           body: Center(child: Text('読み込みエラー: $err', style: const TextStyle(color: AppColors.white))),
         ),
         data: (data) {
-          _posts = data.posts;
-          _imagePosts = _posts.where((p) => p.imageUrl != null).toList();
-          _currentStreak = data.streak;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && !_isDataInitialized) {
-              _precacheImages(); // 全画像をバックグラウンドで先読み
               setState(() {
+                _posts = data.posts;
+                _imagePosts = _posts.where((p) => p.imageUrl != null).toList();
+                _currentStreak = data.streak;
+                _totalVFire = data.totalVFire;
+                _totalReactions = data.totalReactions;
                 _isDataInitialized = true;
-                if (_posts.isNotEmpty) {
-                  _startAutoTimer();
-                }
               });
+              _precacheImages();
             }
           });
           return const Scaffold(backgroundColor: AppColors.bgBase, body: Center(child: CircularProgressIndicator()));
@@ -201,415 +134,180 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
       );
     }
 
-    final int currentPage = _pageController.hasClients ? _pageController.page?.round() ?? 0 : 0;
-    final int totalPages = _posts.length + 1;
-
     return Scaffold(
-      backgroundColor: AppColors.black,
+      backgroundColor: AppColors.bgBase,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: AppColors.white, size: 28),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: _buildLogo(),
+        centerTitle: true,
+      ),
       body: SafeArea(
-        child: GestureDetector(
-          onVerticalDragUpdate: (details) {
-            if (_snapBackController.isAnimating) return;
-            setState(() {
-              _dragOffset = (_dragOffset + details.delta.dy).clamp(0, 500);
-            });
-          },
-          onVerticalDragEnd: (details) {
-            if (_dragOffset > 150 || (details.primaryVelocity != null && details.primaryVelocity! > 1000)) {
-              Navigator.pop(context);
-            } else {
-              _snapBackAnimation = _snapBackController.drive(
-                Tween<double>(begin: _dragOffset, end: 0).chain(CurveTween(curve: Curves.easeOutBack)),
-              );
-              _snapBackController.forward(from: 0);
-            }
-          },
-          child: Transform.translate(
-            offset: Offset(0, _dragOffset),
-            child: Transform.scale(
-              scale: (1.0 - (_dragOffset / 2000)).clamp(0.85, 1.0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(_dragOffset > 10 ? 32 : 0),
-                child: Container(
-                  color: AppColors.bgBase,
-                  child: Column(
-                    children: [
-                      // Progress bar
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                        child: Row(
-                          children: List.generate(totalPages, (i) {
-                            final bool isPassed = i < currentPage;
-                            final bool isCurrent = i == currentPage;
-
-                            return Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  _pageController.animateToPage(
-                                    i,
-                                    duration: const Duration(milliseconds: 400),
-                                    curve: Curves.easeInOut,
-                                  );
-                                },
-                                child: Container(
-                                  // Add vertical padding to increase hit target
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  color: Colors.transparent, 
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 300),
-                                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                                    height: isCurrent ? 4 : 3,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(2),
-                                      color: isCurrent
-                                          ? AppColors.accentGold
-                                          : (isPassed
-                                              ? AppColors.white
-                                              : AppColors.white.withValues(alpha: 0.2)),
-                                      boxShadow: isCurrent
-                                          ? [
-                                              BoxShadow(
-                                                color: AppColors.accentGold.withValues(alpha: 0.6),
-                                                blurRadius: 8,
-                                                spreadRadius: 1,
-                                              )
-                                            ]
-                                          : null,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: RepaintBoundary(
+                    key: _summaryKey,
+                    child: Container(
+                      color: AppColors.bgBase,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildSummaryCard(),
+                          const SizedBox(height: 24),
+                          _buildVWallGrid(),
+                          const SizedBox(height: 24),
+                        ],
                       ),
-                      // Main Content
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            PageView.builder(
-                              controller: _pageController,
-                              itemCount: totalPages,
-                              onPageChanged: (index) {
-                                if (index >= _posts.length) {
-                                  _autoTimer?.cancel();
-                                  HapticFeedback.mediumImpact();
-                                } else {
-                                  _resetAutoTimer();
-                                }
-                              },
-                              itemBuilder: (context, index) {
-                                if (index < _posts.length) {
-                                  return _buildStoryView(_posts[index]);
-                                } else {
-                                  return _buildSummaryView();
-                                }
-                              },
-                            ),
-                            // Fixed Tap Zones (Only for Story Pages)
-                            if (currentPage < _posts.length)
-                              Row(
-                                children: [
-                                  // Left 30%: Prev
-                                  Expanded(
-                                    flex: 3,
-                                    child: GestureDetector(
-                                      onTap: _goPrev, 
-                                      behavior: HitTestBehavior.translucent, 
-                                      child: const SizedBox.expand(),
-                                    ),
-                                  ),
-                                  // Right 70%: Next
-                                  Expanded(
-                                    flex: 7,
-                                    child: GestureDetector(
-                                      onTap: _goNext,
-                                      behavior: HitTestBehavior.translucent, 
-                                      child: const SizedBox.expand(),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            // Global Close Button
-                            Positioned(
-                              top: 0,
-                              right: 8,
-                              child: IconButton(
-                                icon: const Icon(Icons.close, color: AppColors.white, size: 32),
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
+            // コントロールエリア（シェアボタン等）
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              color: AppColors.bgBase,
+              child: ElevatedButton.icon(
+                onPressed: _isSharing ? null : _shareSummary,
+                icon: _isSharing 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bgBase))
+                    : const Icon(Icons.share, color: AppColors.bgBase),
+                label: Text(_isSharing ? '準備中...' : 'VウォールをSNSへシェア', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accentGold,
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildStoryView(Post post) {
-    final weekdayStr = DateFormat('EEEE').format(post.createdAt).toUpperCase();
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (post.imageUrl != null)
-          CachedNetworkImage(
-            imageUrl: post.imageUrl!,
-            fit: BoxFit.cover,
-            memCacheWidth: 1000, // メモリ負荷軽減と読み込み高速化
-            placeholder: (ctx, url) => const Center(child: CircularProgressIndicator()),
-            errorWidget: (ctx, url, err) => const Center(child: Icon(Icons.broken_image)),
+  Widget _buildSummaryCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: AppColors.cardGradient,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.1), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.5),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.bgBase.withValues(alpha: 0.8),
-                Colors.transparent,
-                Colors.transparent,
-                AppColors.bgBase.withValues(alpha: 0.9),
-              ],
-              stops: const [0.0, 0.2, 0.7, 1.0],
-            ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: _buildStravaStat('WEEKLY COMPLETED', '${_posts.length}', 'TASKS')),
+              Expanded(child: _buildStravaStat('CURRENT STREAK', '$_currentStreak', 'DAYS')),
+            ],
           ),
-        ),
-        Positioned(
-          top: 40,
-          left: 20,
-          right: 20,
-          child: Text(
-            weekdayStr,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 10,
-              color: AppColors.white,
-              shadows: [
-                Shadow(color: AppColors.black.withValues(alpha: 0.54), offset: Offset(0, 4), blurRadius: 12),
-                Shadow(color: AppColors.black.withValues(alpha: 0.26), offset: Offset(0, 2), blurRadius: 4),
-              ],
-            ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(child: _buildStravaStat('TOTAL VFIRE', '$_totalVFire', '🔥')),
+              Expanded(child: _buildStravaStat('TOTAL REACTIONS', '$_totalReactions', '💬')),
+            ],
           ),
-        ),
-        Positioned(
-          bottom: 40,
-          left: 24,
-          right: 24,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-                decoration: BoxDecoration(
-                  color: AppColors.black.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.white.withValues(alpha: 0.15), width: 0.5),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.local_fire_department_rounded, color: AppColors.accentGold, size: 20),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            post.taskName,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.white,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(height: 1, width: 40, color: AppColors.accentGold.withValues(alpha: 0.4)),
-                    const SizedBox(height: 12),
-                    Text(
-                      DateFormat('MMM dd').format(post.createdAt).toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.accentGold,
-                        letterSpacing: 4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildSummaryView() {
-    return Stack(
+  Widget _buildVWallGrid() {
+    if (_imagePosts.isEmpty) {
+      return Container(
+        height: 200,
+        alignment: Alignment.center,
+        child: const Text('今週の投稿はまだありません', style: TextStyle(color: AppColors.textSecondary)),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          children: [
-            Expanded(
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Text(
+            'VICTORY WALL',
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2.0,
+              color: AppColors.white,
+            ),
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 9 / 16, // BeReal風の縦長比率
+          ),
+          itemCount: _imagePosts.length,
+          itemBuilder: (context, index) {
+            final post = _imagePosts[index];
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(12),
               child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Center(
-                    child: AspectRatio(
-                      aspectRatio: 9 / 16,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                        child: RepaintBoundary(
-                          key: _summaryKey,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                // Background Image or Gradient
-                                if (_imagePosts.isNotEmpty && _selectedImageIndex < _imagePosts.length)
-                                  CachedNetworkImage(
-                                    imageUrl: _imagePosts[_selectedImageIndex].imageUrl!,
-                                    fit: BoxFit.cover,
-                                    memCacheWidth: 800,
-                                    placeholder: (ctx, url) => Container(color: AppColors.grey10),
-                                  )
-                                else
-                                  Container(
-                                    decoration: const BoxDecoration(
-                                      gradient: AppColors.cardGradient,
-                                    ),
-                                  ),
-                                
-                                // Scrim/Overlay for readability
-                                Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        AppColors.black.withValues(alpha: 0.6),
-                                        Colors.transparent,
-                                        Colors.transparent,
-                                        AppColors.black.withValues(alpha: 0.7),
-                                      ],
-                                      stops: const [0.0, 0.3, 0.6, 1.0],
-                                    ),
-                                  ),
-                                ),
-
-                                // Content
-                                Padding(
-                                  padding: const EdgeInsets.all(24),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      // Logo centered horizontally
-                                      Center(child: _buildLogo()),
-                                      const Spacer(),
-                                      // Stats (Normalized Data Fields)
-                                      Row(
-                                        children: [
-                                          _buildStravaStat('WEEKLY COMPLETED', '${_posts.length}', 'TASKS'),
-                                          const SizedBox(width: 32),
-                                          _buildStravaStat('CURRENT STREAK', '$_currentStreak', 'DAYS'),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                  CachedNetworkImage(
+                    imageUrl: post.imageUrl!,
+                    fit: BoxFit.cover,
+                    memCacheWidth: 400,
+                    placeholder: (context, url) => Container(color: AppColors.grey10),
+                    errorWidget: (context, url, error) => Container(color: AppColors.grey10, child: const Icon(Icons.broken_image, color: AppColors.white)),
+                  ),
+                  // 日付ラベル
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [AppColors.black.withValues(alpha: 0.8), Colors.transparent],
+                        ),
+                      ),
+                      child: Text(
+                        DateFormat('E').format(post.createdAt).toUpperCase(), // 例: MON
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
-            ),
-
-            // Controls Area (Not captured in share)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_imagePosts.length > 1) ...[
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: EdgeInsets.only(left: 4, bottom: 8),
-                        child: Text(
-                          '背景カードを選ぶ',
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 60,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _imagePosts.length,
-                        itemBuilder: (context, index) {
-                          final isSelected = _selectedImageIndex == index;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() => _selectedImageIndex = index);
-                              HapticFeedback.lightImpact();
-                            },
-                            child: Container(
-                              width: 60,
-                              margin: const EdgeInsets.only(right: 10),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isSelected ? AppColors.accentGold : Colors.transparent,
-                                  width: 2,
-                                ),
-                                image: DecorationImage(
-                                  image: CachedNetworkImageProvider(_imagePosts[index].imageUrl!),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  
-                  ElevatedButton.icon(
-                    onPressed: _isSharing ? null : _shareSummary,
-                    icon: _isSharing 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bgBase))
-                        : const Icon(Icons.share, color: AppColors.bgBase),
-                    label: Text(_isSharing ? '準備中...' : 'SNSへシェア', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accentGold,
-                      minimumSize: const Size(double.infinity, 56),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ],
     );
@@ -638,10 +336,9 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
           label,
           style: GoogleFonts.outfit(
             fontSize: 10,
-            color: AppColors.white,
+            color: AppColors.textSecondary,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.0,
-            shadows: const [Shadow(blurRadius: 4, color: AppColors.black)],
           ),
         ),
         const SizedBox(height: 2),
@@ -652,11 +349,10 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
             Text(
               value,
               style: GoogleFonts.outfit(
-                fontSize: 36,
+                fontSize: 32,
                 fontWeight: FontWeight.w900,
                 color: AppColors.white,
                 height: 1.1,
-                shadows: [Shadow(blurRadius: 12, color: AppColors.black.withValues(alpha: 0.54))],
               ),
             ),
             const SizedBox(width: 4),
@@ -665,8 +361,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen>
               style: GoogleFonts.outfit(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
-                color: AppColors.white,
-                shadows: const [Shadow(blurRadius: 4, color: AppColors.black)],
+                color: AppColors.accentGold,
               ),
             ),
           ],

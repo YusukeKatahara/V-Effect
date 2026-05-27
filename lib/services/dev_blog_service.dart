@@ -72,6 +72,14 @@ class DevBlogService {
     return await ref.getDownloadURL();
   }
 
+  Future<String> uploadBadgeImage(File imageFile) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final fileExt = imageFile.path.split('.').last;
+    final ref = _storage.ref('badges/badge_$timestamp.$fileExt');
+    await ref.putFile(imageFile);
+    return await ref.getDownloadURL();
+  }
+
   String generatePostId() {
     return _blogRef.doc().id;
   }
