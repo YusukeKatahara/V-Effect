@@ -49,6 +49,8 @@
 	<string>プロフィール写真およびヒーロータスクの写真を選択するためにフォトライブラリを使用します。</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>QRコードを写真ライブラリに保存するために使用します。</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>お客様の興味関心に合わせた最適な広告を表示するために、トラッキングの許可をお願いいたします。この設定はいつでも本体の「設定」アプリから変更可能です。</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

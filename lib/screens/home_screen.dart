@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -168,6 +170,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       duration: const Duration(milliseconds: 400),
       value: 1.0, // 最初は広がっている
     );
+
+    // 最初のフレーム描画後にiOSのトラッキング許可（ATT）を要求
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _requestTrackingAuthorization();
+    });
   }
 
   @override
@@ -182,6 +189,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _comboResetTimer?.cancel();
     _swipeGuideController.dispose();
     super.dispose();
+  }
+
+  Future<void> _requestTrackingAuthorization() async {
+    if (Platform.isIOS) {
+      try {
+        final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+        if (status == TrackingStatus.notDetermined) {
+          // iOS側のダイアログ表示タイミングを安定させるために少し待機する
+          await Future.delayed(const Duration(milliseconds: 800));
+          await AppTrackingTransparency.requestTrackingAuthorization();
+        }
+      } catch (e) {
+        debugPrint('ATT Request Error: $e');
+      }
+    }
   }
 
   void _flushAllPendingFlames() {
