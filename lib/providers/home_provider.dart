@@ -102,14 +102,19 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
   final postService = PostService.instance;
   final myUid = FirebaseAuth.instance.currentUser?.uid;
   
-  // 🚀 【爆速化 2】ホームデータとブロックリストのフェッチを並列化
-  final initialParallelResults = await Future.wait([
-    postService.getHomeData(),
-    BlockService.instance.getBlockedUids(),
-  ]);
-
-  final homeDataMap = initialParallelResults[0] as Map<String, dynamic>;
-  final blockedUids = initialParallelResults[1] as List<String>;
+  final Map<String, dynamic> homeDataMap;
+  final List<String> blockedUids;
+  
+  try {
+    final initialParallelResults = await Future.wait([
+      postService.getHomeData(),
+      BlockService.instance.getBlockedUids(),
+    ]);
+    homeDataMap = initialParallelResults[0] as Map<String, dynamic>;
+    blockedUids = initialParallelResults[1] as List<String>;
+  } catch (e) {
+    throw Exception('Error in initial phase (getHomeData or getBlockedUids): $e');
+  }
 
   final allFriendUids = (homeDataMap['friends'] as List<dynamic>?)?.cast<String>() ?? [];
 
@@ -124,14 +129,20 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
     uidsToFetch.add(myUid);
   }
 
-  // 2. フィード投稿とフレンドの詳細情報を一括（並列）で取得して高速化
-  final parallelResults = await Future.wait([
-    postService.getAllFriendsPosts(friendUids, includeMe: false),
-    postService.getFriendsListFromUids(uidsToFetch),
-  ]);
+  final List<Post> feedPosts;
+  final List<Map<String, dynamic>> friendStatuses;
 
-  final feedPosts = parallelResults[0] as List<Post>;
-  final friendStatuses = parallelResults[1] as List<Map<String, dynamic>>;
+  try {
+    // 2. フィード投稿とフレンドの詳細情報を一括（並列）で取得して高速化
+    final parallelResults = await Future.wait([
+      postService.getAllFriendsPosts(friendUids, includeMe: false),
+      postService.getFriendsListFromUids(uidsToFetch),
+    ]);
+    feedPosts = parallelResults[0] as List<Post>;
+    friendStatuses = parallelResults[1] as List<Map<String, dynamic>>;
+  } catch (e) {
+    throw Exception('Error in friends phase (getAllFriendsPosts or getFriendsList): $e');
+  }
   
   final names = <String, String>{};
   final photos = <String, String?>{};

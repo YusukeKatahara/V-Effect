@@ -22,6 +22,7 @@ import 'qr_display_screen.dart';
 import 'qr_scanner_screen.dart';
 import '../widgets/responsive_container.dart';
 import '../widgets/full_screen_image_viewer.dart';
+import 'past_comparison_screen.dart';
 
 
 class ProfileScreen extends StatefulWidget {
@@ -709,6 +710,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 32)),
   
+                  // ---── 過去の軌跡を振り返るボタン ──────────────────────────
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverToBoxAdapter(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (_user == null) return;
+                          final taskNames = _user!.tasks.map((t) => t.title).toList();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PastComparisonScreen(userTaskNames: taskNames),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            color: AppColors.bgElevated,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.accentGold.withOpacity(0.3), width: 1),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // より柔らかい表現にするため、ひらがな表記の「積み重ねを振りかえる」にしました
+                              Text(
+                                '積み重ねを振りかえる',
+                                style: GoogleFonts.notoSansJp(
+                                  color: AppColors.accentGold,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     sliver: SliverToBoxAdapter(child: _buildTaskSection()),

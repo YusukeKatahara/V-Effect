@@ -849,14 +849,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         final combinedPosts = [...unreadPosts, ...readPosts];
 
         final newItems = <dynamic>[];
-        int postsSinceAd = 0;
         for (int i = 0; i < combinedPosts.length; i++) {
           newItems.add(combinedPosts[i]);
-          postsSinceAd++;
-          // 3件ごとに広告を挿入 (最後尾には入れない)
-          if (postsSinceAd == 3 && i != combinedPosts.length - 1) {
+          // 最初の投稿の直後（右スライド1回目）にのみ広告を挿入
+          if (i == 0) {
             newItems.add('ad');
-            postsSinceAd = 0;
           }
         }
         _feedItems = newItems;

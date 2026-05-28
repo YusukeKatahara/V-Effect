@@ -660,6 +660,25 @@ class PostService {
     }
   }
 
+  /// 自分の過去のすべての投稿を取得します（過去の自分と比較する機能用）
+  Future<List<Post>> getAllMyPastPosts() async {
+    final uid = _auth.currentUser!.uid;
+    
+    try {
+      final snap = await _postsRef
+          .where(Post.fieldUserId, isEqualTo: uid)
+          .get();
+
+      return snap.docs
+          .map((doc) => doc.data())
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)); // 新しい順
+    } catch (e) {
+      debugPrint('getAllMyPastPosts unexpected error: $e');
+      rethrow;
+    }
+  }
+
   /// 自分のヒーロータスクリストを取得します
   Future<List<AppTask>> getMyTasks() async {
     final uid = _auth.currentUser!.uid;
