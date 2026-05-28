@@ -201,17 +201,23 @@ service cloud.firestore {
       allow update: if request.auth != null
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactionCount', 'emojiReactedUserIds', 'userReactions']);
 
-      // 【仕様（BeRealルール）】
-      // ・閲覧は「まだ24時間が経っていない（expiresAt > 今）」投稿のみ
-      // ・閲覧者は今日の投稿がある（= lastPostedDate が今日）必要がある
-      //
-      //  ※ Firestore のセキュリティルールでは「今日の日付」を
-      //    サーバーから直接は取得できません。
-      //    そのため「ログイン済みであれば読める」とし、
-      //    24hチェックはクライアント側（PostService.getFriendsFeed）のクエリと
-      //    expiresAt フィールドで担保します。
-      //    より厳格にしたい場合は Cloud Functions のサーバー側でチェックしてください。
-      allow read: if request.auth != null;
+      // 【仕様】(Vuln-2 対応) 閲覧は以下のいずれかを満たす投稿のみ:
+      //   1. 24h以内: 本人 or フォロー中ユーザー（friends フィールドのレガシー互換含む）
+      //   2. 14日以内: 本人のみ（WEEKLY REVIEW 等の振り返り用）
+      // これにより、フォロー関係にない第三者は SDK 経由でも他人の投稿を
+      // 取得できなくなる。開発者向けの長期データ閲覧は将来 Cloud Functions /
+      // Admin SDK で対応する。
+      allow read: if request.auth != null && (
+        (resource.data.expiresAt > request.time
+         && (resource.data.userId == request.auth.uid
+             || get(/databases/$(database)/documents/users/$(request.auth.uid))
+                 .data.get('following', []).hasAny([resource.data.userId])
+             || get(/databases/$(database)/documents/users/$(request.auth.uid))
+                 .data.get('friends', []).hasAny([resource.data.userId])))
+        ||
+        (resource.data.userId == request.auth.uid
+         && resource.data.createdAt > request.time - duration.value(14, 'd'))
+      );
     }
   }
 }
