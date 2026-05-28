@@ -3,7 +3,10 @@ service firebase.storage {
   match /b/{bucket}/o {
     match /dev_blog/{postId}/{fileName} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      // 書き込みは開発者のみ（app_config/developers.developerUids に Auth UID が含まれる）
+      allow write: if request.auth != null
+        && firestore.get(/databases/(default)/documents/app_config/developers)
+            .data.developerUids.hasAny([request.auth.uid]);
     }
     match /posts/{userId}/{fileName} {
       allow read: if request.auth != null;

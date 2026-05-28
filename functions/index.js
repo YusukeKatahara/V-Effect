@@ -31,18 +31,29 @@ exports.sendPushNotification = onDocumentCreated(
 
     const db = getFirestore();
 
-    // 受信者の FCM トークンを取得
+    // 受信者の公開情報を取得（プッシュ通知設定の確認用）
     const userDoc = await db.collection("users").doc(toUid).get();
     if (!userDoc.exists) return;
 
     const userData = userDoc.data();
-    
+
     // マスターのプッシュ通知設定をチェック
     if (userData.pushNotifications === false) {
       return;
     }
 
-    const fcmToken = userData.fcmToken;
+    // fcmToken は private subcollection を優先参照。
+    // 旧バージョンのアプリは users/{uid}.fcmToken（公開エリア）に書き込み続けるため、
+    // 移行期間中は public 側にフォールバックする。
+    // どちらから取得したかを覚えておき、無効化時に正しい場所を削除する。
+    const privateDoc = await db.collection("users").doc(toUid)
+        .collection("private").doc("data").get();
+    let fcmToken = privateDoc.exists ? privateDoc.data().fcmToken : null;
+    let fcmTokenSource = "private";
+    if (!fcmToken) {
+      fcmToken = userData.fcmToken || null;
+      fcmTokenSource = "public";
+    }
     if (!fcmToken) return;
 
     // FCM メッセージを送信
@@ -79,15 +90,20 @@ exports.sendPushNotification = onDocumentCreated(
       console.log(`Successfully sent message to ${toUid}`);
     } catch (error) {
       console.error(`Error sending push notification to ${toUid}:`, error);
-      // トークンが無効な場合は削除
+      // トークンが無効な場合は取得元の場所から削除
       if (
         error.code === "messaging/invalid-registration-token" ||
         error.code === "messaging/registration-token-not-registered"
       ) {
-        await db.collection("users").doc(toUid).update({
-          fcmToken: FieldValue.delete(),
-        });
-        console.log(`Deleted invalid FCM token for ${toUid}`);
+        if (fcmTokenSource === "private") {
+          await db.collection("users").doc(toUid).collection("private")
+              .doc("data").set({ fcmToken: FieldValue.delete() }, { merge: true });
+        } else {
+          await db.collection("users").doc(toUid).update({
+            fcmToken: FieldValue.delete(),
+          });
+        }
+        console.log(`Deleted invalid FCM token for ${toUid} (source=${fcmTokenSource})`);
       }
     }
   }
@@ -314,6 +330,13 @@ exports.onContactInquiry = onDocumentCreated(
 
     const { category, name, email, message, createdAt } = data;
 
+    // メールヘッダーインジェクション対策: subject に渡す値から改行を除去
+    const sanitizeHeader = (v) =>
+      String(v ?? "").replace(/[\r\n]+/g, " ").slice(0, 256);
+    const safeCategory = sanitizeHeader(category).slice(0, 50);
+    const safeEmail = sanitizeHeader(email);
+    const safeName = sanitizeHeader(name);
+
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -329,11 +352,11 @@ exports.onContactInquiry = onDocumentCreated(
     await transporter.sendMail({
       from: "V.EFFECT.developer@gmail.com",
       to: "V.EFFECT.developer@gmail.com",
-      subject: `[V-Effect お問い合わせ] ${category}`,
+      subject: `[V-Effect お問い合わせ] ${safeCategory}`,
       text: `
-カテゴリ: ${category}
-お名前: ${name || "（未記入）"}
-メール: ${email}
+カテゴリ: ${safeCategory}
+お名前: ${safeName || "（未記入）"}
+メール: ${safeEmail}
 日時: ${timestamp}
 
 --- お問い合わせ内容 ---
@@ -341,7 +364,7 @@ ${message}
       `.trim(),
     });
 
-    console.log(`Contact inquiry email sent. Category: ${category}, From: ${email}`);
+    console.log(`Contact inquiry email sent. Category: ${safeCategory}, From: ${safeEmail}`);
   }
 );
 
@@ -467,3 +490,178 @@ exports.onSeasonCreated = onDocumentCreated(
     console.log(`Distributed season task "${taskName}" to ${usersSnap.size} users.`);
   }
 );
+
+// ─────────────────────────────────────────────────────────────────
+// 通報 (Vuln-7 対応)
+// クライアント直 create は Firestore Rules で禁止し、必ずこの Functions
+// 経由で作成する。レート制限・実在検証・重複チェックをサーバー側で実施。
+// ─────────────────────────────────────────────────────────────────
+
+const REPORT_RATE_LIMIT_PER_HOUR = 5;
+const REPORT_DEDUP_DAYS = 7;
+const VALID_REPORT_REASONS = ["spam", "harassment", "inappropriate", "other"];
+
+/**
+ * 通報レート制限チェック（1時間以内に最大 N 件まで）
+ */
+async function checkReportRateLimit(db, reporterUid) {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recent = await db.collection("reports")
+    .where("reporterUid", "==", reporterUid)
+    .where("createdAt", ">", oneHourAgo)
+    .count().get();
+  if (recent.data().count >= REPORT_RATE_LIMIT_PER_HOUR) {
+    throw new HttpsError(
+      "resource-exhausted",
+      "短時間に通報が多すぎます。しばらく経ってから再度お試しください。"
+    );
+  }
+}
+
+exports.reportUser = onCall(async (request) => {
+  const reporterUid = request.auth?.uid;
+  if (!reporterUid) {
+    throw new HttpsError("unauthenticated", "認証が必要です。");
+  }
+  const { targetUid, reason } = request.data || {};
+  if (!targetUid || typeof targetUid !== "string") {
+    throw new HttpsError("invalid-argument", "通報対象のユーザーが不正です。");
+  }
+  if (!VALID_REPORT_REASONS.includes(reason)) {
+    throw new HttpsError("invalid-argument", "通報理由が不正です。");
+  }
+  if (targetUid === reporterUid) {
+    throw new HttpsError("invalid-argument", "自分自身を通報できません。");
+  }
+
+  const db = getFirestore();
+
+  // 1. 通報対象ユーザーの実在確認
+  const targetDoc = await db.collection("users").doc(targetUid).get();
+  if (!targetDoc.exists) {
+    throw new HttpsError("not-found", "対象ユーザーが存在しません。");
+  }
+
+  // 2. レート制限
+  await checkReportRateLimit(db, reporterUid);
+
+  // 3. 7日以内の重複通報チェック
+  const sevenDaysAgo = new Date(Date.now() - REPORT_DEDUP_DAYS * 24 * 60 * 60 * 1000);
+  const dupSnap = await db.collection("reports")
+    .where("reporterUid", "==", reporterUid)
+    .where("reportedUid", "==", targetUid)
+    .where("createdAt", ">", sevenDaysAgo)
+    .limit(1).get();
+  if (!dupSnap.empty) {
+    throw new HttpsError("already-exists", "already_reported");
+  }
+
+  // 4. 通報作成
+  await db.collection("reports").add({
+    reporterUid,
+    reportedUid: targetUid,
+    reason,
+    createdAt: FieldValue.serverTimestamp(),
+    status: "pending",
+  });
+
+  console.log(`User report created. reporter=${reporterUid} reported=${targetUid} reason=${reason}`);
+  return { success: true };
+});
+
+exports.reportPost = onCall(async (request) => {
+  const reporterUid = request.auth?.uid;
+  if (!reporterUid) {
+    throw new HttpsError("unauthenticated", "認証が必要です。");
+  }
+  const { postId, targetUid, reason } = request.data || {};
+  if (!postId || typeof postId !== "string") {
+    throw new HttpsError("invalid-argument", "投稿IDが不正です。");
+  }
+  if (!targetUid || typeof targetUid !== "string") {
+    throw new HttpsError("invalid-argument", "通報対象のユーザーが不正です。");
+  }
+  if (!VALID_REPORT_REASONS.includes(reason)) {
+    throw new HttpsError("invalid-argument", "通報理由が不正です。");
+  }
+  if (targetUid === reporterUid) {
+    throw new HttpsError("invalid-argument", "自分自身の投稿を通報できません。");
+  }
+
+  const db = getFirestore();
+
+  // 1. 投稿の実在確認 & 投稿者と通報対象 UID の一致確認
+  const postDoc = await db.collection("posts").doc(postId).get();
+  if (!postDoc.exists) {
+    throw new HttpsError("not-found", "対象の投稿が存在しません。");
+  }
+  if (postDoc.data().userId !== targetUid) {
+    throw new HttpsError("invalid-argument", "投稿者と通報対象が一致しません。");
+  }
+
+  // 2. レート制限
+  await checkReportRateLimit(db, reporterUid);
+
+  // 3. 同一投稿への重複通報チェック（7日以内）
+  const sevenDaysAgo = new Date(Date.now() - REPORT_DEDUP_DAYS * 24 * 60 * 60 * 1000);
+  const dupSnap = await db.collection("reports")
+    .where("reporterUid", "==", reporterUid)
+    .where("reportedPostId", "==", postId)
+    .where("createdAt", ">", sevenDaysAgo)
+    .limit(1).get();
+  if (!dupSnap.empty) {
+    throw new HttpsError("already-exists", "already_reported");
+  }
+
+  // 4. 通報作成
+  await db.collection("reports").add({
+    reporterUid,
+    reportedPostId: postId,
+    reportedUid: targetUid,
+    reason,
+    createdAt: FieldValue.serverTimestamp(),
+    status: "pending",
+    type: "post",
+  });
+
+  console.log(`Post report created. reporter=${reporterUid} postId=${postId} reason=${reason}`);
+  return { success: true };
+});
+
+// ─────────────────────────────────────────────────────────────────
+// fcmToken データ移行 (Vuln-4 対応)
+// 既存の users/{uid}.fcmToken を users/{uid}/private/data に移動する
+// 一度実行したらこの関数を削除すること
+// ─────────────────────────────────────────────────────────────────
+
+const ADMIN_UIDS = [
+  "09r2ZUNwVCPLYroPwb3p16jUHoe2",
+  "h6IG7A9wRlfIof7JVvwDrLLFTii2",
+  "9fVC6UCVILaGpowohlflbeo1Pr03",
+];
+
+exports.migrateFcmTokens = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid || !ADMIN_UIDS.includes(uid)) {
+    throw new HttpsError("permission-denied", "管理者のみ実行可能です。");
+  }
+  const db = getFirestore();
+  const usersSnap = await db.collection("users").get();
+  let migrated = 0;
+  let skipped = 0;
+  for (const doc of usersSnap.docs) {
+    const fcmToken = doc.data().fcmToken;
+    if (!fcmToken) {
+      skipped++;
+      continue;
+    }
+    await db.collection("users").doc(doc.id).collection("private")
+        .doc("data").set({ fcmToken }, { merge: true });
+    await db.collection("users").doc(doc.id).update({
+      fcmToken: FieldValue.delete(),
+    });
+    migrated++;
+  }
+  console.log(`migrateFcmTokens: migrated=${migrated} skipped=${skipped}`);
+  return { migrated, skipped, total: usersSnap.size };
+});

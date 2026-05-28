@@ -349,9 +349,19 @@ class PushNotificationService {
 
       debugPrint('FCM Token: $token');
 
-      await _db.collection('users').doc(user.uid).set({
-        'fcmToken': token,
-      }, SetOptions(merge: true));
+      // fcmToken は private subcollection に保存（全認証ユーザーからの読み取りを防ぐ）
+      await _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('private')
+          .doc('data')
+          .set({'fcmToken': token}, SetOptions(merge: true));
+
+      // 旧バージョンが残した public 側の fcmToken を掃除する（移行期間用）
+      await _db.collection('users').doc(user.uid).set(
+        {'fcmToken': FieldValue.delete()},
+        SetOptions(merge: true),
+      );
     } catch (e) {
       debugPrint('FCMトークン保存エラー: $e');
     }
@@ -363,9 +373,17 @@ class PushNotificationService {
     if (user == null) return;
 
     try {
-      await _db.collection('users').doc(user.uid).update({
-        'fcmToken': FieldValue.delete(),
-      });
+      await _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('private')
+          .doc('data')
+          .set({'fcmToken': FieldValue.delete()}, SetOptions(merge: true));
+      // 旧 public 側も念のため削除（移行期間用）
+      await _db.collection('users').doc(user.uid).set(
+        {'fcmToken': FieldValue.delete()},
+        SetOptions(merge: true),
+      );
     } catch (e) {
       debugPrint('FCMトークン削除エラー: $e');
     }

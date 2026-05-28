@@ -18,18 +18,14 @@ class DevBlogService {
     final authUid = _auth.currentUser?.uid;
     if (authUid == null) return false;
     try {
-      // アプリ内 userId（"RN", "Y" 等）で開発者判定
-      final userDoc = await _db.collection('users').doc(authUid).get();
-      final userId = userDoc.data()?['userId'] as String?;
-      if (userId == null) return false;
-
+      // Auth UID で開発者判定（userId は本人による書き換えが可能なため使用しない）
       final configDoc =
           await _db.collection('app_config').doc('developers').get();
       final ids =
           (configDoc.data()?['developerUids'] as List<dynamic>?)
               ?.cast<String>() ??
               [];
-      return ids.contains(userId);
+      return ids.contains(authUid);
     } catch (_) {
       return false;
     }

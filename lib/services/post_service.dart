@@ -641,12 +641,16 @@ class PostService {
       // 2. フォールバック（インデックス不足時など）
       if (e.code == 'failed-precondition' || e.code == 'invalid-argument') {
         debugPrint('⚠️ WeeklyReview: Composite index missing or query failed. Falling back to local filtering. Error: ${e.message}');
-        
-        // userId だけで取得（単一インデックスのみで可能）し、メモリ上で日付フィルタリング
+
+        // Vuln-2 対応のセキュリティルールに合わせ、14日以内に限定して取得する
+        final fourteenDaysAgo =
+            DateTime.now().subtract(const Duration(days: 14));
         final snap = await _postsRef
             .where(Post.fieldUserId, isEqualTo: uid)
+            .where(Post.fieldCreatedAt,
+                isGreaterThan: Timestamp.fromDate(fourteenDaysAgo))
             .get();
-        
+
         return snap.docs
             .map((doc) => doc.data())
             .where((p) => p.createdAt.isAfter(sevenDaysAgo))
@@ -757,10 +761,14 @@ class PostService {
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
 
-    // 3. 今日他に投稿があるか確認（インデックス不要のため全取得してフィルタ）
+    // 3. 今日他に投稿があるか確認（Vuln-2 対応のセキュリティルールに合わせ
+    //    14日以内に限定して取得。さらに今日の分をローカルでフィルタ）
+    final fourteenDaysAgo =
+        DateTime.now().subtract(const Duration(days: 14));
     final allUserPosts = await _db
         .collection('posts')
         .where('userId', isEqualTo: uid)
+        .where('createdAt', isGreaterThan: Timestamp.fromDate(fourteenDaysAgo))
         .get();
 
     final remainingToday = allUserPosts.docs.where((doc) {
@@ -848,11 +856,15 @@ class PostService {
   }
 
   /// タスク名が変更された際に、該当ユーザーの既存の投稿のタスク名も一括更新します
+  /// Vuln-2 対応のセキュリティルールに合わせ、14日以内の投稿に限定して更新する
   Future<void> updateTaskNameForPosts(String oldTaskName, String newTaskName) async {
     final uid = _auth.currentUser!.uid;
+    final fourteenDaysAgo =
+        DateTime.now().subtract(const Duration(days: 14));
     final postsSnap = await _db.collection('posts')
         .where('userId', isEqualTo: uid)
         .where('taskName', isEqualTo: oldTaskName)
+        .where('createdAt', isGreaterThan: Timestamp.fromDate(fourteenDaysAgo))
         .get();
         
     if (postsSnap.docs.isEmpty) return;

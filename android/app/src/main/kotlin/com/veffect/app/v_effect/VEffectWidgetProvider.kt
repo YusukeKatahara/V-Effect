@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.RemoteViews
-import es.antonborri.home_widget.HomeWidgetLaunchIntent
 
 class VEffectWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(
@@ -37,11 +36,16 @@ class VEffectWidgetProvider : AppWidgetProvider() {
             // アプリアイコンとテキストに背景色などを設定してV-EFFECTらしく
             // (XML側で定義済み)
 
-            // タップでアプリを起動し、カメラ画面へ（HomeWidgetの標準機能を利用）
-            val pendingIntent = HomeWidgetLaunchIntent.getActivity(
+            // タップでアプリを起動し、カメラ画面へ
+            val launchIntent = Intent(context, MainActivity::class.java).apply {
+                data = Uri.parse("veffect://camera")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val pendingIntent = PendingIntent.getActivity(
                 context,
-                MainActivity::class.java,
-                Uri.parse("veffect://camera")
+                0,
+                launchIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
 
