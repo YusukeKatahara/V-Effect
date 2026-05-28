@@ -3,26 +3,53 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ────────────────────────────────────────
+    // 共通ヘルパー関数
+    // ────────────────────────────────────────
+    function isDeveloper() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/app_config/developers)
+            .data.developerUids.hasAny([request.auth.uid]);
+    }
+
+    // 他者の users ドキュメントに対して、followers/following 配列の
+    // 自分自身の UID 追加・削除のみを許可するかを判定する。
+    // friends キーは廃止（クライアントから他者の friends を書けない）。
+    function isOnlySelfFollowDiff() {
+      let affected = request.resource.data.diff(resource.data).affectedKeys();
+      let oldFollowers = resource.data.get('followers', []);
+      let newFollowers = request.resource.data.get('followers', []);
+      let oldFollowing = resource.data.get('following', []);
+      let newFollowing = request.resource.data.get('following', []);
+      return affected.hasOnly(['followers', 'following'])
+        && newFollowers.toSet().difference(oldFollowers.toSet()).hasOnly([request.auth.uid])
+        && oldFollowers.toSet().difference(newFollowers.toSet()).hasOnly([request.auth.uid])
+        && newFollowing.toSet().difference(oldFollowing.toSet()).hasOnly([request.auth.uid])
+        && oldFollowing.toSet().difference(newFollowing.toSet()).hasOnly([request.auth.uid]);
+    }
+
+    // ────────────────────────────────────────
     // users コレクション
     // ────────────────────────────────────────
-    // 自分のユーザー情報は自分だけが読み書きできます。
+    // 自分のユーザー情報は自分だけが書き込めます。
     // フレンドのプロフィール（名前など）は認証済みユーザーなら誰でも読めます。
-    // friends 配列の更新は認証済みユーザーなら誰でもできます（フレンド承認・削除用）。
+    // 他者からの更新は followers/following 配列の自分UID追加・削除のみ許可。
     match /users/{uid} {
       // ユーザー一覧の検索（userIdの重複チェック、フレンド検索）を許可
       allow read: if request.auth != null;
-      
+
       allow write: if request.auth != null && request.auth.uid == uid;
-      // ユーザー情報の更新: 本人なら何でも。他人ならフォロー関連のみ。開発者ならバッジ配布などのため全て許可。
+
+      // ユーザー情報の更新:
+      //   - 本人なら何でも
+      //   - 他人なら followers/following の自分UID追加・削除のみ
+      //   - 開発者ならバッジ配布などのため全て許可
       allow update: if request.auth != null && (
-        request.auth.uid == uid || 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends', 'followers', 'following']) ||
-        get(/databases/$(database)/documents/app_config/developers).data.developerUids.hasAny([
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userId
-        ])
+        request.auth.uid == uid ||
+        isOnlySelfFollowDiff() ||
+        isDeveloper()
       );
 
-      // プライベート情報（email, birthDate, gender, wakeUpTime, taskTime）
+      // プライベート情報（email, birthDate, gender, wakeUpTime, taskTime, fcmToken）
       // 自分だけが読み書きできます
       match /private/{docId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
@@ -56,13 +83,23 @@ service cloud.firestore {
     // notifications コレクション
     // ────────────────────────────────────────
     match /notifications/{notificationId} {
-      // 通知作成: 認証済みユーザー（自分宛て or 相手宛て）
-      allow create: if request.auth != null;
+      // 通知作成:
+      //   - 他者宛て通知: fromUid が自分自身であること（偽装防止）
+      //   - 自分宛てセルフ通知（streakCelebration 等）: fromUid 未設定 & toUid が自分
+      // システム通知（streakWarning, seasonTaskReceived 等）は Admin SDK
+      // (Cloud Functions) 経由で作成されるためルールをバイパスする
+      allow create: if request.auth != null && (
+        (request.resource.data.get('fromUid', '') is string
+         && request.resource.data.get('fromUid', '') == request.auth.uid)
+        ||
+        (!('fromUid' in request.resource.data.keys())
+         && request.resource.data.toUid == request.auth.uid)
+      );
 
       // 通知読み取り: 自分宛て or 自分が送信した通知
       allow read: if request.auth != null
         && (resource.data.toUid == request.auth.uid
-            || resource.data.fromUid == request.auth.uid);
+            || resource.data.get('fromUid', '') == request.auth.uid);
 
       // 通知更新（既読・処理済みマーク）: 自分宛ての通知のみ & isRead, isProcessed のみ変更可
       allow update: if request.auth != null
@@ -74,18 +111,18 @@ service cloud.firestore {
       //   - 自分が送った通知（リアクション通知の集約・上書きのため）
       allow delete: if request.auth != null
         && (resource.data.toUid == request.auth.uid
-            || resource.data.fromUid == request.auth.uid);
+            || resource.data.get('fromUid', '') == request.auth.uid);
     }
 
     // ────────────────────────────────────────
     // reports コレクション
     // ────────────────────────────────────────
+    // クライアントからの直接 create は禁止。reportUser/reportPost Cloud Functions
+    // 経由で作成すること（レート制限・重複チェック・実在検証を Function 側で実施）。
     match /reports/{reportId} {
-      // 通報作成: 自分自身の通報のみ
-      allow create: if request.auth != null
-        && request.resource.data.reporterUid == request.auth.uid;
+      allow create: if false;
 
-      // 通報読み取り: 自分が送った通報のみ（重複チェック用クエリ）
+      // 通報読み取り: 自分が送った通報のみ（重複チェック等の互換のため残す）
       allow read: if request.auth != null
         && resource.data.reporterUid == request.auth.uid;
     }
@@ -95,13 +132,23 @@ service cloud.firestore {
     // ────────────────────────────────────────
     match /contactInquiries/{docId} {
       // サポートページは未ログインでもアクセス可のため、未認証でも作成を許可
-      // 必須フィールドの存在とサイズ制限のみ検証
-      allow create: if request.resource.data.keys().hasAll(['email', 'category', 'message', 'createdAt'])
+      // category は許容リストに限定、email/category にメールヘッダー改行不可
+      allow create:
+        if request.resource.data.keys().hasAll(['email', 'category', 'message', 'createdAt'])
+        && request.resource.data.category is string
+        && request.resource.data.category.size() > 0
+        && request.resource.data.category.size() <= 50
+        && request.resource.data.category in [
+            'bug', 'feature', 'account', 'other',
+            'バグ報告', '機能要望', 'アカウント', 'その他'
+          ]
         && request.resource.data.message is string
         && request.resource.data.message.size() > 0
         && request.resource.data.message.size() <= 2000
         && request.resource.data.email is string
-        && request.resource.data.email.size() > 0;
+        && request.resource.data.email.size() > 0
+        && request.resource.data.email.size() <= 256
+        && !request.resource.data.email.matches('.*[\r\n].*');
       // 管理者以外は読み取り・更新・削除不可
       allow read, update, delete: if false;
     }
@@ -122,15 +169,11 @@ service cloud.firestore {
 
     // ────────────────────────────────────────
     // dev_blog コレクション（V-Practice ブログ）
+    // 開発者判定は Auth UID ベース（userId 経由は廃止）
     // ────────────────────────────────────────
     match /dev_blog/{postId} {
       allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null
-        && get(/databases/$(database)/documents/app_config/developers)
-            .data.developerUids.hasAny([
-              get(/databases/$(database)/documents/users/$(request.auth.uid))
-                .data.userId
-            ]);
+      allow create, update, delete: if isDeveloper();
     }
 
     // ────────────────────────────────────────

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'analytics_service.dart';
 
@@ -99,46 +100,37 @@ class BlockService {
   /// [reason]: "spam" | "harassment" | "inappropriate" | "other"
   ///
   /// 重複通報の場合は Exception('already_reported') をスローする
+  /// Cloud Functions 経由で実行（レート制限・実在検証はサーバー側）
   Future<void> reportUser(String targetUid, String reason) async {
-    final myUid = _auth.currentUser!.uid;
-
-    // 7日以内の重複通報チェック
-    final sevenDaysAgo = Timestamp.fromDate(
-      DateTime.now().subtract(const Duration(days: 7)),
-    );
-    final existing = await _db
-        .collection('reports')
-        .where('reporterUid', isEqualTo: myUid)
-        .where('reportedUid', isEqualTo: targetUid)
-        .where('createdAt', isGreaterThan: sevenDaysAgo)
-        .limit(1)
-        .get();
-
-    if (existing.docs.isNotEmpty) {
-      throw Exception('already_reported');
+    try {
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('reportUser');
+      await callable.call({'targetUid': targetUid, 'reason': reason});
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'already-exists') {
+        throw Exception('already_reported');
+      }
+      rethrow;
     }
-
-    await _db.collection('reports').add({
-      'reporterUid': myUid,
-      'reportedUid': targetUid,
-      'reason': reason,
-      'createdAt': FieldValue.serverTimestamp(),
-      'status': 'pending',
-    });
   }
 
   /// 投稿を通報する
-  Future<void> reportPost(String postId, String targetUid, String reason) async {
-    final myUid = _auth.currentUser!.uid;
-
-    await _db.collection('reports').add({
-      'reporterUid': myUid,
-      'reportedPostId': postId,
-      'reportedUid': targetUid,
-      'reason': reason,
-      'createdAt': FieldValue.serverTimestamp(),
-      'status': 'pending',
-      'type': 'post',
-    });
+  /// Cloud Functions 経由で実行（レート制限・実在検証はサーバー側）
+  Future<void> reportPost(
+      String postId, String targetUid, String reason) async {
+    try {
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('reportPost');
+      await callable.call({
+        'postId': postId,
+        'targetUid': targetUid,
+        'reason': reason,
+      });
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'already-exists') {
+        throw Exception('already_reported');
+      }
+      rethrow;
+    }
   }
 }
