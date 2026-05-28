@@ -81,8 +81,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
           _userDocFuture = _fetchUserDocWithCacheBypass(user.uid);
         }
 
-        // 🚨 【追加】メールアドレス認証の強制（Apple/Google等以外）
-        if (!user.emailVerified && user.providerData.any((p) => p.providerId == 'password')) {
+        // メールアドレス認証の強制（2026-05-27以降の新規登録ユーザーのみ）
+        final creationTime = user.metadata.creationTime;
+        final cutoff = DateTime(2026, 5, 27);
+        final isNewUser = creationTime != null && creationTime.isAfter(cutoff);
+        if (!user.emailVerified &&
+            isNewUser &&
+            user.providerData.any((p) => p.providerId == 'password')) {
           _navigateTo(AppRoutes.emailVerification);
           return const _SplashWithTimeout();
         }

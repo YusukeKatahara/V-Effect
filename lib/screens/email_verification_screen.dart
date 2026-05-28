@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/app_colors.dart';
@@ -12,16 +13,38 @@ class EmailVerificationScreen extends StatefulWidget {
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   bool _isChecking = false;
   bool _isResending = false;
+  Timer? _pollingTimer;
+  DateTime? _lastSentAt;
+  static const _resendCooldown = Duration(seconds: 60);
 
   @override
   void initState() {
     super.initState();
     _sendVerificationEmail();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      await FirebaseAuth.instance.currentUser?.reload();
+      if (!mounted) return;
+      if (FirebaseAuth.instance.currentUser?.emailVerified == true) {
+        _pollingTimer?.cancel();
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+    });
   }
 
   Future<void> _sendVerificationEmail() async {
     try {
       await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+      _lastSentAt = DateTime.now();
     } catch (_) {}
   }
 
@@ -32,9 +55,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (!mounted) return;
       if (user?.emailVerified == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('メールアドレスの認証が完了しました。')),
-        );
+        _pollingTimer?.cancel();
         Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -47,9 +68,22 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   Future<void> _resendEmail() async {
+    if (_lastSentAt != null) {
+      final elapsed = DateTime.now().difference(_lastSentAt!);
+      if (elapsed < _resendCooldown) {
+        final remaining = (_resendCooldown - elapsed).inSeconds;
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${remaining}秒後に再送信できます。')),
+        );
+        return;
+      }
+    }
+
     setState(() => _isResending = true);
     try {
       await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+      _lastSentAt = DateTime.now();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('認証メールを再送信しました。')),
