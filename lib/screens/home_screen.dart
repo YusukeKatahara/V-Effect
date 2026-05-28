@@ -39,10 +39,12 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final PostService _postService = PostService.instance;
   bool _postedToday = false;
   List<dynamic> _feedItems = [];
+  final Set<String> _viewedPostIds = {}; // 閲覧済みポストのID
+  bool _needsRefreshJump = true; // 初回ロード時やリフレッシュ時に先頭へジャンプするかどうか
   List<Map<String, dynamic>> _postedFriends = []; // [{uid, username, photoUrl}]
   Map<String, String> _userNames = {}; // userId -> username
   Map<String, String?> _userPhotos = {}; // userId -> photoUrl
@@ -112,6 +114,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _flashController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -179,6 +182,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     _flashController.dispose();
     _reactionMenuController.dispose();
@@ -189,6 +193,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _comboResetTimer?.cancel();
     _swipeGuideController.dispose();
     super.dispose();
+  }
+
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (mounted) {
+        setState(() {
+          _needsRefreshJump = true;
+        });
+        // 復帰時にフィードをリフレッシュ
+        ref.invalidate(homeDataProvider);
+      }
+    }
   }
 
   Future<void> _requestTrackingAuthorization() async {
@@ -246,6 +264,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   void _onPageChanged(int index) {
     if (_feedItems.isEmpty) return;
+
+    final actualIndex = index % _feedItems.length;
+    final currentItem = _feedItems[actualIndex];
+    if (currentItem is Post) {
+      _viewedPostIds.add(currentItem.id);
+    }
     
     // 次の5枚の画像をプリキャッシュしてスムーズなめくりを実現
     for (int i = 1; i <= 5; i++) {
@@ -299,6 +323,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     setState(() {
       _isRefreshing = true;
       _dragOffset = 100.0; 
+      _needsRefreshJump = true;
     });
     
     // 束ねる
@@ -809,14 +834,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             newPosts.add(displayedPost);
           }
         }
+        // 未読・既読の振り分け
+        final unreadPosts = <Post>[];
+        final readPosts = <Post>[];
+        for (final p in newPosts) {
+          if (_viewedPostIds.contains(p.id)) {
+            readPosts.add(p);
+          } else {
+            unreadPosts.add(p);
+          }
+        }
+
+        // 未読を先に、既読を後に並べる
+        final combinedPosts = [...unreadPosts, ...readPosts];
+
         final newItems = <dynamic>[];
-        for (int i = 0; i < newPosts.length; i++) {
-          newItems.add(newPosts[i]);
-          if (i == 0 || (i > 0 && i % 3 == 0)) {
+        int postsSinceAd = 0;
+        for (int i = 0; i < combinedPosts.length; i++) {
+          newItems.add(combinedPosts[i]);
+          postsSinceAd++;
+          // 3件ごとに広告を挿入 (最後尾には入れない)
+          if (postsSinceAd == 3 && i != combinedPosts.length - 1) {
             newItems.add('ad');
+            postsSinceAd = 0;
           }
         }
         _feedItems = newItems;
+        
+        // リフレッシュ要求があれば先頭へジャンプ
+        if (_needsRefreshJump && _feedItems.isNotEmpty) {
+          _needsRefreshJump = false;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _pageController.hasClients) {
+              final targetIndex = 100000 - (100000 % _feedItems.length);
+              _pageController.jumpToPage(targetIndex);
+              
+              // 先頭のアイテムを既読にする
+              final item = _feedItems[0];
+              if (item is Post) {
+                _viewedPostIds.add(item.id);
+              }
+            }
+          });
+        }
         
         // 初回ロード時またはデータ更新時に先読みを開始
         if (_feedItems.isNotEmpty) {
@@ -1513,7 +1573,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           ),
 
                           // 拡張リアクション エモジピルズ
-                          if (_reactionMenuOpen)
+                          if (item is Post && _reactionMenuOpen)
                             Positioned(
                               bottom: 66, // 中心を84に合わせる (height約36 / 2 = 18)
                               right: 140, // トグルボタン(88) + 幅(44) + 余白(8) = 140 から左へ展開
@@ -1576,7 +1636,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             ),
 
                           // 絵文字＋ボタンのコーチマーク（初回のみ）
-                          if (_showSwipeGuide && !alreadyReacted)
+                          if (item is Post && _showSwipeGuide && !alreadyReacted)
                             Positioned(
                               bottom: 110, // ＋ボタンの上
                               right: 64, // しっぽが＋ボタンの中心（right: 110）を指すように調整
@@ -1631,7 +1691,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             ),
 
                           // ＋ または ✓ トグルボタン
-                          Positioned(
+                          if (item is Post)
+                            Positioned(
                             bottom: 62, // 中心を84に合わせる (44 / 2 = 22)
                             right: 88,
                             width: 44,
@@ -1689,7 +1750,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           ),
 
                           // V Fire ボタン
-                          Positioned(
+                          if (item is Post)
+                            Positioned(
                             bottom: 32, // テキスト領域(16) + 間隔(8) + 本体(56) の中心を84に合わせる
                             right: 20,
                             width: 56,

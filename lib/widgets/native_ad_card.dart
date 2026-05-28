@@ -150,7 +150,7 @@ class _NativeAdCardState extends State<NativeAdCard> {
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.accentGold,
+                    color: AppColors.white,
                     letterSpacing: 1,
                   ),
                 ),
