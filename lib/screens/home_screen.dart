@@ -45,6 +45,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   List<dynamic> _feedItems = [];
   final Set<String> _viewedPostIds = {}; // 閲覧済みポストのID
   bool _needsRefreshJump = true; // 初回ロード時やリフレッシュ時に先頭へジャンプするかどうか
+  bool _needsResort = true; // リフレッシュ時のみ未読・既読の並び替えを行うためのフラグ
+  List<String> _baseSortedPostIds = []; // 固定されたカードの順番を保持するリスト
   List<Map<String, dynamic>> _postedFriends = []; // [{uid, username, photoUrl}]
   Map<String, String> _userNames = {}; // userId -> username
   Map<String, String?> _userPhotos = {}; // userId -> photoUrl
@@ -202,6 +204,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (mounted) {
         setState(() {
           _needsRefreshJump = true;
+          _needsResort = true;
         });
         // 復帰時にフィードをリフレッシュ
         ref.invalidate(homeDataProvider);
@@ -324,6 +327,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _isRefreshing = true;
       _dragOffset = 100.0; 
       _needsRefreshJump = true;
+      _needsResort = true;
     });
     
     // 束ねる
@@ -834,19 +838,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             newPosts.add(displayedPost);
           }
         }
-        // 未読・既読の振り分け
-        final unreadPosts = <Post>[];
-        final readPosts = <Post>[];
-        for (final p in newPosts) {
-          if (_viewedPostIds.contains(p.id)) {
-            readPosts.add(p);
-          } else {
-            unreadPosts.add(p);
+        final List<Post> combinedPosts;
+        
+        if (_needsResort) {
+          // 未読・既読の振り分け（リフレッシュ時や初回ロード時のみ）
+          final unreadPosts = <Post>[];
+          final readPosts = <Post>[];
+          for (final p in newPosts) {
+            if (_viewedPostIds.contains(p.id)) {
+              readPosts.add(p);
+            } else {
+              unreadPosts.add(p);
+            }
           }
+          combinedPosts = [...unreadPosts, ...readPosts];
+          _baseSortedPostIds = combinedPosts.map((p) => p.id).toList();
+          _needsResort = false;
+        } else {
+          // 既存の並び順（_baseSortedPostIds）を維持する（VFIREリアクション時など）
+          newPosts.sort((a, b) {
+            final indexA = _baseSortedPostIds.indexOf(a.id);
+            final indexB = _baseSortedPostIds.indexOf(b.id);
+            if (indexA == -1 && indexB == -1) return 0; // 新規投稿同士はそのまま
+            if (indexA == -1) return -1; // 新規投稿は先頭へ
+            if (indexB == -1) return 1;
+            return indexA.compareTo(indexB);
+          });
+          combinedPosts = newPosts;
+          
+          // 新規投稿があった場合は、_baseSortedPostIds も更新しておく
+          _baseSortedPostIds = combinedPosts.map((p) => p.id).toList();
         }
-
-        // 未読を先に、既読を後に並べる
-        final combinedPosts = [...unreadPosts, ...readPosts];
 
         final newItems = <dynamic>[];
         for (int i = 0; i < combinedPosts.length; i++) {
