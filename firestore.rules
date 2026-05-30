@@ -177,6 +177,14 @@ service cloud.firestore {
     }
 
     // ────────────────────────────────────────
+    // seasons コレクション
+    // ────────────────────────────────────────
+    match /seasons/{seasonId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isDeveloper();
+    }
+
+    // ────────────────────────────────────────
     // app_config（開発者UID管理など）
     // ────────────────────────────────────────
     match /app_config/{docId} {
@@ -201,22 +209,22 @@ service cloud.firestore {
       allow update: if request.auth != null
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactionCount', 'emojiReactedUserIds', 'userReactions']);
 
-      // 【仕様】(Vuln-2 対応) 閲覧は以下のいずれかを満たす投稿のみ:
-      //   1. 24h以内: 本人 or フォロー中ユーザー（friends フィールドのレガシー互換含む）
-      //   2. 14日以内: 本人のみ（WEEKLY REVIEW 等の振り返り用）
-      // これにより、フォロー関係にない第三者は SDK 経由でも他人の投稿を
-      // 取得できなくなる。開発者向けの長期データ閲覧は将来 Cloud Functions /
-      // Admin SDK で対応する。
+      // 【仕様】(Vuln-2 対応の修正)
+      // Firestoreのクエリ制約を満たすため、また getAllMyPastPosts 等の全取得クエリに対応するため以下のように修正:
+      //   1. 本人の投稿: 常に閲覧可能（アプリ内の機能で全期間の履歴が必要なため）
+      //   2. 他人の投稿: フォロー関係にあり、かつ expiresAt の条件を満たすもの。
+      //      ※ クライアントの時計のズレ（now < request.time）による permission-denied を防ぐため、
+      //        サーバー側の評価には1時間のバッファ (request.time - 1h) を設ける。
       allow read: if request.auth != null && (
-        (resource.data.expiresAt > request.time
-         && (resource.data.userId == request.auth.uid
-             || get(/databases/$(database)/documents/users/$(request.auth.uid))
-                 .data.get('following', []).hasAny([resource.data.userId])
-             || get(/databases/$(database)/documents/users/$(request.auth.uid))
-                 .data.get('friends', []).hasAny([resource.data.userId])))
+        resource.data.userId == request.auth.uid
         ||
-        (resource.data.userId == request.auth.uid
-         && resource.data.createdAt > request.time - duration.value(14, 'd'))
+        (
+          resource.data.expiresAt > request.time - duration.value(1, 'h')
+          && (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('following', []).hasAny([resource.data.userId])
+            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('friends', []).hasAny([resource.data.userId])
+          )
+        )
       );
     }
   }

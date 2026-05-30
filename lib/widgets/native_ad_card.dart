@@ -4,82 +4,21 @@ import 'package:google_fonts/google_fonts.dart';
 import '../config/app_colors.dart';
 import '../utils/ad_helper.dart';
 
-class NativeAdCard extends StatefulWidget {
+class NativeAdCard extends StatelessWidget {
   final double dimAlpha;
   final bool isTop;
+  final NativeAd? nativeAd;
+  final bool isAdLoaded;
+  final bool isAdLoadFailed;
 
   const NativeAdCard({
     super.key,
     required this.dimAlpha,
     required this.isTop,
+    required this.nativeAd,
+    required this.isAdLoaded,
+    this.isAdLoadFailed = false,
   });
-
-  @override
-  State<NativeAdCard> createState() => _NativeAdCardState();
-}
-
-class _NativeAdCardState extends State<NativeAdCard> {
-  NativeAd? _nativeAd;
-  bool _isAdLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAd();
-  }
-
-  void _loadAd() {
-    _nativeAd = NativeAd(
-      adUnitId: AdHelper.nativeAdUnitId,
-      request: const AdRequest(),
-      nativeTemplateStyle: NativeTemplateStyle(
-        templateType: TemplateType.medium,
-        mainBackgroundColor: AppColors.grey15,
-        cornerRadius: 24.0,
-        callToActionTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.white,
-          backgroundColor: AppColors.accentGold,
-          style: NativeTemplateFontStyle.bold,
-          size: 16.0,
-        ),
-        primaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.white,
-          style: NativeTemplateFontStyle.bold,
-          size: 18.0,
-        ),
-        secondaryTextStyle: NativeTemplateTextStyle(
-          textColor: AppColors.textSecondary,
-          style: NativeTemplateFontStyle.normal,
-          size: 14.0,
-        ),
-        tertiaryTextStyle: NativeTemplateTextStyle(
-          textColor: AppColors.textSecondary,
-          style: NativeTemplateFontStyle.normal,
-          size: 14.0,
-        ),
-      ),
-      listener: NativeAdListener(
-        onAdLoaded: (ad) {
-          if (mounted) {
-            setState(() {
-              _nativeAd = ad as NativeAd;
-              _isAdLoaded = true;
-            });
-          }
-        },
-        onAdFailedToLoad: (ad, error) {
-          debugPrint('NativeAd failed to load: $error');
-          ad.dispose();
-        },
-      ),
-    )..load();
-  }
-
-  @override
-  void dispose() {
-    _nativeAd?.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +32,7 @@ class _NativeAdCardState extends State<NativeAdCard> {
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
-          if (widget.isTop)
+          if (isTop)
             BoxShadow(
               color: AppColors.accentGold.withValues(alpha: 0.15),
               blurRadius: 40,
@@ -106,63 +45,168 @@ class _NativeAdCardState extends State<NativeAdCard> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Container(color: AppColors.grey15),
-            
-            // Ad Content
-            if (_isAdLoaded && _nativeAd != null)
-              Center(
-                child: SizedBox(
-                  // テンプレートが適切な高さになるように制限
-                  height: 350,
-                  child: AdWidget(ad: _nativeAd!),
-                ),
-              )
-            else
-              const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.accentGold,
+            // Premium Background Gradient
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.accentGold.withValues(alpha: 0.15),
+                      AppColors.grey15,
+                      AppColors.grey15,
+                      AppColors.black.withValues(alpha: 0.4),
+                    ],
+                    stops: const [0.0, 0.3, 0.7, 1.0],
+                  ),
                 ),
               ),
+            ),
             
-            // タスク名と同じ位置に「Sponsored」を配置
+            // Center Area: Thank You Message & Ad Content
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+
+                  if (isAdLoaded && nativeAd != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.black.withValues(alpha: 0.4),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: SizedBox(
+                            height: 360,
+                            child: AdWidget(ad: nativeAd!),
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (isAdLoadFailed)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Icon(Icons.campaign_rounded, color: AppColors.grey30, size: 64),
+                    )
+                  else
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: CircularProgressIndicator(color: AppColors.accentGold),
+                    ),
+                ],
+              ),
+            ),
+            
+            // Top Left Badge
             Positioned(
               top: 24,
               left: 20,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.grey15.withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.white.withValues(alpha: 0.1),
-                    width: 0.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.black.withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  color: AppColors.accentGold.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   'Sponsored',
                   style: GoogleFonts.outfit(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.white,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.accentGold,
                     letterSpacing: 1,
                   ),
                 ),
               ),
             ),
             
+            // Bottom Left: Fake Profile (Matches standard post layout)
+            Positioned(
+              bottom: 32,
+              left: 20,
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.grey20,
+                      border: Border.all(
+                        color: AppColors.accentGold.withValues(alpha: 0.5), 
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Icon(Icons.handshake_rounded, size: 24, color: AppColors.accentGold),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'V EFFECT Sponsor',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Partner',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            // Bottom Right: AD Action Badge
+            Positioned(
+              bottom: 32,
+              right: 20,
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accentGold.withValues(alpha: 0.15),
+                  border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.4), width: 1.5),
+                ),
+                child: Center(
+                  child: Text(
+                    'AD',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.accentGold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
             // Dim Overlay for un-focused cards
-            if (widget.dimAlpha > 0)
+            if (dimAlpha > 0)
               Positioned.fill(
                 child: IgnorePointer(
                   child: Container(
-                    color: Colors.black.withValues(alpha: widget.dimAlpha),
+                    color: Colors.black.withValues(alpha: dimAlpha),
                   ),
                 ),
               ),

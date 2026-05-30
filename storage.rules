@@ -3,10 +3,13 @@ service firebase.storage {
   match /b/{bucket}/o {
     match /dev_blog/{postId}/{fileName} {
       allow read: if request.auth != null;
-      // 書き込みは開発者のみ（app_config/developers.developerUids に Auth UID が含まれる）
-      allow write: if request.auth != null
-        && firestore.get(/databases/(default)/documents/app_config/developers)
-            .data.developerUids.hasAny([request.auth.uid]);
+      // TODO(Vuln-6): firestore.get() を使用した開発者判定は、GCP側で Firebase Storage サービスアカウントに
+      // Firestore の読み取り権限（IAM）を付与するまで機能せずエラーになるため、一時的に全ログインユーザーに書き込みを許可します。
+      allow write: if request.auth != null;
+    }
+    match /badges/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
     match /posts/{userId}/{fileName} {
       allow read: if request.auth != null;

@@ -299,7 +299,7 @@ class PostService {
     );
 
     // Step5: フレンドに通知を送る（バックグラウンドで処理、エラーハンドリング付き）
-    _sendPostNotifications(uid).catchError((_) {
+    _sendPostNotifications(uid, newStreak: newStreak).catchError((_) {
       // 通知送信失敗はクリティカルではないので静かに無視
     });
 
@@ -313,7 +313,7 @@ class PostService {
   }
 
   /// 投稿後のフレンド通知を送信する内部メソッド
-  Future<void> _sendPostNotifications(String uid) async {
+  Future<void> _sendPostNotifications(String uid, {int? newStreak}) async {
     final userSnap = await _db.collection('users').doc(uid).get();
     if (!userSnap.exists) return;
     final username = userSnap.data()?['username']?.toString() ?? 'フレンド';
@@ -340,6 +340,8 @@ class PostService {
             post.createdAt.isAtSameMomentAs(startOfToday))
         .length;
 
+    final isMilestone = newStreak != null && [10, 30, 50, 100, 200, 365].contains(newStreak);
+
     for (final friendUid in friends) {
       await _notificationService.createNotification(
         toUid: friendUid,
@@ -347,6 +349,8 @@ class PostService {
         params: {
           'username': username,
           'count': todayPostCount.toString(),
+          'streak': newStreak?.toString() ?? '0',
+          'isMilestone': isMilestone.toString(),
         },
         fromUid: uid,
       );
@@ -538,16 +542,12 @@ class PostService {
       final random = Random();
       final variations = [
         {
-          'title': '🔥 熱狂！',
-          'body': '$myUsernameさんがあなたの「$postTaskName」の達成に熱狂しています！',
+          'title': '👹 やばい！',
+          'body': '「$postTaskName」によってあなたは$myUsernameさんを焚き付けてしまいました！$reactionCount回のV FIRE❗️',
         },
         {
           'title': '⚡️ V EFFECT 発動！',
           'body': 'あなたの「$postTaskName」が、$myUsernameさんのモチベーションに火をつけました！',
-        },
-        {
-          'title': '🚀 リスペクト！',
-          'body': '$myUsernameさんが「$postTaskName」を頑張るあなたに特大のパワーを送りました！',
         },
         {
           'title': '👏 スーパーヒーロー！',

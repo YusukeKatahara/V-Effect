@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
@@ -17,6 +18,7 @@ import '../models/post.dart';
 import '../services/post_service.dart';
 import '../services/block_service.dart';
 import '../services/sound_service.dart';
+import '../utils/ad_helper.dart';
 import '../widgets/v_effect_header.dart';
 import '../widgets/native_ad_card.dart';
 import '../widgets/weekly_review_banner.dart';
@@ -81,6 +83,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _showSwipeGuide = false;
   late final AnimationController _swipeGuideController;
   late final Animation<double> _swipeGuideTranslation;
+  
+  // ── Ad Preloading ──
+  NativeAd? _preloadedAd;
+  bool _isAdLoaded = false;
+  bool _isAdLoadFailed = false;
 
   // pageController.page を直接参照するように変更
   int get _focusedIndex {
@@ -180,11 +187,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _requestTrackingAuthorization();
     });
+
+    _preloadNativeAd();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _preloadedAd?.dispose();
     _pageController.dispose();
     _flashController.dispose();
     _reactionMenuController.dispose();
@@ -195,6 +205,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _comboResetTimer?.cancel();
     _swipeGuideController.dispose();
     super.dispose();
+  }
+
+  void _preloadNativeAd() {
+    _preloadedAd = NativeAd(
+      adUnitId: AdHelper.nativeAdUnitId,
+      request: const AdRequest(),
+      nativeTemplateStyle: NativeTemplateStyle(
+        templateType: TemplateType.medium,
+        mainBackgroundColor: AppColors.grey15,
+        cornerRadius: 24.0,
+        callToActionTextStyle: NativeTemplateTextStyle(
+          textColor: Colors.white,
+          backgroundColor: AppColors.accentGold,
+          style: NativeTemplateFontStyle.bold,
+          size: 16.0,
+        ),
+        primaryTextStyle: NativeTemplateTextStyle(
+          textColor: Colors.white,
+          style: NativeTemplateFontStyle.bold,
+          size: 18.0,
+        ),
+        secondaryTextStyle: NativeTemplateTextStyle(
+          textColor: AppColors.textSecondary,
+          style: NativeTemplateFontStyle.normal,
+          size: 14.0,
+        ),
+        tertiaryTextStyle: NativeTemplateTextStyle(
+          textColor: AppColors.textSecondary,
+          style: NativeTemplateFontStyle.normal,
+          size: 14.0,
+        ),
+      ),
+      listener: NativeAdListener(
+        onAdLoaded: (ad) {
+          if (mounted) {
+            setState(() {
+              _preloadedAd = ad as NativeAd;
+              _isAdLoaded = true;
+            });
+          }
+        },
+        onAdFailedToLoad: (ad, error) {
+          debugPrint('NativeAd failed to load: $error');
+          ad.dispose();
+          if (mounted) {
+            setState(() {
+              _isAdLoadFailed = true;
+            });
+          }
+        },
+      ),
+    )..load();
   }
 
 
@@ -555,7 +617,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       // VFIRE はデバウンス（連打が止まってから500msで同期）
       // 投稿ごとに独立してカウントとタイマーを管理する
       _pendingFlameCounts[post.id] = (_pendingFlameCounts[post.id] ?? 0) + 1;
-      _reactingPostIds.add(post.id); 
 
       _flameDebounceTimers[post.id]?.cancel();
       _flameDebounceTimers[post.id] = Timer(const Duration(milliseconds: 500), () async {
@@ -580,7 +641,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           } catch (e) {
             debugPrint('Flame sync error: $e');
           } finally {
-            _cleanupReactionLock(post.id);
+            // VFIREでは _reactingPostIds は使用しないため、ロック解除は不要
           }
         }
       });
@@ -1942,6 +2003,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ? NativeAdCard(
                   dimAlpha: dimAlpha,
                   isTop: index == _focusedIndex,
+                  nativeAd: _preloadedAd,
+                  isAdLoaded: _isAdLoaded,
+                  isAdLoadFailed: _isAdLoadFailed,
                 )
               : () {
                   final post = item as Post;
@@ -1958,6 +2022,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     userBadgeUrl: badgeUrl,
                     userBadgeAnimation: badgeAnimation,
                     dimAlpha: dimAlpha,
+                    parallaxOffset: relativePos * 0.4,
                     onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
                     isTop: index == _focusedIndex,
                     tierColor: tierColor,
@@ -2129,6 +2194,7 @@ class _FeedCard extends StatelessWidget {
     this.userBadgeUrl,
     this.userBadgeAnimation,
     required this.dimAlpha,
+    this.parallaxOffset = 0.0,
     required this.onReaction,
     required this.isTop,
     required this.tierColor,
@@ -2144,6 +2210,7 @@ class _FeedCard extends StatelessWidget {
   final String? userBadgeUrl;
   final String? userBadgeAnimation;
   final double dimAlpha;
+  final double parallaxOffset;
   final Function({String? emoji}) onReaction;
   final bool isTop;
   final Color tierColor;
@@ -2187,6 +2254,7 @@ class _FeedCard extends StatelessWidget {
                           child: CachedNetworkImage(
                             imageUrl: post.imageUrl!,
                             fit: BoxFit.cover,
+                            alignment: Alignment(parallaxOffset, 0),
                             memCacheWidth: 1600,
                             placeholder:
                                 (ctx, url) => Container(

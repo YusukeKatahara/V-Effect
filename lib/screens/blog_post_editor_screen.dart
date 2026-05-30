@@ -275,7 +275,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
       debugPrint('Save error: $e');
       if (mounted) {
         setState(() => _isSaving = false);
-        _showError('保存に失敗しました');
+        _showError('エラー: $e');
       }
     }
   }

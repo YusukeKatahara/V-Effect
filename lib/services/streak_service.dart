@@ -147,12 +147,15 @@ class StreakService {
     final celebrationEnabled = userData['streakCelebrationNotifications'] ?? true;
     
     if (pushEnabled && celebrationEnabled) {
-      final milestones = [7, 30, 50, 100, 200, 365];
+      final milestones = [10, 30, 50, 100, 200, 365];
       if (milestones.contains(newStreak)) {
         NotificationService.instance.createNotification(
           toUid: uid,
           type: NotificationType.streakCelebration,
-          params: {'streak': newStreak.toString()},
+          params: {
+            'streak': newStreak.toString(),
+            'username': userData['username']?.toString() ?? 'あなた',
+          },
         ).catchError((e) => debugPrint('Celebration notification error: $e'));
       }
     }
@@ -228,12 +231,15 @@ class StreakService {
     final celebrationEnabled = data['streakCelebrationNotifications'] ?? true;
     
     if (pushEnabled && celebrationEnabled) {
-      final milestones = [7, 30, 50, 100, 200, 365];
+      final milestones = [10, 30, 50, 100, 200, 365];
       if (milestones.contains(newStreak)) {
         NotificationService.instance.createNotification(
           toUid: uid,
           type: NotificationType.streakCelebration,
-          params: {'streak': newStreak.toString()},
+          params: {
+            'streak': newStreak.toString(),
+            'username': data['username']?.toString() ?? 'あなた',
+          },
         ).catchError((e) => debugPrint('Celebration notification error: $e'));
       }
     }

@@ -81,12 +81,8 @@ abstract class NotificationMessages {
     // ── ストリーク達成祝い ──
     NotificationType.streakCelebration: [
       _Template(
-        title: '🎉 伝説の始まり',
-        body: '素晴らしい！{streak}日連続で自分に勝ち続けています。この調子で伝説を刻みましょう！',
-      ),
-      _Template(
-        title: '🏆 圧倒的な継続力',
-        body: '{streak}日間の継続達成！あなたの意志の強さは本物です。',
+        title: '🤯 どわー！',
+        body: '{username}さんはもう勝ち癖が付き始めているそうです...！',
       ),
     ],
     // ── ストリーク危機通知 ──
@@ -105,8 +101,8 @@ abstract class NotificationMessages {
   /// 2つ目以上の複数タスク完了時の特別テンプレート（ランダムで選ばれる）
   static final _multipleTaskTemplates = [
     const _Template(
-      title: '🛡️ 勝ち癖の引力',
-      body: '{username}さんに勝利が吸い寄せられています！本日早くも{count}つ目のタスクを制破🔥',
+      title: '🤚 さらなる高みへ',
+      body: '{username}さんは{count}つ目のタスクを達成。どうやら冷笑はもう古いようです🔍',
     ),
     const _Template(
       title: '⚡️ 勝利者効果 / V EFFECT',
@@ -129,6 +125,13 @@ abstract class NotificationMessages {
   ]) {
     // 2回目以降のヒーロータスク達成の場合は、専用のランダムテンプレートを使用する
     if (type == NotificationType.friendTaskCompleted) {
+      if (params['isMilestone'] == 'true') {
+        return NotificationContent(
+          title: '🤯 どわー！',
+          body: '${params['streak']}日連続！${params['username'] ?? ''}さんはもう勝ち癖が付き始めているそうです...！',
+        );
+      }
+
       final countStr = params['count'];
       if (countStr != null) {
         final count = int.tryParse(countStr) ?? 1;

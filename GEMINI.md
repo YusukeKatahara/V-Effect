@@ -14,6 +14,13 @@ This file provides context and instructions for the Gemini CLI. It imports exist
 - **File Management**: Use `read_url_content` (or similar tools) to fetch documentation when needed.
 - **Safety**: Ensure API keys and sensitive data are never committed (check `.env` and `.gitignore`).
 
+## Version Update Procedures (バージョン変更時の手順)
+
+- **Automated Update & Sync**: `pubspec.yaml` のバージョンを変更する指示を受けた際は、単にファイルを書き換えるだけでなく、必ず以下の手順を連続して実行すること：
+  1. `pubspec.yaml` のバージョン番号（およびビルド番号）を更新。
+  2. `flutter pub get` を実行して依存関係を同期。
+  3. `flutter build ios --config-only` コマンドを実行し、Xcode用のビルド構成ファイル（`Generated.xcconfig` など）に新しいバージョンを強制的に同期させる。
+
 ## Build Error & Debugging (Efficiency)
 
 - **Prioritize Error Messages**: When a build error occurs, identify the first specific error message and file path. Don't process the entire log if it's too large.

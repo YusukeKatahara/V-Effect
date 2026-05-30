@@ -6,15 +6,22 @@
 
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Performance Optimization & Feature Enhancement (Data Hardening Focus)
-- **Last Updated:** 2026-04-06
+- **Last Updated:** 2026-05-29
 - **Activeエージェント:** Antigravity
-- **Current Task:** Established Comprehensive Coding Guidelines & Hardened Data Layer
-- **Action:** Formulated project-wide coding standards in SKILL.md and implemented Firestore hardening for reaction persistence.
+- **Current Task:** App Version Update to ver1.2
+- **Action:** Updated app version in pubspec.yaml to 1.2.0+6 and ran flutter pub get.
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-05-29 (Antigravity)
+- **App Version Update to ver1.2 (アプリバージョンのver1.2への更新):**
+    - `pubspec.yaml` のアプリバージョンを `1.1.1+5` から `1.2.0+6` にアップデート（バージョン表記を1.2.0、ビルド番号（端末側での識別番号）を6に設定）しました。
+    - `flutter pub get`（パッケージ情報を同期するコマンド）および `flutter build ios --config-only` を実行し、Xcodeのビルド設定ファイル（`Generated.xcconfig`）まで一気通貫で最新化しました。
+- **Rule Addition in GEMINI.md (ルール追加):**
+    - 今後エージェントがバージョンを変更する際、Xcode側でのバージョン不整合を防ぐため、`pubspec.yaml` 更新時に `flutter pub get` と `flutter build ios --config-only` コマンドを必ず自動で連続実行する開発ルールを `GEMINI.md`（エージェント設定ファイル）に規定しました。
 
 ### 2026-05-25 (Antigravity)
 - **Smooth Date Reset Implementation:**

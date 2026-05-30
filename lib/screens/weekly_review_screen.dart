@@ -12,6 +12,7 @@ import 'dart:io';
 import '../config/app_colors.dart';
 import '../models/post.dart';
 import '../providers/weekly_review_provider.dart';
+import 'share_preview_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -70,39 +71,98 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     }
   }
 
-  Future<void> _shareSummary() async {
-    if (_isSharing) return;
-    setState(() => _isSharing = true);
-
-    try {
-      final boundary = _summaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) return;
-
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      final pngBytes = byteData!.buffer.asUint8List();
-
-      final directory = await getTemporaryDirectory();
-      final path = '${directory.path}/v_effect_review_${DateTime.now().millisecondsSinceEpoch}.png';
-      final file = File(path);
-      await file.writeAsBytes(pngBytes);
-
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(path)],
-          text: '今週も${_posts.length}回のヒーロータスクを完遂！\n現在のストリーク: $_currentStreak日 🔥\n#VEffect',
-        ),
-      );
-    } catch (e) {
-      debugPrint('Share error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('シェアに失敗しました。もう一度お試しください。')),
+  void _showShareImageSelection() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgBase,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '背景画像を選択',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.white),
+                ),
+                const SizedBox(height: 16),
+                if (_imagePosts.isEmpty)
+                  Container(
+                    height: 100,
+                    alignment: Alignment.center,
+                    child: const Text('今週の投稿はまだありません。\nデフォルトの背景でシェアします。', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary)),
+                  )
+                else
+                  SizedBox(
+                    height: 140, // 横スクロールの高さ
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _imagePosts.length,
+                      itemBuilder: (context, index) {
+                        final post = _imagePosts[index];
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context); // ボトムシートを閉じる
+                            _navigateToPreview(post.imageUrl);
+                          },
+                          child: Container(
+                            width: 100,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              image: DecorationImage(
+                                image: CachedNetworkImageProvider(post.imageUrl!),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _navigateToPreview(null);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.white,
+                      side: BorderSide(color: AppColors.white.withValues(alpha: 0.2)),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('背景画像なしでシェア'),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
-      }
-    } finally {
-      if (mounted) setState(() => _isSharing = false);
-    }
+      },
+    );
+  }
+
+  void _navigateToPreview(String? imageUrl) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SharePreviewScreen(
+          imageUrl: imageUrl,
+          postsCount: _posts.length,
+          currentStreak: _currentStreak,
+          totalVFire: _totalVFire,
+          totalReactions: _totalReactions,
+        ),
+      ),
+    );
   }
 
   @override
@@ -177,11 +237,9 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               color: AppColors.bgBase,
               child: ElevatedButton.icon(
-                onPressed: _isSharing ? null : _shareSummary,
-                icon: _isSharing 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bgBase))
-                    : const Icon(Icons.share, color: AppColors.bgBase),
-                label: Text(_isSharing ? '準備中...' : 'VウォールをSNSへシェア', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
+                onPressed: _showShareImageSelection,
+                icon: const Icon(Icons.share, color: AppColors.bgBase),
+                label: const Text('SNSへシェア', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accentGold,
                   minimumSize: const Size(double.infinity, 56),
@@ -197,35 +255,21 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
 
   Widget _buildSummaryCard() {
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: AppColors.cardGradient,
-        borderRadius: BorderRadius.circular(24),
+        color: AppColors.black.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.1), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.5),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(child: _buildStravaStat('WEEKLY COMPLETED', '${_posts.length}', 'TASKS')),
-              Expanded(child: _buildStravaStat('CURRENT STREAK', '$_currentStreak', 'DAYS')),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(child: _buildStravaStat('TOTAL VFIRE', '$_totalVFire', '🔥')),
-              Expanded(child: _buildStravaStat('TOTAL REACTIONS', '$_totalReactions', '💬')),
-            ],
-          ),
+          _buildStatRow('今週のタスク', '${_posts.length}'),
+          Divider(color: AppColors.white.withValues(alpha: 0.1), height: 1, indent: 16),
+          _buildStatRow('連続達成', '$_currentStreak'),
+          Divider(color: AppColors.white.withValues(alpha: 0.1), height: 1, indent: 16),
+          _buildStatRow('累計VFIRE', '$_totalVFire'),
+          Divider(color: AppColors.white.withValues(alpha: 0.1), height: 1, indent: 16),
+          _buildStatRow('リアクション', '$_totalReactions'),
         ],
       ),
     );
@@ -243,18 +287,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(
-            'VICTORY WALL',
-            style: GoogleFonts.outfit(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 2.0,
-              color: AppColors.white,
-            ),
-          ),
-        ),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -328,45 +360,30 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     );
   }
 
-  Widget _buildStravaStat(String label, String value, String unit) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.outfit(
-            fontSize: 10,
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.0,
+  Widget _buildStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              value,
-              style: GoogleFonts.outfit(
-                fontSize: 32,
-                fontWeight: FontWeight.w900,
-                color: AppColors.white,
-                height: 1.1,
-              ),
+          Text(
+            value,
+            style: GoogleFonts.outfit(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: AppColors.white,
             ),
-            const SizedBox(width: 4),
-            Text(
-              unit,
-              style: GoogleFonts.outfit(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: AppColors.accentGold,
-              ),
-            ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
