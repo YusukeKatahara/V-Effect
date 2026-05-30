@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -42,6 +43,24 @@ void main() {
         debugPrint('Firebase already initialized (duplicate-app ignored)');
       } else {
         debugPrint('Firebase初期化エラー (非致命的): $e');
+      }
+    }
+
+    // App Check: 改造クライアントや外部スクリプトからの直接 API 叩きを抑止する。
+    // 失敗してもアプリ自体は動かしたいので catch して握りつぶす。
+    // 本番では Android=Play Integrity / iOS=App Attest、デバッグ時はデバッグプロバイダーを使う。
+    if (Firebase.apps.isNotEmpty) {
+      try {
+        await FirebaseAppCheck.instance.activate(
+          providerAndroid: kDebugMode
+              ? AndroidDebugProvider()
+              : AndroidPlayIntegrityProvider(),
+          providerApple: kDebugMode
+              ? AppleDebugProvider()
+              : AppleAppAttestProvider(),
+        );
+      } catch (e) {
+        debugPrint('App Check 初期化エラー (非致命的): $e');
       }
     }
 
