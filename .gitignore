@@ -72,3 +72,7 @@ ios/Flutter/flutter_export_environment.sh
 /lib/ui_emoji_test.dart
 /modify_home_screen.py
 /patch_*.dart
+
+# Security review artefacts (公開リポジトリでは未修正の脆弱性情報・攻撃シナリオを含むため除外)
+/docs/V-Effect_セキュリティ評価レポート.pdf
+/scratch/generate_security_report.py
