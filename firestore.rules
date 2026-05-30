@@ -154,6 +154,15 @@ service cloud.firestore {
     }
 
     // ────────────────────────────────────────
+    // loginAttempts コレクション（Admin SDK 専用）
+    // loginWithUserId Cloud Function が連続失敗回数とブロック解除時刻を記録する。
+    // クライアントから読み書きできるとロック回避が可能になるため一切拒否。
+    // ────────────────────────────────────────
+    match /loginAttempts/{uid} {
+      allow read, write: if false;
+    }
+
+    // ────────────────────────────────────────
     // analytics コレクション（Admin SDK 専用）
     // Flutter アプリからは一切アクセス不可
     // ────────────────────────────────────────

@@ -107,9 +107,12 @@ class _LoginScreenState extends State<LoginScreen>
       await _ensureUserDocAndNavigate();
     } on FirebaseFunctionsException catch (e) {
       debugPrint('Cloud Function error: ${e.code} - ${e.message}');
-      scaffold?.showSnackBar(
-        const SnackBar(content: Text('ユーザーIDまたはパスワードが間違っています')),
-      );
+      // resource-exhausted（連続失敗ロック）はサーバーが残り分数を含めたメッセージを返すので
+      // そのまま表示する。それ以外は一般化したメッセージ。
+      final msg = e.code == 'resource-exhausted' && (e.message?.isNotEmpty ?? false)
+          ? e.message!
+          : 'ユーザーIDまたはパスワードが間違っています';
+      scaffold?.showSnackBar(SnackBar(content: Text(msg)));
       if (mounted) setState(() => _isEmailLoading = false);
     } on FirebaseAuthException catch (e) {
       String msg = 'ログインに失敗しました';

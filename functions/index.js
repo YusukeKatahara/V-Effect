@@ -265,11 +265,29 @@ exports.sendPasswordReset = onCall(async (request) => {
 });
 
 /**
+ * 失敗回数 -> ブロック分数の段階的マッピング
+ *   5 回連続失敗:        10 分
+ *   10 回連続失敗:       30 分
+ *   15 回以降, 5 回ごと: 60 分
+ * 該当しない回数では 0 を返す（ブロック適用なし、カウントだけ進む）。
+ */
+function getLoginBlockMinutes(failedCount) {
+  if (failedCount === 5) return 10;
+  if (failedCount === 10) return 30;
+  if (failedCount >= 15 && (failedCount - 15) % 5 === 0) return 60;
+  return 0;
+}
+
+/**
  * ユーザーIDとパスワードを用いてログインするためのカスタム認証トークンを発行する
  *
  * クライアントから呼び出し:
  *   FirebaseFunctions.instance.httpsCallable('loginWithUserId')
  *     .call({ userId: '...', password: '...', apiKey: '...' })
+ *
+ * セキュリティ:
+ *   - 連続失敗回数を loginAttempts/{uid} に記録し、5/10/15+ 回で段階的ロック
+ *   - ロック解除はサーバー時間経過のみ。成功ログインでカウンタはリセット
  */
 exports.loginWithUserId = onCall(async (request) => {
   const { userId, password, apiKey } = request.data;
@@ -279,14 +297,28 @@ exports.loginWithUserId = onCall(async (request) => {
 
   const db = getFirestore();
   const usersSnap = await db.collection("users").where("userId", "==", userId).limit(1).get();
-  
+
   if (usersSnap.empty) {
     throw new HttpsError("not-found", "ユーザーIDまたはパスワードが正しくありません。");
   }
 
   const uid = usersSnap.docs[0].id;
+
+  // ── レート制限チェック ────────────────────────────
+  const attemptsRef = db.collection("loginAttempts").doc(uid);
+  const attemptsSnap = await attemptsRef.get();
+  const attemptsData = attemptsSnap.exists ? attemptsSnap.data() : {};
+  const blockUntilDate = attemptsData.blockUntil?.toDate?.();
+  if (blockUntilDate && blockUntilDate.getTime() > Date.now()) {
+    const remainingMinutes = Math.ceil((blockUntilDate.getTime() - Date.now()) / 60000);
+    throw new HttpsError(
+      "resource-exhausted",
+      `アカウントが一時的にロックされています。約${remainingMinutes}分後に再度お試しください。`
+    );
+  }
+
   const privateSnap = await db.collection("users").doc(uid).collection("private").doc("data").get();
-  
+
   if (!privateSnap.exists) {
     throw new HttpsError("not-found", "ユーザーIDまたはパスワードが正しくありません。");
   }
@@ -305,7 +337,34 @@ exports.loginWithUserId = onCall(async (request) => {
   });
 
   if (!response.ok) {
+    // ── 失敗を記録し、しきい値到達ならブロックを適用 ──
+    const newCount = (attemptsData.failedCount || 0) + 1;
+    const blockMinutes = getLoginBlockMinutes(newCount);
+    const update = {
+      failedCount: newCount,
+      lastFailedAt: FieldValue.serverTimestamp(),
+    };
+    if (blockMinutes > 0) {
+      update.blockUntil = new Date(Date.now() + blockMinutes * 60 * 1000);
+    }
+    await attemptsRef.set(update, { merge: true });
+
+    if (blockMinutes > 0) {
+      throw new HttpsError(
+        "resource-exhausted",
+        `パスワードが${newCount}回連続で間違っています。${blockMinutes}分間ログインできません。`
+      );
+    }
     throw new HttpsError("unauthenticated", "ユーザーIDまたはパスワードが正しくありません。");
+  }
+
+  // ── 成功: カウンタをリセット ──
+  if (attemptsSnap.exists) {
+    await attemptsRef.set({
+      failedCount: 0,
+      blockUntil: FieldValue.delete(),
+      lastSucceededAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
   }
 
   // 検証成功 -> カスタムトークンを発行
