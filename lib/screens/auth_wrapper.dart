@@ -6,7 +6,6 @@ import '../config/routes.dart';
 import '../services/analytics_service.dart';
 import '../widgets/splash_loading.dart';
 import '../widgets/global_error_widget.dart';
-import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'dart:async';
 
@@ -19,6 +18,8 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
+  // アプリ起動後に AuthWrapper が初めて評価されるタイミングだけ true。
+  // cold-start + オンボーディング未完了の組み合わせで「サイレントログアウト」を発火させるためのゲート。
   static bool _isFirstLaunch = true;
   bool _navigating = false;
   // FutureBuilder の再ビルドで同じ future が再利用されるようキャッシュ
@@ -44,7 +45,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       // キャッシュ上でオンボーディング完了済みと判定できれば、Firestoreの取得を待たずに即時 Home へルーティング！
       _isFirstLaunch = false;
       _navigateTo(AppRoutes.home);
-      return null; 
+      return null;
     }
     
     // キャッシュがない場合、または未完了の場合は通常通りFirestoreから状態を取得
@@ -111,16 +112,24 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
             final actualDoc = docSnapshot.data!;
 
-            // ドキュメントが存在しない → オンボーディング開始
+            // ドキュメントが存在しない or オンボーディング未完了 のまま cold-start で
+            // 戻ってきた場合は、データを破壊せず<b>サイレントログアウト</b>して LoginScreen に戻す。
+            // （以前はここで AuthService.deleteAccount() を呼んで全データを消していたが、
+            //   Firestore の一時的取得失敗でも誤発火する致命的リスクがあったため廃止。
+            //   オンボーディングは短く、cold-start で中断再開するケースは事実上ないとの判断。）
+            void signOutAndBail(String reason) {
+              _isFirstLaunch = false;
+              FirebaseAuth.instance.signOut().catchError((e) {
+                debugPrint('Auto sign-out failed ($reason): $e');
+              });
+            }
+
             if (!actualDoc.exists) {
               if (_isFirstLaunch) {
-                _isFirstLaunch = false;
-                AuthService().deleteAccount().catchError((e) {
-                  debugPrint('Incomplete account delete error: $e');
-                  FirebaseAuth.instance.signOut();
-                });
+                signOutAndBail('no-user-doc');
                 return const _SplashWithTimeout();
               }
+              // 同一セッション中（新規登録直後など）はオンボーディングへ流す。
               _navigateTo(AppRoutes.onboardingVEffect);
               return const _SplashWithTimeout();
             }
@@ -136,13 +145,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
               });
             }
 
-            // アプリ起動時にオンボーディング未完了ならアカウントを削除してやり直させる
+            // cold-start でオンボーディング未完了の場合はサイレントログアウト。
+            // 同一セッション中（onboardingStep を逐次更新しながら進行中）の再構築では
+            // 下の step 分岐で適切な画面に再開する。
             if (_isFirstLaunch && !isOnboardingCompleted) {
-              _isFirstLaunch = false;
-              AuthService().deleteAccount().catchError((e) {
-                debugPrint('Incomplete account delete error: $e');
-                FirebaseAuth.instance.signOut();
-              });
+              signOutAndBail('onboarding-incomplete');
               return const _SplashWithTimeout();
             }
             _isFirstLaunch = false;
