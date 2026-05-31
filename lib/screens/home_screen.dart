@@ -2003,7 +2003,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ? NativeAdCard(
                   dimAlpha: dimAlpha,
                   isTop: index == _focusedIndex,
-                  nativeAd: _preloadedAd,
+                  nativeAd: index == _focusedIndex ? _preloadedAd : null,
                   isAdLoaded: _isAdLoaded,
                   isAdLoadFailed: _isAdLoadFailed,
                 )

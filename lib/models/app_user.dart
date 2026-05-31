@@ -17,6 +17,7 @@ class AppUser {
   final String? lastPostedDate;
   final List<String> following;
   final List<String> followers;
+  final List<String> recentPostDates;
   final List<AppTask> tasks;
   final String? taskTime;
   final String? occupation;
@@ -48,6 +49,7 @@ class AppUser {
     this.lastPostedDate,
     this.following = const [],
     this.followers = const [],
+    this.recentPostDates = const [],
     this.tasks = const [],
     this.taskTime,
     this.occupation,
@@ -111,6 +113,7 @@ class AppUser {
       lastPostedDate: safeString(data['lastPostedDate']),
       following: extractUids('following', 'friends'),
       followers: extractUids('followers', 'friends'),
+      recentPostDates: (data['recentPostDates'] as List?)?.map((e) => e.toString()).toList() ?? [],
       tasks: (data['tasks'] as List? ?? [])
           .map((item) => AppTask.fromFirestore(item))
           .toList(),
@@ -150,6 +153,7 @@ class AppUser {
       'lastPostedDate': lastPostedDate,
       'following': following,
       'followers': followers,
+      'recentPostDates': recentPostDates,
       'tasks': tasks.map((t) => t.toFirestore()).toList(),
       'taskTime': taskTime,
       'occupation': occupation,

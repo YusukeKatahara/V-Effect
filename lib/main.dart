@@ -140,12 +140,7 @@ class _AppInitializerState extends State<AppInitializer> {
   Future<void> _syncWidgetData() async {
     try {
       if (FirebaseAuth.instance.currentUser != null) {
-        final isCompleted = await PostService.instance.hasPostedToday();
-        final streak = await PostService.instance.getStreak();
-        await WidgetService.instance.updateWidgetData(
-          isCompleted: isCompleted,
-          streakCount: streak,
-        );
+        await WidgetService.instance.updateWidgetData();
       }
     } catch (e) {
       debugPrint('WidgetSync Error: $e');
@@ -282,11 +277,7 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
       
       // ウィジェットを最新状態に同期
       if (FirebaseAuth.instance.currentUser != null) {
-        PostService.instance.hasPostedToday().then((isCompleted) {
-          PostService.instance.getStreak().then((streak) {
-            WidgetService.instance.updateWidgetData(isCompleted: isCompleted, streakCount: streak);
-          });
-        }).catchError((_) {});
+        WidgetService.instance.updateWidgetData();
       }
     } else if (state == AppLifecycleState.paused) {
       AnalyticsService.instance.onAppPaused();

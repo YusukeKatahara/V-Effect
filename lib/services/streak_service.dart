@@ -122,10 +122,20 @@ class StreakService {
 
     // 最大記録更新チェック
     final isRecordUpdating = newStreak > maxStreak;
+
+    final recentPostDates = (userData['recentPostDates'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    if (!recentPostDates.contains(today)) {
+      recentPostDates.add(today);
+      if (recentPostDates.length > 180) {
+        recentPostDates.removeAt(0);
+      }
+    }
+
     final updates = {
       'streak': newStreak,
       'streakProtections': currentProtections,
-      'lastPostedDate': today
+      'lastPostedDate': today,
+      'recentPostDates': recentPostDates,
     };
     if (isRecordUpdating) {
       updates['maxStreak'] = newStreak;
@@ -215,10 +225,20 @@ class StreakService {
 
     // 最大記録更新チェック
     final isRecordUpdating = newStreak > maxStreak;
+
+    final recentPostDates = (data['recentPostDates'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    if (!recentPostDates.contains(today)) {
+      recentPostDates.add(today);
+      if (recentPostDates.length > 180) {
+        recentPostDates.removeAt(0);
+      }
+    }
+
     final updates = {
       'streak': newStreak,
       'streakProtections': currentProtections,
-      'lastPostedDate': today
+      'lastPostedDate': today,
+      'recentPostDates': recentPostDates,
     };
     if (isRecordUpdating) {
       updates['maxStreak'] = newStreak;

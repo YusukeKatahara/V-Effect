@@ -310,11 +310,8 @@ class PostService {
     // データの変更をアプリ全体に通知
     _updateController.add(null);
 
-    // ウィジェットのデータを更新（今日タスク完了＝true、現在のストリーク）
-    WidgetService.instance.updateWidgetData(
-      isCompleted: true,
-      streakCount: newStreak,
-    );
+    // ウィジェットのデータを更新（データ自体は WidgetService 内部で取得）
+    WidgetService.instance.updateWidgetData();
 
     return streakResult;
   }
