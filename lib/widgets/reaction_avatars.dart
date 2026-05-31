@@ -36,13 +36,8 @@ class ReactionAvatarsStack extends StatelessWidget {
     }
     allMap.addAll(userReactions);
 
-    // VFIRE（🔥）リアクションを除外して、絵文字リアクションのみに絞り込む
-    final emojiMap = <String, String>{};
-    allMap.forEach((uid, emoji) {
-      if (emoji != '🔥') {
-        emojiMap[uid] = emoji;
-      }
-    });
+    // すべての絵文字リアクション（🔥を含む）を表示対象にする
+    final emojiMap = Map<String, String>.from(allMap);
 
     if (emojiMap.isEmpty) return const SizedBox.shrink();
 

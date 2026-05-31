@@ -26,6 +26,7 @@ import '../widgets/post_success_dialog.dart';
 import '../widgets/season_hint_modal.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/dev_blog_provider.dart';
+import '../services/app_review_service.dart';
 
 /// 内部管理用のタスクアイテム
 class _HeroTaskItem {
@@ -308,10 +309,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       // リアクションしたユーザーの情報を取得
       final Set<String> uidsToFetch = {};
       for (final item in items) {
-        final latest = item.latestPost;
-        if (latest != null) {
-          uidsToFetch.addAll(latest.emojiReactedUserIds);
-          uidsToFetch.addAll(latest.userReactions.keys);
+        for (final post in item.completedPosts) {
+          uidsToFetch.addAll(post.emojiReactedUserIds);
+          uidsToFetch.addAll(post.userReactions.keys);
         }
       }
 
@@ -457,6 +457,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           streakDays: newStreak,
           isRecordUpdating: isRecordUpdating,
         );
+        
+        // ダイアログ（7秒間の演出）が完了した直後に、必要に応じてレビューをリクエスト
+        await AppReviewService.instance.requestReviewIfNeeded(newStreak);
         
         // 4. 最後にデータを最新化して、NetworkImageなどへの切り替えを完了させる
         await _loadData();
@@ -1137,6 +1140,16 @@ class _TaskCardState extends State<_TaskCard> {
         ? sortedPosts[_currentPage] 
         : (sortedPosts.isNotEmpty ? sortedPosts.first : null);
 
+    int totalReactionCount = 0;
+    final Map<String, String> totalUserReactions = {};
+    final Set<String> totalEmojiReactedUserIds = {};
+
+    for (final post in sortedPosts) {
+      totalReactionCount += post.reactionCount;
+      totalUserReactions.addAll(post.userReactions);
+      totalEmojiReactedUserIds.addAll(post.emojiReactedUserIds);
+    }
+
     const bgColorTop = Color(0xFF1C1D21);
     const bgColorBottom = Color(0xFF121316);
 
@@ -1210,7 +1223,7 @@ class _TaskCardState extends State<_TaskCard> {
               else
                 _buildBackgroundImage(sortedPosts.first.imageUrl, isExpanded, isTop),
 
-            _buildStack(item, isCompleted, postCount, isTop, depth, isExpanded, showCamera, tierColor, currentPost, userPhotos),
+            _buildStack(item, isCompleted, postCount, isTop, depth, isExpanded, showCamera, tierColor, totalReactionCount, totalUserReactions, totalEmojiReactedUserIds.toList(), userPhotos),
           ],
         ),
       ),
@@ -1226,7 +1239,9 @@ class _TaskCardState extends State<_TaskCard> {
     bool isExpanded,
     bool showCamera,
     Color tierColor,
-    Post? currentPost,
+    int totalReactionCount,
+    Map<String, String> totalUserReactions,
+    List<String> totalEmojiReactedUserIds,
     Map<String, String?> userPhotos,
   ) {
     return Stack(
@@ -1461,7 +1476,7 @@ class _TaskCardState extends State<_TaskCard> {
                   SizedBox(
                     height: 16,
                     child: Text(
-                      '${currentPost?.reactionCount ?? 0}',
+                      '$totalReactionCount',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1475,16 +1490,16 @@ class _TaskCardState extends State<_TaskCard> {
           ),
 
           // リアクションアバター (V FIREの左横)
-          if (currentPost != null && (currentPost.reactionCount > 0))
+          if (totalReactionCount > 0)
             Positioned(
               bottom: 54,
               right: 88,
               child: IgnorePointer(
                 child: ReactionAvatarsStack(
-                  userReactions: currentPost.userReactions,
-                  reactorUids: currentPost.emojiReactedUserIds,
+                  userReactions: totalUserReactions,
+                  reactorUids: totalEmojiReactedUserIds,
                   userPhotos: userPhotos,
-                  reactionCount: currentPost.reactionCount,
+                  reactionCount: totalReactionCount,
                   avatarSize: 44,
                   overlapOffset: 28,
                 ),

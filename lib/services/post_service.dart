@@ -622,19 +622,21 @@ class PostService {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
-  /// 今週（直近7日間）の自分の投稿を取得します（WEEKLY REVIEW用）
+  /// 今週（月曜〜日曜）の自分の投稿を取得します（WEEKLY REVIEW用）
   ///
   /// パフォーマンス最適化のため、Firestore サーバー側でフィルタリングを行います。
   /// ※このクエリの実行には userId と createdAt の複合インデックスが必要です。
   Future<List<Post>> getWeeklyReviewPosts() async {
     final uid = _auth.currentUser!.uid;
-    final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
+    final now = DateTime.now();
+    // 月曜日の0:00を計算 (weekday: 1=Monday, 7=Sunday)
+    final startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
     
     try {
       // 1. 最適化クエリ（要：複合インデックス）
       final snap = await _postsRef
           .where(Post.fieldUserId, isEqualTo: uid)
-          .where(Post.fieldCreatedAt, isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
+          .where(Post.fieldCreatedAt, isGreaterThanOrEqualTo: Timestamp.fromDate(startOfWeek))
           .get();
 
       return snap.docs
@@ -657,7 +659,7 @@ class PostService {
 
         return snap.docs
             .map((doc) => doc.data())
-            .where((p) => p.createdAt.isAfter(sevenDaysAgo))
+            .where((p) => p.createdAt.isAfter(startOfWeek) || p.createdAt.isAtSameMomentAs(startOfWeek))
             .toList()
           ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
       }

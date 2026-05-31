@@ -84,10 +84,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late final AnimationController _swipeGuideController;
   late final Animation<double> _swipeGuideTranslation;
   
-  // ── Ad Preloading ──
-  NativeAd? _preloadedAd;
-  bool _isAdLoaded = false;
-  bool _isAdLoadFailed = false;
+  // ── Ad Caching ──
+  final Map<int, NativeAd> _nativeAds = {};
+  final Map<int, bool> _adLoadStatus = {}; // true: loaded, false: failed
 
   // pageController.page を直接参照するように変更
   int get _focusedIndex {
@@ -183,18 +182,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       value: 1.0, // 最初は広がっている
     );
 
-    // 最初のフレーム描画後にiOSのトラッキング許可（ATT）を要求
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _requestTrackingAuthorization();
     });
-
-    _preloadNativeAd();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _preloadedAd?.dispose();
+    for (final ad in _nativeAds.values) {
+      ad.dispose();
+    }
     _pageController.dispose();
     _flashController.dispose();
     _reactionMenuController.dispose();
@@ -207,8 +205,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.dispose();
   }
 
-  void _preloadNativeAd() {
-    _preloadedAd = NativeAd(
+  void _loadAdForIndex(int index) {
+    if (_nativeAds.containsKey(index) || _adLoadStatus.containsKey(index)) return;
+
+    final ad = NativeAd(
       adUnitId: AdHelper.nativeAdUnitId,
       request: const AdRequest(),
       nativeTemplateStyle: NativeTemplateStyle(
@@ -238,25 +238,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ),
       ),
       listener: NativeAdListener(
-        onAdLoaded: (ad) {
+        onAdLoaded: (loadedAd) {
           if (mounted) {
             setState(() {
-              _preloadedAd = ad as NativeAd;
-              _isAdLoaded = true;
+              _adLoadStatus[index] = true;
             });
           }
         },
-        onAdFailedToLoad: (ad, error) {
-          debugPrint('NativeAd failed to load: $error');
-          ad.dispose();
+        onAdFailedToLoad: (failedAd, error) {
+          debugPrint('NativeAd failed to load at index $index: $error');
+          failedAd.dispose();
           if (mounted) {
             setState(() {
-              _isAdLoadFailed = true;
+              _adLoadStatus[index] = false;
             });
           }
         },
       ),
-    )..load();
+    );
+    _nativeAds[index] = ad;
+    ad.load();
   }
 
 
@@ -398,6 +399,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     HapticFeedback.mediumImpact();
 
     try {
+      for (final ad in _nativeAds.values) {
+        ad.dispose();
+      }
+      _nativeAds.clear();
+      _adLoadStatus.clear();
+
       ref.invalidate(homeDataProvider);
       await ref.read(homeDataProvider.future);
     } catch (e) {
@@ -934,8 +941,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         final newItems = <dynamic>[];
         for (int i = 0; i < combinedPosts.length; i++) {
           newItems.add(combinedPosts[i]);
-          // 最初の投稿の直後（右スライド1回目）にのみ広告を挿入
-          if (i == 0) {
+          // 最初の投稿の直後、およびその後3投稿ごとに広告を挿入
+          if (i % 3 == 0) {
             newItems.add('ad');
           }
         }
@@ -2000,13 +2007,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             width: cardWidth,
             height: cardHeight,
             child: item is String && item == 'ad'
-              ? NativeAdCard(
-                  dimAlpha: dimAlpha,
-                  isTop: index == _focusedIndex,
-                  nativeAd: index == _focusedIndex ? _preloadedAd : null,
-                  isAdLoaded: _isAdLoaded,
-                  isAdLoadFailed: _isAdLoadFailed,
-                )
+              ? () {
+                  // 近くの広告のみロード
+                  int dist = (index - _focusedIndex).abs();
+                  if (dist > _feedItems.length / 2) {
+                     dist = _feedItems.length - dist;
+                  }
+                  if (dist <= 3) {
+                    _loadAdForIndex(index);
+                  }
+                  return NativeAdCard(
+                    dimAlpha: dimAlpha,
+                    isTop: index == _focusedIndex,
+                    nativeAd: index == _focusedIndex ? _nativeAds[index] : null,
+                    isAdLoaded: _adLoadStatus[index] == true,
+                    isAdLoadFailed: _adLoadStatus[index] == false,
+                  );
+                }()
               : () {
                   final post = item as Post;
                   final username = _userNames[post.userId] ?? 'Unknown';

@@ -20,7 +20,7 @@ class WeeklyReviewData {
 final weeklyReviewProvider = FutureProvider.autoDispose<WeeklyReviewData>((ref) async {
   final postService = PostService.instance;
   
-  // 自分のストリーク数と、直近7日間の投稿を並列で取得
+  // 自分のストリーク数と、今週（月曜〜日曜）の投稿を並列で取得
   final results = await Future.wait([
     postService.getWeeklyReviewPosts(),
     postService.getStreak(),
@@ -29,7 +29,7 @@ final weeklyReviewProvider = FutureProvider.autoDispose<WeeklyReviewData>((ref) 
   final posts = results[0] as List<Post>;
   final streak = results[1] as int;
 
-  // VFIRE(🔥)の合計とその他の絵文字リアクションの合計を計算
+  // 今週（月曜〜日曜）のVFIRE(🔥)の合計とその他の絵文字リアクションの合計を計算
   int totalVFire = 0;
   int totalReactions = 0;
   for (final post in posts) {

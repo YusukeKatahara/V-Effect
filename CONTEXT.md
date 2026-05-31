@@ -5,16 +5,26 @@
 ---
 
 ## 🔄 Current Status (現在の状況)
-- **Phase:** Performance Optimization & Feature Enhancement (Data Hardening Focus)
-- **Last Updated:** 2026-05-29
+- **Phase:** Live in Production / Performance Optimization & Feature Enhancement
+- **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
+- **Last Updated:** 2026-05-31
 - **Activeエージェント:** Antigravity
-- **Current Task:** App Version Update to ver1.2
-- **Action:** Updated app version in pubspec.yaml to 1.2.0+6 and ran flutter pub get.
+- **Current Task:** App version update to ver1.3.1
+- **Action:** Updated version to 1.3.1+10 in pubspec.yaml and synchronized dependencies/iOS configuration files.
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-05-31 (Antigravity)
+- **App Version Update to ver1.3.1 (アプリバージョンのver1.3.1への更新):**
+    - `pubspec.yaml` のアプリバージョンを `1.3.0+9` から `1.3.1+10` にアップデートしました。
+    - `flutter pub get` および `flutter build ios --config-only` を実行し、Xcodeのビルド設定ファイル（`Generated.xcconfig`）まで最新化を同期しました。
+- **In-App Review Implementation for ASO:**
+    - `in_app_review` パッケージを追加し、iOS向けのApp Storeレビューリクエストを組み込みました。
+    - `AppReviewService` を実装し、ストリーク数が `10日` の節目に達した際に一度だけレビューをリクエストするように設定。すでに10日を超えているユーザーは次回達成時に一度だけ表示されるよう判定を工夫しました。
+    - `HeroTasksScreen` 内の「プレミアム・ヴィクトリー」の7秒間の演出（`PostSuccessDialog`）が完全に終了した直後にポップアップが表示されるようにし、ユーザーの達成感の余韻の中で★5レビューを促すよう最適化しました。
 
 ### 2026-05-29 (Antigravity)
 - **App Version Update to ver1.2 (アプリバージョンのver1.2への更新):**
