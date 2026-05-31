@@ -309,7 +309,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           controller: triggerController,
                           style: const TextStyle(color: AppColors.white),
                           decoration: const InputDecoration(
-                            hintText: 'トリガー (任意)',
+                            hintText: 'トリガー（トリガーは自分のみ表示されます,任意）',
                             hintStyle: TextStyle(color: AppColors.grey30),
                           ),
                         ),
@@ -432,7 +432,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             controller: triggerController,
                             style: const TextStyle(color: AppColors.white),
                             decoration: const InputDecoration(
-                              hintText: 'トリガー (任意)',
+                              hintText: 'トリガー（トリガーは自分のみ表示されます,任意）',
                               hintStyle: TextStyle(color: AppColors.grey30),
                             ),
                           ),
@@ -770,7 +770,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildTitleBar() {
     return VEffectHeader(
       leading: IconButton(
-        icon: const Icon(Icons.edit_outlined, color: AppColors.white),
+        icon: const Icon(Icons.edit_outlined, color: AppColors.white, size: 22),
         onPressed: () async {
           if (_user == null) return;
           final didUpdate = await Navigator.push<bool>(
@@ -788,7 +788,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
       ),
       trailing: IconButton(
-        icon: const Icon(Icons.settings_outlined, color: AppColors.white),
+        icon: const Icon(Icons.settings_outlined, color: AppColors.white, size: 22),
         onPressed: () {
           Navigator.push(
             context,

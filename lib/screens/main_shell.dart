@@ -21,6 +21,9 @@ class MainShell extends StatefulWidget {
   final int initialIndex;
   const MainShell({super.key, this.initialIndex = 0});
 
+  /// 外部からタブを切り替えるためのグローバル変数
+  static final ValueNotifier<int> activeTabIndex = ValueNotifier<int>(0);
+
   @override
   State<MainShell> createState() => _MainShellState();
 }
@@ -32,13 +35,42 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    // 起動時の初期値をセット
+    MainShell.activeTabIndex.value = widget.initialIndex;
     _currentIndex = widget.initialIndex;
+
+    // 外部からのタブ切り替えを監視
+    MainShell.activeTabIndex.addListener(_onGlobalTabChanged);
 
     // 再インストール時やオンボーディングスキップ時のためのフォールバック
     // ホーム画面が表示された直後に通知許可ダイアログをチェック・表示する
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkNotificationPrompt();
     });
+  }
+
+  void _onGlobalTabChanged() {
+    if (mounted && _currentIndex != MainShell.activeTabIndex.value) {
+      setState(() {
+        _currentIndex = MainShell.activeTabIndex.value;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    MainShell.activeTabIndex.removeListener(_onGlobalTabChanged);
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(MainShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialIndex != oldWidget.initialIndex) {
+      setState(() {
+        _currentIndex = widget.initialIndex;
+      });
+    }
   }
 
   Future<void> _checkNotificationPrompt() async {
@@ -84,6 +116,7 @@ class _MainShellState extends State<MainShell> {
 
   void _onTap(int index) {
     HapticFeedback.selectionClick();
+    MainShell.activeTabIndex.value = index;
     setState(() => _currentIndex = index);
   }
 

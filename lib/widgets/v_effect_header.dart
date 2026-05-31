@@ -115,6 +115,7 @@ class NotificationBellIcon extends StatelessWidget {
             child: const Icon(
               Icons.notifications_outlined,
               color: AppColors.white,
+              size: 22,
             ),
           ),
           onPressed: () => Navigator.pushNamed(context, '/notifications'),

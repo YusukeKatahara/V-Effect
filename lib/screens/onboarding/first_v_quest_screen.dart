@@ -353,7 +353,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'トリガー (任意)',
+          'トリガー（トリガーは自分のみ表示されます,任意）',
           style: GoogleFonts.notoSansJp(
             fontSize: 12,
             color: AppColors.grey50,

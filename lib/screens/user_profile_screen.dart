@@ -68,7 +68,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final results = await Future.wait([
         _friendService.getUserByUid(_targetUid!),
         _friendService.isFollowing(_targetUid!),
-        _postService.getFriendPostsList(_targetUid!),
+        _postService.getFriendPostsList(_targetUid!).catchError((_) => <Post>[]),
         BlockService.instance.isBlocked(_targetUid!),
       ]);
 

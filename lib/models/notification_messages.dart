@@ -125,13 +125,8 @@ abstract class NotificationMessages {
   ]) {
     // 2回目以降のヒーロータスク達成の場合は、専用のランダムテンプレートを使用する
     if (type == NotificationType.friendTaskCompleted) {
-      if (params['isMilestone'] == 'true') {
-        return NotificationContent(
-          title: '🤯 どわー！',
-          body: '${params['streak']}日連続！${params['username'] ?? ''}さんはもう勝ち癖が付き始めているそうです...！',
-        );
-      }
-
+      // 1. 同日2回目以降のタスク完了を最優先でチェックする
+      // (マイルストーン達成日であっても、2回目の投稿では2回目用の通知を優先する)
       final countStr = params['count'];
       if (countStr != null) {
         final count = int.tryParse(countStr) ?? 1;
@@ -142,6 +137,14 @@ abstract class NotificationMessages {
             body: _replacePlaceholders(template.body, params),
           );
         }
+      }
+
+      // 2. その日の最初のタスクで、かつマイルストーン達成の場合
+      if (params['isMilestone'] == 'true') {
+        return NotificationContent(
+          title: '🤯 どわー！',
+          body: '${params['streak']}日連続！${params['username'] ?? ''}さんはもう勝ち癖が付き始めているそうです...！',
+        );
       }
     }
 

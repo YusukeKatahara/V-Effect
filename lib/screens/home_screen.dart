@@ -1106,7 +1106,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildTitleBar() => VEffectHeader(
     leading: IconButton(
-      icon: const Icon(Icons.search_rounded, color: AppColors.white),
+      icon: const Icon(Icons.search_rounded, color: AppColors.white, size: 22),
       onPressed: () => Navigator.pushNamed(context, '/search'),
     ),
     trailing: const NotificationBellIcon(),
@@ -2022,7 +2022,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     userBadgeUrl: badgeUrl,
                     userBadgeAnimation: badgeAnimation,
                     dimAlpha: dimAlpha,
-                    parallaxOffset: relativePos * 0.4,
                     onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
                     isTop: index == _focusedIndex,
                     tierColor: tierColor,
@@ -2097,7 +2096,17 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> {
             children: [
               _RefreshRingButton(
                 icon: Icons.lock_outline_rounded,
-                onTap: widget.onRefresh,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('（更新）タスクを投稿してフレンドの投稿を見れる状態にしよう！'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                  if (widget.onRefresh != null) {
+                    widget.onRefresh!();
+                  }
+                },
               ),
 
               const SizedBox(height: 48),
@@ -2167,10 +2176,13 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> {
               ),
               const SizedBox(height: 16),
               Text(
-                'あなたの「V」を投稿して、\n今日という日を完成させよう。',
+                // 勝利者効果 (Winner Effect: 成功体験がさらなる成功を呼び込む心理的効果) は、
+                // たとえ継続が途切れても、再び歩み始めることで何度でも自分の意志で再現できるという励ましのメッセージです。
+                'ストリークが止まったとしても、\nあなたの歩みさえ止まらなければ\nV EFFECTは何度でも引き起こせる。',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.notoSansJp(
-                  fontSize: 14,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                   color: AppColors.grey50,
                   height: 1.6,
                 ),
@@ -2194,7 +2206,6 @@ class _FeedCard extends StatelessWidget {
     this.userBadgeUrl,
     this.userBadgeAnimation,
     required this.dimAlpha,
-    this.parallaxOffset = 0.0,
     required this.onReaction,
     required this.isTop,
     required this.tierColor,
@@ -2210,7 +2221,6 @@ class _FeedCard extends StatelessWidget {
   final String? userBadgeUrl;
   final String? userBadgeAnimation;
   final double dimAlpha;
-  final double parallaxOffset;
   final Function({String? emoji}) onReaction;
   final bool isTop;
   final Color tierColor;
@@ -2254,7 +2264,7 @@ class _FeedCard extends StatelessWidget {
                           child: CachedNetworkImage(
                             imageUrl: post.imageUrl!,
                             fit: BoxFit.cover,
-                            alignment: Alignment(parallaxOffset, 0),
+                            alignment: Alignment.center,
                             memCacheWidth: 1600,
                             placeholder:
                                 (ctx, url) => Container(

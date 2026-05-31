@@ -622,7 +622,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               children: [
                 IconButton(
                   // 左上のブックマーク（本）アイコン。ベルマークの色と統一するために白（AppColors.white）に設定
-                  icon: const Icon(Icons.menu_book_rounded, color: AppColors.white),
+                  icon: const Icon(Icons.menu_book_rounded, color: AppColors.white, size: 22),
                   onPressed: () => Navigator.pushNamed(context, AppRoutes.vPractice),
                 ),
                 if (hasUnreadBlog)

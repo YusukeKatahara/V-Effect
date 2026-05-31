@@ -13,6 +13,7 @@ import 'streak_service.dart';
 import 'notification_service.dart';
 import 'push_notification_service.dart';
 import '../models/app_task.dart';
+import 'widget_service.dart';
 
 /// 投稿の作成・取得・リアクションを担当するサービス
 ///
@@ -308,6 +309,12 @@ class PostService {
 
     // データの変更をアプリ全体に通知
     _updateController.add(null);
+
+    // ウィジェットのデータを更新（今日タスク完了＝true、現在のストリーク）
+    WidgetService.instance.updateWidgetData(
+      isCompleted: true,
+      streakCount: newStreak,
+    );
 
     return streakResult;
   }

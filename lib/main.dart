@@ -21,7 +21,7 @@ import 'utils/date_helper.dart';
 import 'widgets/global_error_widget.dart';
 import 'widgets/splash_loading.dart';
 import 'dart:async';
-
+import 'services/widget_service.dart';
 void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
@@ -113,6 +113,7 @@ class _AppInitializerState extends State<AppInitializer> {
       PushNotificationService().initialize().catchError((e) => debugPrint('通知初期化エラー: $e'));
       DeepLinkService().initialize().catchError((e) => debugPrint('DeepLink初期化エラー: $e'));
       SoundService.instance.init().catchError((e) => debugPrint('音声初期化エラー: $e'));
+      WidgetService.instance.initialize().then((_) => _syncWidgetData()).catchError((e) => debugPrint('Widget初期化エラー: $e'));
 
       final prefs = await SharedPreferences.getInstance();
 
@@ -133,6 +134,21 @@ class _AppInitializerState extends State<AppInitializer> {
           _error = e.toString();
         });
       }
+    }
+  }
+
+  Future<void> _syncWidgetData() async {
+    try {
+      if (FirebaseAuth.instance.currentUser != null) {
+        final isCompleted = await PostService.instance.hasPostedToday();
+        final streak = await PostService.instance.getStreak();
+        await WidgetService.instance.updateWidgetData(
+          isCompleted: isCompleted,
+          streakCount: streak,
+        );
+      }
+    } catch (e) {
+      debugPrint('WidgetSync Error: $e');
     }
   }
 
@@ -179,6 +195,11 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
 
     // メール認証 Deep Link の受信を開始
     _initDeepLinks();
+
+    // Navigatorの準備が完了したタイミングでDeepLinkServiceに通知し、溜まっていたリンクを処理させる
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DeepLinkService().onNavigatorReady();
+    });
   }
 
   void _scheduleMidnightTimer() {
@@ -258,6 +279,15 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
       
       // フォアグラウンド復帰時に日付が変わっていないかチェック
       _onDateChanged();
+      
+      // ウィジェットを最新状態に同期
+      if (FirebaseAuth.instance.currentUser != null) {
+        PostService.instance.hasPostedToday().then((isCompleted) {
+          PostService.instance.getStreak().then((streak) {
+            WidgetService.instance.updateWidgetData(isCompleted: isCompleted, streakCount: streak);
+          });
+        }).catchError((_) {});
+      }
     } else if (state == AppLifecycleState.paused) {
       AnalyticsService.instance.onAppPaused();
     }

@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:home_widget/home_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../main.dart';
 import '../config/routes.dart';
 import 'friend_service.dart';
+import '../screens/main_shell.dart';
 
 class DeepLinkService {
   static final DeepLinkService _instance = DeepLinkService._internal();
@@ -13,28 +15,63 @@ class DeepLinkService {
 
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
+  StreamSubscription<Uri?>? _widgetSubscription;
+  
+  // Navigatorの準備ができるまでリンクを保持するキュー
+  final List<Uri> _pendingLinks = [];
+  bool _isNavigatorReady = false;
 
   Future<void> initialize() async {
     _appLinks = AppLinks();
 
-    // アプリが完全に終了している状態からの起動時のリンクを取得
+    // イベント購読は可能な限り早く行う
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _queueOrHandleLink(uri);
+    });
+
+    _widgetSubscription = HomeWidget.widgetClicked.listen((Uri? uri) {
+      if (uri != null) {
+        _queueOrHandleLink(uri);
+      }
+    });
+
+    // 初期リンクも取得してキューに入れる
     final initialUri = await _appLinks.getInitialLink();
     if (initialUri != null) {
-      _handleLink(initialUri);
+      _queueOrHandleLink(initialUri);
     }
 
-    // アプリがバックグラウンドにいる状態でのリンクイベントを購読
-    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+    final initialWidgetUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+    if (initialWidgetUri != null) {
+      _queueOrHandleLink(initialWidgetUri);
+    }
+  }
+
+  /// Navigatorが準備できたことを通知し、保留中のリンクを処理する
+  void onNavigatorReady() {
+    _isNavigatorReady = true;
+    for (final uri in _pendingLinks) {
       _handleLink(uri);
-    });
+    }
+    _pendingLinks.clear();
+  }
+
+  void _queueOrHandleLink(Uri uri) {
+    if (!_isNavigatorReady) {
+      _pendingLinks.add(uri);
+    } else {
+      _handleLink(uri);
+    }
   }
 
   void dispose() {
     _linkSubscription?.cancel();
+    _widgetSubscription?.cancel();
   }
 
   void _handleLink(Uri uri) async {
-    debugPrint('Incoming deep link: $uri');
+    final uriString = uri.toString();
+    debugPrint('Incoming deep link: $uriString');
 
     // プロフィールURL（/u/{userId}）のハンドリング
     if (uri.host == 'veffect.web.app') {
@@ -45,8 +82,13 @@ class DeepLinkService {
       }
     }
 
+    // カスタムスキーム（ウィジェットからの遷移など）
+    if (uriString.contains('veffect://task') || uriString.contains('veffect:task')) {
+      _navigateToTaskScreen();
+      return;
+    }
+
     // Firebase Auth のアクションリンク（メール認証など）を判定
-    // 通常、oobCode パラメータが含まれる
     final oobCode = uri.queryParameters['oobCode'];
     final mode = uri.queryParameters['mode'];
 
@@ -84,6 +126,27 @@ class DeepLinkService {
       );
     } catch (e) {
       debugPrint('Error handling user profile link: $e');
+    }
+  }
+
+  Future<void> _navigateToTaskScreen() async {
+    try {
+      // 1. 最も確実な方法: グローバルなタブ切り替えフラグを直接変更する
+      MainShell.activeTabIndex.value = 1;
+      
+      final context = VEffectApp.navigatorKey.currentContext;
+      if (context == null || !context.mounted) return;
+
+      // 2. 万が一、まだMainShellが表示されていない（別の画面にいる）場合のために
+      // ルートをAppRoutes.homeにリセットする。
+      // すでにMainShellにいる場合は同じルートへの遷移は無視されるか、didUpdateWidgetが走る。
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.home,
+        (r) => false,
+        arguments: 1,
+      );
+    } catch (e) {
+      debugPrint('Error navigating to task screen: $e');
     }
   }
 

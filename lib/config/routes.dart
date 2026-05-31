@@ -67,8 +67,10 @@ class AppRoutes {
         register: (context) => const RegisterScreen(),
         home: (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
-          final idx = (args is int) ? args : 0;
-          return MainShell(initialIndex: idx);
+          if (args is int) {
+            MainShell.activeTabIndex.value = args;
+          }
+          return MainShell(initialIndex: MainShell.activeTabIndex.value);
         },
         camera: (context) => const CameraScreen(),
         profileSetup: (context) => const ProfileSetupScreen(),

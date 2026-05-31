@@ -119,7 +119,7 @@ class NativeAdCard extends StatelessWidget {
                   border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.3)),
                 ),
                 child: Text(
-                  'Sponsored',
+                  '広告',
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -147,27 +147,28 @@ class NativeAdCard extends StatelessWidget {
                         width: 1.5,
                       ),
                     ),
-                    child: const Icon(Icons.handshake_rounded, size: 24, color: AppColors.accentGold),
+                    child: Center(
+                      child: Text(
+                        'AD',
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.accentGold,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'V EFFECT Sponsor',
+                        'VEFFECT 広告',
                         style: GoogleFonts.outfit(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppColors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Partner',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -176,30 +177,7 @@ class NativeAdCard extends StatelessWidget {
               ),
             ),
             
-            // Bottom Right: AD Action Badge
-            Positioned(
-              bottom: 32,
-              right: 20,
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.accentGold.withValues(alpha: 0.15),
-                  border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.4), width: 1.5),
-                ),
-                child: Center(
-                  child: Text(
-                    'AD',
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.accentGold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+
             
             // Dim Overlay for un-focused cards
             if (dimAlpha > 0)

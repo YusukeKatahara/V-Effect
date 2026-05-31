@@ -45,7 +45,7 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
               ),
               trailing: isDev
                   ? IconButton(
-                      icon: const Icon(Icons.add_rounded, color: AppColors.white),
+                      icon: const Icon(Icons.add_rounded, color: AppColors.white, size: 22),
                       onPressed: () =>
                           Navigator.pushNamed(context, AppRoutes.blogPostEditor),
                     )
