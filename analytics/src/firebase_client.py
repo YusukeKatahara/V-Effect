@@ -1,5 +1,6 @@
 import datetime
 import os
+from typing import Optional
 
 import firebase_admin
 from dotenv import load_dotenv
@@ -63,5 +64,29 @@ class FirebaseClient:
         for doc in docs:
             data = doc.to_dict() or {}
             data["post_id"] = doc.id
+            result.append(data)
+        return result
+
+    @classmethod
+    def fetch_action_logs(
+        cls,
+        days: Optional[int] = None,
+        event_name: Optional[str] = None,
+    ) -> list[dict]:
+        """action_logs（行動ログ）を取得する。
+
+        - days 指定時は clientTimestamp で直近N日に限定（全件取得による読み取りコスト増を防ぐ）
+        - event_name 指定時は eventName で絞り込む
+        """
+        query = cls.db().collection("action_logs")
+        if days is not None:
+            since = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)
+            query = query.where("clientTimestamp", ">=", since)
+        if event_name:
+            query = query.where("eventName", "==", event_name)
+        result = []
+        for doc in query.stream():
+            data = doc.to_dict() or {}
+            data["doc_id"] = doc.id
             result.append(data)
         return result

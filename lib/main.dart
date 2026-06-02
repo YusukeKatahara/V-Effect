@@ -279,8 +279,11 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
       if (FirebaseAuth.instance.currentUser != null) {
         WidgetService.instance.updateWidgetData();
       }
-    } else if (state == AppLifecycleState.paused) {
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
       AnalyticsService.instance.onAppPaused();
+      // バックグラウンド移行時に、溜まった action_logs を確実に送信しきる
+      AnalyticsService.instance.flushBatch();
     }
   }
 

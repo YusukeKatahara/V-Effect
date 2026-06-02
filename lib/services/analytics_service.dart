@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// Firebase Analytics / Crashlytics を一元管理するサービス
 ///
@@ -20,9 +25,102 @@ class AnalyticsService {
   /// セッション開始時刻（セッション時間計測用）
   DateTime? _sessionStart;
 
+  // ════════════════════════════════════════════
+  // action_logs（ローカルバッチ型の生データ収集基盤）
+  // FirebaseAnalytics と共存。LLM/Python 等での仮説検証用に
+  // uid + 可変パラメータのみを正規化して Firestore に保存する。
+  // ════════════════════════════════════════════
+
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  /// 送信前にローカルへ溜めるイベントキュー
+  final List<Map<String, dynamic>> _actionLogQueue = [];
+
+  /// 自動 flush するキュー件数のしきい値
+  static const int _batchThreshold = 10;
+
+  /// 1 回の WriteBatch で送る最大件数（Firestore のハード制限 500 に対する安全マージン）
+  static const int _maxBatchOps = 400;
+
+  /// キューの最大保持件数（リトライ蓄積によるメモリ暴走を防ぐ）
+  static const int _maxQueueSize = 500;
+
+  /// アプリバージョン（PackageInfo を一度だけ解決してキャッシュ）
+  String? _cachedAppVersion;
+
   /// NavigatorObserver（自動画面遷移トラッキング用）
   FirebaseAnalyticsObserver get observer =>
       FirebaseAnalyticsObserver(analytics: _analytics);
+
+  /// イベントを action_logs キューに積む（内部用）
+  ///
+  /// 既存の FirebaseAnalytics 送信とは独立して動作し、
+  /// 例外は全て握り潰して本体機能を絶対に止めない。
+  /// 静的データ（年齢・性別等）は含めず、uid と可変パラメータのみを保存する。
+  Future<void> _logToActionLogs(
+    String eventName, [
+    Map<String, dynamic> parameters = const {},
+  ]) async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return; // 未ログイン時は記録しない
+
+      _cachedAppVersion ??= (await PackageInfo.fromPlatform()).version;
+      final platform = kIsWeb ? 'web' : Platform.operatingSystem;
+
+      _actionLogQueue.add({
+        'uid': uid,
+        'eventName': eventName,
+        'parameters': parameters,
+        'appVersion': _cachedAppVersion,
+        'platform': platform,
+        // イベント発生時刻（バッチ遅延の影響を受けない正確な時刻）
+        'clientTimestamp': Timestamp.now(),
+        // 仕様準拠：サーバー側の書き込み時刻
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      if (_actionLogQueue.length >= _batchThreshold) {
+        unawaited(flushBatch());
+      }
+    } catch (_) {
+      // 分析ログ起因で本体機能を絶対に止めない
+    }
+  }
+
+  /// 溜まった action_logs を WriteBatch で一括送信する
+  ///
+  /// アプリのバックグラウンド移行時（main.dart のライフサイクル監視）や
+  /// キューがしきい値に達した時に呼ばれる。失敗時はキューに戻して次回リトライ。
+  Future<void> flushBatch() async {
+    if (_actionLogQueue.isEmpty) return;
+
+    // 送信対象を取り出し、キューは即座にクリア（送信中の追加分を失わない）
+    final pending = List<Map<String, dynamic>>.from(_actionLogQueue);
+    _actionLogQueue.clear();
+
+    var committed = 0;
+    try {
+      // 500 件制限を超えないよう分割してコミットする
+      for (var i = 0; i < pending.length; i += _maxBatchOps) {
+        final end =
+            (i + _maxBatchOps < pending.length) ? i + _maxBatchOps : pending.length;
+        final batch = _db.batch();
+        for (final log in pending.sublist(i, end)) {
+          batch.set(_db.collection('action_logs').doc(), log);
+        }
+        await batch.commit();
+        committed = end;
+      }
+    } catch (_) {
+      // 未コミット分のみキュー先頭へ戻す（コミット済みチャンクの重複送信を避ける）。
+      // メモリ暴走防止のため上限を超えた古い分は捨てる。
+      _actionLogQueue.insertAll(0, pending.sublist(committed));
+      if (_actionLogQueue.length > _maxQueueSize) {
+        _actionLogQueue.removeRange(_maxQueueSize, _actionLogQueue.length);
+      }
+    }
+  }
 
   // ════════════════════════════════════════════
   // セッション・リテンション
@@ -31,13 +129,18 @@ class AnalyticsService {
   /// アプリがフォアグラウンドに来た時に呼ぶ
   void onAppResumed() {
     _sessionStart = DateTime.now();
+    final now = DateTime.now();
     _analytics.logEvent(
       name: 'app_open_custom',
       parameters: {
-        'hour_of_day': DateTime.now().hour,
-        'day_of_week': DateTime.now().weekday, // 1=月 ... 7=日
+        'hour_of_day': now.hour,
+        'day_of_week': now.weekday, // 1=月 ... 7=日
       },
     );
+    _logToActionLogs('app_open', {
+      'hour_of_day': now.hour,
+      'day_of_week': now.weekday,
+    });
   }
 
   /// アプリがバックグラウンドに移行した時に呼ぶ
@@ -87,6 +190,7 @@ class AnalyticsService {
   /// プロフィール設定完了
   Future<void> logProfileSetupComplete() async {
     await _analytics.logEvent(name: 'profile_setup_complete');
+    _logToActionLogs('profile_setup_complete');
   }
 
   /// ヒーロータスク設定完了
@@ -95,11 +199,13 @@ class AnalyticsService {
       name: 'task_setup_complete',
       parameters: {'task_count': taskCount},
     );
+    _logToActionLogs('task_setup_complete', {'task_count': taskCount});
   }
 
   /// オンボーディング完了
   Future<void> logOnboardingComplete() async {
     await _analytics.logEvent(name: 'onboarding_complete');
+    _logToActionLogs('onboarding_complete');
   }
 
   /// テンプレートヒーロータスク選択を記録
@@ -114,6 +220,10 @@ class AnalyticsService {
         'is_custom': isCustom ? 1 : 0,
       },
     );
+    _logToActionLogs('template_selected', {
+      'template_name': templateName,
+      'is_custom': isCustom ? 1 : 0,
+    });
   }
 
   // ════════════════════════════════════════════
@@ -133,11 +243,44 @@ class AnalyticsService {
         'day_of_week': now.weekday,
       },
     );
+    // action_logs には生のタスク名を含めず、正規化したカテゴリ等のみ保存
+    _logToActionLogs('post_created', {
+      'task_category': classifyTask(taskName),
+      'hour_of_day': now.hour,
+      'time_slot': _timeSlot(now.hour),
+      'day_of_week': now.weekday,
+    });
   }
 
   /// リアクション送信
-  Future<void> logReactionSent() async {
-    await _analytics.logEvent(name: 'reaction_sent');
+  ///
+  /// [reactionType] は 'flame'（VFIRE）または 'emoji'。
+  /// [targetUid]/[targetTaskName] は対象投稿の情報（呼び出し元が保持する値を渡す。
+  /// 追加の Firestore Read は行わない）。targetUid は他者UIDのため
+  /// FirebaseAnalytics には送らず、JOIN 用に action_logs のみへ保存する。
+  Future<void> logReactionSent({
+    required String targetUid,
+    required String targetTaskName,
+    required String reactionType,
+    int? flameCount,
+    String? emoji,
+  }) async {
+    await _analytics.logEvent(
+      name: 'reaction_sent',
+      parameters: {
+        'reaction_type': reactionType,
+        'target_task_category': classifyTask(targetTaskName),
+        if (flameCount != null) 'flame_count': flameCount,
+        if (emoji != null) 'emoji': emoji,
+      },
+    );
+    _logToActionLogs('reaction_sent', {
+      'target_uid': targetUid,
+      'target_task_category': classifyTask(targetTaskName),
+      'reaction_type': reactionType,
+      if (flameCount != null) 'flame_count': flameCount,
+      if (emoji != null) 'emoji': emoji,
+    });
   }
 
   // ════════════════════════════════════════════
@@ -156,6 +299,10 @@ class AnalyticsService {
         'is_record': isRecord ? 1 : 0,
       },
     );
+    _logToActionLogs('streak_update', {
+      'streak': streak,
+      'is_record': isRecord ? 1 : 0,
+    });
   }
 
   /// ストリークマイルストーン達成（7日、30日、100日 等）
@@ -164,6 +311,7 @@ class AnalyticsService {
       name: 'streak_milestone',
       parameters: {'streak': streak},
     );
+    _logToActionLogs('streak_milestone', {'streak': streak});
   }
 
   // ════════════════════════════════════════════
@@ -173,31 +321,45 @@ class AnalyticsService {
   /// フレンドリクエスト送信
   Future<void> logFriendRequestSent() async {
     await _analytics.logEvent(name: 'friend_request_sent');
+    _logToActionLogs('friend_request_sent');
   }
 
   /// フレンドリクエスト承認
   Future<void> logFriendRequestAccepted() async {
     await _analytics.logEvent(name: 'friend_request_accepted');
+    _logToActionLogs('friend_request_accepted');
   }
 
   /// フレンドリクエスト拒否
   Future<void> logFriendRequestRejected() async {
     await _analytics.logEvent(name: 'friend_request_rejected');
+    _logToActionLogs('friend_request_rejected');
   }
 
   /// フレンド削除
   Future<void> logFriendRemoved() async {
     await _analytics.logEvent(name: 'friend_removed');
+    _logToActionLogs('friend_removed');
   }
 
   /// ユーザーをブロック
   Future<void> logUserBlocked() async {
     await _analytics.logEvent(name: 'user_blocked');
+    _logToActionLogs('user_blocked');
   }
 
   /// フレンドフィード閲覧
-  Future<void> logFriendFeedViewed() async {
-    await _analytics.logEvent(name: 'friend_feed_viewed');
+  ///
+  /// [todayFriendPostsCount] はフィードに表示されている「今日の友達投稿数」。
+  /// コミュニティの活発度と翌日の継続率の相関分析に用いる。
+  Future<void> logFriendFeedViewed({required int todayFriendPostsCount}) async {
+    await _analytics.logEvent(
+      name: 'friend_feed_viewed',
+      parameters: {'today_friend_posts_count': todayFriendPostsCount},
+    );
+    _logToActionLogs('friend_feed_viewed', {
+      'today_friend_posts_count': todayFriendPostsCount,
+    });
   }
 
   // ════════════════════════════════════════════
@@ -231,6 +393,12 @@ class AnalyticsService {
         value: 'organic',
       );
     }
+
+    _logToActionLogs('referral_source', {
+      'referrers': referrers.join(','),
+      'referrer_count': referrers.length,
+      'skipped': skipped ? 1 : 0,
+    });
   }
 
   /// 通知経由のアプリ起動を記録
@@ -239,6 +407,7 @@ class AnalyticsService {
       name: 'open_from_notification',
       parameters: {'notification_type': type},
     );
+    _logToActionLogs('open_from_notification', {'notification_type': type});
   }
 
   // ════════════════════════════════════════════

@@ -236,5 +236,17 @@ service cloud.firestore {
         )
       );
     }
+
+    // ────────────────────────────────────────
+    // action_logs コレクション（行動ログ：書き込み専用）
+    // ────────────────────────────────────────
+    // ローカルバッチ型アナリティクス基盤。本人の uid を持つドキュメントの
+    // 作成のみ許可し、読取・更新・削除はクライアントから一切不可。
+    // 分析は BigQuery Export / Admin SDK 経由で行う。
+    match /action_logs/{logId} {
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid;
+      allow read, update, delete: if false;
+    }
   }
 }

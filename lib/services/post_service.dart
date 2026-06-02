@@ -417,7 +417,12 @@ class PostService {
   /// Transaction の代わりに通常 update + FieldValue.arrayUnion を使用。
   /// オフライン時もローカルキャッシュに即時反映され、復帰後に自動同期される。
   /// 失敗時は例外を呼び出し元に伝播し、楽観的更新のロールバックを可能にする。
-  Future<void> addEmojiReaction(String postId, String emoji) async {
+  Future<void> addEmojiReaction(
+    String postId,
+    String emoji, {
+    String targetUid = '',
+    String targetTaskName = '',
+  }) async {
     final myUid = _auth.currentUser!.uid;
     final docRef = _postsRef.doc(postId);
 
@@ -427,13 +432,23 @@ class PostService {
       Post.fieldEmojiReactedUserIds: FieldValue.arrayUnion([myUid]),
     });
 
-    _analytics.logReactionSent();
+    _analytics.logReactionSent(
+      targetUid: targetUid,
+      targetTaskName: targetTaskName,
+      reactionType: 'emoji',
+      emoji: emoji,
+    );
     _updateController.add(null);
     _sendReactionNotification(postId, emoji: emoji).catchError((_) {});
   }
 
   /// 投稿の VFIRE (炎) カウントを増やします（連打対応の高速アトミック操作）
-  Future<void> incrementFlameCount(String postId, int count) async {
+  Future<void> incrementFlameCount(
+    String postId,
+    int count, {
+    String targetUid = '',
+    String targetTaskName = '',
+  }) async {
     if (count <= 0) return;
     final docRef = _db.collection('posts').doc(postId);
 
@@ -443,7 +458,12 @@ class PostService {
         'reactionCount': FieldValue.increment(count),
       });
 
-      _analytics.logReactionSent();
+      _analytics.logReactionSent(
+        targetUid: targetUid,
+        targetTaskName: targetTaskName,
+        reactionType: 'flame',
+        flameCount: count,
+      );
       _updateController.add(null);
       
       // 通知は1回にまとめて送信

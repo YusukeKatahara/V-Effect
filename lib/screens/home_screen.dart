@@ -16,6 +16,7 @@ import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
+import '../services/analytics_service.dart';
 import '../services/block_service.dart';
 import '../services/sound_service.dart';
 import '../utils/ad_helper.dart';
@@ -44,6 +45,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   final PostService _postService = PostService.instance;
   bool _postedToday = false;
+  bool _friendFeedLogged = false; // friend_feed_viewed をフィード初回ロード時に1回だけ送るためのガード
   List<dynamic> _feedItems = [];
   final Set<String> _viewedPostIds = {}; // 閲覧済みポストのID
   bool _needsRefreshJump = true; // 初回ロード時やリフレッシュ時に先頭へジャンプするかどうか
@@ -298,8 +300,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     _pendingFlameCounts.forEach((postId, count) {
       if (count > 0) {
+        // メモリ上の _feedItems から対象投稿を解決（追加 Firestore Read はしない）
+        final post = _feedItems.firstWhere(
+          (item) => item is Post && item.id == postId,
+          orElse: () => null,
+        );
         // バックグラウンドで送信（dispose中のためawaitしない）
-        _postService.incrementFlameCount(postId, count).catchError((e) {
+        _postService
+            .incrementFlameCount(
+          postId,
+          count,
+          targetUid: post is Post ? post.userId : '',
+          targetTaskName: post is Post ? post.taskName : '',
+        )
+            .catchError((e) {
           debugPrint('Flush flame sync error: $e');
         });
       }
@@ -614,7 +628,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       //   ref.invalidate() は不要（invalidateはUIをちらつかせる原因になる）
       try {
         _reactingPostIds.add(post.id);
-        await _postService.addEmojiReaction(post.id, emoji);
+        await _postService.addEmojiReaction(
+          post.id,
+          emoji,
+          targetUid: post.userId,
+          targetTaskName: post.taskName,
+        );
       } catch (e) {
         debugPrint('Emoji reaction error: $e');
       } finally {
@@ -635,8 +654,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
         if (countToSend > 0) {
           try {
-            await _postService.incrementFlameCount(post.id, countToSend);
-            
+            await _postService.incrementFlameCount(
+              post.id,
+              countToSend,
+              targetUid: post.userId,
+              targetTaskName: post.taskName,
+            );
+
             // 同期成功後、ローカル増分から送信分を差し引く
             if (mounted) {
               // ここでは表示の整合性を取るため setState を行う
@@ -851,6 +875,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       });
 
       if (_lastHomeData != homeData) {
+        // フィード初回ロード時に1回だけ、表示中の「今日の友達投稿数」を記録する。
+        // （リアクション都度のソフトリフレッシュでの重複送信を防ぐ）
+        if (!_friendFeedLogged) {
+          final now = DateTime.now();
+          final start = DateTime(now.year, now.month, now.day);
+          final todayCount = homeData.feedPosts
+              .where((p) => !p.createdAt.isBefore(start))
+              .length;
+          AnalyticsService.instance
+              .logFriendFeedViewed(todayFriendPostsCount: todayCount);
+          _friendFeedLogged = true;
+        }
+
         _postedToday = homeData.postedToday;
         _postedFriends = homeData.postedFriends;
         _userNames = homeData.userNames;
