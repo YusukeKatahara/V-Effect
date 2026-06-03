@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../services/notification_service.dart';
+import '../services/sound_service.dart';
 
 /// アプリ共通ヘッダー (V EFFECT)
 class VEffectHeader extends StatelessWidget {
@@ -118,7 +119,10 @@ class NotificationBellIcon extends StatelessWidget {
               size: 22,
             ),
           ),
-          onPressed: () => Navigator.pushNamed(context, '/notifications'),
+          onPressed: () {
+            SoundService.instance.stopBgm();
+            Navigator.pushNamed(context, '/notifications');
+          },
         );
       },
     );

@@ -6,7 +6,7 @@ private let appGroupId = "group.com.veffect.app.vEffect"
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> VEffectEntry {
         let dummyDates = ["2026-05-30", "2026-05-29", "2026-05-27", "2026-05-26"]
-        return VEffectEntry(date: Date(), isCompleted: true, streakCount: 12, historyDates: dummyDates, monthlyRate: 0.75)
+        return VEffectEntry(date: Date(), isCompleted: true, streakCount: 12, historyDates: dummyDates)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (VEffectEntry) -> ()) {
@@ -25,11 +25,10 @@ struct Provider: TimelineProvider {
         let isCompleted = userDefaults?.bool(forKey: "isCompleted") ?? false
         let streakCount = userDefaults?.integer(forKey: "streakCount") ?? 0
         let historyDatesStr = userDefaults?.string(forKey: "historyDates") ?? ""
-        let monthlyRate = userDefaults?.double(forKey: "monthlyRate") ?? 0.0
         
         let datesArray = historyDatesStr.split(separator: ",").map(String.init)
         
-        return VEffectEntry(date: Date(), isCompleted: isCompleted, streakCount: streakCount, historyDates: datesArray, monthlyRate: monthlyRate)
+        return VEffectEntry(date: Date(), isCompleted: isCompleted, streakCount: streakCount, historyDates: datesArray)
     }
 }
 
@@ -38,7 +37,6 @@ struct VEffectEntry: TimelineEntry {
     let isCompleted: Bool
     let streakCount: Int
     let historyDates: [String]
-    let monthlyRate: Double
 }
 
 struct CalendarCellData: Hashable {
@@ -156,6 +154,13 @@ struct VEffectWidgetEntryView : View {
     var entry: Provider.Entry
     @Environment(\.widgetFamily) var family
 
+    private var monthName: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.dateFormat = "MMMM"
+        return formatter.string(from: entry.date)
+    }
+
     var body: some View {
         if family == .systemSmall {
             ZStack {
@@ -198,23 +203,27 @@ struct VEffectWidgetEntryView : View {
                 
                 HStack(alignment: .center, spacing: 16) {
                     // 左側: テキスト情報
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 20) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("STREAK")
-                                .font(.system(size: 11, weight: .bold))
+                            Text("MONTH")
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.gray)
-                            Text("\(entry.streakCount) Days")
+                            Text(monthName)
                                 .font(.system(size: 24, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
+                                .minimumScaleFactor(0.5)
+                                .lineLimit(1)
                         }
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("MONTHLY")
-                                .font(.system(size: 11, weight: .bold))
+                            Text("STREAK")
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.gray)
-                            Text("\(Int(entry.monthlyRate * 100))%")
+                            Text("\(entry.streakCount) Days")
                                 .font(.system(size: 24, weight: .black, design: .rounded))
                                 .foregroundColor(Color(red: 0.83, green: 0.69, blue: 0.22))
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(1)
                         }
                     }
                     
@@ -254,5 +263,5 @@ struct VEffectWidget: Widget {
 #Preview(as: .systemMedium) {
     VEffectWidget()
 } timeline: {
-    VEffectEntry(date: .now, isCompleted: false, streakCount: 0, historyDates: ["2026-05-30", "2026-05-28", "2026-05-25"], monthlyRate: 0.4)
+    VEffectEntry(date: .now, isCompleted: false, streakCount: 0, historyDates: ["2026-05-30", "2026-05-28", "2026-05-25"])
 }

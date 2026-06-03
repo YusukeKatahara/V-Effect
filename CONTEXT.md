@@ -7,15 +7,22 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-05-31
+- **Last Updated:** 2026-06-02
 - **Activeエージェント:** Antigravity
-- **Current Task:** App version update to ver1.3.1
-- **Action:** Updated version to 1.3.1+10 in pubspec.yaml and synchronized dependencies/iOS configuration files.
+- **Current Task:** App version update to ver1.3.2
+- **Action:** Updated version to 1.3.2+11 in pubspec.yaml and synchronized dependencies/iOS configuration files, and optimized widget UI.
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-06-02 (Antigravity)
+- **App Version Update to ver1.3.2 (アプリバージョンのver1.3.2への更新):**
+    - `pubspec.yaml` のアプリバージョンを `1.3.1+10` から `1.3.2+11` にアップデートしました。
+    - `flutter pub get` および `flutter build ios --config-only` を実行し、Xcodeのビルド設定ファイル（`Generated.xcconfig`）まで最新化を同期しました。
+- **Widget UI Optimization (ウィジェットUIの最適化):**
+    - ホーム画面ウィジェットの「MONTHLY %」表示を廃止し、左上に英語の月名（例：June）、左下にSTREAK（ゴールド）を表示するようSwiftおよびFlutter側のウィジェット連携ロジックを最適化しました。
 
 ### 2026-05-31 (Antigravity)
 - **App Version Update to ver1.3.1 (アプリバージョンのver1.3.1への更新):**

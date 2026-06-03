@@ -19,12 +19,14 @@ import '../services/user_service.dart';
 import '../widgets/splash_loading.dart';
 import '../widgets/streak_flame.dart';
 import '../widgets/v_effect_header.dart';
+import '../services/sound_service.dart';
 import 'camera_screen.dart';
 import '../widgets/reaction_avatars.dart';
 import '../widgets/entropic_conversion_overlay.dart';
 import '../widgets/post_success_dialog.dart';
 import '../widgets/season_hint_modal.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'main_shell.dart';
 import '../providers/dev_blog_provider.dart';
 import '../services/app_review_service.dart';
 
@@ -67,10 +69,11 @@ class HeroTasksScreen extends StatefulWidget {
 }
 
 class _HeroTasksScreenState extends State<HeroTasksScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final PostService _postService = PostService.instance;
   final UserService _userService = UserService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
+  final SoundService _soundService = SoundService.instance;
   StreamSubscription? _updateSubscription;
   StreamSubscription? _userUpdateSubscription;
 
@@ -114,9 +117,13 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     return (pos % len + len) % len;
   }
 
+  int _lastFocusedIndex = -1;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    MainShell.activeTabIndex.addListener(_onTabChanged);
     final initialPage = 10000;
     _scrollPositionNotifier = ValueNotifier<double>(initialPage.toDouble());
     _pageController = PageController(initialPage: initialPage)
@@ -127,6 +134,8 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             // スワイプが始まったら拡大状態を解除
             if (_expandedIndex != null) {
               setState(() => _expandedIndex = null);
+              SoundService.instance.stopBgm();
+              return;
             }
             _scrollPositionNotifier.value = page;
             // ユーザーがスワイプ（画面移動）を開始したら、ガイドを非表示にする
@@ -217,6 +226,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
   @override
   void dispose() {
+    MainShell.activeTabIndex.removeListener(_onTabChanged);
+    WidgetsBinding.instance.removeObserver(this);
+    _soundService.stopBgm();
     _updateSubscription?.cancel();
     _userUpdateSubscription?.cancel();
     _pageController.dispose();
@@ -352,6 +364,36 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     }
   }
 
+
+
+  void _onTabChanged() {
+    if (!mounted) return;
+    if (MainShell.activeTabIndex.value == 1 && _expandedIndex != null) {
+      // 炎タブに戻ってきた時、拡大中なら音楽を再開する
+      final currentFocused = _focusedIndex;
+      if (_taskItems.isNotEmpty && currentFocused >= 0 && currentFocused < _taskItems.length) {
+        final focusedTask = _taskItems[currentFocused];
+        if (focusedTask.isCompleted && focusedTask.completedPosts.isNotEmpty) {
+          final sortedPosts = List<Post>.from(focusedTask.completedPosts)
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          final targetPost = sortedPosts.first;
+          if (targetPost.bgmUrl != null) {
+            _soundService.playBgm(targetPost.bgmUrl!);
+          }
+        }
+      }
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _soundService.stopBgm();
+    } else if (state == AppLifecycleState.resumed) {
+      // 復帰時に自動で鳴らさない
+    }
+  }
+
   Future<void> _deleteHeroPost(String postId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -382,7 +424,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         await _postService.deletePost(postId);
         if (mounted) {
           setState(() {
-            _expandedIndex = null; // 拡大状態をリセット
+            if (_expandedIndex != null) {
+              _expandedIndex = null; // 拡大状態をリセット
+              SoundService.instance.stopBgm(); // スワイプ時に音楽を止める
+            }
           });
         }
         await _loadData();
@@ -393,8 +438,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       }
     }
   }
-
-
 
   Future<void> _selectHeroTask(int index) async {
     HapticFeedback.lightImpact();
@@ -483,7 +526,14 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   Widget build(BuildContext context) {
     if (_loading) return const SplashLoading();
 
-    return Scaffold(
+    return VisibilityDetector(
+      key: const Key('hero_tasks_screen_visibility'),
+      onVisibilityChanged: (info) {
+        if (info.visibleFraction < 0.1) {
+          SoundService.instance.stopBgm();
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppColors.black,
       body: Stack(
         children: [
@@ -513,7 +563,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             IgnorePointer(child: _buildVictoryOverlay()),
         ],
       ),
-    );
+    ));
   }
 
 
@@ -626,7 +676,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                 IconButton(
                   // 左上のブックマーク（本）アイコン。ベルマークの色と統一するために白（AppColors.white）に設定
                   icon: const Icon(Icons.menu_book_rounded, color: AppColors.white, size: 22),
-                  onPressed: () => Navigator.pushNamed(context, AppRoutes.vPractice),
+                  onPressed: () {
+                    SoundService.instance.stopBgm();
+                    Navigator.pushNamed(context, AppRoutes.vPractice);
+                  },
                 ),
                 if (hasUnreadBlog)
                   Positioned(
@@ -798,6 +851,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                                   onTapUp: (details) {
                                     if (_expandedIndex != null) {
                                       setState(() => _expandedIndex = null);
+                                      SoundService.instance.stopBgm();
                                       return;
                                     }
                                     // カードが中央にない場合はスナップして終了
@@ -823,6 +877,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                                         HapticFeedback.mediumImpact();
                                         setState(
                                             () => _expandedIndex = actualIndex);
+                                        // [New] 拡大時に音楽を流す
+                                        if (item.latestPost?.bgmUrl != null) {
+                                          SoundService.instance.playBgm(item.latestPost!.bgmUrl!);
+                                        }
                                       }
                                     } else {
                                       // 未完了ならカメラへ
@@ -1223,7 +1281,7 @@ class _TaskCardState extends State<_TaskCard> {
               else
                 _buildBackgroundImage(sortedPosts.first.imageUrl, isExpanded, isTop),
 
-            _buildStack(item, isCompleted, postCount, isTop, depth, isExpanded, showCamera, tierColor, totalReactionCount, totalUserReactions, totalEmojiReactedUserIds.toList(), userPhotos),
+            _buildStack(item, isCompleted, postCount, isTop, depth, isExpanded, showCamera, tierColor, totalReactionCount, totalUserReactions, totalEmojiReactedUserIds.toList(), userPhotos, currentPost),
           ],
         ),
       ),
@@ -1243,6 +1301,7 @@ class _TaskCardState extends State<_TaskCard> {
     Map<String, String> totalUserReactions,
     List<String> totalEmojiReactedUserIds,
     Map<String, String?> userPhotos,
+    Post? currentPost,
   ) {
     return Stack(
       children: [
@@ -1286,6 +1345,90 @@ class _TaskCardState extends State<_TaskCard> {
                     ),
                   ],
                 ),
+                if (currentPost != null && currentPost.bgmTitle != null && depth == 0) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () async {
+                          HapticFeedback.lightImpact();
+                          await SoundService.instance.toggleBgmMute(currentPost.bgmUrl);
+                          setState(() {}); // ミュートアイコンの更新
+                        },
+                        child: currentPost.bgmArtworkUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      CachedNetworkImage(
+                                        imageUrl: currentPost.bgmArtworkUrl!,
+                                        fit: BoxFit.cover,
+                                      ),
+                                      if (SoundService.instance.isBgmMuted)
+                                        Container(
+                                          color: AppColors.black.withValues(alpha: 0.5),
+                                          child: const Icon(
+                                            Icons.music_off_rounded,
+                                            color: AppColors.white,
+                                            size: 16,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.black.withValues(alpha: 0.6),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  SoundService.instance.isBgmMuted
+                                      ? Icons.music_off_rounded
+                                      : Icons.music_note_rounded,
+                                  color: SoundService.instance.isBgmMuted
+                                      ? AppColors.grey50
+                                      : AppColors.white,
+                                  size: 16,
+                                ),
+                              ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              currentPost.bgmTitle!,
+                              style: const TextStyle(
+                                color: AppColors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (currentPost.bgmArtist != null)
+                              Text(
+                                currentPost.bgmArtist!,
+                                style: const TextStyle(
+                                  color: AppColors.grey50,
+                                  fontSize: 10,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ] else ...[
                 Text(
                   item.displayName,
@@ -1329,6 +1472,64 @@ class _TaskCardState extends State<_TaskCard> {
                           color: AppColors.accentGold,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if (currentPost?.bgmTitle != null && depth == 0) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () async {
+                          HapticFeedback.lightImpact();
+                          await SoundService.instance.toggleBgmMute(currentPost?.bgmUrl);
+                          setState(() {}); // ミュートアイコンの更新
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.black.withValues(alpha: 0.6),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            SoundService.instance.isBgmMuted
+                                ? Icons.music_off_rounded
+                                : Icons.music_note_rounded,
+                            color: SoundService.instance.isBgmMuted
+                                ? AppColors.grey50
+                                : AppColors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              currentPost!.bgmTitle!,
+                              style: const TextStyle(
+                                color: AppColors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (currentPost.bgmArtist != null)
+                              Text(
+                                currentPost.bgmArtist!,
+                                style: const TextStyle(
+                                  color: AppColors.grey50,
+                                  fontSize: 10,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
                         ),
                       ),
                     ],

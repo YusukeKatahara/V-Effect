@@ -38,7 +38,6 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
   final _seasonHintTitleController = TextEditingController();
   final _seasonHintBodyController = TextEditingController();
   final _seasonBadgeImageUrlController = TextEditingController();
-  final _distributeBadgeController = TextEditingController();
   String _seasonBadgeAnimation = 'none';
 
   @override
@@ -66,7 +65,6 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
     _seasonHintTitleController.dispose();
     _seasonHintBodyController.dispose();
     _seasonBadgeImageUrlController.dispose();
-    _distributeBadgeController.dispose();
     super.dispose();
   }
 
@@ -390,12 +388,6 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           _buildBodyField(),
           const SizedBox(height: 24),
           _buildSeasonTaskToggle(),
-          if (_isSeasonTask) ...[
-            const SizedBox(height: 16),
-            _buildSeasonTaskForm(),
-          ],
-          const SizedBox(height: 32),
-          _buildBadgeDistributionSection(),
           const SizedBox(height: 32),
           GradientButton(
             isLoading: _isSaving,
@@ -838,195 +830,198 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
   }
 
   Widget _buildSeasonTaskToggle() {
-    return SwitchListTile(
-      title: Text(
-        'シーズンタスクを配布する',
-        style: GoogleFonts.notoSansJp(
-            fontSize: 15, color: AppColors.white, fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        'このお知らせと一緒に全ユーザーへシーズンタスクを配布・通知します。',
-        style: GoogleFonts.notoSansJp(fontSize: 12, color: AppColors.grey50),
-      ),
-      value: _isSeasonTask,
-      activeColor: AppColors.accentGold,
-      onChanged: (val) => setState(() => _isSeasonTask = val),
-      contentPadding: EdgeInsets.zero,
-    );
-  }
-
-  Widget _buildSeasonTaskForm() {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.grey10,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.grey20, width: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _isSeasonTask ? AppColors.accentGold : AppColors.grey20, width: 1),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _seasonTaskNameController,
-            style: GoogleFonts.notoSansJp(color: AppColors.white),
-            decoration: _inputDecoration('タスク名 (例: 1日1回親に感謝を伝える)'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _seasonDurationController,
-            keyboardType: TextInputType.number,
-            style: GoogleFonts.notoSansJp(color: AppColors.white),
-            decoration: _inputDecoration('実施期間(日数) (例: 7)'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _seasonHintTitleController,
-            style: GoogleFonts.notoSansJp(color: AppColors.white),
-            decoration: _inputDecoration('ヒントタイトル (例: 感謝の言葉のバリエーション)'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _seasonHintBodyController,
-            maxLines: 3,
-            style: GoogleFonts.notoSansJp(color: AppColors.white),
-            decoration: _inputDecoration('ヒント本文'),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _seasonBadgeImageUrlController,
-                  style: GoogleFonts.notoSansJp(color: AppColors.white),
-                  decoration: _inputDecoration('バッジ画像URL (例: Firebase StorageのURL)'),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _showSeasonTaskConfigModal(),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _isSeasonTask ? AppColors.accentGold.withValues(alpha: 0.15) : AppColors.grey15,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isSeasonTask ? Icons.star_rounded : Icons.star_border_rounded,
+                    color: _isSeasonTask ? AppColors.accentGold : AppColors.grey50,
+                    size: 24,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.add_photo_alternate, color: AppColors.accentGold),
-                onPressed: _pickBadgeImage,
-                tooltip: '画像を選択してアップロード',
-              ),
-            ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isSeasonTask ? 'シーズンタスク設定済み' : 'シーズンタスクを設定する',
+                        style: GoogleFonts.notoSansJp(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: _isSeasonTask ? AppColors.accentGold : AppColors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _isSeasonTask
+                            ? '${_seasonTaskNameController.text} (${_seasonDurationController.text}日間)'
+                            : 'このお知らせと一緒にシーズンタスクを配布・通知します。',
+                        style: GoogleFonts.notoSansJp(
+                          fontSize: 12,
+                          color: AppColors.grey50,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: AppColors.grey50,
+                  size: 16,
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildBadgeDistributionSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.grey10,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.accentGold, width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '【管理者用】全ユーザーへバッジを直接配布',
-            style: GoogleFonts.notoSansJp(
-                fontSize: 14, color: AppColors.accentGold, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '記事の投稿やシーズンタスクとは無関係に、今すぐ全員にバッジを装備させます。通知も飛びません。',
-            style: GoogleFonts.notoSansJp(fontSize: 12, color: AppColors.grey50),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _distributeBadgeController,
-                  style: GoogleFonts.notoSansJp(color: AppColors.white),
-                  decoration: _inputDecoration('バッジID (例: tester)'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: _distributeBadge,
-                icon: const Icon(Icons.send_to_mobile_rounded, color: AppColors.accentGold, size: 18),
-                label: Text('配布', style: GoogleFonts.notoSansJp(color: AppColors.accentGold, fontWeight: FontWeight.bold)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.accentGold),
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _distributeBadge() async {
-    final badgeUrl = _distributeBadgeController.text.trim();
-    if (badgeUrl.isEmpty) {
-      _showError('バッジID（または tester など）を入力してください');
-      return;
-    }
-    final confirm = await showDialog<bool>(
+  void _showSeasonTaskConfigModal() {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.grey15,
-        title: Text('全ユーザーに配布', style: GoogleFonts.notoSansJp(color: AppColors.white)),
-        content: Text('現在登録されている全てのユーザーに、バッジ「$badgeUrl」を強制的に装備させますか？',
-            style: GoogleFonts.notoSansJp(color: AppColors.grey70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('キャンセル', style: GoogleFonts.notoSansJp(color: AppColors.white)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text('配布する',
-                style: GoogleFonts.notoSansJp(color: AppColors.accentGold, fontWeight: FontWeight.bold)),
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateModal) {
+          final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+          return Container(
+            margin: EdgeInsets.only(bottom: bottomInset),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+            decoration: const BoxDecoration(
+              color: AppColors.bgElevated,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'シーズンタスクの設定',
+                        style: GoogleFonts.notoSansJp(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                        ),
+                      ),
+                      Switch(
+                        value: _isSeasonTask,
+                        activeColor: AppColors.accentGold,
+                        onChanged: (val) {
+                          setStateModal(() => _isSeasonTask = val);
+                          setState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  if (_isSeasonTask) ...[
+                    Text('タスク名 (必須)', style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _seasonTaskNameController,
+                      style: GoogleFonts.notoSansJp(color: AppColors.white),
+                      decoration: _inputDecoration('例: 感謝を伝える'),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('実施期間(日数)', style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _seasonDurationController,
+                      keyboardType: TextInputType.number,
+                      style: GoogleFonts.notoSansJp(color: AppColors.white),
+                      decoration: _inputDecoration('例: 7'),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('ヒントタイトル', style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _seasonHintTitleController,
+                      style: GoogleFonts.notoSansJp(color: AppColors.white),
+                      decoration: _inputDecoration('例: 📸 何を撮ればいいの？（撮影のヒント）'),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('ヒント本文', style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _seasonHintBodyController,
+                      maxLines: 4,
+                      style: GoogleFonts.notoSansJp(color: AppColors.white),
+                      decoration: _inputDecoration('ユーザーが写真を撮る際のヒントを入力してください'),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('バッジ画像URL', style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _seasonBadgeImageUrlController,
+                            style: GoogleFonts.notoSansJp(color: AppColors.white),
+                            decoration: _inputDecoration('例: tester (またはFirebase URL)'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.add_photo_alternate, color: AppColors.accentGold),
+                          onPressed: () async {
+                            await _pickBadgeImage();
+                            setStateModal(() {});
+                          },
+                          tooltip: '画像を選択してアップロード',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.white,
+                      foregroundColor: AppColors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      '完了',
+                      style: GoogleFonts.notoSansJp(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
-    if (confirm != true) return;
-
-    setState(() => _isSaving = true);
-    try {
-      final db = FirebaseFirestore.instance;
-      final snapshot = await db.collection('users').get();
-      final batch = db.batch();
-      int count = 0;
-      final anim = badgeUrl == 'tester' ? 'shimmer' : 'none';
-      for (var doc in snapshot.docs) {
-        batch.update(doc.reference, {
-          'equippedBadgeUrl': badgeUrl,
-          'equippedBadgeAnimation': anim,
-        });
-        count++;
-        if (count >= 490) {
-          await batch.commit();
-          count = 0;
-        }
-      }
-      if (count > 0) {
-        await batch.commit();
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('全ユーザーにバッジ「$badgeUrl」を配布・装備させました！',
-                style: GoogleFonts.notoSansJp(color: AppColors.white)),
-            backgroundColor: AppColors.accentGold,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('配布エラー: $e');
-      _showError('バッジの配布に失敗しました');
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
   }
 
   InputDecoration _inputDecoration(String hint) {

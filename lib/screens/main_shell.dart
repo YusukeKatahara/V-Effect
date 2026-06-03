@@ -9,6 +9,7 @@ import '../services/user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../widgets/notification_prompt_sheet.dart';
+import '../services/sound_service.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'hero_tasks_screen.dart';
@@ -51,6 +52,8 @@ class _MainShellState extends State<MainShell> {
 
   void _onGlobalTabChanged() {
     if (mounted && _currentIndex != MainShell.activeTabIndex.value) {
+      // 外部からのタブ切り替え時に確実にBGMを止める
+      SoundService.instance.stopBgm();
       setState(() {
         _currentIndex = MainShell.activeTabIndex.value;
       });
@@ -115,6 +118,10 @@ class _MainShellState extends State<MainShell> {
   ];
 
   void _onTap(int index) {
+    if (_currentIndex != index) {
+      // タブ切り替え時に確実にBGMを止める
+      SoundService.instance.stopBgm();
+    }
     HapticFeedback.selectionClick();
     MainShell.activeTabIndex.value = index;
     setState(() => _currentIndex = index);

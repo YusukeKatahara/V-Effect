@@ -1,7 +1,9 @@
 import "package:v_effect/config/app_colors.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import '../config/routes.dart';
+import 'package:flutter/foundation.dart';
+import '../main.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// アプリ全体で共有するエラー表示用ウィジェット
 class GlobalErrorWidget extends StatelessWidget {
@@ -64,11 +66,8 @@ class GlobalErrorWidget extends StatelessWidget {
                   const SizedBox(height: 32),
                   ElevatedButton(
                     onPressed: () {
-                      // アプリの再起動を試みるため、wrapperへ戻る
-                      Navigator.of(context).pushNamedAndRemoveUntil(
-                        AppRoutes.wrapper,
-                        (route) => false,
-                      );
+                      // アプリの再起動を試みるため、AppInitializerを再度runAppする
+                      runApp(const ProviderScope(child: AppInitializer()));
                     },
                     child: const Text('再試行'),
                   ),

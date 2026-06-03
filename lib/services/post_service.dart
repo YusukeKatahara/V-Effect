@@ -178,6 +178,10 @@ class PostService {
     required Uint8List imageBytes,
     required String taskName,
     String? caption,
+    String? bgmUrl,
+    String? bgmTitle,
+    String? bgmArtist,
+    String? bgmArtworkUrl,
   }) async {
     final uid = _auth.currentUser!.uid;
 
@@ -240,6 +244,10 @@ class PostService {
       showTimestamp: showTimestamp,
       emojiReactedUserIds: const [],
       userReactions: const {},
+      bgmUrl: bgmUrl,
+      bgmTitle: bgmTitle,
+      bgmArtist: bgmArtist,
+      bgmArtworkUrl: bgmArtworkUrl,
     );
 
     // ワンタイムタスクの完了時間を記録

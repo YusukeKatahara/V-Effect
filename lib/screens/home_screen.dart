@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +27,7 @@ import '../widgets/weekly_review_banner.dart';
 import 'weekly_review_screen.dart';
 import '../providers/home_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'main_shell.dart';
 import '../services/friend_service.dart';
 import '../models/friend_request.dart';
 import '../models/app_user.dart';
@@ -98,6 +100,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return (pos % len + len) % len;
   }
 
+  int _lastFocusedIndex = -1;
+
+  void _playBgmForFocusedPost() async {
+    final currentFocused = _focusedIndex;
+    if (_feedItems.isEmpty || currentFocused < 0 || currentFocused >= _feedItems.length) return;
+
+    final item = _feedItems[currentFocused];
+    if (item is Post && item.bgmUrl != null) {
+      await SoundService.instance.playBgm(item.bgmUrl!);
+    } else {
+      await SoundService.instance.stopBgm();
+    }
+  }
+
   // ── リアクションアニメーション制御用 ──
   final GlobalKey<_FloatingFlamesLayerState> _flamesKey = GlobalKey();
   double _flameBottomOffset = 120.0; // NavBar高さを考慮した炎アニメーション起点
@@ -125,6 +141,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    MainShell.activeTabIndex.addListener(_onTabChanged);
     _flashController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -148,6 +165,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           if (page != null && !page.isNaN) {
             if (_showSwipeGuide && (page - initialPage).abs() > 0.1) {
               _dismissSwipeGuide();
+            }
+            final currentFocused = _focusedIndex;
+            if (currentFocused != _lastFocusedIndex) {
+              _lastFocusedIndex = currentFocused;
+              _playBgmForFocusedPost();
             }
           }
         }
@@ -191,7 +213,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   void dispose() {
+    MainShell.activeTabIndex.removeListener(_onTabChanged);
     WidgetsBinding.instance.removeObserver(this);
+    SoundService.instance.stopBgm();
     for (final ad in _nativeAds.values) {
       ad.dispose();
     }
@@ -262,6 +286,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ad.load();
   }
 
+
+  void _onTabChanged() {
+    if (!mounted) return;
+    if (MainShell.activeTabIndex.value == 0) {
+      // コンパスタブに戻ってきたらBGMを再開
+      _playBgmForFocusedPost();
+    }
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -1025,7 +1057,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     _flameBottomOffset = MediaQuery.paddingOf(context).bottom + 120.0;
 
-    return Scaffold(
+    return VisibilityDetector(
+      key: const Key('home_screen_visibility'),
+      onVisibilityChanged: (info) {
+        if (info.visibleFraction < 0.1) {
+          // 画面がほぼ見えなくなった時（他のタブや別画面に移動した時）
+          SoundService.instance.stopBgm();
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppColors.black,
       body: Stack(
         children: [
@@ -1074,7 +1114,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildHomeSkeletonBody() {
@@ -1670,6 +1710,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 ),
                               // (以下略: 他のボタン等も必要に応じて AnimatedBuilder で参照可能)
 
+                              // [New] タスク名とBGM情報を最前面のオーバーレイに配置
+                              if (item is Post)
+                                Positioned(
+                                  top: 24,
+                                  left: 20,
+                                  right: 60, // 右上のメニューボタンと重ならないように制限
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.grey15.withValues(alpha: 0.95),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: AppColors.white.withValues(alpha: 0.1),
+                                            width: 0.5,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.black.withValues(alpha: 0.3),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Text(
+                                          item.taskName,
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.white,
+                                            letterSpacing: 1,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (item.bgmTitle != null) ...[
+                                        const SizedBox(height: 8),
+                                        _BgmIndicator(
+                                          title: item.bgmTitle!,
+                                          artist: item.bgmArtist,
+                                          url: item.bgmUrl,
+                                          artworkUrl: item.bgmArtworkUrl,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+
                           // 2. アバタータップエリア (中心をVFIREと合わせる: bottom 32 + text 16 + gap 16 + avatar 40 = 104 -> center 84)
                           Positioned(
                             bottom: 32,
@@ -2169,42 +2261,61 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(
-                      height: 32,
-                      width: (24.0 * widget.postedFriends.length.clamp(1, 5)) + 8,
-                      child: Stack(
-                        children: [
-                          for (int i = 0; i < min(widget.postedFriends.length, 5); i++)
-                            Positioned(
-                              left: i * 20.0,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.black,
-                                    width: 2,
+                    () {
+                      // 5人以上の場合は、4つのアバターと「+N」サークルを合わせた最大5個の要素を表示します。
+                      // これにより、画面幅がアバターで溢れてデザインが崩れるのを防ぎます。
+                      final showOverflow = widget.postedFriends.length >= 5;
+                      final displayCount = showOverflow ? 5 : widget.postedFriends.length;
+                      return SizedBox(
+                        height: 32,
+                        width: (24.0 * displayCount) + 8,
+                        child: Stack(
+                          children: [
+                            for (int i = 0; i < displayCount; i++)
+                              Positioned(
+                                left: i * 20.0,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.black,
+                                      width: 2,
+                                    ),
                                   ),
-                                ),
-                                child: CircleAvatar(
-                                  radius: 14,
-                                  backgroundColor: AppColors.grey20,
-                                  backgroundImage: widget.postedFriends[i]['photoUrl'] != null
-                                      ? CachedNetworkImageProvider(widget.postedFriends[i]['photoUrl'])
-                                      : null,
-                                  child: widget.postedFriends[i]['photoUrl'] == null
-                                      ? Text(
-                                          (widget.postedFriends[i]['username'] as String).characters.isNotEmpty 
-                                              ? (widget.postedFriends[i]['username'] as String).characters.first.toUpperCase() 
-                                              : '?',
-                                          style: const TextStyle(fontSize: 10),
+                                  child: (showOverflow && i == 4)
+                                      ? CircleAvatar(
+                                          radius: 14,
+                                          backgroundColor: AppColors.grey30, // 溢れ表示用の少し明るいグレー（灰色）の背景
+                                          child: Text(
+                                            '+${widget.postedFriends.length - 4}',
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.white,
+                                            ),
+                                          ),
                                         )
-                                      : null,
+                                      : CircleAvatar(
+                                          radius: 14,
+                                          backgroundColor: AppColors.grey20,
+                                          backgroundImage: widget.postedFriends[i]['photoUrl'] != null
+                                              ? CachedNetworkImageProvider(widget.postedFriends[i]['photoUrl'])
+                                              : null,
+                                          child: widget.postedFriends[i]['photoUrl'] == null
+                                              ? Text(
+                                                  (widget.postedFriends[i]['username'] as String).characters.isNotEmpty 
+                                                      ? (widget.postedFriends[i]['username'] as String).characters.first.toUpperCase() 
+                                                      : '?',
+                                                  style: const TextStyle(fontSize: 10),
+                                                )
+                                              : null,
+                                        ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                    ),
+                          ],
+                        ),
+                      );
+                    }(),
                     const SizedBox(width: 8),
                     Text(
                       '仲間の努力が届いています',
@@ -2350,39 +2461,6 @@ class _FeedCard extends StatelessWidget {
                             ),
                           ),
                         ),
-            ),
-
-            // [New] タスク名を左上に配置
-            Positioned(
-              top: 24,
-              left: 20,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.grey15.withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.white.withValues(alpha: 0.1),
-                    width: 0.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.black.withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  post.taskName,
-                  style: GoogleFonts.outfit(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.white,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
             ),
 
             // 三点リーダーボタン
@@ -3182,4 +3260,104 @@ class _TooltipTailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _BgmIndicator extends StatefulWidget {
+  final String title;
+  final String? artist;
+  final String? url;
+  final String? artworkUrl;
+
+  const _BgmIndicator({required this.title, this.artist, this.url, this.artworkUrl});
+
+  @override
+  State<_BgmIndicator> createState() => _BgmIndicatorState();
+}
+
+class _BgmIndicatorState extends State<_BgmIndicator> {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () async {
+            HapticFeedback.lightImpact();
+            await SoundService.instance.toggleBgmMute(widget.url);
+            setState(() {});
+          },
+          child: widget.artworkUrl != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: widget.artworkUrl!,
+                          fit: BoxFit.cover,
+                        ),
+                        if (SoundService.instance.isBgmMuted)
+                          Container(
+                            color: AppColors.black.withValues(alpha: 0.5),
+                            child: const Icon(
+                              Icons.music_off_rounded,
+                              color: AppColors.white,
+                              size: 16,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                )
+              : Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.black.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    SoundService.instance.isBgmMuted
+                        ? Icons.music_off_rounded
+                        : Icons.music_note_rounded,
+                    color: SoundService.instance.isBgmMuted
+                        ? AppColors.grey50
+                        : AppColors.white,
+                    size: 16,
+                  ),
+                ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.title,
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.white,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (widget.artist != null)
+                Text(
+                  widget.artist!,
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 10,
+                    color: AppColors.grey50,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }

@@ -50,31 +50,15 @@ class WidgetService {
       final recentDatesRaw = userData['recentPostDates'] as List? ?? [];
       final historyDates = recentDatesRaw.map((e) => e.toString()).join(',');
 
-      double monthlyRate = 0.0;
-      if (recentDatesRaw.isNotEmpty) {
-        int count = 0;
-        final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
-        for (final dateStr in recentDatesRaw) {
-          final parts = dateStr.toString().split('-');
-          if (parts.length == 3) {
-            final d = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
-            if (d.isAfter(thirtyDaysAgo) || d.isAtSameMomentAs(thirtyDaysAgo)) count++;
-          }
-        }
-        monthlyRate = count / 30.0;
-        if (monthlyRate > 1.0) monthlyRate = 1.0;
-      }
-
       await HomeWidget.saveWidgetData<bool>('isCompleted', isCompleted);
       await HomeWidget.saveWidgetData<int>('streakCount', streakCount);
       await HomeWidget.saveWidgetData<String>('historyDates', historyDates);
-      await HomeWidget.saveWidgetData<double>('monthlyRate', monthlyRate);
       
       await HomeWidget.updateWidget(
         iOSName: iOSWidgetName,
       );
       
-      debugPrint('Widget updated: isCompleted=$isCompleted, streak=$streakCount, historyDatesLength=${historyDates.length}, monthlyRate=$monthlyRate');
+      debugPrint('Widget updated: isCompleted=$isCompleted, streak=$streakCount, historyDatesLength=${historyDates.length}');
     } catch (e) {
       debugPrint('Widget update error: $e');
     }

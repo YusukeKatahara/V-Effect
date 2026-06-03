@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -44,10 +45,26 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
                 onPressed: () => Navigator.pop(context),
               ),
               trailing: isDev
-                  ? IconButton(
-                      icon: const Icon(Icons.add_rounded, color: AppColors.white, size: 22),
-                      onPressed: () =>
-                          Navigator.pushNamed(context, AppRoutes.blogPostEditor),
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.stars_rounded, color: AppColors.accentGold, size: 22),
+                          tooltip: '全ユーザーへバッジ配布',
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => const _AdminBadgeDistributeDialog(),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_rounded, color: AppColors.white, size: 22),
+                          tooltip: 'ブログ記事を作成',
+                          onPressed: () =>
+                              Navigator.pushNamed(context, AppRoutes.blogPostEditor),
+                        ),
+                      ],
                     )
                   : null,
             ),
@@ -256,6 +273,138 @@ class _EmptyState extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AdminBadgeDistributeDialog extends StatefulWidget {
+  const _AdminBadgeDistributeDialog();
+
+  @override
+  State<_AdminBadgeDistributeDialog> createState() => _AdminBadgeDistributeDialogState();
+}
+
+class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog> {
+  final _controller = TextEditingController();
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _distributeBadge() async {
+    final badgeUrl = _controller.text.trim();
+    if (badgeUrl.isEmpty) {
+      _showError('バッジID（または tester など）を入力してください');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final db = FirebaseFirestore.instance;
+      final snapshot = await db.collection('users').get();
+      final batch = db.batch();
+      int count = 0;
+      final anim = badgeUrl == 'tester' ? 'shimmer' : 'none';
+      for (var doc in snapshot.docs) {
+        batch.update(doc.reference, {
+          'equippedBadgeUrl': badgeUrl,
+          'equippedBadgeAnimation': anim,
+        });
+        count++;
+        if (count >= 490) {
+          await batch.commit();
+          count = 0;
+        }
+      }
+      if (count > 0) {
+        await batch.commit();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('全ユーザーにバッジ「$badgeUrl」を配布・装備させました！',
+                style: GoogleFonts.notoSansJp(color: AppColors.white)),
+            backgroundColor: AppColors.accentGold,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint('配布エラー: $e');
+      _showError('バッジの配布に失敗しました');
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.notoSansJp(color: AppColors.white)),
+        backgroundColor: AppColors.grey15,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.grey15,
+      title: Row(
+        children: [
+          const Icon(Icons.stars_rounded, color: AppColors.accentGold),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text('全ユーザーへバッジ配布',
+                style: GoogleFonts.notoSansJp(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('現在登録されている全てのユーザーに、指定したバッジを強制的に装備させます。通知は飛びません。',
+              style: GoogleFonts.notoSansJp(color: AppColors.grey70, fontSize: 13)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            style: GoogleFonts.notoSansJp(color: AppColors.white),
+            decoration: InputDecoration(
+              hintText: 'バッジID (例: tester)',
+              hintStyle: GoogleFonts.notoSansJp(color: AppColors.grey30),
+              filled: true,
+              fillColor: AppColors.black.withValues(alpha: 0.3),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.grey30, width: 0.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.accentGold, width: 0.5),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.pop(context),
+          child: Text('キャンセル', style: GoogleFonts.notoSansJp(color: AppColors.grey50)),
+        ),
+        _isSaving
+            ? const SizedBox(
+                width: 20, height: 20,
+                child: CircularProgressIndicator(color: AppColors.accentGold, strokeWidth: 2),
+              )
+            : TextButton(
+                onPressed: _distributeBadge,
+                child: Text('配布する', style: GoogleFonts.notoSansJp(color: AppColors.accentGold, fontWeight: FontWeight.bold)),
+              ),
+      ],
     );
   }
 }

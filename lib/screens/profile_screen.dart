@@ -102,12 +102,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   .get();
               
               int count = 0;
+              final Map<String, int> dailyPostCounts = {};
               for (var postDoc in postsSnap.docs) {
                 final createdAt = (postDoc.data()['createdAt'] as Timestamp?)?.toDate();
                 if (createdAt != null &&
                     createdAt.isAfter(season.startDate) &&
                     createdAt.isBefore(season.endDate)) {
-                  count++;
+                  final dateKey = '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}';
+                  final currentDailyCount = dailyPostCounts[dateKey] ?? 0;
+                  if (currentDailyCount < 1) {
+                    count++;
+                    dailyPostCounts[dateKey] = currentDailyCount + 1;
+                  }
                 }
               }
               newSeasonPostsCountMap[doc.id] = count;

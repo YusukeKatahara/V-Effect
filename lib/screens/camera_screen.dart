@@ -11,6 +11,10 @@ import 'package:image_picker/image_picker.dart';
 import '../config/app_colors.dart';
 import '../services/post_service.dart';
 
+import '../services/music_api_service.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../providers/home_provider.dart';
@@ -40,6 +44,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   final TextEditingController _captionController = TextEditingController();
   final GlobalKey _boundaryKey = GlobalKey();
   final TransformationController _transformationController = TransformationController();
+
+  // ── BGM ──
+  MusicItem? _selectedMusic;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlayingPreview = false;
 
   // ── カメラ制御 ──
   CameraController? _cameraController;
@@ -77,6 +86,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     _cameraController?.dispose();
     _captionController.dispose();
     _transformationController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -176,13 +186,22 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       _currentZoomLevel = _minAvailableZoom;
       _baseZoomLevel = _minAvailableZoom;
 
-      // 現在のフラッシュモードを適用
-      await controller.setFlashMode(_flashMode);
+      // 現在のフラッシュモードを適用 (iPadなどフラッシュ非搭載端末への配慮)
+      try {
+        await controller.setFlashMode(_flashMode);
+      } catch (e) {
+        debugPrint('FLASH SET ERROR (Ignored): $e');
+      }
+      
       if (mounted) {
         setState(() => _isCameraReady = true);
       }
     } catch (e) {
       debugPrint('CAMERA START ERROR: $e');
+      // 万が一その他の初期化エラーが起きてもローディングから抜け出せるように配慮
+      if (mounted) {
+        setState(() => _isCameraReady = true);
+      }
     }
   }
 
@@ -342,7 +361,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     setState(() {
       _image = null;
       _captionController.clear();
+      _selectedMusic = null;
     });
+    await _stopPreviewAudio();
     // カメラが破棄されている場合は再初期化
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       await _initCamera();
@@ -392,6 +413,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           imageBytes: finalBytes,
           taskName: taskName,
           caption: captionText.isNotEmpty ? captionText : null,
+          bgmUrl: _selectedMusic?.previewUrl,
+          bgmTitle: _selectedMusic?.title,
+          bgmArtist: _selectedMusic?.artist,
+          bgmArtworkUrl: _selectedMusic?.artworkUrl,
         );
         // Provider を明示的に更新（データの整合性を保証するためのガードレール）
         ref.invalidate(homeDataProvider);
@@ -520,11 +545,87 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 ),
               ),
             )
+          else if (!showFlash)
+            // 撮影済みの場合は音符アイコンを表示
+            GestureDetector(
+              onTap: _showMusicBottomSheet,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _selectedMusic != null
+                      ? AppColors.accentGold.withValues(alpha: 0.2)
+                      : AppColors.white.withValues(alpha: 0.1),
+                ),
+                child: Icon(
+                  Icons.music_note_rounded,
+                  color: _selectedMusic != null ? AppColors.accentGold : AppColors.white,
+                  size: 24,
+                ),
+              ),
+            )
           else
             const SizedBox(width: 44), // バランス用
         ],
       ),
     );
+  }
+
+  // ── BGM 制御とUI ──
+
+  Future<void> _playPreviewAudio(String url) async {
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.play(UrlSource(url));
+      setState(() {
+        _isPlayingPreview = true;
+      });
+      _audioPlayer.onPlayerComplete.listen((_) {
+        if (mounted) {
+          setState(() {
+            _isPlayingPreview = false;
+          });
+        }
+      });
+    } catch (e) {
+      debugPrint('Audio Play Error: $e');
+    }
+  }
+
+  Future<void> _stopPreviewAudio() async {
+    await _audioPlayer.stop();
+    if (mounted) {
+      setState(() {
+        _isPlayingPreview = false;
+      });
+    }
+  }
+
+  void _showMusicBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.black,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return const MusicSearchBottomSheet();
+      },
+    ).then((selected) {
+      if (selected is MusicItem) {
+        setState(() {
+          _selectedMusic = selected;
+        });
+        _playPreviewAudio(selected.previewUrl);
+      } else if (selected == 'remove') {
+        setState(() {
+          _selectedMusic = null;
+        });
+        _stopPreviewAudio();
+      }
+    });
   }
 
   /// ── カメラプレビュー画面（写真未撮影時） ──
@@ -566,7 +667,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               },
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(24),
-                child: _isCameraReady && _cameraController != null
+                child: _isCameraReady && _cameraController != null && _cameraController!.value.isInitialized
                     ? _buildCameraPreview()
                     : _buildCameraLoading(),
                   ),
@@ -850,6 +951,72 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                         ),
                       ],
                     ),
+                    // BGM情報の表示
+                    if (_selectedMusic != null) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          if (_selectedMusic!.artworkUrl.isNotEmpty)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: CachedNetworkImage(
+                                imageUrl: _selectedMusic!.artworkUrl,
+                                width: 22,
+                                height: 22,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(
+                                  width: 22,
+                                  height: 22,
+                                  color: AppColors.black.withValues(alpha: 0.6),
+                                  child: const Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  width: 22,
+                                  height: 22,
+                                  color: AppColors.black.withValues(alpha: 0.6),
+                                  child: const Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppColors.black.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
+                            ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedMusic!.title,
+                                  style: const TextStyle(
+                                    color: AppColors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  _selectedMusic!.artist,
+                                  style: const TextStyle(
+                                    color: AppColors.grey50,
+                                    fontSize: 10,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1008,5 +1175,313 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         ],
       ),
     );
+  }
+}
+
+class MusicSearchBottomSheet extends StatefulWidget {
+  const MusicSearchBottomSheet({super.key});
+
+  @override
+  State<MusicSearchBottomSheet> createState() => _MusicSearchBottomSheetState();
+}
+
+class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  final AudioPlayer _previewPlayer = AudioPlayer();
+  
+  List<MusicItem> _results = [];
+  bool _isLoading = false;
+
+  List<MusicItem> _recentSongs = [];
+  List<MusicItem> _topSongs = [];
+  bool _isLoadingInitial = true;
+
+  String? _playingUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+    _searchController.addListener(() {
+      if (_searchController.text.isEmpty) {
+        setState(() {
+          _results.clear();
+        });
+      }
+    });
+  }
+
+  Future<void> _loadInitialData() async {
+    final recent = await MusicApiService.instance.getRecentSongs();
+    final top = await MusicApiService.instance.getTopSongs();
+    if (mounted) {
+      setState(() {
+        _recentSongs = recent;
+        _topSongs = top;
+        _isLoadingInitial = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _previewPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _search(String query) async {
+    if (query.trim().isEmpty) return;
+    setState(() {
+      _isLoading = true;
+    });
+    final results = await MusicApiService.instance.searchSongs(query);
+    if (mounted) {
+      setState(() {
+        _results = results;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _togglePreview(String url) async {
+    try {
+      if (_playingUrl == url) {
+        await _previewPlayer.stop();
+        setState(() {
+          _playingUrl = null;
+        });
+      } else {
+        await _previewPlayer.stop();
+        await _previewPlayer.play(UrlSource(url));
+        setState(() {
+          _playingUrl = url;
+        });
+        _previewPlayer.onPlayerComplete.listen((_) {
+          if (mounted) {
+            setState(() {
+              _playingUrl = null;
+            });
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Preview Play Error: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        children: [
+          // ハンドル
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.grey30,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // ヘッダーと「削除」ボタン
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '音楽を追加',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, 'remove');
+                  },
+                  child: const Text('BGMを削除', style: TextStyle(color: AppColors.error)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // 検索バー
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              controller: _searchController,
+              style: const TextStyle(color: AppColors.white),
+              decoration: InputDecoration(
+                hintText: '曲名やアーティストで検索...',
+                hintStyle: const TextStyle(color: AppColors.grey50),
+                prefixIcon: const Icon(Icons.search, color: AppColors.grey50),
+                filled: true,
+                fillColor: AppColors.grey15,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onSubmitted: _search,
+              textInputAction: TextInputAction.search,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // 結果リスト
+          Expanded(
+            child: _searchController.text.isEmpty
+                ? _buildInitialView()
+                : _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: AppColors.accentGold))
+                    : ListView.builder(
+                        itemCount: _results.length,
+                        itemBuilder: (context, index) {
+                          return _buildMusicTile(_results[index]);
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInitialView() {
+    if (_isLoadingInitial) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.accentGold));
+    }
+    return ListView(
+      padding: const EdgeInsets.only(top: 16, bottom: 40),
+      children: [
+        if (_recentSongs.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              '最近使った曲',
+              style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: _recentSongs.length,
+              itemBuilder: (context, index) {
+                final item = _recentSongs[index];
+                return GestureDetector(
+                  onTap: () => _selectSong(item),
+                  child: Container(
+                    width: 100,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: item.artworkUrl,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.title,
+                          style: const TextStyle(color: AppColors.white, fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            '日本のトレンド',
+            style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+        ..._topSongs.map((item) => _buildMusicTile(item)),
+      ],
+    );
+  }
+
+  Widget _buildMusicTile(MusicItem item) {
+    final isPlaying = _playingUrl == item.previewUrl;
+    return ListTile(
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            CachedNetworkImage(
+              imageUrl: item.artworkUrl,
+              width: 50,
+              height: 50,
+              fit: BoxFit.cover,
+            ),
+            if (isPlaying)
+              Container(
+                width: 50,
+                height: 50,
+                color: AppColors.black.withValues(alpha: 0.5),
+                child: const Icon(Icons.pause, color: AppColors.white),
+              )
+            else
+              GestureDetector(
+                onTap: () => _togglePreview(item.previewUrl),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  color: Colors.transparent,
+                  child: const Icon(Icons.play_arrow, color: AppColors.white, size: 28),
+                ),
+              ),
+          ],
+        ),
+      ),
+      title: Text(
+        item.title,
+        style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        item.artist,
+        style: const TextStyle(color: AppColors.grey50),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.accentGold,
+          foregroundColor: AppColors.black,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        onPressed: () => _selectSong(item),
+        child: const Text('選択', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  Future<void> _selectSong(MusicItem item) async {
+    await _previewPlayer.stop();
+    await MusicApiService.instance.addRecentSong(item);
+    if (mounted) {
+      Navigator.pop(context, item);
+    }
   }
 }

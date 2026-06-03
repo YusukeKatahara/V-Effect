@@ -22,6 +22,10 @@ class Post {
   final bool showTimestamp;
   final List<String> emojiReactedUserIds; // リアクションしたユーザーID
   final Map<String, String> userReactions; // uid -> 絵文字 (個別リアクション記録)
+  final String? bgmUrl; // 30秒プレビューURL
+  final String? bgmTitle; // 曲名
+  final String? bgmArtist; // アーティスト名
+  final String? bgmArtworkUrl; // アートワークURL
 
   // ── フィールド名定数 ──
   static const String fieldUserId = 'userId';
@@ -34,6 +38,10 @@ class Post {
   static const String fieldShowTimestamp = 'showTimestamp';
   static const String fieldEmojiReactedUserIds = 'emojiReactedUserIds';
   static const String fieldUserReactions = 'userReactions';
+  static const String fieldBgmUrl = 'bgmUrl';
+  static const String fieldBgmTitle = 'bgmTitle';
+  static const String fieldBgmArtist = 'bgmArtist';
+  static const String fieldBgmArtworkUrl = 'bgmArtworkUrl';
 
   const Post({
     required this.id,
@@ -47,6 +55,10 @@ class Post {
     this.showTimestamp = true,
     this.emojiReactedUserIds = const [],
     this.userReactions = const {},
+    this.bgmUrl,
+    this.bgmTitle,
+    this.bgmArtist,
+    this.bgmArtworkUrl,
   });
 
   /// Firestore の DocumentSnapshot からモデルを生成します
@@ -106,6 +118,10 @@ class Post {
       showTimestamp: data[fieldShowTimestamp] ?? true,
       emojiReactedUserIds: emojiReactedUserIds,
       userReactions: userReactions,
+      bgmUrl: data[fieldBgmUrl],
+      bgmTitle: data[fieldBgmTitle],
+      bgmArtist: data[fieldBgmArtist],
+      bgmArtworkUrl: data[fieldBgmArtworkUrl],
     );
   }
 
@@ -124,7 +140,11 @@ class Post {
           reactionCount == other.reactionCount &&
           showTimestamp == other.showTimestamp &&
           _listEquals(emojiReactedUserIds, other.emojiReactedUserIds) &&
-          _mapEquals(userReactions, other.userReactions);
+          _mapEquals(userReactions, other.userReactions) &&
+          bgmUrl == other.bgmUrl &&
+          bgmTitle == other.bgmTitle &&
+          bgmArtist == other.bgmArtist &&
+          bgmArtworkUrl == other.bgmArtworkUrl;
 
   @override
   int get hashCode =>
@@ -138,7 +158,11 @@ class Post {
       reactionCount.hashCode ^
       showTimestamp.hashCode ^
       emojiReactedUserIds.hashCode ^
-      userReactions.hashCode;
+      userReactions.hashCode ^
+      bgmUrl.hashCode ^
+      bgmTitle.hashCode ^
+      bgmArtist.hashCode ^
+      bgmArtworkUrl.hashCode;
 
   bool _listEquals(List? a, List? b) {
     if (a == null) return b == null;
@@ -171,6 +195,10 @@ class Post {
       fieldShowTimestamp: showTimestamp,
       fieldEmojiReactedUserIds: emojiReactedUserIds,
       fieldUserReactions: userReactions,
+      fieldBgmUrl: bgmUrl,
+      fieldBgmTitle: bgmTitle,
+      fieldBgmArtist: bgmArtist,
+      fieldBgmArtworkUrl: bgmArtworkUrl,
     };
   }
 
@@ -201,6 +229,10 @@ class Post {
     bool? showTimestamp,
     List<String>? emojiReactedUserIds,
     Map<String, String>? userReactions,
+    String? bgmUrl,
+    String? bgmTitle,
+    String? bgmArtist,
+    String? bgmArtworkUrl,
   }) {
     return Post(
       id: id ?? this.id,
@@ -214,6 +246,10 @@ class Post {
       showTimestamp: showTimestamp ?? this.showTimestamp,
       emojiReactedUserIds: emojiReactedUserIds ?? this.emojiReactedUserIds,
       userReactions: userReactions ?? this.userReactions,
+      bgmUrl: bgmUrl ?? this.bgmUrl,
+      bgmTitle: bgmTitle ?? this.bgmTitle,
+      bgmArtist: bgmArtist ?? this.bgmArtist,
+      bgmArtworkUrl: bgmArtworkUrl ?? this.bgmArtworkUrl,
     );
   }
 
