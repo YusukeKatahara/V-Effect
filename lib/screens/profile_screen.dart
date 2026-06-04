@@ -276,6 +276,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _addTask() async {
     final controller = TextEditingController();
     final triggerController = TextEditingController();
+    final rewardController = TextEditingController();
     bool isOneTime = false;
 
     final result = await showDialog<Map<String, dynamic>>(
@@ -302,20 +303,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
-                  // キーボード表示時にコンテンツがオーバーフローしないよう、スクロール可能にしています
                   content: SizedBox(
                     width: double.maxFinite,
                     child: SingleChildScrollView(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildTaskDialogHints(triggerController),
-                        const SizedBox(height: 16),
                         TextField(
                           controller: triggerController,
                           style: const TextStyle(color: AppColors.white),
                           decoration: const InputDecoration(
-                            hintText: 'トリガー（トリガーは自分のみ表示されます,任意）',
+                            hintText: 'トリガー（任意）',
                             hintStyle: TextStyle(color: AppColors.grey30),
                           ),
                         ),
@@ -329,6 +327,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             hintStyle: TextStyle(color: AppColors.grey30),
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: rewardController,
+                          style: const TextStyle(color: AppColors.white),
+                          decoration: const InputDecoration(
+                            hintText: 'ご褒美（任意）',
+                            hintStyle: TextStyle(color: AppColors.grey30),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildHabitPreviewForDialog(triggerController, controller, rewardController),
                         const SizedBox(height: 16),
                         SwitchListTile(
                           title: const Text(
@@ -369,6 +378,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           () => Navigator.pop(ctx, {
                             'title': controller.text,
                             'trigger': triggerController.text,
+                            'reward': rewardController.text,
                             'isOneTime': isOneTime,
                           }),
                       child: const Text(
@@ -386,6 +396,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         AppTask(
           title: result['title'].toString().trim(),
           trigger: result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim(),
+          reward: result['reward']?.toString().trim().isEmpty == true ? null : result['reward']?.toString().trim(),
           isOneTime: result['isOneTime'] as bool,
         ),
       );
@@ -399,6 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final task = _user!.tasks[index];
     final controller = TextEditingController(text: task.title);
     final triggerController = TextEditingController(text: task.trigger);
+    final rewardController = TextEditingController(text: task.reward);
     bool isOneTime = task.isOneTime;
 
     final result = await showDialog<Map<String, dynamic>>(
@@ -425,20 +437,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
-                  // キーボード表示時にコンテンツがオーバーフローしないよう、スクロール可能にしています
                   content: SizedBox(
                     width: double.maxFinite,
                     child: SingleChildScrollView(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _buildTaskDialogHints(triggerController),
-                          const SizedBox(height: 16),
                           TextField(
                             controller: triggerController,
                             style: const TextStyle(color: AppColors.white),
                             decoration: const InputDecoration(
-                              hintText: 'トリガー（トリガーは自分のみ表示されます,任意）',
+                              hintText: 'トリガー（任意）',
                               hintStyle: TextStyle(color: AppColors.grey30),
                             ),
                           ),
@@ -452,6 +461,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               hintStyle: TextStyle(color: AppColors.grey30),
                             ),
                           ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: rewardController,
+                            style: const TextStyle(color: AppColors.white),
+                            decoration: const InputDecoration(
+                              hintText: 'ご褒美（任意）',
+                              hintStyle: TextStyle(color: AppColors.grey30),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildHabitPreviewForDialog(triggerController, controller, rewardController),
                           const SizedBox(height: 16),
                           SwitchListTile(
                             title: const Text(
@@ -492,6 +512,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           () => Navigator.pop(ctx, {
                             'title': controller.text,
                             'trigger': triggerController.text,
+                            'reward': rewardController.text,
                             'isOneTime': isOneTime,
                           }),
                       child: const Text(
@@ -510,10 +531,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       final updatedTasks = List<AppTask>.from(_user!.tasks);
       final newTrigger = result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim();
+      final newReward = result['reward']?.toString().trim().isEmpty == true ? null : result['reward']?.toString().trim();
       updatedTasks[index] = task.copyWith(
         title: newTitle,
         trigger: newTrigger,
         clearTrigger: newTrigger == null,
+        reward: newReward,
+        clearReward: newReward == null,
         isOneTime: result['isOneTime'] as bool,
       );
       await _userService.updateProfile(tasks: updatedTasks);
@@ -556,7 +580,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '• 2分間ルール\nまずは「本を1ページ読む」「スクワットを10回する」など極小の行動から始めましょう。',
+                  '• ハビット・スタッキング\nすでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。',
                   style: GoogleFonts.notoSansJp(
                     fontSize: 13,
                     color: AppColors.grey50,
@@ -565,7 +589,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '• ハビット・スタッキング\nすでに毎日やっている行動の後に新しい習慣をくっつけると効果的です。',
+                  '• テンプテーション・バンドリング\nやるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。',
                   style: GoogleFonts.notoSansJp(
                     fontSize: 13,
                     color: AppColors.grey50,
@@ -627,39 +651,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Widget _buildTaskDialogHints(TextEditingController ctrl) {
-    final triggers = ['朝起きたら', '帰宅したら', 'お風呂から上がったら', '机に座ったら'];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: triggers.map((trigger) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: ActionChip(
-                  backgroundColor: AppColors.grey10,
-                  side: const BorderSide(color: AppColors.border),
-                  label: Text(
-                    trigger,
-                    style: GoogleFonts.notoSansJp(
-                      fontSize: 12,
-                      color: AppColors.white,
-                    ),
+  Widget _buildHabitPreviewForDialog(
+    TextEditingController triggerCtrl,
+    TextEditingController taskCtrl,
+    TextEditingController rewardCtrl,
+  ) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: taskCtrl,
+      builder: (context, taskVal, _) {
+        return ValueListenableBuilder<TextEditingValue>(
+          valueListenable: triggerCtrl,
+          builder: (context, triggerVal, _) {
+            return ValueListenableBuilder<TextEditingValue>(
+              valueListenable: rewardCtrl,
+              builder: (context, rewardVal, _) {
+                final hasTrigger = triggerVal.text.trim().isNotEmpty;
+                final hasQuest = taskVal.text.trim().isNotEmpty;
+                final hasReward = rewardVal.text.trim().isNotEmpty;
+
+                if (!hasTrigger && !hasQuest && !hasReward) {
+                  return const SizedBox.shrink();
+                }
+
+                return Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.grey10,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                   ),
-                  onPressed: () {
-                    ctrl.text = trigger;
-                    ctrl.selection = TextSelection.fromPosition(
-                      TextPosition(offset: ctrl.text.length),
-                    );
-                  },
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (hasTrigger) ...[
+                        Text(
+                          triggerVal.text.trim(),
+                          style: GoogleFonts.notoSansJp(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.accentGold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 6),
+                        const Icon(
+                          Icons.arrow_downward_rounded,
+                          size: 14,
+                          color: AppColors.grey50,
+                        ),
+                        const SizedBox(height: 6),
+                      ],
+                      Text(
+                        hasQuest ? taskVal.text.trim() : '（タスク）',
+                        style: GoogleFonts.notoSerifJp(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: hasQuest ? AppColors.white : AppColors.grey50,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (hasReward) ...[
+                        const SizedBox(height: 6),
+                        const Icon(
+                          Icons.arrow_downward_rounded,
+                          size: 14,
+                          color: AppColors.grey50,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          rewardVal.text.trim(),
+                          style: GoogleFonts.notoSansJp(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.accentGold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 

@@ -34,6 +34,7 @@ import '../services/app_review_service.dart';
 class _HeroTaskItem {
   final String name;
   final String? trigger;
+  final String? reward; // ご褒美（したい習慣）
   final List<Post> completedPosts;
   final bool isOneTime;
   final bool isSeason;
@@ -51,6 +52,7 @@ class _HeroTaskItem {
   _HeroTaskItem({
     required this.name,
     this.trigger,
+    this.reward,
     this.completedPosts = const [],
     this.isOneTime = false,
     this.isSeason = false,
@@ -310,6 +312,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         items.add(_HeroTaskItem(
           name: task.title, 
           trigger: task.trigger,
+          reward: task.reward,
           completedPosts: taskPosts,
           isOneTime: task.isOneTime,
           isSeason: task.isSeason,
@@ -471,6 +474,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         _taskItems[index] = _HeroTaskItem(
           name: originalItem.name,
           trigger: originalItem.trigger,
+          reward: originalItem.reward,
           completedPosts: newTempPosts,
           isOneTime: originalItem.isOneTime,
         );
@@ -1156,6 +1160,155 @@ class _TaskCardState extends State<_TaskCard> {
     super.dispose();
   }
 
+  Widget _buildHabitStepSequence({
+    required _HeroTaskItem item,
+    required bool isCompleted,
+    required int depth,
+  }) {
+    final hasTrigger = item.trigger != null && item.trigger!.isNotEmpty;
+    final hasReward = item.reward != null && item.reward!.isNotEmpty;
+    final isTop = depth == 0;
+
+    // トリガーもご褒美もない場合は、単にタスク名を表示する
+    if (!hasTrigger && !hasReward) {
+      return Text(
+        item.name,
+        style: GoogleFonts.notoSerifJp(
+          fontSize: isTop ? 22 : 16,
+          fontWeight: FontWeight.w600,
+          color: isTop ? AppColors.white : AppColors.grey50,
+          height: 1.4,
+          letterSpacing: 1.5,
+          shadows: isTop
+              ? [
+                  Shadow(
+                    color: AppColors.black.withValues(alpha: 0.8),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+      );
+    }
+
+    // 奥のカード（depth > 0）の場合は簡略化して1行で表示する
+    if (!isTop) {
+      final sb = StringBuffer();
+      if (hasTrigger) sb.write('${item.trigger} ➜ ');
+      sb.write(item.name);
+      if (hasReward) sb.write(' ➜ ${item.reward}');
+      return Text(
+        sb.toString(),
+        style: GoogleFonts.notoSansJp(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: AppColors.grey50,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    // 手前のカード（depth == 0）の場合は美麗なステップUIを表示する
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasTrigger) ...[
+          Row(
+            children: [
+              Icon(
+                Icons.alarm_rounded,
+                size: 14,
+                color: AppColors.accentGold.withValues(alpha: 0.8),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  item.trigger!,
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.grey70,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 6, top: 2, bottom: 2),
+            child: Container(
+              width: 1.5,
+              height: 10,
+              color: AppColors.border.withValues(alpha: 0.5),
+            ),
+          ),
+        ],
+        Row(
+          children: [
+            Icon(
+              Icons.task_alt_rounded,
+              size: 16,
+              color: isCompleted ? AppColors.accentGold : AppColors.white.withValues(alpha: 0.8),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                item.name,
+                style: GoogleFonts.notoSerifJp(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.white,
+                  height: 1.3,
+                  letterSpacing: 1.5,
+                  shadows: [
+                    Shadow(
+                      color: AppColors.black.withValues(alpha: 0.8),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (hasReward) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 6, top: 2, bottom: 2),
+            child: Container(
+              width: 1.5,
+              height: 10,
+              color: AppColors.border.withValues(alpha: 0.5),
+            ),
+          ),
+          Row(
+            children: [
+              const Icon(
+                Icons.emoji_events_rounded,
+                size: 14,
+                color: AppColors.accentGold,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  item.reward!,
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.accentGold.withValues(alpha: 0.9),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
   List<Post> get _sortedPosts {
     final posts = List<Post>.from(widget.item.completedPosts);
     posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -1312,23 +1465,7 @@ class _TaskCardState extends State<_TaskCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (isCompleted && depth == 0) ...[
-                Text(
-                  item.displayName,
-                  style: GoogleFonts.notoSerifJp(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.white,
-                    height: 1.4,
-                    letterSpacing: 1.5,
-                    shadows: [
-                      Shadow(
-                        color: AppColors.black.withValues(alpha: 0.8),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      )
-                    ],
-                  ),
-                ),
+                _buildHabitStepSequence(item: item, isCompleted: true, depth: depth),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -1430,27 +1567,7 @@ class _TaskCardState extends State<_TaskCard> {
                   ),
                 ],
               ] else ...[
-                Text(
-                  item.displayName,
-                  style: GoogleFonts.notoSerifJp(
-                    fontSize: depth == 0 ? 22 : 16,
-                    fontWeight: FontWeight.w500,
-                    color: depth == 0 ? AppColors.white : AppColors.grey50,
-                    height: 1.4,
-                    letterSpacing: 1.5,
-                    shadows: depth == 0
-                        ? [
-                            Shadow(
-                              color: AppColors.black.withValues(alpha: 0.8),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            )
-                          ]
-                        : null,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                _buildHabitStepSequence(item: item, isCompleted: false, depth: depth),
                 if (depth == 0) ...[
                   const SizedBox(height: 8),
                   Row(
@@ -1575,7 +1692,13 @@ class _TaskCardState extends State<_TaskCard> {
               onPressed: () {
                 SeasonHintModal.show(
                   context,
-                  AppTask(title: item.name, trigger: item.trigger, isSeason: item.isSeason, seasonId: item.seasonId),
+                  AppTask(
+                    title: item.name,
+                    trigger: item.trigger,
+                    reward: item.reward,
+                    isSeason: item.isSeason,
+                    seasonId: item.seasonId,
+                  ),
                   item.season!,
                   (newTrigger) async {
                     // trigger を更新して保存

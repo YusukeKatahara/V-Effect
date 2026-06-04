@@ -307,10 +307,7 @@ class PostService {
       userData: userData,
     );
 
-    // Step5: フレンドに通知を送る（バックグラウンドで処理、エラーハンドリング付き）
-    _sendPostNotifications(uid, newStreak: newStreak).catchError((_) {
-      // 通知送信失敗はクリティカルではないので静かに無視
-    });
+    // Step5: フレンドに通知を送る処理は Cloud Functions のタスクキュー（1分遅延）に移行したため削除
 
     // 保護スケジュールを再計算
     PushNotificationService().restoreVAlertSchedule().catchError((_) {});
@@ -324,50 +321,7 @@ class PostService {
     return streakResult;
   }
 
-  /// 投稿後のフレンド通知を送信する内部メソッド
-  Future<void> _sendPostNotifications(String uid, {int? newStreak}) async {
-    final userSnap = await _db.collection('users').doc(uid).get();
-    if (!userSnap.exists) return;
-    final username = userSnap.data()?['username']?.toString() ?? 'フレンド';
-    final dynamic rawFriends = userSnap.data()?['following'] ?? userSnap.data()?['friends'];
-    List<String> friends = [];
-    if (rawFriends is List) {
-      friends = rawFriends.map((e) => e.toString()).toList();
-    } else if (rawFriends is Map) {
-      friends = rawFriends.keys.map((k) => k.toString()).toList();
-    }
 
-    // 今日の合計投稿数を取得する (expiresAtが未来の投稿をカウント)
-    final now = DateTime.now();
-    final startOfToday = DateTime(now.year, now.month, now.day);
-    final postsSnap = await _postsRef
-        .where(Post.fieldUserId, isEqualTo: uid)
-        .where('expiresAt', isGreaterThan: now)
-        .get();
-
-    final todayPostCount = postsSnap.docs
-        .map((doc) => doc.data())
-        .where((post) =>
-            post.createdAt.isAfter(startOfToday) ||
-            post.createdAt.isAtSameMomentAs(startOfToday))
-        .length;
-
-    final isMilestone = newStreak != null && [10, 30, 50, 100, 200, 365].contains(newStreak);
-
-    for (final friendUid in friends) {
-      await _notificationService.createNotification(
-        toUid: friendUid,
-        type: NotificationType.friendTaskCompleted,
-        params: {
-          'username': username,
-          'count': todayPostCount.toString(),
-          'streak': newStreak?.toString() ?? '0',
-          'isMilestone': isMilestone.toString(),
-        },
-        fromUid: uid,
-      );
-    }
-  }
 
   /// フレンドの24時間以内の投稿を取得します（リアルタイム更新）
   ///

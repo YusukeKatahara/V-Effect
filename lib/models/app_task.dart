@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AppTask {
   final String title;
   final String? trigger;
+  final String? reward; // ご褒美（したい習慣）
   final bool isOneTime;
   final bool isSeason; // シーズンタスクかどうか
   final String? seasonId; // シーズンのID
@@ -11,6 +12,7 @@ class AppTask {
   const AppTask({
     required this.title,
     this.trigger,
+    this.reward,
     this.isOneTime = false,
     this.isSeason = false,
     this.seasonId,
@@ -21,6 +23,7 @@ class AppTask {
     return {
       'title': title,
       if (trigger != null) 'trigger': trigger,
+      if (reward != null) 'reward': reward,
       'isOneTime': isOneTime,
       'isSeason': isSeason,
       if (seasonId != null) 'seasonId': seasonId,
@@ -37,6 +40,7 @@ class AppTask {
     return AppTask(
       title: map['title'] ?? '',
       trigger: map['trigger'] as String?,
+      reward: map['reward'] as String?,
       isOneTime: map['isOneTime'] ?? false,
       isSeason: map['isSeason'] ?? false,
       seasonId: map['seasonId'] as String?,
@@ -48,6 +52,8 @@ class AppTask {
     String? title,
     String? trigger,
     bool clearTrigger = false,
+    String? reward,
+    bool clearReward = false,
     bool? isOneTime,
     bool? isSeason,
     String? seasonId,
@@ -56,6 +62,7 @@ class AppTask {
     return AppTask(
       title: title ?? this.title,
       trigger: clearTrigger ? null : (trigger ?? this.trigger),
+      reward: clearReward ? null : (reward ?? this.reward),
       isOneTime: isOneTime ?? this.isOneTime,
       isSeason: isSeason ?? this.isSeason,
       seasonId: seasonId ?? this.seasonId,

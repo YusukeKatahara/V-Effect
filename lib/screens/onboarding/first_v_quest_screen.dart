@@ -22,6 +22,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     with TickerProviderStateMixin {
   final _questCtrl = TextEditingController();
   final _triggerCtrl = TextEditingController();
+  final _rewardCtrl = TextEditingController();
   final _userService = UserService.instance;
   bool _isSaving = false;
 
@@ -35,10 +36,12 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
   late final Animation<double> _formAnim;
 
   // プレースホルダーのループ
-  static const _placeholders = ['ジム', '英語学習', '部屋の掃除', 'ランニング', '栄養管理'];
+  static const _placeholders = ['ジム', '英語学習', '部屋 of 掃除', 'ランニング', '栄養管理'];
   static const _triggerPlaceholders = ['朝起きたら', '帰宅したら', 'お風呂から上がったら', '机に座ったら'];
+  static const _rewardPlaceholders = ['美味しいコーヒーを飲む', 'SNSを5分見る', '動画を1本見る', 'お気に入りのゲームをする', '漫画を読む'];
   int _placeholderIndex = 0;
   int _triggerPlaceholderIndex = 0;
+  int _rewardPlaceholderIndex = 0;
   Timer? _placeholderTimer;
 
   static const _keywordIntervals = [
@@ -87,6 +90,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
 
     _questCtrl.addListener(() => setState(() {}));
     _triggerCtrl.addListener(() => setState(() {}));
+    _rewardCtrl.addListener(() => setState(() {}));
   }
 
   void _startPlaceholderTimer() {
@@ -95,6 +99,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
         setState(() {
           _placeholderIndex = (_placeholderIndex + 1) % _placeholders.length;
           _triggerPlaceholderIndex = (_triggerPlaceholderIndex + 1) % _triggerPlaceholders.length;
+          _rewardPlaceholderIndex = (_rewardPlaceholderIndex + 1) % _rewardPlaceholders.length;
         });
       }
     });
@@ -104,6 +109,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
   void dispose() {
     _questCtrl.dispose();
     _triggerCtrl.dispose();
+    _rewardCtrl.dispose();
     _ctrlA.dispose();
     _ctrlB.dispose();
     _placeholderTimer?.cancel();
@@ -177,6 +183,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
       await _userService.saveFirstVQuest(
         questTitle: skip ? null : _questCtrl.text.trim(),
         questTrigger: skip ? null : _triggerCtrl.text.trim(),
+        questReward: skip ? null : _rewardCtrl.text.trim(),
       );
       if (mounted) {
         // オンボーディング完了後（ホーム画面へ遷移する前）に通知許可プロンプトを表示
@@ -304,9 +311,8 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                         const SizedBox(height: 12),
                         _buildHabitHints(),
                         const SizedBox(height: 16),
-                        _buildTriggerChips(),
-                        const SizedBox(height: 12),
                         _buildInputField(),
+                        _buildHabitPreview(),
                         const Spacer(),
                         GradientButton(
                           onPressed:
@@ -349,11 +355,12 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
   Widget _buildInputField() {
     final showPlaceholder = _questCtrl.text.isEmpty;
     final showTriggerPlaceholder = _triggerCtrl.text.isEmpty;
+    final showRewardPlaceholder = _rewardCtrl.text.isEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'トリガー（トリガーは自分のみ表示されます,任意）',
+          'トリガー（任意）',
           style: GoogleFonts.notoSansJp(
             fontSize: 12,
             color: AppColors.grey50,
@@ -416,7 +423,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
         ),
         const SizedBox(height: 16),
         Text(
-          'タスク名',
+          'タスク名（行動：必要な習慣）',
           style: GoogleFonts.notoSansJp(
             fontSize: 12,
             color: AppColors.grey50,
@@ -477,7 +484,151 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
               ),
           ],
         ),
+        const SizedBox(height: 16),
+        Text(
+          'ご褒美（任意）',
+          style: GoogleFonts.notoSansJp(
+            fontSize: 12,
+            color: AppColors.grey50,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Stack(
+          alignment: Alignment.centerLeft,
+          children: [
+            TextField(
+              controller: _rewardCtrl,
+              style: GoogleFonts.notoSansJp(
+                color: AppColors.textPrimary,
+                fontSize: 15,
+              ),
+              decoration: InputDecoration(
+                hintText: '',
+                filled: true,
+                fillColor: AppColors.grey10,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            if (showRewardPlaceholder)
+              Positioned(
+                left: 16,
+                right: 16,
+                child: IgnorePointer(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    transitionBuilder:
+                        (child, animation) => FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.4),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        ),
+                    child: Text(
+                      '例: ${_rewardPlaceholders[_rewardPlaceholderIndex]}',
+                      key: ValueKey<int>(_rewardPlaceholderIndex),
+                      style: GoogleFonts.notoSansJp(
+                        color: AppColors.grey30,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '※ トリガーとご褒美は自分にのみ表示されます（他のユーザーには公開されません）',
+          style: GoogleFonts.notoSansJp(
+            fontSize: 11,
+            color: AppColors.grey50,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildHabitPreview() {
+    final hasTrigger = _triggerCtrl.text.isNotEmpty;
+    final hasQuest = _questCtrl.text.isNotEmpty;
+    final hasReward = _rewardCtrl.text.isNotEmpty;
+
+    if (!hasTrigger && !hasQuest && !hasReward) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.grey10,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (hasTrigger) ...[
+            Text(
+              _triggerCtrl.text,
+              style: GoogleFonts.notoSansJp(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColors.accentGold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Icon(
+              Icons.arrow_downward_rounded,
+              size: 16,
+              color: AppColors.grey50,
+            ),
+            const SizedBox(height: 8),
+          ],
+          Text(
+            hasQuest ? _questCtrl.text : '（タスク）',
+            style: GoogleFonts.notoSerifJp(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: hasQuest ? AppColors.white : AppColors.grey50,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (hasReward) ...[
+            const SizedBox(height: 8),
+            const Icon(
+              Icons.arrow_downward_rounded,
+              size: 16,
+              color: AppColors.grey50,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _rewardCtrl.text,
+              style: GoogleFonts.notoSansJp(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColors.accentGold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -508,7 +659,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            '• 2分間ルール\nまずは「本を1ページ読む」「スクワットを10回する」など極小の行動から始めましょう。',
+            '• ハビット・スタッキング\nすでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。',
             style: GoogleFonts.notoSansJp(
               fontSize: 11,
               color: AppColors.grey50,
@@ -517,7 +668,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
           ),
           const SizedBox(height: 4),
           Text(
-            '• ハビット・スタッキング\nすでに毎日やっている行動の後に新しい習慣をくっつけると効果的です。',
+            '• テンプテーション・バンドリング\nやるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。',
             style: GoogleFonts.notoSansJp(
               fontSize: 11,
               color: AppColors.grey50,
@@ -525,37 +676,6 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTriggerChips() {
-    final triggers = ['朝起きたら', '帰宅したら', 'お風呂から上がったら', '机に座ったら'];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: triggers.map((trigger) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ActionChip(
-              backgroundColor: AppColors.grey10,
-              side: const BorderSide(color: AppColors.border),
-              label: Text(
-                trigger,
-                style: GoogleFonts.notoSansJp(
-                  fontSize: 12,
-                  color: AppColors.white,
-                ),
-              ),
-              onPressed: () {
-                _triggerCtrl.text = trigger;
-                _triggerCtrl.selection = TextSelection.fromPosition(
-                  TextPosition(offset: _triggerCtrl.text.length),
-                );
-              },
-            ),
-          );
-        }).toList(),
       ),
     );
   }

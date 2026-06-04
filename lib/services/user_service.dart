@@ -330,7 +330,7 @@ class UserService {
   }
 
   /// 最初のV Questを保存しオンボーディングを完了させます
-  Future<void> saveFirstVQuest({String? questTitle, String? questTrigger}) async {
+  Future<void> saveFirstVQuest({String? questTitle, String? questTrigger, String? questReward}) async {
     final uid = _auth.currentUser!.uid;
     final data = <String, dynamic>{
       'onboardingCompleted': true,
@@ -343,7 +343,7 @@ class UserService {
     tasks.add(AppTask(title: 'Welcome to V EFFECT', isOneTime: true).toFirestore());
     
     if (questTitle != null && questTitle.isNotEmpty) {
-      tasks.add(AppTask(title: questTitle, trigger: questTrigger).toFirestore());
+      tasks.add(AppTask(title: questTitle, trigger: questTrigger, reward: questReward).toFirestore());
     }
     data['tasks'] = tasks;
 

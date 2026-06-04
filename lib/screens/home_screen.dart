@@ -63,6 +63,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final Set<String> _reactingPostIds = {}; // 通信中の投稿IDを追跡
   // 送信済みだが Firestore 未確認の emoji。{emoji, uid} を記録して myUid null 問題を回避
   final Map<String, ({String emoji, String uid})> _pendingEmojis = {};
+  
+  DateTime? _lastPausedTime;
 
   // ── フレンド申請の楽観的UI用 ──
   final Set<String> _hiddenRequestIds = {};
@@ -297,7 +299,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _lastPausedTime ??= DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_lastPausedTime != null) {
+        final elapsed = DateTime.now().difference(_lastPausedTime!);
+        _lastPausedTime = null; // リセット
+        if (elapsed.inMinutes < 3) {
+          // 3分以内の復帰ならリフレッシュせず順番を保持する
+          return;
+        }
+      }
       if (mounted) {
         setState(() {
           _needsRefreshJump = true;

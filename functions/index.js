@@ -724,3 +724,159 @@ exports.migrateFcmTokens = onCall(async (request) => {
   console.log(`migrateFcmTokens: migrated=${migrated} skipped=${skipped}`);
   return { migrated, skipped, total: usersSnap.size };
 });
+
+const { onTaskDispatched } = require("firebase-functions/v2/tasks");
+const { getFunctions } = require("firebase-admin/functions");
+
+/**
+ * 投稿作成時に、1分後に実行されるタスクをエンキューする
+ */
+exports.onPostCreated = onDocumentCreated("posts/{postId}", async (event) => {
+  const data = event.data?.data();
+  if (!data) return;
+
+  const postId = event.params.postId;
+  const uid = data.userId;
+
+  try {
+    const queue = getFunctions().taskQueue("processPostNotifications");
+    await queue.enqueue(
+      { postId, uid },
+      { scheduleDelaySeconds: 60 }
+    );
+    console.log(`Enqueued processPostNotifications for post ${postId}`);
+  } catch (error) {
+    console.error("Failed to enqueue processPostNotifications:", error);
+  }
+});
+
+/**
+ * 1分遅延で実行されるタスク。
+ * 投稿がまだ存在していれば、フレンドに対して通知を作成する。
+ */
+exports.processPostNotifications = onTaskDispatched(
+  {
+    retryConfig: {
+      maxAttempts: 3,
+      minBackoffSeconds: 60,
+    },
+    rateLimits: {
+      maxConcurrentDispatches: 10,
+    },
+  },
+  async (request) => {
+    const { postId, uid } = request.data;
+    if (!postId || !uid) return;
+
+    const db = getFirestore();
+
+    // 1. 投稿がまだ存在するか確認（削除されていたら通知しない）
+    const postSnap = await db.collection("posts").doc(postId).get();
+    if (!postSnap.exists) {
+      console.log(`Post ${postId} was deleted within 1 minute. Aborting notification.`);
+      return;
+    }
+
+    const postData = postSnap.data();
+    // 有効期限が切れている場合は除外
+    const now = new Date();
+    if (postData.expiresAt && postData.expiresAt.toDate() < now) {
+      return;
+    }
+
+    // 2. ユーザー情報を取得
+    const userSnap = await db.collection("users").doc(uid).get();
+    if (!userSnap.exists) return;
+
+    const userData = userSnap.data();
+    const username = userData.username || "フレンド";
+    const currentStreak = userData.streak || 0;
+
+    // フレンド一覧の取得
+    const rawFriends = userData.following || userData.friends;
+    let friends = [];
+    if (Array.isArray(rawFriends)) {
+      friends = rawFriends;
+    } else if (rawFriends && typeof rawFriends === "object") {
+      friends = Object.keys(rawFriends);
+    }
+
+    if (friends.length === 0) {
+      return;
+    }
+
+    // 3. 今日の投稿数をカウント
+    // UTCから9時間進めた日本時間での本日の開始時刻を算出
+    const jstNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+    const startOfTodayJST = new Date(jstNow.getFullYear(), jstNow.getMonth(), jstNow.getDate());
+    // JSTの0:00をUTC時間に変換 (JST = UTC + 9)
+    const startOfTodayUTC = new Date(startOfTodayJST.getTime() - 9 * 60 * 60 * 1000);
+
+    const postsSnap = await db.collection("posts")
+      .where("userId", "==", uid)
+      .where("expiresAt", ">", new Date())
+      .get();
+    
+    let todayPostCount = 0;
+    postsSnap.forEach(doc => {
+      const p = doc.data();
+      if (p.createdAt && p.createdAt.toDate() >= startOfTodayUTC) {
+        todayPostCount++;
+      }
+    });
+
+    const isMilestone = [10, 30, 50, 100, 200, 365].includes(currentStreak);
+
+    // 4. 通知内容の生成
+    const templates = [
+      { title: '仲間の一歩', body: '{username}さんも今日の自分に勝ちました' },
+      { title: '仲間の一歩', body: '{username}さんが今日も一歩を刻みました。同じ道を歩く仲間がいます' },
+      { title: '仲間の一歩', body: '{username}さんが自分との約束を果たしました' },
+      { title: '仲間の一歩', body: '{username}さんも戦っています。あなたは一人じゃない' },
+      { title: '仲間の一歩', body: '{username}さんが今日の勝利を手にしました' },
+    ];
+
+    const multipleTaskTemplates = [
+      { title: '🤚 さらなる高みへ', body: '{username}さんは{count}つ目のタスクを達成。どうやら冷笑はもう古いようです🔍' },
+      { title: '⚡️ 勝利者効果 / V EFFECT', body: '勝利の連鎖がさらなる挑戦を熱くする！{username}さんが本日{count}回目の勝利を呼び込みました🔥' },
+      { title: '📈 成長の複利ループ', body: '1.01の積み重ねが未来を劇的に変える！{username}さんが本日{count}つ目の行動を重ね、複利で進化中🚀' },
+      { title: '🧠 意志を超えた習慣化', body: 'もはや努力は呼吸と同じ。{username}さんが本日{count}つ目のタスクを「当たり前」のように突破⚡️' },
+    ];
+
+    let title = '';
+    let body = '';
+
+    if (todayPostCount > 1) {
+      const tmpl = multipleTaskTemplates[Math.floor(Math.random() * multipleTaskTemplates.length)];
+      title = tmpl.title.replace('{username}', username).replace('{count}', todayPostCount);
+      body = tmpl.body.replace('{username}', username).replace('{count}', todayPostCount);
+    } else if (isMilestone) {
+      title = '🤯 どわー！';
+      body = `${currentStreak}日連続！${username}さんはもう勝ち癖が付き始めているそうです...！`;
+    } else {
+      const tmpl = templates[Math.floor(Math.random() * templates.length)];
+      title = tmpl.title.replace('{username}', username);
+      body = tmpl.body.replace('{username}', username);
+    }
+
+    // 5. 通知をバッチ作成
+    const batch = db.batch();
+    friends.forEach((friendUid) => {
+      const notifRef = db.collection("notifications").doc();
+      batch.set(notifRef, {
+        toUid: friendUid,
+        fromUid: uid,
+        type: "friendTaskCompleted",
+        relatedId: postId,
+        title: title,
+        body: body,
+        sendPush: true,
+        isRead: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    });
+
+    await batch.commit();
+    console.log(`Sent notifications for post ${postId} to ${friends.length} friends.`);
+  }
+);

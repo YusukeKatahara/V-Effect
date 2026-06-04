@@ -374,8 +374,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     try {
       final boundary = _boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
-      // pixelRatio を 3.0 に最適化し、アップロード時の画質低下を防ぐ
-      final img = await boundary.toImage(pixelRatio: 3.0);
+      
+      // pixelRatio を固定 3.0 にすると巨大な画像（OOM）になりキャプチャが失敗するため、デバイスの比率（最大2.0）に制限する
+      final pixelRatio = MediaQuery.of(context).devicePixelRatio;
+      final safePixelRatio = pixelRatio > 2.0 ? 2.0 : pixelRatio;
+      
+      final img = await boundary.toImage(pixelRatio: safePixelRatio);
       final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
       return byteData?.buffer.asUint8List();
     } catch (e) {
@@ -449,46 +453,76 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   @override
   Widget build(BuildContext context) {
     final taskName = _taskName;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: AppColors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Header ──
-            _buildHeader(taskName),
+      resizeToAvoidBottomInset: false, // キーボード出現時にプレビュー画像が圧縮されるのを防ぐ
+      body: Stack(
+        children: [
+          // ── プレビュー・カメラ領域（キーボードで縮まない） ──
+          Positioned.fill(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // ── Header ──
+                  _buildHeader(taskName),
 
-            // ── メインエリア: カメラ or プレビュー ──
-            Expanded(
-              child: _image != null ? _buildPreview() : _buildCameraView(),
+                  // ── メインエリア: カメラ or プレビュー ──
+                  Expanded(
+                    child: _image != null ? _buildPreview() : _buildCameraView(),
+                  ),
+
+                  // ボトムバー領域のダミー余白
+                  if (_image != null)
+                    const SizedBox(height: 140),
+                ],
+              ),
             ),
+          ),
 
-            // ── ボトムバー ──
-            if (_image != null) ...[
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: TextField(
-                  controller: _captionController,
-                  style: const TextStyle(color: AppColors.white),
-                  decoration: InputDecoration(
-                    hintText: '一言を添える (任意)',
-                    hintStyle: const TextStyle(color: AppColors.grey50),
-                    filled: true,
-                    fillColor: AppColors.white.withValues(alpha: 0.1),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
+          // ── 入力欄とボトムバー（キーボードに合わせて上に移動） ──
+          if (_image != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: bottomInset,
+              child: Container(
+                // キーボード表示中は背景を少し暗くして入力しやすくする
+                color: AppColors.black.withValues(alpha: bottomInset > 0 ? 0.6 : 0.0),
+                child: SafeArea(
+                  top: false,
+                  bottom: bottomInset == 0,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        child: TextField(
+                          controller: _captionController,
+                          style: const TextStyle(color: AppColors.white),
+                          decoration: InputDecoration(
+                            hintText: '一言を添える (任意)',
+                            hintStyle: const TextStyle(color: AppColors.grey50),
+                            filled: true,
+                            fillColor: AppColors.white.withValues(alpha: 0.1),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      _buildPostBottomBar(),
+                    ],
                   ),
                 ),
               ),
-              _buildPostBottomBar(),
-            ],
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
