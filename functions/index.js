@@ -777,7 +777,7 @@ exports.onPostCreated = onDocumentCreated(
                 },
                 normalized_name: {
                   type: Type.STRING,
-                  description: "表記揺れをなくした短く一般的なタスク名（例: 筋トレ、早起き、プログラミング）",
+                  description: "表記揺れをなくした短く一般的なタスク名（例: 筋トレ、早起き、プログラミング、セルフケア）。※「休養」や「休息」といった硬い言葉は避け、代わりに「セルフケア」等を使用すること。",
                 },
               },
               required: ["category", "normalized_name"],
@@ -910,7 +910,8 @@ exports.processPostNotifications = onTaskDispatched(
     // 5. 通知をバッチ作成
     const batch = db.batch();
     friends.forEach((friendUid) => {
-      const notifRef = db.collection("notifications").doc();
+      const notifId = `post_${postId}_to_${friendUid}`;
+      const notifRef = db.collection("notifications").doc(notifId);
       batch.set(notifRef, {
         toUid: friendUid,
         fromUid: uid,
@@ -959,12 +960,40 @@ exports.aggregateTrendingTasks = onSchedule(
       }
     });
 
-    // オブジェクトを配列化してカウントで降順ソート
-    const sorted = Object.entries(counts)
-      .map(([key, count]) => {
-        const [category, name] = key.split("::");
-        return { category, name, count };
-      })
+    // オブジェクトをカテゴリごとに整理
+    const categoryMap = {};
+    Object.entries(counts).forEach(([key, count]) => {
+      const [category, name] = key.split("::");
+      if (!categoryMap[category]) {
+        categoryMap[category] = [];
+      }
+      categoryMap[category].push({ category, name, count });
+    });
+
+    let finalTrends = [];
+
+    // カテゴリごとに大雑把なタスク(name === category)の件数を具体タスクのトップに分配
+    Object.keys(categoryMap).forEach(category => {
+      let items = categoryMap[category];
+      const genericItemIndex = items.findIndex(item => item.name === category);
+      
+      if (genericItemIndex !== -1) {
+        const genericItem = items[genericItemIndex];
+        const specificItems = items.filter(item => item.name !== category)
+                                   .sort((a, b) => b.count - a.count);
+        
+        if (specificItems.length > 0) {
+          // トップの具体タスクに加算
+          specificItems[0].count += genericItem.count;
+          // 大雑把なタスクは除外
+          items = items.filter(item => item.name !== category);
+        }
+      }
+      finalTrends.push(...items);
+    });
+
+    // 全体を降順ソートしてトップ10を取得
+    const sorted = finalTrends
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 

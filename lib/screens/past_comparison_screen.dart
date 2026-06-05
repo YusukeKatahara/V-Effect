@@ -214,104 +214,106 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
       );
     }
     
-    return ListView.builder(
+    return GridView.builder(
       padding: const EdgeInsets.only(top: 16, bottom: 100, left: 16, right: 16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: 9 / 16,
+      ),
       itemCount: posts.length,
       itemBuilder: (context, index) {
         final post = posts[index];
         final isSelected = _selectedPosts.contains(post);
         
         return GestureDetector(
-          onTap: _isCompareMode ? () => _toggleSelection(post) : null,
+          onTap: () {
+            if (_isCompareMode) {
+              _toggleSelection(post);
+            } else {
+              // 詳細表示へ遷移
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PostDetailViewerScreen(post: post),
+                ),
+              );
+            }
+          },
           child: Container(
-            margin: const EdgeInsets.only(bottom: 24),
             decoration: BoxDecoration(
               color: AppColors.bgElevated,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               border: _isCompareMode && isSelected 
                   ? Border.all(color: AppColors.accentGold, width: 2)
                   : Border.all(color: AppColors.border, width: 1),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 画像部分
-                if (post.imageUrl != null)
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                        child: CachedNetworkImage(
-                          imageUrl: post.imageUrl!,
-                          width: double.infinity,
-                          height: 300,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: AppColors.grey20,
-                            height: 300,
-                            child: const Center(child: CircularProgressIndicator()),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: AppColors.grey20,
-                            height: 300,
-                            child: const Icon(Icons.error, color: AppColors.grey50),
-                          ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(11),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // 画像部分
+                  if (post.imageUrl != null)
+                    CachedNetworkImage(
+                      imageUrl: post.imageUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: AppColors.grey20,
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: AppColors.grey20,
+                        child: const Icon(Icons.error, color: AppColors.grey50),
+                      ),
+                    )
+                  else
+                    Container(
+                      color: AppColors.grey20,
+                      child: const Icon(Icons.image_not_supported, color: AppColors.grey50),
+                    ),
+                  // 右上チェックマーク (比較モード)
+                  if (_isCompareMode)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected ? AppColors.accentGold : AppColors.black.withValues(alpha: 0.5),
+                          border: Border.all(color: AppColors.white, width: 1.5),
+                        ),
+                        padding: const EdgeInsets.all(2),
+                        child: Icon(
+                          Icons.check,
+                          size: 14,
+                          color: isSelected ? AppColors.black : Colors.transparent,
                         ),
                       ),
-                      if (_isCompareMode)
-                        Positioned(
-                          top: 12,
-                          right: 12,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isSelected ? AppColors.accentGold : AppColors.black.withOpacity(0.5),
-                              border: Border.all(color: AppColors.white, width: 2),
-                            ),
-                            padding: const EdgeInsets.all(4),
-                            child: Icon(
-                              Icons.check,
-                              size: 16,
-                              color: isSelected ? AppColors.black : Colors.transparent,
-                            ),
-                          ),
-                        ),
-                      // 日付バッジ
-                      Positioned(
-                        bottom: 12,
-                        left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            DateFormat('yyyy.MM.dd').format(post.createdAt),
-                            style: GoogleFonts.rubik(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
+                    ),
+                  // 左下の日付バッジ
+                  Positioned(
+                    bottom: 8,
+                    left: 4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.black.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
-                  ),
-                // キャプション部分
-                if (post.caption != null && post.caption!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      post.caption!,
-                      style: GoogleFonts.notoSansJp(
-                        color: AppColors.white,
-                        fontSize: 15,
-                        height: 1.5,
+                      child: Text(
+                        DateFormat('yyyy.MM.dd').format(post.createdAt),
+                        style: GoogleFonts.rubik(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
                       ),
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -526,6 +528,90 @@ class _ComparisonViewerScreenState extends State<ComparisonViewerScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 画像とコメントを全画面表示するビューアー
+class PostDetailViewerScreen extends StatelessWidget {
+  final Post post;
+
+  const PostDetailViewerScreen({super.key, required this.post});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bgBase,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: AppColors.white),
+      ),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Center(
+                child: post.imageUrl != null
+                    ? InteractiveViewer(
+                        child: AspectRatio(
+                          aspectRatio: 9 / 16,
+                          child: CachedNetworkImage(
+                            imageUrl: post.imageUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                            errorWidget: (context, url, error) => const Center(child: Icon(Icons.error, color: AppColors.white, size: 48)),
+                          ),
+                        ),
+                      )
+                    : const Center(
+                        child: Icon(Icons.image_not_supported, color: AppColors.grey50, size: 64),
+                      ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.bgSurface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    DateFormat('yyyy.MM.dd HH:mm').format(post.createdAt),
+                    style: GoogleFonts.rubik(
+                      color: AppColors.accentGold,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  if (post.caption != null && post.caption!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      post.caption!,
+                      style: GoogleFonts.notoSansJp(
+                        color: AppColors.white,
+                        fontSize: 16,
+                        height: 1.6,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

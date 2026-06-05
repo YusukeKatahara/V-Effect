@@ -477,89 +477,76 @@ class PostService {
     final allowReaction = receiverData['reactionNotifications'] ?? true;
     final allowVFire = receiverData['vFireNotifications'] ?? true;
 
-    if (emoji != null) {
-      // 絵文字リアクション：重複チェックしてカウントを増やす（プッシュあり）
-      final existing = await _db
-          .collection('notifications')
-          .where('fromUid', isEqualTo: myUid)
-          .where('relatedId', isEqualTo: postId)
-          .where('type', isEqualTo: NotificationType.reactionReceived.name)
-          .where('emoji', isEqualTo: emoji) // 同じ絵文字のみを対象
-          .limit(1)
-          .get();
+    // 通知ドキュメントのIDを固定化し、トランザクションでアトミックに更新する
+    final isEmoji = emoji != null;
+    final notifId = isEmoji 
+        ? 'reaction_emoji_${postId}_$myUid' 
+        : 'reaction_vfire_${postId}_$myUid';
+    final notifRef = _db.collection('notifications').doc(notifId);
 
-      if (existing.docs.isNotEmpty) {
-        final doc = existing.docs.first;
-        final data = doc.data();
-        reactionCount = (data['reactionCount'] as int? ?? 0) + 1;
-        await doc.reference.delete();
-      }
+    try {
+      await _db.runTransaction((transaction) async {
+        final docSnap = await transaction.get(notifRef);
+        final data = docSnap.exists ? docSnap.data()! : {};
+        
+        int reactionCount = 1;
+        if (docSnap.exists) {
+          // 既存のドキュメントがあればカウントを合算
+          final existingCount = data['reactionCount'] as int? ?? 0;
+          reactionCount = existingCount + (isEmoji ? 1 : (flameIncrement > 0 ? flameIncrement : 1));
+        } else {
+          reactionCount = isEmoji ? 1 : (flameIncrement > 0 ? flameIncrement : 1);
+        }
 
-      title = '✨ リアクション！';
-      body = reactionCount > 1
-          ? '$myUsernameさんが今日の達成に「$emoji」を$reactionCount回贈りました！'
-          : '$myUsernameさんが今日の達成に「$emoji」を贈りました！';
-      sendPush = allowReaction;
-    } else {
-      // V Fireリアクション：重複チェックしてカウントを増やす（プッシュあり）
-      // flameIncrement 分を既存の通知に加算する
-      final int addedCount = flameIncrement > 0 ? flameIncrement : 1;
+        if (isEmoji) {
+          title = '✨ リアクション！';
+          body = reactionCount > 1
+              ? '$myUsernameさんが今日の達成に「$emoji」を$reactionCount回贈りました！'
+              : '$myUsernameさんが今日の達成に「$emoji」を贈りました！';
+          sendPush = allowReaction;
+        } else {
+          final random = Random();
+          final variations = [
+            {
+              'title': '👹 やばい！',
+              'body': '「$postTaskName」によってあなたは$myUsernameさんを焚き付けてしまいました！$reactionCount回のV FIRE❗️',
+            },
+            {
+              'title': '⚡️ V EFFECT 発動！',
+              'body': 'あなたの「$postTaskName」が、$myUsernameさんのモチベーションに火をつけました！',
+            },
+            {
+              'title': '👏 スーパーヒーロー！',
+              'body': '$myUsernameさんから「$postTaskName」へ、$reactionCount回の称賛が届いています！',
+            },
+          ];
+          final selected = variations[random.nextInt(variations.length)];
+          title = selected['title']!;
+          body = selected['body']!;
+          sendPush = allowVFire;
+        }
 
-      // 同じ投稿・同じ送信者のV Fireリアクションが既にあるかチェック
-      final existing = await _db
-          .collection('notifications')
-          .where('fromUid', isEqualTo: myUid)
-          .where('relatedId', isEqualTo: postId)
-          .where('type', isEqualTo: NotificationType.reactionReceived.name)
-          .where('emoji', isNull: true) // V Fireのみ
-          .limit(1)
-          .get();
+        final notifData = {
+          'toUid': postOwnerId,
+          'fromUid': myUid,
+          'relatedId': postId,
+          'type': NotificationType.reactionReceived.name,
+          'emoji': emoji, // どの絵文字か記録
+          'reactionCount': reactionCount,
+          'title': title,
+          'body': body,
+          'sendPush': sendPush, // プッシュ送出フラグ
+          // isRead は既存が未読なら未読のまま、既読なら未読に戻す
+          'isRead': false, 
+          // timestamp は常に最新に更新（一覧で一番上にくるように）
+          'createdAt': FieldValue.serverTimestamp(),
+        };
 
-      if (existing.docs.isNotEmpty) {
-        final doc = existing.docs.first;
-        final data = doc.data();
-        reactionCount = (data['reactionCount'] as int? ?? 0) + addedCount;
-        await doc.reference.delete();
-      } else {
-        reactionCount = addedCount;
-      }
-
-      // ランダムな文言の選択
-      final random = Random();
-      final variations = [
-        {
-          'title': '👹 やばい！',
-          'body': '「$postTaskName」によってあなたは$myUsernameさんを焚き付けてしまいました！$reactionCount回のV FIRE❗️',
-        },
-        {
-          'title': '⚡️ V EFFECT 発動！',
-          'body': 'あなたの「$postTaskName」が、$myUsernameさんのモチベーションに火をつけました！',
-        },
-        {
-          'title': '👏 スーパーヒーロー！',
-          'body': '$myUsernameさんから「$postTaskName」へ、$reactionCount回の称賛が届いています！',
-        },
-      ];
-      final selected = variations[random.nextInt(variations.length)];
-      title = selected['title']!;
-      body = selected['body']!;
-      sendPush = allowVFire;
+        transaction.set(notifRef, notifData);
+      });
+    } catch (e) {
+      debugPrint('Reaction notification failed: $e');
     }
-
-    // 2. 通知ドキュメント作成
-    await _db.collection('notifications').add({
-      'toUid': postOwnerId,
-      'fromUid': myUid,
-      'relatedId': postId,
-      'type': NotificationType.reactionReceived.name,
-      'emoji': emoji, // どの絵文字か記録
-      'reactionCount': reactionCount,
-      'title': title,
-      'body': body,
-      'sendPush': sendPush, // プッシュ送出フラグ
-      'isRead': false,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
   }
 
   /// フレンド一覧を取得します（Stories 表示用）

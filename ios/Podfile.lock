@@ -1630,6 +1630,7 @@ PODS:
   - mobile_scanner (6.0.2):
     - Flutter
     - GoogleMLKit/BarcodeScanning (~> 7.0.0)
+  - Mute (0.6.1)
   - nanopb (3.30910.0):
     - nanopb/decode (= 3.30910.0)
     - nanopb/encode (= 3.30910.0)
@@ -1659,6 +1660,9 @@ PODS:
     - FlutterMacOS
   - sign_in_with_apple (0.0.1):
     - Flutter
+  - sound_mode_advanced (4.0.0):
+    - Flutter
+    - Mute (~> 0.6.0)
   - sqflite_darwin (0.0.4):
     - Flutter
     - FlutterMacOS
@@ -1705,6 +1709,7 @@ DEPENDENCIES:
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sign_in_with_apple (from `.symlinks/plugins/sign_in_with_apple/ios`)
+  - sound_mode_advanced (from `.symlinks/plugins/sound_mode_advanced/ios`)
   - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
   - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
@@ -1755,6 +1760,7 @@ SPEC REPOS:
     - MLKitBarcodeScanning
     - MLKitCommon
     - MLKitVision
+    - Mute
     - nanopb
     - PromisesObjC
     - PromisesSwift
@@ -1832,6 +1838,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   sign_in_with_apple:
     :path: ".symlinks/plugins/sign_in_with_apple/ios"
+  sound_mode_advanced:
+    :path: ".symlinks/plugins/sound_mode_advanced/ios"
   sqflite_darwin:
     :path: ".symlinks/plugins/sqflite_darwin/darwin"
   url_launcher_ios:
@@ -1912,6 +1920,7 @@ SPEC CHECKSUMS:
   MLKitCommon: 07c2c33ae5640e5380beaaa6e4b9c249a205542d
   MLKitVision: 45e79d68845a2de77e2dd4d7f07947f0ed157b0e
   mobile_scanner: af8f71879eaba2bbcb4d86c6a462c3c0e7f23036
+  Mute: 20135a96076f140cc82bfc8b810e2d6150d8ec7e
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
@@ -1924,6 +1933,7 @@ SPEC CHECKSUMS:
   share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   sign_in_with_apple: c5dcc141574c8c54d5ac99dd2163c0c72ad22418
+  sound_mode_advanced: d4027cc67a193867091756c3a6b6728d31aca7d5
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
   TOCropViewController: a916930c465b5d9445a74d95e0c0da931771b4df
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d

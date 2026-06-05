@@ -297,49 +297,120 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showTrendingTasksBottomSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.bgElevated,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      backgroundColor: Colors.transparent, // DraggableScrollableSheet用に透明化
+      isScrollControlled: true,
       builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '🔥 ウィークトレンド習慣',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+        final int totalCount = _trendingTasks.fold(0, (acc, t) => acc + ((t['count'] as num?)?.toInt() ?? 0));
+
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.9,
+          minChildSize: 0.4,
+          builder: (_, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.bgElevated,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: AppColors.grey50,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const Text(
+                      '🔥 ウィークリートレンド習慣',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_trendingTasks.isEmpty)
+                      const Text('トレンドデータがまだありません。', style: TextStyle(color: AppColors.grey70))
+                    else
+                      Expanded(
+                        child: ListView.separated(
+                          controller: scrollController,
+                          itemCount: _trendingTasks.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            final trend = _trendingTasks[index];
+                            final name = trend['name'] as String? ?? '';
+                            final count = (trend['count'] as num?)?.toInt() ?? 0;
+                            if (name.isEmpty) return const SizedBox.shrink();
+
+                            final percentage = totalCount > 0 ? (count / totalCount * 100).toStringAsFixed(1) : '0.0';
+
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                Navigator.of(ctx).pop();
+                                _addTask(initialTitle: name);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: AppColors.bgSurface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 28,
+                                      child: Text(
+                                        '${index + 1}',
+                                        style: TextStyle(
+                                          color: index < 3 ? AppColors.accentGold : AppColors.textMuted,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        name,
+                                        style: const TextStyle(
+                                          color: AppColors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '$percentage%',
+                                      style: const TextStyle(
+                                        color: AppColors.accentGold,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Icon(Icons.add_circle_outline_rounded, color: AppColors.white.withValues(alpha: 0.5), size: 20),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              if (_trendingTasks.isEmpty)
-                const Text('トレンドデータがまだありません。', style: TextStyle(color: AppColors.grey70))
-              else
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _trendingTasks.map((trend) {
-                    final name = trend['name'] as String? ?? '';
-                    if (name.isEmpty) return const SizedBox.shrink();
-                    return ActionChip(
-                      backgroundColor: AppColors.bgElevated,
-                      side: const BorderSide(color: AppColors.grey70),
-                      label: Text(name, style: const TextStyle(color: AppColors.white, fontSize: 14)),
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        _addTask(initialTitle: name);
-                      },
-                    );
-                  }).toList(),
-                ),
-              const SizedBox(height: 32),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -1307,7 +1378,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextButton(
               onPressed: _showTrendingTasksBottomSheet,
               child: const Text(
-                '🔥 ウィークトレンド習慣',
+                '🔥 ウィークリートレンド習慣',
                 style: TextStyle(color: AppColors.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ),
