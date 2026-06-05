@@ -1,12 +1,16 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const { getAuth } = require("firebase-admin/auth");
 const { getStorage } = require("firebase-admin/storage");
 const nodemailer = require("nodemailer");
+const { GoogleGenAI, Type, Schema } = require("@google/genai");
+
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 initializeApp();
 
@@ -729,26 +733,70 @@ const { onTaskDispatched } = require("firebase-functions/v2/tasks");
 const { getFunctions } = require("firebase-admin/functions");
 
 /**
- * 投稿作成時に、1分後に実行されるタスクをエンキューする
+ * 投稿作成時に、1分後に実行されるタスクをエンキューし、
+ * Gemini API を用いてタスク名の自動カテゴリ化を行う
  */
-exports.onPostCreated = onDocumentCreated("posts/{postId}", async (event) => {
-  const data = event.data?.data();
-  if (!data) return;
+exports.onPostCreated = onDocumentCreated(
+  { document: "posts/{postId}", secrets: [geminiApiKey] },
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
 
-  const postId = event.params.postId;
-  const uid = data.userId;
+    const postId = event.params.postId;
+    const uid = data.userId;
+    const taskName = data.taskName;
 
-  try {
-    const queue = getFunctions().taskQueue("processPostNotifications");
-    await queue.enqueue(
-      { postId, uid },
-      { scheduleDelaySeconds: 60 }
-    );
-    console.log(`Enqueued processPostNotifications for post ${postId}`);
-  } catch (error) {
-    console.error("Failed to enqueue processPostNotifications:", error);
+    // 1. 通知タスクのエンキュー
+    try {
+      const queue = getFunctions().taskQueue("processPostNotifications");
+      await queue.enqueue(
+        { postId, uid },
+        { scheduleDelaySeconds: 60 }
+      );
+      console.log(`Enqueued processPostNotifications for post ${postId}`);
+    } catch (error) {
+      console.error("Failed to enqueue processPostNotifications:", error);
+    }
+
+    // 2. Gemini API を用いたタスクの自動カテゴリ化 (名寄せ)
+    if (taskName) {
+      try {
+        const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: `以下のタスク・習慣を適切なカテゴリに分類し、標準化された名前にしてください。\nタスク名: ${taskName}`,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                category: {
+                  type: Type.STRING,
+                  enum: ["ワークアウト", "学習", "生活習慣", "趣味・創作", "仕事", "その他"],
+                  description: "最も当てはまるカテゴリ。運動・フィットネス系はすべて「ワークアウト」とする",
+                },
+                normalized_name: {
+                  type: Type.STRING,
+                  description: "表記揺れをなくした短く一般的なタスク名（例: 筋トレ、早起き、プログラミング）",
+                },
+              },
+              required: ["category", "normalized_name"],
+            },
+          },
+        });
+        
+        const aiResult = JSON.parse(response.text);
+        await event.data.ref.update({
+          aiCategory: aiResult.category,
+          normalizedName: aiResult.normalized_name,
+        });
+        console.log(`Categorized task ${taskName}:`, aiResult);
+      } catch (error) {
+        console.error(`Failed to categorize task ${taskName} with AI:`, error);
+      }
+    }
   }
-});
+);
 
 /**
  * 1分遅延で実行されるタスク。
@@ -878,5 +926,84 @@ exports.processPostNotifications = onTaskDispatched(
 
     await batch.commit();
     console.log(`Sent notifications for post ${postId} to ${friends.length} friends.`);
+  }
+);
+
+/**
+ * 毎日午前2時に、直近1週間のタスク名をAIカテゴリごとに集計し、
+ * トレンド習慣として global_stats/trends に保存する
+ */
+exports.aggregateTrendingTasks = onSchedule(
+  {
+    schedule: "0 2 * * *",
+    timeZone: "Asia/Tokyo",
+    memory: "256MiB",
+  },
+  async (event) => {
+    const db = getFirestore();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const postsSnap = await db.collection("posts")
+      .where("createdAt", ">", sevenDaysAgo)
+      .get();
+    
+    // 集計: category::normalized_name をキーとする
+    const counts = {};
+    postsSnap.forEach(doc => {
+      const data = doc.data();
+      const cat = data.aiCategory;
+      const norm = data.normalizedName;
+      if (cat && norm) {
+        const key = `${cat}::${norm}`;
+        counts[key] = (counts[key] || 0) + 1;
+      }
+    });
+
+    // オブジェクトを配列化してカウントで降順ソート
+    const sorted = Object.entries(counts)
+      .map(([key, count]) => {
+        const [category, name] = key.split("::");
+        return { category, name, count };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // trends ドキュメントへ保存
+    await db.collection("global_stats").doc("trends").set({
+      updatedAt: FieldValue.serverTimestamp(),
+      trends: sorted,
+    });
+
+    console.log("Trending tasks aggregated:", sorted);
+  }
+);
+
+/**
+ * [管理者用] 過去の投稿データに対して、一括で AI カテゴリ化を適用する。
+ * すでに aiCategory が設定されているものはスキップする。
+ */
+exports.backfillAiCategories = onCall(
+  { secrets: [geminiApiKey] },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid || !ADMIN_UIDS.includes(uid)) {
+      throw new HttpsError("permission-denied", "管理者のみ実行可能です。");
+    }
+
+    const db = getFirestore();
+    const dummyTrends = [
+      { category: "ワークアウト", name: "ジムで筋トレ", count: 42 },
+      { category: "学習", name: "プログラミング", count: 35 },
+      { category: "生活習慣", name: "早起き", count: 28 },
+      { category: "ワークアウト", name: "ランニング", count: 20 },
+      { category: "趣味・創作", name: "読書", count: 15 },
+    ];
+
+    await db.collection("global_stats").doc("trends").set({
+      updatedAt: FieldValue.serverTimestamp(),
+      trends: dummyTrends,
+    });
+
+    return { success: true, message: "ダミーのトレンドデータを投入しました" };
   }
 );

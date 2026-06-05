@@ -202,6 +202,14 @@ service cloud.firestore {
     }
 
     // ────────────────────────────────────────
+    // global_stats コレクション
+    // ────────────────────────────────────────
+    match /global_stats/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // ────────────────────────────────────────
     // posts コレクション
     // ────────────────────────────────────────
     match /posts/{postId} {

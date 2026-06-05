@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audio_session/audio_session.dart' as asession;
+import 'package:sound_mode_advanced/sound_mode_advanced.dart';
 
 class SoundService {
   SoundService._internal();
@@ -23,36 +25,68 @@ class SoundService {
   /// アプリ起動時に音声を事前ロード（キャッシュ）しておくことで遅延を防ぎます
   Future<void> init() async {
     try {
-      // iOSのマナーモードを無視して再生するための設定
-      // BGM（SpotifyやApple Musicなど）が止まらないようにAudioContextを設定
-      await AudioPlayer.global.setAudioContext(AudioContext(
-        iOS: AudioContextIOS(
-          category: AVAudioSessionCategory.ambient, // BGMを止めないためのカテゴリ
-          options: const {
-            AVAudioSessionOptions.mixWithOthers,
-          },
-        ),
-        android: AudioContextAndroid(
-          isSpeakerphoneOn: true,
-          stayAwake: true,
-          contentType: AndroidContentType.sonification,
-          usageType: AndroidUsageType.assistanceSonification,
-          audioFocus: AndroidAudioFocus.none, // オーディオフォーカスを奪わず、BGMを止めない
-        ),
-      ));
-
-      // audioplayers v6では setSource だけで十分
-      await _player.setSource(AssetSource('sounds/task_complete_sync.mp3'));
-      await _tapPlayer.setSource(AssetSource('sounds/fire_tap.wav'));
+      // iOSのオーディオセッション管理は audio_session プラグイン（main.dart）に委譲します。
+      // 起動直後の不意な音楽停止を防ぐため、audioplayers 側での初期化や事前ロード（setSource）を控えます。
       
       // BGMをループ再生に設定
       await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
 
       // ミュート設定の読み込み
       final prefs = await SharedPreferences.getInstance();
-      _isBgmMuted = prefs.getBool('is_bgm_muted') ?? false;
+      bool userPrefMuted = prefs.getBool('is_bgm_muted') ?? false;
+
+      // 端末のマナーモード状態を確認して初期状態を同期
+      try {
+        final ringerStatus = await SoundMode.ringerModeStatus;
+        if (ringerStatus == RingerModeStatus.silent || ringerStatus == RingerModeStatus.vibrate) {
+          _isBgmMuted = true;
+        } else {
+          _isBgmMuted = userPrefMuted;
+        }
+      } catch (e) {
+        debugPrint('Error getting ringer mode: $e');
+        _isBgmMuted = userPrefMuted;
+      }
     } catch (e) {
       debugPrint('Error initializing sound service: $e');
+    }
+  }
+
+  /// BGM再生時にオーディオセッションを playback に変更し、マナーモードを上書きする
+  Future<void> _setPlaybackSession() async {
+    try {
+      final session = await asession.AudioSession.instance;
+      await session.configure(const asession.AudioSessionConfiguration(
+        avAudioSessionCategory: asession.AVAudioSessionCategory.playback,
+        avAudioSessionCategoryOptions: asession.AVAudioSessionCategoryOptions.mixWithOthers,
+        androidAudioAttributes: asession.AndroidAudioAttributes(
+          contentType: asession.AndroidAudioContentType.music,
+          usage: asession.AndroidAudioUsage.media,
+        ),
+        androidAudioFocusGainType: asession.AndroidAudioFocusGainType.gainTransientMayDuck,
+      ));
+      await session.setActive(true);
+    } catch (e) {
+      debugPrint('Error setting playback session: $e');
+    }
+  }
+
+  /// BGM停止時にオーディオセッションを ambient に戻し、他アプリの音楽を優先する
+  Future<void> _setAmbientSession() async {
+    try {
+      final session = await asession.AudioSession.instance;
+      await session.configure(const asession.AudioSessionConfiguration(
+        avAudioSessionCategory: asession.AVAudioSessionCategory.ambient,
+        avAudioSessionCategoryOptions: asession.AVAudioSessionCategoryOptions.mixWithOthers,
+        androidAudioAttributes: asession.AndroidAudioAttributes(
+          contentType: asession.AndroidAudioContentType.sonification,
+          usage: asession.AndroidAudioUsage.assistanceSonification,
+        ),
+        androidAudioFocusGainType: asession.AndroidAudioFocusGainType.gainTransientMayDuck,
+      ));
+      await session.setActive(false);
+    } catch (e) {
+      debugPrint('Error setting ambient session: $e');
     }
   }
 
@@ -85,7 +119,9 @@ class SoundService {
   }
 
   /// 投稿のBGMを再生（初回のみゆっくりフェードイン、以降は即座に再生）
-  Future<void> playBgm(String url) async {
+  /// [userExplicitAction] が true の場合、ユーザーが明示的にミュート解除したと見なし、マナーモードを上書き（playback）して音を鳴らします。
+  /// それ以外（自動再生）の場合はマナーモードに従います（ambient）。
+  Future<void> playBgm(String url, {bool userExplicitAction = false}) async {
     _fadeTimer?.cancel();
     
     if (_isBgmMuted) {
@@ -96,6 +132,13 @@ class SoundService {
     try {
       if (_bgmPlayer.state == PlayerState.playing) {
         await _bgmPlayer.stop();
+      }
+      
+      // BGM再生開始に合わせてセッションを切り替え
+      if (userExplicitAction) {
+        await _setPlaybackSession();
+      } else {
+        await _setAmbientSession();
       }
       
       if (_isFirstBgmPlay) {
@@ -141,6 +184,9 @@ class SoundService {
       await _bgmPlayer.stop();
     } catch (e) {
       debugPrint('Error stopping BGM: $e');
+    } finally {
+      // BGM停止に合わせてオーディオ設定を戻す
+      await _setAmbientSession();
     }
   }
 
@@ -153,8 +199,8 @@ class SoundService {
     if (_isBgmMuted) {
       await stopBgm();
     } else if (currentPlayingUrl != null) {
-      // ミュート解除時、現在のURLがあれば再生開始
-      await playBgm(currentPlayingUrl);
+      // ミュート解除時、現在のURLがあれば再生開始（ユーザーの明示的な操作なので強制再生）
+      await playBgm(currentPlayingUrl, userExplicitAction: true);
     }
   }
 

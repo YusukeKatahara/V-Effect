@@ -44,6 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, Season> _seasonsMap = {};
   Map<String, int> _seasonPostsCountMap = {};
   Stream<DocumentSnapshot>? _userStream;
+  List<Map<String, dynamic>> _trendingTasks = [];
 
   @override
   void initState() {
@@ -51,6 +52,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _uid = FirebaseAuth.instance.currentUser!.uid;
     _userStream = _db.collection('users').doc(_uid).snapshots();
     _loadPrivateData();
+    _loadTrendingTasks();
+  }
+
+  Future<void> _loadTrendingTasks() async {
+    try {
+      final doc = await _db.collection('global_stats').doc('trends').get();
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        if (data.containsKey('trends') && data['trends'] is List) {
+          if (mounted) {
+            setState(() {
+              _trendingTasks = (data['trends'] as List)
+                  .map((e) => Map<String, dynamic>.from(e as Map))
+                  .toList();
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading trending tasks: $e');
+    }
   }
 
   Future<void> _loadPrivateData() async {
@@ -272,9 +294,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showTrendingTasksBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '🔥 ウィークトレンド習慣',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (_trendingTasks.isEmpty)
+                const Text('トレンドデータがまだありません。', style: TextStyle(color: AppColors.grey70))
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _trendingTasks.map((trend) {
+                    final name = trend['name'] as String? ?? '';
+                    if (name.isEmpty) return const SizedBox.shrink();
+                    return ActionChip(
+                      backgroundColor: AppColors.bgElevated,
+                      side: const BorderSide(color: AppColors.grey70),
+                      label: Text(name, style: const TextStyle(color: AppColors.white, fontSize: 14)),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        _addTask(initialTitle: name);
+                      },
+                    );
+                  }).toList(),
+                ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // ---── ヒーロータスクの追加 ──
-  Future<void> _addTask() async {
-    final controller = TextEditingController();
+  Future<void> _addTask({String? initialTitle}) async {
+    final controller = TextEditingController(text: initialTitle);
     final triggerController = TextEditingController();
     final rewardController = TextEditingController();
     bool isOneTime = false;
@@ -1227,8 +1300,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionTitle(title: 'ヒーロータスク'),
-        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const _SectionTitle(title: 'ヒーロータスク'),
+            TextButton(
+              onPressed: _showTrendingTasksBottomSheet,
+              child: const Text(
+                '🔥 ウィークトレンド習慣',
+                style: TextStyle(color: AppColors.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         if (_user!.tasks.isEmpty)
           _buildEmptyTaskCard()
         else

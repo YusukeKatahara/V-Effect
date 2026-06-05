@@ -21,6 +21,7 @@ import 'utils/date_helper.dart';
 import 'widgets/global_error_widget.dart';
 import 'widgets/splash_loading.dart';
 import 'dart:async';
+import 'package:audio_session/audio_session.dart';
 import 'services/widget_service.dart';
 void main() {
   runZonedGuarded(() async {
@@ -104,6 +105,23 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _initialize() async {
     try {
+      // ── アプリ全体のオーディオセッションを強固に設定 ──
+      // これにより、起動時に他アプリのバックグラウンド音楽が絶対に止まらなくなる
+      try {
+        final session = await AudioSession.instance;
+        await session.configure(const AudioSessionConfiguration(
+          avAudioSessionCategory: AVAudioSessionCategory.ambient,
+          avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.mixWithOthers,
+          androidAudioAttributes: AndroidAudioAttributes(
+            contentType: AndroidAudioContentType.sonification,
+            usage: AndroidAudioUsage.assistanceSonification,
+          ),
+          androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransientMayDuck,
+        ));
+      } catch (e) {
+        debugPrint('AudioSession初期化エラー: $e');
+      }
+
       // 非UIブロック項目の初期化
       try {
         await MobileAds.instance.initialize();
