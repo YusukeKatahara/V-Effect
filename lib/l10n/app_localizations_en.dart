@@ -21,1948 +21,2011 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageEnglish => 'ENGLISH';
 
   @override
-  String get errorCannotOpenLink => 'リンクを開けませんでした';
+  String get errorCannotOpenLink => 'Couldn\'t open the link';
 
   @override
-  String get settingsNotification => '通知';
+  String get settingsNotification => 'Notifications';
 
   @override
-  String get settingsPasswordSecurity => 'パスワードとセキュリティ';
+  String get settingsPasswordSecurity => 'Password & Security';
 
   @override
-  String get settingsSupportLegal => 'サポート・法的情報';
+  String get settingsSupportLegal => 'Support & Legal';
 
   @override
-  String get settingsContactBugReport => 'お問い合わせ / バグ報告';
+  String get settingsContactBugReport => 'Contact Us / Bug Report';
 
   @override
-  String get settingsTerms => '利用規約';
+  String get settingsTerms => 'Terms of Service';
 
   @override
-  String get settingsPrivacyPolicy => 'プライバシーポリシー';
+  String get settingsPrivacyPolicy => 'Privacy Policy';
 
   @override
-  String get settingsVersionInfo => 'バージョン情報';
+  String get settingsVersionInfo => 'Version';
 
   @override
-  String get loginTagline => '日々の努力を、仲間と共に。';
+  String get loginTagline => 'Daily victories. Shared with your crew.';
 
   @override
-  String get loginEmailOrId => 'メールアドレスまたはユーザーID';
+  String get loginEmailOrId => 'Email or User ID';
 
   @override
-  String get loginPassword => 'パスワード';
+  String get loginPassword => 'Password';
 
   @override
-  String get loginForgotPassword => 'パスワードをお忘れですか？';
+  String get loginForgotPassword => 'Forgot your password?';
 
   @override
-  String get loginButton => 'ログイン';
+  String get loginButton => 'Log In';
 
   @override
-  String get loginOrDivider => 'または';
+  String get loginOrDivider => 'or';
 
   @override
-  String get loginWithApple => 'Appleでログイン';
+  String get loginWithApple => 'Continue with Apple';
 
   @override
-  String get loginWithGoogle => 'Googleでログイン';
+  String get loginWithGoogle => 'Continue with Google';
 
   @override
-  String get loginNoAccount => 'アカウントをお持ちでないですか？';
+  String get loginNoAccount => 'Don\'t have an account?';
 
   @override
-  String get loginRegister => '新規登録';
+  String get loginRegister => 'Sign Up';
 
   @override
-  String get loginContactSupport => 'ログインできない等のご相談・お問い合わせ';
+  String get loginContactSupport => 'Trouble logging in? Contact support';
 
   @override
-  String get loginByLoggingIn => 'ログインすることで、';
+  String get loginByLoggingIn => 'By logging in, you agree to our ';
 
   @override
-  String get loginAnd => 'および';
+  String get loginAnd => ' and ';
 
   @override
-  String get loginAgreeTerms => 'に同意したものとみなされます。';
+  String get loginAgreeTerms => '.';
 
   @override
-  String get loginFailed => 'ログインに失敗しました';
+  String get loginFailed => 'Login failed';
 
   @override
-  String get loginErrorIdOrPassword => 'ユーザーIDまたはパスワードが間違っています';
+  String get loginErrorIdOrPassword => 'Incorrect user ID or password';
 
   @override
-  String get loginErrorUserNotFound => 'ユーザーが見つかりません';
+  String get loginErrorUserNotFound => 'User not found';
 
   @override
-  String get loginErrorWrongPassword => 'パスワードが間違っています';
+  String get loginErrorWrongPassword => 'Incorrect password';
 
   @override
-  String get loginErrorInvalidCredential => 'メールアドレスまたはパスワードが間違っています';
+  String get loginErrorInvalidCredential => 'Incorrect email or password';
 
   @override
-  String get loginAppleFailed => 'Appleでのログインに失敗しました';
+  String get loginAppleFailed => 'Apple sign-in failed';
 
   @override
-  String get loginGoogleFailed => 'Googleでのログインに失敗しました';
+  String get loginGoogleFailed => 'Google sign-in failed';
 
   @override
-  String get registerCreateAccount => 'アカウントを作成';
+  String get registerCreateAccount => 'Create Account';
 
   @override
-  String get registerSubtitle => 'V EFFECTに参加して仲間と高め合おう';
+  String get registerSubtitle => 'Join V EFFECT and level up together';
 
   @override
-  String get registerEmail => 'メールアドレス';
+  String get registerEmail => 'Email';
 
   @override
-  String get registerEmailRequired => 'メールアドレスを入力してください';
+  String get registerEmailRequired => 'Please enter your email';
 
   @override
-  String get registerPasswordRequired => 'パスワードを入力してください';
+  String get registerPasswordRequired => 'Please enter a password';
 
   @override
-  String get registerPasswordMinLength => '6文字以上で入力してください';
+  String get registerPasswordMinLength => 'Must be at least 6 characters';
 
   @override
-  String get registerPasswordConfirm => 'パスワード（確認）';
+  String get registerPasswordConfirm => 'Confirm Password';
 
   @override
-  String get registerPasswordReenter => 'パスワードを再入力してください';
+  String get registerPasswordReenter => 'Please re-enter your password';
 
   @override
-  String get registerPasswordMismatch => 'パスワードが一致しません';
+  String get registerPasswordMismatch => 'Passwords don\'t match';
 
   @override
-  String get registerAgreeToSuffix => 'に同意する';
+  String get registerAgreeToSuffix => '';
 
   @override
-  String get registerFailed => '登録に失敗しました。';
+  String get registerFailed => 'Registration failed.';
 
   @override
-  String get registerEmailInUse => 'このメールアドレスは既に使われています。';
+  String get registerEmailInUse => 'This email is already in use.';
 
   @override
-  String get registerWeakPassword => 'パスワードは6文字以上にしてください。';
+  String get registerWeakPassword => 'Password must be at least 6 characters.';
 
   @override
-  String get registerFailedRetry => '登録に失敗しました。しばらくしてからお試しください。';
+  String get registerFailedRetry =>
+      'Registration failed. Please try again later.';
 
   @override
-  String get registerAppleFailed => 'Appleでの登録に失敗しました。';
+  String get registerAppleFailed => 'Apple sign-up failed.';
 
   @override
-  String get registerGoogleFailed => 'Googleでの登録に失敗しました。';
+  String get registerGoogleFailed => 'Google sign-up failed.';
 
   @override
-  String get registerWithApple => 'Appleで作成';
+  String get registerWithApple => 'Sign up with Apple';
 
   @override
-  String get registerWithGoogle => 'Googleで作成';
+  String get registerWithGoogle => 'Sign up with Google';
 
   @override
-  String get forgotPasswordResetTitle => 'パスワードリセット';
+  String get forgotPasswordResetTitle => 'Reset Password';
 
   @override
-  String get forgotPasswordInstruction => 'ユーザーIDと登録メールアドレスを入力してください';
+  String get forgotPasswordInstruction =>
+      'Enter your user ID and registered email address';
 
   @override
-  String get forgotPasswordBothRequired => 'ユーザーIDとメールアドレスを入力してください';
+  String get forgotPasswordBothRequired =>
+      'Please enter your user ID and email';
 
   @override
-  String get forgotPasswordInvalid => '入力内容が一致するアカウントが見つかりませんでした';
+  String get forgotPasswordInvalid => 'No account found matching those details';
 
   @override
-  String get forgotPasswordUserId => 'ユーザーID';
+  String get forgotPasswordUserId => 'User ID';
 
   @override
-  String get forgotPasswordSendReset => 'リセットメールを送信';
+  String get forgotPasswordSendReset => 'Send Reset Email';
 
   @override
-  String get forgotPasswordEmailSent => 'メールを送信しました';
+  String get forgotPasswordEmailSent => 'Email Sent';
 
   @override
   String forgotPasswordEmailSentDesc(String email) {
-    return '$email 宛に\nパスワードリセット用のメールを送信しました。';
+    return 'A password reset email has been sent to $email.';
   }
 
   @override
-  String get forgotPasswordResetViaLink => 'リンクからパスワードを再設定する';
+  String get forgotPasswordResetViaLink => 'Reset password via link';
 
   @override
-  String get forgotPasswordBackToLogin => 'ログイン画面に戻る';
+  String get forgotPasswordBackToLogin => 'Back to login';
 
   @override
-  String get forgotPasswordResend => 'メールが届かない場合は再送信';
+  String get forgotPasswordResend => 'Resend if you didn\'t receive the email';
 
   @override
-  String get resetPasswordTitle => 'パスワード再設定';
+  String get resetPasswordTitle => 'Set New Password';
 
   @override
-  String get resetPasswordLinkInvalid => 'リンクが無効です';
+  String get resetPasswordLinkInvalid => 'Invalid link';
 
   @override
-  String get resetPasswordLinkExpired => 'リンクの有効期限が切れています';
+  String get resetPasswordLinkExpired => 'This link has expired';
 
   @override
   String get resetPasswordLinkInvalidPaste =>
-      'リンクが正しくありません。メールのリンクをそのまま貼り付けてください';
+      'Invalid link. Please paste the link directly from your email.';
 
   @override
-  String get resetPasswordPasteLink => 'リンクを貼り付けてください';
+  String get resetPasswordPasteLink => 'Please paste the link';
 
   @override
-  String get resetPasswordMismatch => 'パスワードが一致しません';
+  String get resetPasswordMismatch => 'Passwords don\'t match';
 
   @override
-  String get resetPasswordFailed => 'パスワードの再設定に失敗しました';
+  String get resetPasswordFailed => 'Failed to reset password';
 
   @override
-  String get resetPasswordWeakPassword => 'パスワードは6文字以上にしてください';
+  String get resetPasswordWeakPassword =>
+      'Password must be at least 6 characters';
 
   @override
-  String get resetPasswordPasteLinkTitle => 'リンクを貼り付ける';
+  String get resetPasswordPasteLinkTitle => 'Paste Your Link';
 
   @override
   String get resetPasswordPasteLinkDesc =>
-      'パスワードリセットメールに記載されているリンクをコピーして貼り付けてください';
+      'Copy the link from your password reset email and paste it here';
 
   @override
-  String get resetPasswordPasteLinkLabel => 'パスワードリセットリンク';
+  String get resetPasswordPasteLinkLabel => 'Password Reset Link';
 
   @override
-  String get resetPasswordNext => '次へ';
+  String get resetPasswordNext => 'Next';
 
   @override
-  String get resetPasswordNewTitle => '新しいパスワードを設定';
+  String get resetPasswordNewTitle => 'Set New Password';
 
   @override
-  String get resetPasswordNew => '新しいパスワード';
+  String get resetPasswordNew => 'New Password';
 
   @override
-  String get resetPasswordConfirm => 'パスワード（確認）';
+  String get resetPasswordConfirm => 'Confirm Password';
 
   @override
-  String get resetPasswordButton => 'パスワードを更新する';
+  String get resetPasswordButton => 'Update Password';
 
   @override
-  String get resetPasswordDone => 'パスワードを更新しました';
+  String get resetPasswordDone => 'Password Updated';
 
   @override
-  String get resetPasswordLoginWithNew => '新しいパスワードでログインしてください';
+  String get resetPasswordLoginWithNew => 'Sign in with your new password';
 
   @override
-  String get resetPasswordGoToLogin => 'ログイン画面へ';
+  String get resetPasswordGoToLogin => 'Go to Login';
 
   @override
-  String get errorGenericRetry => 'エラーが発生しました。しばらくしてからお試しください';
+  String get errorGenericRetry =>
+      'Something went wrong. Please try again later.';
 
   @override
-  String get weeklyReviewSelectBackground => '背景画像を選択';
+  String get weeklyReviewSelectBackground => 'Choose Background';
 
   @override
-  String get weeklyReviewNoPostsDefault => '今週の投稿はまだありません。\nデフォルトの背景でシェアします。';
+  String get weeklyReviewNoPostsDefault =>
+      'No posts this week yet.\nShare with the default background.';
 
   @override
-  String get weeklyReviewShareWithoutBackground => '背景画像なしでシェア';
+  String get weeklyReviewShareWithoutBackground => 'Share without background';
 
   @override
   String weeklyReviewLoadError(Object error) {
-    return '読み込みエラー: $error';
+    return 'Load error: $error';
   }
 
   @override
-  String get weeklyReviewShareToSns => 'SNSへシェア';
+  String get weeklyReviewShareToSns => 'Share to Social';
 
   @override
-  String get weeklyReviewStatTasks => '今週のタスク';
+  String get weeklyReviewStatTasks => 'Tasks This Week';
 
   @override
-  String get weeklyReviewStatStreak => '連続達成';
+  String get weeklyReviewStatStreak => 'Streak';
 
   @override
-  String get weeklyReviewStatVFire => '累計VFIRE';
+  String get weeklyReviewStatVFire => 'Total VFIRE';
 
   @override
-  String get weeklyReviewStatReactions => 'リアクション';
+  String get weeklyReviewStatReactions => 'Reactions';
 
   @override
-  String get weeklyReviewNoPosts => '今週の投稿はまだありません';
+  String get weeklyReviewNoPosts => 'No posts this week';
 
   @override
-  String get authWrapperConnecting => '接続に時間がかかっています...';
+  String get authWrapperConnecting => 'Taking a moment to connect...';
 
   @override
-  String get authWrapperRetry => '再試行';
+  String get authWrapperRetry => 'Retry';
 
   @override
   String firestoreReadError(Object error) {
-    return 'Firestore読み込みエラー: $error';
+    return 'Firestore error: $error';
   }
 
   @override
-  String get followListNoUsers => 'ユーザーがいません';
+  String get followListNoUsers => 'No users here';
 
   @override
-  String get followListFollowing => 'フォロー中';
+  String get followListFollowing => 'Following';
 
   @override
-  String get followListFollowers => 'フォロワー';
+  String get followListFollowers => 'Followers';
 
   @override
-  String get followListPendingBanner => 'フォロー申請が届いています';
+  String get followListPendingBanner => 'You have pending follow requests';
 
   @override
-  String get followListMe => '自分';
+  String get followListMe => 'You';
 
   @override
-  String get qrScannerTitle => 'QRスキャン';
+  String get qrScannerTitle => 'Scan QR';
 
   @override
-  String get qrScannerFlashlight => 'フラッシュライト';
+  String get qrScannerFlashlight => 'Flashlight';
 
   @override
-  String get qrScannerUserNotFound => 'ユーザーが見つかりません';
+  String get qrScannerUserNotFound => 'User not found';
 
   @override
   String qrScannerError(Object error) {
-    return 'エラーが発生しました: $error';
+    return 'An error occurred: $error';
   }
 
   @override
-  String get qrScannerNoQrInImage => '画像からQRコードが見つかりませんでした';
+  String get qrScannerNoQrInImage => 'No QR code found in image';
 
   @override
-  String get qrScannerScanLabel => 'QRコードをスキャン';
+  String get qrScannerScanLabel => 'Scan QR Code';
 
   @override
-  String get qrScannerInstruction => '枠内にQRコードを写してください';
+  String get qrScannerInstruction => 'Point the camera at a QR code';
 
   @override
-  String get qrScannerPickFromGallery => 'フォルダーから選択';
+  String get qrScannerPickFromGallery => 'Choose from Gallery';
 
   @override
-  String get qrDisplayTitle => 'QRコード';
+  String get qrDisplayTitle => 'QR Code';
 
   @override
-  String get qrDisplaySaved => 'QRコードを保存しました';
+  String get qrDisplaySaved => 'QR code saved';
 
   @override
   String qrDisplaySaveFailed(Object error) {
-    return '保存に失敗しました: $error';
+    return 'Failed to save: $error';
   }
 
   @override
-  String get qrDisplaySaving => '保存中...';
+  String get qrDisplaySaving => 'Saving...';
 
   @override
-  String get qrDisplayDownload => 'ダウンロード';
+  String get qrDisplayDownload => 'Download';
 
   @override
-  String get pendingRequestsTitle => 'フォロー申請';
+  String get pendingRequestsTitle => 'Follow Requests';
 
   @override
-  String get pendingRequestsEmpty => '申請はありません';
+  String get pendingRequestsEmpty => 'No pending requests';
 
   @override
   String pendingRequestsAcceptFailed(Object error) {
-    return '承認に失敗しました: $error';
+    return 'Failed to accept: $error';
   }
 
   @override
   String pendingRequestsRejectFailed(Object error) {
-    return '拒否に失敗しました: $error';
+    return 'Failed to decline: $error';
   }
 
   @override
-  String get pendingRequestsAccept => '承認';
+  String get pendingRequestsAccept => 'Accept';
 
   @override
-  String get pendingRequestsReject => '拒否';
+  String get pendingRequestsReject => 'Decline';
 
   @override
-  String get initialFriendTitle => 'フレンド登録';
+  String get initialFriendTitle => 'Add Friends';
 
   @override
-  String get initialFriendSubtitle => '一緒に頑張る仲間を登録しよう！';
+  String get initialFriendSubtitle => 'Find your crew to train with!';
 
   @override
-  String get initialFriendWhoInvited => '誰に誘われましたか？';
+  String get initialFriendWhoInvited => 'Who invited you?';
 
   @override
-  String get initialFriendOtherUser => 'その他のユーザー：ユーザーIDを入力';
+  String get initialFriendOtherUser => 'Someone else — enter their user ID';
 
   @override
-  String get initialFriendUserIdLabel => 'ユーザーID';
+  String get initialFriendUserIdLabel => 'User ID';
 
   @override
   String initialFriendSentCount(int count) {
-    return '$count件のフレンドリクエストを送信しました！';
+    return '$count friend request(s) sent!';
   }
 
   @override
-  String get initialFriendSendFailed => '送信に失敗しました。もう一度お試しください。';
+  String get initialFriendSendFailed => 'Failed to send. Please try again.';
 
   @override
-  String get initialFriendRegister => '登録する';
+  String get initialFriendRegister => 'Add Friends';
 
   @override
-  String get initialFriendLater => 'あとで登録する';
+  String get initialFriendLater => 'Skip for now';
 
   @override
-  String get emailVerificationTitle => 'メールアドレスの認証';
+  String get emailVerificationTitle => 'Verify Your Email';
 
   @override
-  String get emailVerificationHeading => 'メールアドレスを認証してください';
+  String get emailVerificationHeading => 'Please verify your email';
 
   @override
   String emailVerificationSent(String email) {
-    return '$email\nに認証メールを送信しました。\nメール内のリンクをタップして認証を完了してください。';
+    return 'A verification email has been sent to\n$email.\nTap the link in the email to complete verification.';
   }
 
   @override
-  String get emailVerificationSpamNote => 'メールが届かない場合は、迷惑メールフォルダやゴミ箱をご確認ください。';
+  String get emailVerificationSpamNote =>
+      'Can\'t find it? Check your spam or trash folder.';
 
   @override
-  String get emailVerificationNotYet => 'まだ認証が完了していません。メールをご確認ください。';
+  String get emailVerificationNotYet =>
+      'Not verified yet. Please check your email.';
 
   @override
   String emailVerificationResendCooldown(int seconds) {
-    return '$seconds秒後に再送信できます。';
+    return 'You can resend in $seconds second(s).';
   }
 
   @override
-  String get emailVerificationResent => '認証メールを再送信しました。';
+  String get emailVerificationResent => 'Verification email resent.';
 
   @override
-  String get emailVerificationResendFailed => '送信に失敗しました。しばらくしてからお試しください。';
+  String get emailVerificationResendFailed =>
+      'Failed to send. Please try again later.';
 
   @override
-  String get emailVerificationConfirmButton => '認証を確認';
+  String get emailVerificationConfirmButton => 'I\'ve Verified';
 
   @override
-  String get emailVerificationResendButton => '認証メールを再送信';
+  String get emailVerificationResendButton => 'Resend Verification Email';
 
   @override
-  String get notificationSettingsTitle => '通知設定';
+  String get notificationSettingsTitle => 'Notification Settings';
 
   @override
-  String get notificationSettingsSaveFailed => '設定の保存に失敗しました';
+  String get notificationSettingsSaveFailed => 'Failed to save settings';
 
   @override
-  String get notificationSettingsPush => 'プッシュ通知を許可';
+  String get notificationSettingsPush => 'Enable Push Notifications';
 
   @override
-  String get notificationSettingsPushDesc => 'フォローや仲間の新しい投稿のお知らせ';
+  String get notificationSettingsPushDesc =>
+      'New posts and updates from people you follow';
 
   @override
-  String get notificationSettingsReaction => 'リアクション通知を許可';
+  String get notificationSettingsReaction => 'Enable Reaction Notifications';
 
   @override
-  String get notificationSettingsReactionDesc => '投稿にリアクションが届いたとき';
+  String get notificationSettingsReactionDesc =>
+      'When someone reacts to your posts';
 
   @override
-  String get notificationSettingsVAlert => 'V Alert 通知を許可';
+  String get notificationSettingsVAlert => 'Enable V Alert Notifications';
 
   @override
-  String get notificationSettingsVAlertDesc => '設定した時間のタスクリマインダー';
+  String get notificationSettingsVAlertDesc =>
+      'Task reminder at your scheduled time';
 
   @override
-  String get notificationSettingsVFire => 'V FIRE通知を許可';
+  String get notificationSettingsVFire => 'Enable V FIRE Notifications';
 
   @override
-  String get notificationSettingsVFireDesc => '投稿にV FIREが届いたとき';
+  String get notificationSettingsVFireDesc =>
+      'When your post receives a V FIRE';
 
   @override
-  String get notificationSettingsShield => '保護シールド通知を許可';
+  String get notificationSettingsShield => 'Enable Shield Notifications';
 
   @override
-  String get notificationSettingsShieldDesc => 'シールドによるストリーク維持のお知らせ';
+  String get notificationSettingsShieldDesc =>
+      'When a shield protects your streak';
 
   @override
-  String get notificationSettingsStreakCelebration => 'ストリーク達成祝いを許可';
+  String get notificationSettingsStreakCelebration =>
+      'Enable Streak Milestone Notifications';
 
   @override
   String get notificationSettingsStreakCelebrationDesc =>
-      '30日や100日などの大きな節目のお知らせ';
+      'Milestones like 30 or 100 days';
 
   @override
-  String get notificationSettingsStreakWarning => 'ストリーク危機通知を許可';
+  String get notificationSettingsStreakWarning =>
+      'Enable Streak Risk Notifications';
 
   @override
   String get notificationSettingsStreakWarningDesc =>
-      '夜になってもタスクが完了していない時のリマインダー';
+      'Reminder if your task isn\'t done by evening';
 
   @override
-  String get notificationSettingsDebugTitle => '開発者向けデバッグ機能';
+  String get notificationSettingsDebugTitle => 'Developer Debug Tools';
 
   @override
-  String get notificationSettingsDebugResetTitle => '通知プレ・ダイアログの表示フラグをリセット';
+  String get notificationSettingsDebugResetTitle =>
+      'Reset Notification Pre-Dialog Flag';
 
   @override
-  String get notificationSettingsDebugResetDesc => '「一度のみ表示」の制限フラグを消去します';
+  String get notificationSettingsDebugResetDesc =>
+      'Clears the \'show once\' restriction flag';
 
   @override
-  String get notificationSettingsDebugResetDone => '通知ダイアログ表示フラグをリセットしました。';
+  String get notificationSettingsDebugResetDone =>
+      'Notification dialog flag has been reset.';
 
   @override
-  String get notificationSettingsDebugTestTitle => '通知プレ・ダイアログをテスト表示';
+  String get notificationSettingsDebugTestTitle =>
+      'Test Notification Pre-Dialog';
 
   @override
-  String get notificationSettingsDebugTestDesc => '現在の通知許可状態に関わらずモーダルを表示します';
+  String get notificationSettingsDebugTestDesc =>
+      'Shows the modal regardless of current permission status';
 
   @override
-  String get editProfileSettingsHeader => '設定';
+  String get editProfileSettingsHeader => 'Settings';
 
   @override
-  String get editProfileAccount => 'アカウント';
+  String get editProfileAccount => 'Account';
 
   @override
-  String get editProfileStatus => 'ステータス';
+  String get editProfileStatus => 'Status';
 
   @override
-  String get editProfileNameLabel => '名前';
+  String get editProfileNameLabel => 'Name';
 
   @override
-  String get editProfileNameRequired => '名前を入力してください';
+  String get editProfileNameRequired => 'Please enter your name';
 
   @override
-  String get editProfileUserIdLabel => 'ユーザーID';
+  String get editProfileUserIdLabel => 'User ID';
 
   @override
-  String get editProfileUserIdRequired => 'ユーザーIDを入力してください';
+  String get editProfileUserIdRequired => 'Please enter a user ID';
 
   @override
-  String get editProfileUserIdMinLength => '5文字以上で入力してください';
+  String get editProfileUserIdMinLength => 'Must be at least 5 characters';
 
   @override
-  String get editProfileUserIdAlphanumeric => '英数字とアンダースコアのみ使えます';
+  String get editProfileUserIdAlphanumeric =>
+      'Only letters, numbers, and underscores';
 
   @override
-  String get editProfileUserIdAlreadyUsed => 'このユーザーIDは既に使われています';
+  String get editProfileUserIdAlreadyUsed => 'This user ID is already taken';
 
   @override
   String editProfileRestrictionMessage(int days) {
-    return 'ユーザーIDは前回の変更から90日間変更できません。\nあと $days 日お待ちください。';
+    return 'Your user ID cannot be changed for 90 days after the last change.\nPlease wait $days more day(s).';
   }
 
   @override
   String editProfileChangeRestriction(int days) {
-    return 'ユーザーIDの変更はあと $days 日経過するまでできません。';
+    return 'User ID cannot be changed for another $days day(s).';
   }
 
   @override
-  String get editProfileConfirmTitle => '確認';
+  String get editProfileConfirmTitle => 'Confirm';
 
   @override
   String get editProfileConfirmMessage =>
-      'この変更を保存すると、ユーザーIDは今後90日間変更できなくなります。\n\n本当によろしいですか？';
+      'Once saved, your user ID cannot be changed for 90 days.\n\nAre you sure?';
 
   @override
-  String get editProfileCancel => 'キャンセル';
+  String get editProfileCancel => 'Cancel';
 
   @override
-  String get editProfileChange => '変更';
+  String get editProfileChange => 'Change';
 
   @override
-  String get editProfileSave => '保存';
+  String get editProfileSave => 'Save';
 
   @override
   String editProfileSaveFailed(Object error) {
-    return '保存に失敗しました: $error';
+    return 'Failed to save: $error';
   }
 
   @override
-  String get editProfileBirthDate => '生年月日 (任意)';
+  String get editProfileBirthDate => 'Date of Birth (optional)';
 
   @override
-  String get editProfileGender => '性別 (任意)';
+  String get editProfileGender => 'Gender (optional)';
 
   @override
-  String get editProfilePickerCancel => 'キャンセル';
+  String get editProfilePickerCancel => 'Cancel';
 
   @override
-  String get editProfilePickerDone => '完了';
+  String get editProfilePickerDone => 'Done';
 
   @override
-  String get editProfileBirthDatePickerTitle => '生年月日';
+  String get editProfileBirthDatePickerTitle => 'Date of Birth';
 
   @override
-  String get editProfileGenderPickerTitle => '性別';
+  String get editProfileGenderPickerTitle => 'Gender';
 
   @override
-  String get editProfileTimestampLabel => '写真のタイムスタンプ';
+  String get editProfileTimestampLabel => 'Photo Timestamp';
 
   @override
-  String get editProfileTimestampDesc => '投稿写真に時刻を表示します';
+  String get editProfileTimestampDesc => 'Show the time on your post photos';
 
   @override
-  String get editProfileBadgeLabel => 'バッジ';
+  String get editProfileBadgeLabel => 'Badge';
 
   @override
-  String get editProfileBadgeEquipped => '装着中';
+  String get editProfileBadgeEquipped => 'Equipped';
 
   @override
-  String get editProfileBadgeNone => '未設定';
+  String get editProfileBadgeNone => 'None';
 
   @override
-  String get editProfileBadgeChange => '変更';
+  String get editProfileBadgeChange => 'Change';
 
   @override
-  String get editProfileBadgeSelectTitle => 'バッジを選択';
+  String get editProfileBadgeSelectTitle => 'Select Badge';
 
   @override
-  String get editProfileBadgeOptionNone => 'なし';
+  String get editProfileBadgeOptionNone => 'None';
 
   @override
-  String get editProfileBadgeOptionTester => 'テスター';
+  String get editProfileBadgeOptionTester => 'Tester';
 
   @override
-  String get editProfileBadgeOptionSeason => 'シーズンバッジ';
+  String get editProfileBadgeOptionSeason => 'Season Badge';
 
   @override
-  String get editProfileImageAdjust => '画像を調整';
+  String get editProfileImageAdjust => 'Adjust Image';
 
   @override
-  String get pastComparisonTitle => '積み重ねを振りかえる';
+  String get pastComparisonTitle => 'Look Back on Your Journey';
 
   @override
-  String get pastComparisonSortOld => '古い順にする';
+  String get pastComparisonSortOld => 'Oldest First';
 
   @override
-  String get pastComparisonSortNew => '新しい順にする';
+  String get pastComparisonSortNew => 'Newest First';
 
   @override
-  String get pastComparisonEmpty => 'まだ投稿がありません';
+  String get pastComparisonEmpty => 'No posts yet';
 
   @override
-  String get pastComparisonTaskEmpty => 'このタスクの投稿はまだありません';
+  String get pastComparisonTaskEmpty => 'No posts for this task yet';
 
   @override
-  String get pastComparisonCompare => '比較する';
+  String get pastComparisonCompare => 'Compare';
 
   @override
-  String get pastComparisonSelectTwo => '2枚選んでください';
+  String get pastComparisonSelectTwo => 'Select 2 photos';
 
   @override
-  String get pastComparisonMode => '比較モード';
+  String get pastComparisonMode => 'Compare Mode';
 
   @override
-  String get pastComparisonOther => 'その他';
+  String get pastComparisonOther => 'Other';
 
   @override
-  String get sharePreviewTitle => 'プレビュー';
+  String get sharePreviewTitle => 'Preview';
 
   @override
   String sharePreviewShareText(int count, int streak) {
-    return '今週も$count回のヒーロータスクを完遂！\n現在のストリーク: $streak日 🔥\n#VEffect';
+    return 'Crushed my Hero Task $count time(s) this week!\nCurrent streak: $streak days 🔥\n#VEffect';
   }
 
   @override
-  String get sharePreviewFailed => 'シェアに失敗しました。もう一度お試しください。';
+  String get sharePreviewFailed => 'Share failed. Please try again.';
 
   @override
-  String get sharePreviewPreparing => '準備中...';
+  String get sharePreviewPreparing => 'Preparing...';
 
   @override
-  String get sharePreviewShareButton => 'SNSへシェア';
+  String get sharePreviewShareButton => 'Share to Social';
 
   @override
-  String get searchHint => 'IDまたは名前を検索';
+  String get searchHint => 'Search by ID or name';
 
   @override
-  String get searchKeywordPrompt => '検索キーワードを入力してください';
+  String get searchKeywordPrompt => 'Enter a search keyword';
 
   @override
-  String get searchNoResults => 'ユーザーが見つかりませんでした';
+  String get searchNoResults => 'No users found';
 
   @override
   String searchError(Object error) {
-    return '検索エラー:\n$error';
+    return 'Search error:\n$error';
   }
 
   @override
   String searchUnfollowed(String username) {
-    return '$usernameさんのフォローを解除しました';
+    return 'Unfollowed $username';
   }
 
   @override
   String searchFollowRequestSent(String username) {
-    return '$usernameさんにフォローリクエストを送りました';
+    return 'Follow request sent to $username';
   }
 
   @override
   String searchActionFailed(Object error) {
-    return '操作に失敗しました: $error';
+    return 'Action failed: $error';
   }
 
   @override
-  String get searchFollowing => 'フォロー中';
+  String get searchFollowing => 'Following';
 
   @override
-  String get searchPending => '申請中';
+  String get searchPending => 'Requested';
 
   @override
-  String get searchFollow => 'フォロー';
+  String get searchFollow => 'Follow';
 
   @override
-  String get securitySettingsTitle => 'パスワードとセキュリティ';
+  String get securitySettingsTitle => 'Password & Security';
 
   @override
-  String get securityLoginRecoveryTitle => 'ログインとリカバリー';
+  String get securityLoginRecoveryTitle => 'Login & Recovery';
 
   @override
-  String get securityLoginRecoveryDesc => 'パスワード、ログイン設定、リカバリー方法を管理できます。';
+  String get securityLoginRecoveryDesc =>
+      'Manage your password, login settings, and recovery options.';
 
   @override
-  String get securityChangePassword => 'パスワードを変更';
+  String get securityChangePassword => 'Change Password';
 
   @override
-  String get securityChangeEmail => 'メールアドレスを変更';
+  String get securityChangeEmail => 'Change Email';
 
   @override
-  String get securityVerifyEmail => 'メールアドレスを認証する';
+  String get securityVerifyEmail => 'Verify Email';
 
   @override
-  String get securityAccountManagementTitle => 'アカウント管理';
+  String get securityAccountManagementTitle => 'Account Management';
 
   @override
-  String get securityAccountManagementDesc => 'アプリへのアクセスやアカウントのデータに関する設定を行います。';
+  String get securityAccountManagementDesc =>
+      'Manage your app access and account data.';
 
   @override
-  String get securityLogout => 'ログアウト';
+  String get securityLogout => 'Log Out';
 
   @override
-  String get securityDeleteAccount => 'アカウントを削除';
+  String get securityDeleteAccount => 'Delete Account';
 
   @override
-  String get securityLinkedAccounts => '連携済みのアカウント';
+  String get securityLinkedAccounts => 'Linked Accounts';
 
   @override
-  String get securityNoLinkedAccounts => 'なし';
+  String get securityNoLinkedAccounts => 'None';
 
   @override
-  String get securityProviderEmail => 'メールアドレス';
+  String get securityProviderEmail => 'Email';
 
   @override
-  String get securityChangePasswordDialogTitle => 'パスワードを変更';
+  String get securityChangePasswordDialogTitle => 'Change Password';
 
   @override
   String securityChangePasswordDialogDesc(String email) {
-    return '$email 宛にパスワード再設定用のメールを送信しますか？';
+    return 'Send a password reset email to $email?';
   }
 
   @override
-  String get securityChangePasswordCancel => 'キャンセル';
+  String get securityChangePasswordCancel => 'Cancel';
 
   @override
-  String get securityChangePasswordSend => '送信';
+  String get securityChangePasswordSend => 'Send';
 
   @override
-  String get securityPasswordResetSent => '再設定メールを送信しました。メールをご確認ください。';
+  String get securityPasswordResetSent =>
+      'Reset email sent. Please check your inbox.';
 
   @override
-  String get securityChangeEmailDialogTitle => 'メールアドレスを変更';
+  String get securityChangeEmailDialogTitle => 'Change Email';
 
   @override
   String get securityChangeEmailDialogDesc =>
-      '新しいメールアドレスを入力してください。確認メールを送信します。';
+      'Enter your new email address. A confirmation email will be sent.';
 
   @override
-  String get securityNewEmailLabel => '新しいメールアドレス';
+  String get securityNewEmailLabel => 'New Email Address';
 
   @override
-  String get securityChangeEmailSend => '確認メールを送信';
+  String get securityChangeEmailSend => 'Send Confirmation Email';
 
   @override
   String get securityEmailVerificationSent =>
-      '新しいアドレスに確認メールを送信しました。リンクをタップして変更を完了してください。';
+      'A confirmation email has been sent to your new address. Tap the link to complete the change.';
 
   @override
-  String get securityErrorGeneric => 'エラーが発生しました。';
+  String get securityErrorGeneric => 'An error occurred.';
 
   @override
   String get securityErrorRecentLogin =>
-      'セキュリティのため、一度ログアウトして再度ログインしてからやり直してください。';
+      'For security, please log out and log back in before trying again.';
 
   @override
-  String get securityErrorInvalidEmail => '無効なメールアドレスです。';
+  String get securityErrorInvalidEmail => 'Invalid email address.';
 
   @override
-  String get securityErrorEmailInUse => 'このメールアドレスは既に登録されています。';
+  String get securityErrorEmailInUse => 'This email is already registered.';
 
   @override
-  String get securityLogoutConfirmTitle => 'ログアウト';
+  String get securityLogoutConfirmTitle => 'Log Out';
 
   @override
-  String get securityLogoutConfirmMessage => '本当にログアウトしますか？';
+  String get securityLogoutConfirmMessage =>
+      'Are you sure you want to log out?';
 
   @override
-  String get securityLogoutConfirmCancel => 'キャンセル';
+  String get securityLogoutConfirmCancel => 'Cancel';
 
   @override
-  String get securityLogoutConfirmButton => 'ログアウト';
+  String get securityLogoutConfirmButton => 'Log Out';
 
   @override
-  String get securityDeleteConfirmTitle => 'アカウントを削除しますか？';
+  String get securityDeleteConfirmTitle => 'Delete Account?';
 
   @override
   String get securityDeleteConfirmDesc =>
-      'プロフィール・投稿などすべてのデータが完全に削除されます。この操作は取り消せません。';
+      'All your data — profile, posts, and everything else — will be permanently deleted. This cannot be undone.';
 
   @override
-  String get securityDeleteConfirmCancel => 'キャンセル';
+  String get securityDeleteConfirmCancel => 'Cancel';
 
   @override
-  String get securityDeleteConfirmButton => '削除';
+  String get securityDeleteConfirmButton => 'Delete';
 
   @override
-  String get securityDeleteFinalTitle => '本当に削除しますか？';
+  String get securityDeleteFinalTitle => 'Are you absolutely sure?';
 
   @override
-  String get securityDeleteFinalDesc => 'この操作は元に戻せません。アカウントを完全に削除してよろしいですか？';
+  String get securityDeleteFinalDesc =>
+      'This action is irreversible. Your account will be permanently deleted.';
 
   @override
-  String get securityDeleteFinalCancel => 'キャンセル';
+  String get securityDeleteFinalCancel => 'Cancel';
 
   @override
-  String get securityDeleteFinalButton => '完全に削除する';
+  String get securityDeleteFinalButton => 'Delete Permanently';
 
   @override
-  String get securityDeleteFailed => 'アカウントの削除に失敗しました。再ログインして再度お試しください。';
+  String get securityDeleteFailed =>
+      'Failed to delete account. Please log in again and try.';
 
   @override
-  String get userProfileNotFound => 'ユーザーが見つかりません';
+  String get userProfileNotFound => 'User not found';
 
   @override
-  String get userProfileFollowing => 'フォロー中';
+  String get userProfileFollowing => 'Following';
 
   @override
-  String get userProfileFollowers => 'フォロワー';
+  String get userProfileFollowers => 'Followers';
 
   @override
-  String get userProfileStreak => 'ストリーク';
+  String get userProfileStreak => 'Streak';
 
   @override
-  String get userProfileFollowRequest => 'フォローをリクエスト';
+  String get userProfileFollowRequest => 'Follow';
 
   @override
-  String get userProfilePending => '申請中';
+  String get userProfilePending => 'Requested';
 
   @override
-  String get userProfileHeroTasks => 'ヒーロータスク';
+  String get userProfileHeroTasks => 'Hero Tasks';
 
   @override
-  String get userProfileBlock => 'ブロック';
+  String get userProfileBlock => 'Block';
 
   @override
-  String get userProfileUnblock => 'ブロックを解除';
+  String get userProfileUnblock => 'Unblock';
 
   @override
-  String get userProfileReport => '通報';
+  String get userProfileReport => 'Report';
 
   @override
-  String get userProfileBlockConfirmTitle => 'ブロック';
+  String get userProfileBlockConfirmTitle => 'Block User';
 
   @override
-  String get userProfileBlockConfirmDesc => 'このユーザーをブロックします。フォロー関係も解除されます。';
+  String get userProfileBlockConfirmDesc =>
+      'Blocking this user will also remove your follow connection.';
 
   @override
-  String get userProfileBlockCancel => 'キャンセル';
+  String get userProfileBlockCancel => 'Cancel';
 
   @override
-  String get userProfileBlockButton => 'ブロック';
+  String get userProfileBlockButton => 'Block';
 
   @override
-  String get userProfileUnblockConfirmTitle => 'ブロックを解除';
+  String get userProfileUnblockConfirmTitle => 'Unblock User';
 
   @override
-  String get userProfileUnblockConfirmDesc => 'このユーザーのブロックを解除しますか？';
+  String get userProfileUnblockConfirmDesc =>
+      'Are you sure you want to unblock this user?';
 
   @override
-  String get userProfileUnblockCancel => 'キャンセル';
+  String get userProfileUnblockCancel => 'Cancel';
 
   @override
-  String get userProfileUnblockButton => '解除する';
+  String get userProfileUnblockButton => 'Unblock';
 
   @override
-  String get userProfileBlockFailed => 'ブロックに失敗しました';
+  String get userProfileBlockFailed => 'Failed to block user';
 
   @override
-  String get userProfileUnblockFailed => 'ブロック解除に失敗しました';
+  String get userProfileUnblockFailed => 'Failed to unblock user';
 
   @override
-  String get userProfileReportTitle => '通報する理由を選択';
+  String get userProfileReportTitle => 'Select a Reason';
 
   @override
-  String get userProfileReportSpam => 'スパム';
+  String get userProfileReportSpam => 'Spam';
 
   @override
-  String get userProfileReportHarassment => 'ハラスメント';
+  String get userProfileReportHarassment => 'Harassment';
 
   @override
-  String get userProfileReportInappropriate => '不適切なコンテンツ';
+  String get userProfileReportInappropriate => 'Inappropriate Content';
 
   @override
-  String get userProfileReportOther => 'その他';
+  String get userProfileReportOther => 'Other';
 
   @override
-  String get userProfileReportCancel => 'キャンセル';
+  String get userProfileReportCancel => 'Cancel';
 
   @override
-  String get userProfileReportDone => '通報しました。ご協力ありがとうございます。';
+  String get userProfileReportDone =>
+      'Reported. Thanks for helping keep V EFFECT safe.';
 
   @override
-  String get userProfileReportAlready => '7日以内に同じユーザーへの通報があります';
+  String get userProfileReportAlready =>
+      'You\'ve already reported this user within the last 7 days';
 
   @override
-  String get userProfileReportFailed => '通報に失敗しました';
+  String get userProfileReportFailed => 'Failed to report';
 
   @override
-  String get userProfileFollowFailed => 'フォローリクエストを送信できませんでした';
+  String get userProfileFollowFailed => 'Could not send follow request';
 
   @override
-  String get blogPostDetailDeleteTitle => '記事を削除しますか？';
+  String get blogPostDetailDeleteTitle => 'Delete Article?';
 
   @override
-  String get blogPostDetailDeleteDesc => 'この操作は取り消せません。';
+  String get blogPostDetailDeleteDesc => 'This action cannot be undone.';
 
   @override
-  String get blogPostDetailDeleteCancel => 'キャンセル';
+  String get blogPostDetailDeleteCancel => 'Cancel';
 
   @override
-  String get blogPostDetailDeleteButton => '削除';
+  String get blogPostDetailDeleteButton => 'Delete';
 
   @override
-  String get blogPostEditorUpdateButton => '更新';
+  String get blogPostEditorUpdateButton => 'Update';
 
   @override
-  String get blogPostEditorPostButton => '投稿';
+  String get blogPostEditorPostButton => 'Post';
 
   @override
-  String get blogPostEditorArticleUpdate => '記事を更新する';
+  String get blogPostEditorArticleUpdate => 'Update Article';
 
   @override
-  String get blogPostEditorArticlePost => '記事を投稿する';
+  String get blogPostEditorArticlePost => 'Publish Article';
 
   @override
-  String get blogPostEditorCategoryLabel => 'カテゴリ';
+  String get blogPostEditorCategoryLabel => 'Category';
 
   @override
-  String get blogPostEditorPinLabel => 'この記事をピン留めする';
+  String get blogPostEditorPinLabel => 'Pin this article';
 
   @override
-  String get blogPostEditorTitleLabel => 'タイトル';
+  String get blogPostEditorTitleLabel => 'Title';
 
   @override
-  String get blogPostEditorTitleHint => 'タイトルを入力';
+  String get blogPostEditorTitleHint => 'Enter a title';
 
   @override
-  String get blogPostEditorTitleEnLabel => 'タイトル (ENGLISH)';
+  String get blogPostEditorTitleEnLabel => 'Title (ENGLISH)';
 
   @override
-  String get blogPostEditorBodyLabel => '本文';
+  String get blogPostEditorBodyLabel => 'Body';
 
   @override
-  String get blogPostEditorBodyMarkdown => '— Markdownが使えます';
+  String get blogPostEditorBodyMarkdown => '— Markdown supported';
 
   @override
-  String get blogPostEditorBodyHint => '本文を入力\n\n## 見出し\n**太字** *斜体*\n- 箇条書き';
+  String get blogPostEditorBodyHint =>
+      'Write your post here\n\n## Heading\n**Bold** *Italic*\n- List item';
 
   @override
-  String get blogPostEditorBodyEnLabel => '本文 (ENGLISH)';
+  String get blogPostEditorBodyEnLabel => 'Body (ENGLISH)';
 
   @override
-  String get blogPostEditorRequiredError => 'タイトルと本文を入力してください';
+  String get blogPostEditorRequiredError => 'Please enter a title and body';
 
   @override
   String blogPostEditorSaveError(Object error) {
-    return 'エラー: $error';
+    return 'Error: $error';
   }
 
   @override
-  String get blogPostEditorPreviewEmpty => 'タイトルと本文を入力してください';
+  String get blogPostEditorPreviewEmpty => 'Please enter a title and body';
 
   @override
-  String get blogPostEditorCoverAdd => 'カバー画像を追加';
+  String get blogPostEditorCoverAdd => 'Add Cover Image';
 
   @override
-  String get blogPostEditorCoverChange => 'カバー画像を変更';
+  String get blogPostEditorCoverChange => 'Change Cover Image';
 
   @override
-  String get blogPostEditorSeasonNotSet => 'シーズンタスクを設定する';
+  String get blogPostEditorSeasonNotSet => 'Set Season Task';
 
   @override
-  String get blogPostEditorSeasonSet => 'シーズンタスク設定済み';
+  String get blogPostEditorSeasonSet => 'Season Task Set';
 
   @override
-  String get blogPostEditorSeasonDesc => 'このお知らせと一緒にシーズンタスクを配布・通知します。';
+  String get blogPostEditorSeasonDesc =>
+      'Distribute and notify users of a season task alongside this post.';
 
   @override
-  String get blogPostEditorSeasonModalTitle => 'シーズンタスクの設定';
+  String get blogPostEditorSeasonModalTitle => 'Season Task Settings';
 
   @override
-  String get blogPostEditorSeasonTaskName => 'タスク名 (必須)';
+  String get blogPostEditorSeasonTaskName => 'Task Name (required)';
 
   @override
-  String get blogPostEditorSeasonDuration => '実施期間(日数)';
+  String get blogPostEditorSeasonDuration => 'Duration (days)';
 
   @override
-  String get blogPostEditorSeasonHintTitle => 'ヒントタイトル';
+  String get blogPostEditorSeasonHintTitle => 'Hint Title';
 
   @override
-  String get blogPostEditorSeasonHintBody => 'ヒント本文';
+  String get blogPostEditorSeasonHintBody => 'Hint Body';
 
   @override
-  String get blogPostEditorSeasonHintBodyHint => 'ユーザーが写真を撮る際のヒントを入力してください';
+  String get blogPostEditorSeasonHintBodyHint =>
+      'Enter a tip to help users take their photo';
 
   @override
-  String get blogPostEditorSeasonBadgeUrl => 'バッジ画像URL';
+  String get blogPostEditorSeasonBadgeUrl => 'Badge Image URL';
 
   @override
-  String get blogPostEditorSeasonDone => '完了';
+  String get blogPostEditorSeasonDone => 'Done';
 
   @override
-  String get blogPostEditorPlaceholder => 'テキスト';
+  String get blogPostEditorPlaceholder => 'Text';
 
   @override
-  String get blogPostEditorCodePlaceholder => 'コードをここに入力';
+  String get blogPostEditorCodePlaceholder => 'Enter code here';
 
   @override
-  String get blogPostEditorBadgeUploadSuccess => 'バッジ画像をアップロードしました';
+  String get blogPostEditorBadgeUploadSuccess => 'Badge image uploaded';
 
   @override
-  String get blogPostEditorBadgeUploadFailed => 'アップロードに失敗しました';
+  String get blogPostEditorBadgeUploadFailed => 'Upload failed';
 
   @override
-  String get taskSetupTitle => 'ヒーロータスク設定';
+  String get taskSetupTitle => 'Hero Task Setup';
 
   @override
-  String get taskSetupSubtitle => 'ヒーロータスクとスケジュールをカスタマイズしましょう';
+  String get taskSetupSubtitle => 'Customize your Hero Tasks and schedule';
 
   @override
-  String get taskSetupProfilePhoto => 'プロフィール写真';
+  String get taskSetupProfilePhoto => 'Profile Photo';
 
   @override
-  String get taskSetupSelectPhoto => '写真を選択';
+  String get taskSetupSelectPhoto => 'Choose Photo';
 
   @override
-  String get taskSetupHeroTasks => 'やりたいヒーロータスク';
+  String get taskSetupHeroTasks => 'Your Hero Tasks';
 
   @override
   String taskSetupHeroTaskLabel(int index) {
-    return 'ヒーロータスク $index';
+    return 'Hero Task $index';
   }
 
   @override
-  String get taskSetupAddTask => 'ヒーロータスクを追加';
+  String get taskSetupAddTask => 'Add Hero Task';
 
   @override
-  String get taskSetupTimeSection => 'ヒーロータスクをいつやりたいですか？';
+  String get taskSetupTimeSection => 'When do you want to do your Hero Task?';
 
   @override
-  String get taskSetupTimeDesc => 'この時間に通知を送ってヒーロータスクをリマインドします';
+  String get taskSetupTimeDesc =>
+      'We\'ll send you a reminder notification at this time';
 
   @override
-  String get taskSetupCompleteButton => '設定を完了してはじめる';
+  String get taskSetupCompleteButton => 'Complete Setup & Start';
 
   @override
-  String get taskSetupAtLeastOne => 'ヒーロータスクを1つ以上入力してください';
+  String get taskSetupAtLeastOne => 'Please enter at least one Hero Task';
 
   @override
-  String get taskSetupSaveFailed => '保存に失敗しました。もう一度お試しください。';
+  String get taskSetupSaveFailed => 'Failed to save. Please try again.';
 
   @override
-  String get taskSetupTimePickerTitle => 'ヒーロータスクの時間';
+  String get taskSetupTimePickerTitle => 'Hero Task Time';
 
   @override
-  String get taskSetupTimePickerCancel => 'キャンセル';
+  String get taskSetupTimePickerCancel => 'Cancel';
 
   @override
-  String get taskSetupTimePickerDone => '完了';
+  String get taskSetupTimePickerDone => 'Done';
 
   @override
-  String get taskTemplateTitle => 'まずは一つ、やってみよう！';
+  String get taskTemplateTitle => 'Start with one small win!';
 
   @override
-  String get taskTemplateSubtitle => 'かんたんなヒーロータスクを選んで\nアプリをはじめましょう';
+  String get taskTemplateSubtitle =>
+      'Pick a simple Hero Task\nand kick off your journey';
 
   @override
-  String get taskTemplateSkip => 'スキップ';
+  String get taskTemplateSkip => 'Skip';
 
   @override
-  String get taskTemplateStartButton => 'アプリをはじめる';
+  String get taskTemplateStartButton => 'Start the App';
 
   @override
-  String get taskTemplateCustomInputLabel => 'ヒーロータスク名を入力';
+  String get taskTemplateCustomInputLabel => 'Enter your Hero Task';
 
   @override
-  String get taskTemplateError => 'エラーが発生しました。もう一度お試しください。';
+  String get taskTemplateError => 'An error occurred. Please try again.';
 
   @override
-  String get profileSetupTitle => 'プロフィール設定';
+  String get profileSetupTitle => 'Profile Setup';
 
   @override
-  String get profileSetupSubtitle => 'あなたのプロフィールを設定しましょう';
+  String get profileSetupSubtitle => 'Set up your profile';
 
   @override
-  String get profileSetupUsernameLabel => 'ユーザー名';
+  String get profileSetupUsernameLabel => 'Username';
 
   @override
-  String get profileSetupUsernameRequired => 'ユーザー名を入力してください';
+  String get profileSetupUsernameRequired => 'Please enter a username';
 
   @override
-  String get profileSetupUserIdLabel => 'ユーザーID';
+  String get profileSetupUserIdLabel => 'User ID';
 
   @override
-  String get profileSetupUserIdRequired => 'ユーザーIDを入力してください';
+  String get profileSetupUserIdRequired => 'Please enter a user ID';
 
   @override
-  String get profileSetupUserIdMinLength => '5文字以上で入力してください';
+  String get profileSetupUserIdMinLength => 'Must be at least 5 characters';
 
   @override
-  String get profileSetupUserIdAlphanumeric => '英数字とアンダースコアのみ使えます';
+  String get profileSetupUserIdAlphanumeric =>
+      'Only letters, numbers, and underscores';
 
   @override
-  String get profileSetupOccupationSection => '職業（非公開情報）';
+  String get profileSetupOccupationSection => 'Occupation (private)';
 
   @override
-  String get profileSetupSelectPlaceholder => '選択してください';
+  String get profileSetupSelectPlaceholder => 'Select...';
 
   @override
-  String get profileSetupOccupationPickerTitle => '職業を選択';
+  String get profileSetupOccupationPickerTitle => 'Select Occupation';
 
   @override
-  String get profileSetupTaskTimeSection => 'ヒーロータスク実行時間';
+  String get profileSetupTaskTimeSection => 'Hero Task Schedule';
 
   @override
-  String get profileSetupTaskTimePickerTitle => 'ヒーロータスク実行時間を設定';
+  String get profileSetupTaskTimePickerTitle => 'Set Hero Task Time';
 
   @override
-  String get profileSetupNextButton => '次へ';
+  String get profileSetupNextButton => 'Next';
 
   @override
-  String get profileSetupUserIdAlreadyUsed => 'このユーザーIDは既に使われています';
+  String get profileSetupUserIdAlreadyUsed => 'This user ID is already taken';
 
   @override
-  String get profileSetupOccupationRequired => '職業を選択してください';
+  String get profileSetupOccupationRequired => 'Please select an occupation';
 
   @override
-  String get profileSetupTaskTimeRequired => 'ヒーロータスク時間を設定してください';
+  String get profileSetupTaskTimeRequired => 'Please set a Hero Task time';
 
   @override
-  String get profileSetupSaveFailed => '保存に失敗しました。もう一度お試しください。';
+  String get profileSetupSaveFailed => 'Failed to save. Please try again.';
 
   @override
-  String get profileSetupPickerCancel => 'キャンセル';
+  String get profileSetupPickerCancel => 'Cancel';
 
   @override
-  String get profileSetupPickerDone => '完了';
+  String get profileSetupPickerDone => 'Done';
 
   @override
-  String get profileScreenProfileNotFound => 'プロフィールが見つかりません';
+  String get profileScreenProfileNotFound => 'Profile not found';
 
   @override
-  String get profileScreenHeroTasks => 'ヒーロータスク';
+  String get profileScreenHeroTasks => 'Hero Tasks';
 
   @override
-  String get profileScreenWeeklyTrend => '🔥 ウィークリートレンド習慣';
+  String get profileScreenWeeklyTrend => '🔥 Weekly Trend Habits';
 
   @override
-  String get profileScreenAddFirstTask => '最初のタスクを追加';
+  String get profileScreenAddFirstTask => 'Add your first task';
 
   @override
-  String get profileScreenQrTitle => 'QRコード';
+  String get profileScreenQrTitle => 'QR Code';
 
   @override
-  String get profileScreenQrDisplay => '表示する';
+  String get profileScreenQrDisplay => 'Show';
 
   @override
-  String get profileScreenQrScan => '読み取る';
+  String get profileScreenQrScan => 'Scan';
 
   @override
-  String get profileScreenQrTooltip => 'QRコードで繋がる';
+  String get profileScreenQrTooltip => 'Connect via QR code';
 
   @override
-  String get profileScreenFollowing => 'フォロー';
+  String get profileScreenFollowing => 'Following';
 
   @override
-  String get profileScreenFollowers => 'フォロワー';
+  String get profileScreenFollowers => 'Followers';
 
   @override
-  String get profileScreenStreak => 'ストリーク';
+  String get profileScreenStreak => 'Streak';
 
   @override
-  String get profileScreenFollowingTitle => 'フォロー中';
+  String get profileScreenFollowingTitle => 'Following';
 
   @override
-  String get profileScreenFollowersTitle => 'フォロワー';
+  String get profileScreenFollowersTitle => 'Followers';
 
   @override
-  String get profileScreenTrendTitle => '🔥 ウィークリートレンド習慣';
+  String get profileScreenTrendTitle => '🔥 Weekly Trend Habits';
 
   @override
-  String get profileScreenTrendEmpty => 'トレンドデータがまだありません。';
+  String get profileScreenTrendEmpty => 'No trend data yet.';
 
   @override
-  String get profileScreenTimeUpdateFailed => '時刻の更新に失敗しました';
+  String get profileScreenTimeUpdateFailed => 'Failed to update time';
 
   @override
-  String get profileScreenReviewButton => '積み重ねを振りかえる';
+  String get profileScreenReviewButton => 'Look Back on Your Journey';
 
   @override
-  String get profileScreenAddTask => 'タスクを追加';
+  String get profileScreenAddTask => 'Add Task';
 
   @override
-  String get profileScreenEditTask => 'タスクを編集';
+  String get profileScreenEditTask => 'Edit Task';
 
   @override
-  String get profileScreenDeleteTaskTitle => '削除の確認';
+  String get profileScreenDeleteTaskTitle => 'Delete Task?';
 
   @override
-  String get profileScreenDeleteTaskMessage => 'このタスクを削除しますか？';
+  String get profileScreenDeleteTaskMessage =>
+      'Are you sure you want to delete this task?';
 
   @override
-  String get profileScreenDeleteTaskCancel => 'キャンセル';
+  String get profileScreenDeleteTaskCancel => 'Cancel';
 
   @override
-  String get profileScreenDeleteTaskButton => '削除';
+  String get profileScreenDeleteTaskButton => 'Delete';
 
   @override
-  String get profileScreenSaveTask => '保存';
+  String get profileScreenSaveTask => 'Save';
 
   @override
-  String get profileScreenTaskTriggerHint => 'トリガー（任意）';
+  String get profileScreenTaskTriggerHint => 'Trigger (optional)';
 
   @override
-  String get profileScreenTaskNameHint => 'タスク名 (例: 読書)';
+  String get profileScreenTaskNameHint => 'Task name (e.g. Reading)';
 
   @override
-  String get profileScreenTaskRewardHint => 'ご褒美（任意）';
+  String get profileScreenTaskRewardHint => 'Reward (optional)';
 
   @override
-  String get profileScreenOneTimeTaskTitle => '完了から24時間後に自動削除されます';
+  String get profileScreenOneTimeTaskTitle =>
+      'Auto-deleted 24 hours after completion';
 
   @override
-  String get profileScreenHabitTipsTitle => '習慣化のコツ';
+  String get profileScreenHabitTipsTitle => 'Habit-Building Tips';
 
   @override
-  String get profileScreenHabitTipsClose => '閉じる';
+  String get profileScreenHabitTipsClose => 'Close';
 
   @override
-  String get cameraScreenTaskDefault => '今日のヒーロータスク';
+  String get cameraScreenTaskDefault => 'Today\'s Hero Task';
 
   @override
-  String get cameraScreenUploadFailed => '投稿に失敗しました。もう一度お試しください。';
+  String get cameraScreenUploadFailed => 'Post failed. Please try again.';
 
   @override
-  String get cameraScreenCaption => '一言を添える (任意)';
+  String get cameraScreenCaption => 'Add a caption (optional)';
 
   @override
-  String get cameraScreenCameraLoading => 'カメラを起動中...';
+  String get cameraScreenCameraLoading => 'Starting camera...';
 
   @override
-  String get cameraScreenPost => '投稿する';
+  String get cameraScreenPost => 'Post';
 
   @override
-  String get cameraScreenDragPinch => 'ドラッグ・ピンチで位置調整';
+  String get cameraScreenDragPinch => 'Drag or pinch to reposition';
 
   @override
-  String get cameraMusicAdd => '音楽を追加';
+  String get cameraMusicAdd => 'Add Music';
 
   @override
-  String get cameraMusicRemoveBgm => 'BGMを削除';
+  String get cameraMusicRemoveBgm => 'Remove BGM';
 
   @override
-  String get cameraMusicSearchHint => '曲名やアーティストで検索...';
+  String get cameraMusicSearchHint => 'Search by title or artist...';
 
   @override
-  String get cameraMusicRecentSongs => '最近使った曲';
+  String get cameraMusicRecentSongs => 'Recently Used';
 
   @override
-  String get cameraMusicTrends => '日本のトレンド';
+  String get cameraMusicTrends => 'Japan Trends';
 
   @override
-  String get cameraMusicSelect => '選択';
+  String get cameraMusicSelect => 'Select';
 
   @override
-  String get heroTasksNoTasks => 'ヒーロータスクが設定されていません';
+  String get heroTasksNoTasks => 'No Hero Tasks set';
 
   @override
-  String get heroTasksNoTasksDesc => 'プロフィールからヒーロータスクを設定';
+  String get heroTasksNoTasksDesc => 'Set your Hero Tasks from your profile';
 
   @override
-  String get heroTasksDeletePostTitle => '投稿を削除';
+  String get heroTasksDeletePostTitle => 'Delete Post';
 
   @override
-  String get heroTasksDeletePostDesc => 'この投稿を削除してもよろしいですか？\n(今日の達成記録も取り消されます)';
+  String get heroTasksDeletePostDesc =>
+      'Are you sure you want to delete this post?\n(Your today\'s achievement will also be removed)';
 
   @override
-  String get heroTasksDeletePostCancel => 'キャンセル';
+  String get heroTasksDeletePostCancel => 'Cancel';
 
   @override
-  String get heroTasksDeletePostButton => '削除';
+  String get heroTasksDeletePostButton => 'Delete';
 
   @override
   String get heroTasksWelcomeMessage =>
-      'V EFFECTへようこそ。\nここはあなたにとって最適な環境です。\n\nまずはカメラアイコンをタップして、\n最初のVを証明しましょう。';
+      'Welcome to V EFFECT.\nThis is your arena.\n\nTap the camera icon and\nprove your first V.';
 
   @override
-  String get notificationsTitle => '通知';
+  String get notificationsTitle => 'Notifications';
 
   @override
-  String get notificationsDeleteAll => '全て削除';
+  String get notificationsDeleteAll => 'Clear All';
 
   @override
-  String get notificationsEmpty => '通知はありません';
+  String get notificationsEmpty => 'No notifications';
 
   @override
-  String get notificationsDeleteFailed => '削除に失敗しました。もう一度お試しください。';
+  String get notificationsDeleteFailed => 'Failed to delete. Please try again.';
 
   @override
-  String get notificationsDeleteAllTitle => '通知を全て削除';
+  String get notificationsDeleteAllTitle => 'Clear All Notifications';
 
   @override
-  String get notificationsDeleteAllMessage => '全ての通知を削除しますか？';
+  String get notificationsDeleteAllMessage =>
+      'Are you sure you want to clear all notifications?';
 
   @override
-  String get notificationsDeleteAllCancel => 'キャンセル';
+  String get notificationsDeleteAllCancel => 'Cancel';
 
   @override
-  String get notificationsDeleteAllButton => '削除';
+  String get notificationsDeleteAllButton => 'Clear All';
 
   @override
-  String get notificationsApproveRequest => 'フォローリクエストを承認しました！';
+  String get notificationsApproveRequest => 'Follow request accepted!';
 
   @override
-  String get notificationsRejectRequest => 'フォローリクエストを拒否しました。';
+  String get notificationsRejectRequest => 'Follow request declined.';
 
   @override
-  String get notificationsApproveFailed => '承認に失敗しました。もう一度お試しください。';
+  String get notificationsApproveFailed =>
+      'Failed to accept. Please try again.';
 
   @override
-  String get notificationsFollowed => 'フォローしました！';
+  String get notificationsFollowed => 'Now following!';
 
   @override
-  String get notificationsFollowFailed => 'フォローに失敗しました。';
+  String get notificationsFollowFailed => 'Failed to follow.';
 
   @override
-  String get notificationsFollowing => 'フォロー中';
+  String get notificationsFollowing => 'Following';
 
   @override
-  String get notificationsFollowBack => 'フォローバック';
+  String get notificationsFollowBack => 'Follow Back';
 
   @override
-  String get notificationsApprove => '承認';
+  String get notificationsApprove => 'Accept';
 
   @override
-  String get notificationsReject => '削除';
+  String get notificationsReject => 'Decline';
 
   @override
   String notificationsError(Object error) {
-    return 'エラーが発生しました: $error';
+    return 'An error occurred: $error';
   }
 
   @override
   String get onboardingFirstQuestQuestionText =>
-      'あなたが理想とする姿はどんなだろう？\nあなたの習慣化したい習慣は何だろう？';
+      'What does your ideal self look like?\nWhat habit do you want to build?';
 
   @override
-  String get onboardingFirstQuestTriggerLabel => 'トリガー（任意）';
+  String get onboardingFirstQuestTriggerLabel => 'Trigger (optional)';
 
   @override
-  String get onboardingFirstQuestTaskLabel => 'タスク名（行動：必要な習慣）';
+  String get onboardingFirstQuestTaskLabel => 'Task (your habit)';
 
   @override
-  String get onboardingFirstQuestRewardLabel => 'ご褒美（任意）';
+  String get onboardingFirstQuestRewardLabel => 'Reward (optional)';
 
   @override
   String get onboardingFirstQuestPrivacyNote =>
-      '※ トリガーとご褒美は自分にのみ表示されます（他のユーザーには公開されません）';
+      '* Trigger and reward are only visible to you.';
 
   @override
-  String get onboardingFirstQuestCompleteButton => '完了';
+  String get onboardingFirstQuestCompleteButton => 'Let\'s Go';
 
   @override
-  String get onboardingFirstQuestSkipButton => 'スキップ';
+  String get onboardingFirstQuestSkipButton => 'Skip';
 
   @override
   String onboardingFirstQuestSaveFailed(Object error) {
-    return '保存に失敗しました: $error';
+    return 'Failed to save: $error';
   }
 
   @override
-  String get onboardingFirstQuestHabitTipsTitle => '習慣化のコツ';
+  String get onboardingFirstQuestHabitTipsTitle => 'Habit-Building Tips';
 
   @override
-  String get onboardingFirstQuestHabitStackingTitle => 'ハビット・スタッキング';
+  String get onboardingFirstQuestHabitStackingTitle => 'Habit Stacking';
 
   @override
   String get onboardingFirstQuestHabitStackingDesc =>
-      'すでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。';
+      'Attach a new habit right after something you already do every day. That\'s your trigger.';
 
   @override
-  String get onboardingFirstQuestTemptationBundlingTitle => 'テンプテーション・バンドリング';
+  String get onboardingFirstQuestTemptationBundlingTitle =>
+      'Temptation Bundling';
 
   @override
   String get onboardingFirstQuestTemptationBundlingDesc =>
-      'やるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。';
+      'Pair something you should do (your task) with something you want to do (your reward) to boost your drive.';
 
   @override
-  String get onboardingProfileWelcome => 'V EFFECT へようこそ';
+  String get onboardingProfileWelcome => 'Welcome to V EFFECT';
 
   @override
-  String get onboardingProfileSubtitle => 'プロフィールを設定しましょう';
+  String get onboardingProfileSubtitle => 'Set up your profile';
 
   @override
-  String get onboardingProfileUsernameLabel => 'ユーザー名';
+  String get onboardingProfileUsernameLabel => 'Username';
 
   @override
-  String get onboardingProfileUsernameHint => '表示名を入力してください';
+  String get onboardingProfileUsernameHint => 'Enter your display name';
 
   @override
-  String get onboardingProfileUsernameRequired => 'ユーザー名を入力してください';
+  String get onboardingProfileUsernameRequired => 'Please enter a username';
 
   @override
-  String get onboardingProfileUserIdLabel => 'ユーザーID';
+  String get onboardingProfileUserIdLabel => 'User ID';
 
   @override
-  String get onboardingProfileUserIdMinLength => '5文字以上で入力してください';
+  String get onboardingProfileUserIdMinLength =>
+      'Must be at least 5 characters';
 
   @override
-  String get onboardingProfileUserIdAlphanumeric => '英数字とアンダースコアのみ使えます';
+  String get onboardingProfileUserIdAlphanumeric =>
+      'Only letters, numbers, and underscores';
 
   @override
-  String get onboardingProfileUserIdRequired => 'ユーザーIDを入力してください';
+  String get onboardingProfileUserIdRequired => 'Please enter a user ID';
 
   @override
-  String get onboardingProfileUserIdAlreadyUsed => 'このユーザーIDは既に使われています';
+  String get onboardingProfileUserIdAlreadyUsed =>
+      'This user ID is already taken';
 
   @override
   String onboardingProfileSaveFailed(Object error) {
-    return '保存に失敗しました: $error';
+    return 'Failed to save: $error';
   }
 
   @override
-  String get onboardingProfileStartButton => '最初の V を証明する →';
+  String get onboardingProfileStartButton => 'Prove your first V →';
 
   @override
-  String get onboardingProfileHelperText => '5文字以上・英数字とアンダースコアのみ';
+  String get onboardingProfileHelperText =>
+      '5+ characters · letters, numbers, underscores only';
 
   @override
-  String get onboardingProfileImageAdjust => '画像を調整';
+  String get onboardingProfileImageAdjust => 'Adjust Image';
 
   @override
-  String get notificationPromptTitle => '「仲間の努力」を習慣の味方にしますか？';
+  String get notificationPromptTitle =>
+      'Make your crew\'s hustle work for you.';
 
   @override
   String get notificationPromptDesc =>
-      'V EFFECTで最も強い習慣化の力は「仲間の存在」です。\n\n通知をONにすることで、仲間の達成がリアルタイムにあなたの刺激になり、あなたの努力も仲間に届きます。\nお互いの存在を背中に感じながら、強固な習慣を築きましょう。';
+      'The most powerful force in V EFFECT is your crew.\n\nWith notifications on, your friends\' victories inspire you in real time — and your effort reaches them too.\nFeel each other\'s presence and build unbreakable habits together.';
 
   @override
-  String get notificationPromptNext => '次へ';
+  String get notificationPromptNext => 'Next';
 
   @override
-  String get notificationPromptLater => '今はしない';
+  String get notificationPromptLater => 'Not now';
 
   @override
-  String get friendInviteTitle => 'V (勝利) を仲間と証明しよう！';
+  String get friendInviteTitle => 'Prove V (Victory) with your crew!';
 
   @override
   String get friendInviteDesc =>
-      '最初のV Questの設定が完了しました！\n努力と勝利を共有するフレンドを誘いましょう！';
+      'Your first V Quest is set!\nInvite friends to share your effort and victories!';
 
   @override
-  String get friendInviteShareButton => '友達を招待する (LINE等でシェア)';
+  String get friendInviteShareButton => 'Invite friends (Share via LINE, etc.)';
 
   @override
-  String get friendInviteQrButton => 'すでにやっている友達と繋がる (QRコード)';
+  String get friendInviteQrButton => 'Connect with existing users (QR Code)';
 
   @override
-  String get friendInviteLater => '今はしない';
+  String get friendInviteLater => 'Not now';
 
   @override
-  String get friendInviteQrTitle => 'QRコード';
+  String get friendInviteQrTitle => 'QR Code';
 
   @override
-  String get friendInviteQrDisplay => 'マイQRコードを表示';
+  String get friendInviteQrDisplay => 'Show My QR Code';
 
   @override
-  String get friendInviteQrScan => 'QRコードをスキャン';
+  String get friendInviteQrScan => 'Scan QR Code';
 
   @override
-  String get weeklyReviewBannerTitle => '今週の振り返りが届いています！';
+  String get weeklyReviewBannerTitle => 'Your weekly review is ready!';
 
   @override
-  String get globalErrorTitle => '申し訳ありません';
+  String get globalErrorTitle => 'Oops, something went wrong';
 
   @override
-  String get globalErrorDesc => 'アプリの起動中に問題が発生しました。';
+  String get globalErrorDesc => 'A problem occurred while launching the app.';
 
   @override
-  String get globalErrorRetry => '再試行';
+  String get globalErrorRetry => 'Retry';
 
   @override
-  String get globalErrorUnknown => '未知のエラー';
+  String get globalErrorUnknown => 'Unknown error';
 
   @override
-  String get seasonHintDefaultTitle => 'シーズンタスクのヒント💡';
+  String get seasonHintDefaultTitle => 'Season Task Hint 💡';
 
   @override
-  String get seasonHintDefaultBody => 'このシーズンタスクを習慣にするためのアドバイスです。';
+  String get seasonHintDefaultBody =>
+      'Tips to help you build this season task into a habit.';
 
   @override
-  String get seasonHintReadBlog => '開発者の想い・経緯を読む';
+  String get seasonHintReadBlog => 'Read the story behind this task';
 
   @override
-  String get seasonHintTriggerLabel => 'あなたのトリガー（きっかけ）';
+  String get seasonHintTriggerLabel => 'Your Trigger';
 
   @override
-  String get seasonHintTriggerHint => '例: 朝起きたら、通勤電車で';
+  String get seasonHintTriggerHint =>
+      'e.g. Right after waking up, On the commute';
 
   @override
-  String get seasonHintSaveButton => 'トリガーを保存';
+  String get seasonHintSaveButton => 'Save Trigger';
 
   @override
-  String get postSuccessStreakContinuing => '継続中';
+  String get postSuccessStreakContinuing => 'Streak active';
 
   @override
   String homeWeeklyReviewLoadFailed(String code) {
-    return '振り返りデータの取得に失敗しました ($code)';
+    return 'Failed to load review data ($code)';
   }
 
   @override
-  String get homeUnexpectedError => '予期せぬエラーが発生しました';
+  String get homeUnexpectedError => 'An unexpected error occurred';
 
   @override
-  String get homeBlockUser => 'ユーザーをブロック';
+  String get homeBlockUser => 'Block User';
 
   @override
-  String get homeReportPost => '不適切な投稿を通報する';
+  String get homeReportPost => 'Report Inappropriate Post';
 
   @override
-  String get homeBlockConfirmTitle => 'ブロックしますか？';
+  String get homeBlockConfirmTitle => 'Block this user?';
 
   @override
-  String get homeBlockConfirmDesc => 'このユーザーの投稿が表示されなくなります。';
+  String get homeBlockConfirmDesc =>
+      'Their posts will no longer appear in your feed.';
 
   @override
-  String get homeBlockConfirmCancel => 'キャンセル';
+  String get homeBlockConfirmCancel => 'Cancel';
 
   @override
-  String get homeBlockSuccess => 'ユーザーをブロックしました';
+  String get homeBlockSuccess => 'User blocked';
 
   @override
-  String get homeBlockFailed => 'ブロックに失敗しました';
+  String get homeBlockFailed => 'Failed to block user';
 
   @override
-  String get homeBlockButton => 'ブロックする';
+  String get homeBlockButton => 'Block';
 
   @override
-  String get homeReportTitle => '通報する理由を選択';
+  String get homeReportTitle => 'Select a Reason';
 
   @override
-  String get homeReportSpam => 'スパム';
+  String get homeReportSpam => 'Spam';
 
   @override
-  String get homeReportHarassment => 'ハラスメント';
+  String get homeReportHarassment => 'Harassment';
 
   @override
-  String get homeReportInappropriate => '不適切なコンテンツ';
+  String get homeReportInappropriate => 'Inappropriate Content';
 
   @override
-  String get homeReportOther => 'その他';
+  String get homeReportOther => 'Other';
 
   @override
-  String get homeReportCancel => 'キャンセル';
+  String get homeReportCancel => 'Cancel';
 
   @override
-  String get homeReportSuccess => '通報しました。ご協力ありがとうございます。';
+  String get homeReportSuccess =>
+      'Reported. Thanks for helping keep V EFFECT a safe space.';
 
   @override
-  String get homeReportFailed => '通報に失敗しました';
+  String get homeReportFailed => 'Failed to report';
 
   @override
-  String get homeErrorOccurred => 'エラーが発生しました';
+  String get homeErrorOccurred => 'An error occurred';
 
   @override
-  String get homeRetry => '再試行';
+  String get homeRetry => 'Retry';
 
   @override
   String homeFriendRequestApproveFailed(Object error) {
-    return '承認に失敗しました: $error';
+    return 'Failed to accept: $error';
   }
 
   @override
   String homeFriendRequestProcessFailed(Object error) {
-    return '処理に失敗しました: $error';
+    return 'Action failed: $error';
   }
 
   @override
-  String get homeNewsTitle => '運営からのお知らせ';
+  String get homeNewsTitle => 'From the V EFFECT Team';
 
   @override
-  String get homeMotivationText1 => 'あなたはトップランナーだ。';
+  String get homeMotivationText1 => 'You are a front-runner.';
 
   @override
-  String get homeMotivationText2 => '小さな選択、小さな勝利が証拠となり\n理想とする自分が真実になる。';
+  String get homeMotivationText2 =>
+      'Every small choice, every small victory becomes proof.\nYour ideal self becomes real.';
 
   @override
-  String get homeEmojiReactionHint => 'タップして絵文字で応援！';
+  String get homeEmojiReactionHint => 'Tap to cheer with an emoji!';
 
   @override
-  String get homeFriendPostsTitle => '仲間の努力が届いています';
+  String get homeFriendPostsTitle => 'Your crew\'s effort is here';
 
   @override
   String get homeStreakResetMessage =>
-      'ストリークが止まったとしても、\nあなたの歩みさえ止まらなければ\nV EFFECTは何度でも引き起こせる。';
+      'Even if your streak breaks,\nas long as you keep moving forward,\nV EFFECT will ignite again.';
 
   @override
-  String get vEffectConceptLine1 => '小さな勝利の積み重ねが理想のあなたに近づける。';
+  String get vEffectConceptLine1 =>
+      'Every small victory brings you closer to your ideal self.';
 
   @override
-  String get vEffectConceptLine2 => 'このプラットフォームはそんなあなたの勝利と習慣をサポートします。';
+  String get vEffectConceptLine2 =>
+      'This platform is here to support your victories and your habits.';
 
   @override
-  String get vEffectConceptLine3Prefix => 'さあ、仲間と共に';
+  String get vEffectConceptLine3Prefix => 'Now, with your crew, let\'s spark ';
 
   @override
-  String get vEffectConceptLine3Suffix => 'を起こそう。';
+  String get vEffectConceptLine3Suffix => '.';
 
   @override
-  String get vEffectFeatureLine1 => '今日の達成を写真にする、それだけです。';
+  String get vEffectFeatureLine1 =>
+      'Capture today\'s achievement in a photo. That\'s it.';
 
   @override
-  String get vEffectFeatureLine2 => 'やり遂げたその事実があなたを作りあげます。';
+  String get vEffectFeatureLine2 =>
+      'The fact that you did it builds who you are.';
 
   @override
-  String get vEffectFeatureLine3 => 'お互いの努力が繋がりになる。';
+  String get vEffectFeatureLine3 => 'Each other\'s effort becomes connection.';
 
   @override
-  String get vEffectFeatureLine4 => '今日 V を達成した仲間が見える。';
+  String get vEffectFeatureLine4 => 'See who proved their V today.';
 
   @override
-  String get vEffectFeatureLine5 => '努力証明した者だけが届き、届けられる。';
+  String get vEffectFeatureLine5 =>
+      'Only those who prove their effort can reach — and be reached.';
 
   @override
-  String get vEffectJoinButton => 'V EFFECT に参加する →';
+  String get vEffectJoinButton => 'Join V EFFECT →';
 
   @override
-  String get adLabel => '広告';
+  String get adLabel => 'Ad';
 
   @override
-  String get dateFormatFull => 'yyyy年M月d日';
+  String get dateFormatFull => 'MMMM d, yyyy';
 
   @override
-  String get vEffectConceptTitle => 'V EFFECT とは';
+  String get vEffectConceptTitle => 'What is V EFFECT?';
 
   @override
-  String get vEffectDefinition => 'V EFFECT の V は Victory（勝利）のVである。';
+  String get vEffectDefinition => 'The V in V EFFECT stands for Victory.';
 
   @override
-  String get vEffectTerm => 'V EFFECT(勝利者効果)';
+  String get vEffectTerm => 'V EFFECT (Victory Effect)';
 
   @override
-  String get vEffectCoreTitle => 'V EFFECT のコア機能';
+  String get vEffectCoreTitle => 'The Core of V EFFECT';
 
   @override
-  String get vEffectHeroTaskLabel => ' (ヒーロータスク)';
+  String get vEffectHeroTaskLabel => ' (Hero Task)';
 
   @override
-  String get vEffectSlogan => 'V を証明しよう。きれいじゃなくていい。';
+  String get vEffectSlogan => 'Prove your V. Raw is fine.';
 
   @override
   String heroTaskSeasonDaysLeft(int days) {
-    return 'SEASON | 残り$days日';
+    return 'SEASON | $days days left';
   }
 
   @override
   String homeFriendRequestMultiple(String username, int count) {
-    return '$usernameさん他$count名から申請が届いています';
+    return '$username and $count others sent you a follow request';
   }
 
   @override
-  String get homePostToSeeFriends => '（更新）タスクを投稿してフレンドの投稿を見れる状態にしよう！';
+  String get homePostToSeeFriends =>
+      '(Update) Post a task to start seeing your friends\' posts!';
 
   @override
-  String get homeProveVictory => 'Victory を証明しましょう';
+  String get homeProveVictory => 'Prove your Victory';
 
   @override
-  String get editProfileGenderMale => '男性';
+  String get editProfileGenderMale => 'Male';
 
   @override
-  String get editProfileGenderFemale => '女性';
+  String get editProfileGenderFemale => 'Female';
 
   @override
-  String get editProfileGenderOther => 'その他';
+  String get editProfileGenderOther => 'Other';
 
   @override
-  String get blogEditorTextBlockPlaceholder => 'テキスト';
+  String get blogEditorTextBlockPlaceholder => 'Text';
 
   @override
-  String get blogEditorCodeBlockPlaceholder => 'コードをここに入力';
+  String get blogEditorCodeBlockPlaceholder => 'Enter code here';
 
   @override
   String blogEditorSeasonDays(String days) {
-    return '$days日間';
+    return '$days day(s)';
   }
 
   @override
-  String get blogEditorExampleTaskHint => '例: 感謝を伝える';
+  String get blogEditorExampleTaskHint => 'e.g. Express gratitude';
 
   @override
-  String get blogEditorExampleDurationHint => '例: 7';
+  String get blogEditorExampleDurationHint => 'e.g. 7';
 
   @override
-  String get blogEditorExampleTesterHint => '例: tester (またはFirebase URL)';
+  String get blogEditorExampleTesterHint => 'e.g. tester (or Firebase URL)';
 
   @override
-  String get blogEditorImageUploadTooltip => '画像を選択してアップロード';
+  String get blogEditorImageUploadTooltip => 'Select and upload an image';
 
   @override
   String initialFriendAtUserNotFound(String userId) {
-    return '@$userId: ユーザーが見つかりません';
+    return '@$userId: User not found';
   }
 
   @override
   String initialFriendAtSendFailed(String userId) {
-    return '@$userId: 送信に失敗しました';
+    return '@$userId: Failed to send';
   }
 
   @override
   String initialFriendOtherUserNotFound(String userId) {
-    return '$userId: ユーザーが見つかりません';
+    return '$userId: User not found';
   }
 
   @override
   String initialFriendOtherSendFailed(String userId) {
-    return '$userId: 送信に失敗しました';
+    return '$userId: Failed to send';
   }
 
   @override
-  String get initialFriendExampleIdHint => '例: user_123';
+  String get initialFriendExampleIdHint => 'e.g. user_123';
 
   @override
   String hintExampleFormat(String value) {
-    return '例: $value';
+    return 'e.g. $value';
   }
 
   @override
-  String get firstQuestTaskHint1 => 'ジム';
+  String get firstQuestTaskHint1 => 'Gym';
 
   @override
-  String get firstQuestTaskHint2 => '英語学習';
+  String get firstQuestTaskHint2 => 'English study';
 
   @override
-  String get firstQuestTaskHint3 => '部屋 of 掃除';
+  String get firstQuestTaskHint3 => 'Room cleanup';
 
   @override
-  String get firstQuestTaskHint4 => 'ランニング';
+  String get firstQuestTaskHint4 => 'Running';
 
   @override
-  String get firstQuestTaskHint5 => '栄養管理';
+  String get firstQuestTaskHint5 => 'Nutrition';
 
   @override
-  String get firstQuestTriggerHint1 => '朝起きたら';
+  String get firstQuestTriggerHint1 => 'After waking up';
 
   @override
-  String get firstQuestTriggerHint2 => '帰宅したら';
+  String get firstQuestTriggerHint2 => 'After getting home';
 
   @override
-  String get firstQuestTriggerHint3 => 'お風呂から上がったら';
+  String get firstQuestTriggerHint3 => 'After a bath';
 
   @override
-  String get firstQuestTriggerHint4 => '机に座ったら';
+  String get firstQuestTriggerHint4 => 'When sitting at my desk';
 
   @override
-  String get firstQuestRewardHint1 => '美味しいコーヒーを飲む';
+  String get firstQuestRewardHint1 => 'A good cup of coffee';
 
   @override
-  String get firstQuestRewardHint2 => 'SNSを5分見る';
+  String get firstQuestRewardHint2 => '5 min of social media';
 
   @override
-  String get firstQuestRewardHint3 => '動画を1本見る';
+  String get firstQuestRewardHint3 => 'Watch a video';
 
   @override
-  String get firstQuestRewardHint4 => 'お気に入りのゲームをする';
+  String get firstQuestRewardHint4 => 'Play a favorite game';
 
   @override
-  String get firstQuestRewardHint5 => '漫画を読む';
+  String get firstQuestRewardHint5 => 'Read a manga';
 
   @override
-  String get firstQuestTitlePrefix => '最初の ';
+  String get firstQuestTitlePrefix => 'Let\'s decide your first ';
 
   @override
-  String get firstQuestHeroTaskLabel => ' (ヒーロータスク)';
+  String get firstQuestHeroTaskLabel => ' (Hero Task)';
 
   @override
-  String get firstQuestTitleSuffix => ' を決めましょう';
+  String get firstQuestTitleSuffix => '';
 
   @override
-  String get firstQuestNoTaskPlaceholder => '（タスク）';
+  String get firstQuestNoTaskPlaceholder => '(Task)';
 
   @override
-  String get firstQuestKeyword1 => '勝利';
+  String get firstQuestKeyword1 => 'Victory';
 
   @override
-  String get firstQuestKeyword2 => '努力';
+  String get firstQuestKeyword2 => 'Effort';
 
   @override
-  String get firstQuestKeyword3 => '達成感';
+  String get firstQuestKeyword3 => 'Achievement';
 
   @override
-  String get firstQuestKeyword4 => '目標';
+  String get firstQuestKeyword4 => 'Goal';
 
   @override
-  String get firstQuestKeyword5 => '習慣化';
+  String get firstQuestKeyword5 => 'Habit';
 
   @override
-  String get firstQuestKeyword6 => '継続';
+  String get firstQuestKeyword6 => 'Consistency';
 
   @override
-  String get onboardingProfileExampleIdHint => '例: v_effect';
+  String get onboardingProfileExampleIdHint => 'e.g. v_effect';
 
   @override
-  String get categoryOther => 'その他';
+  String get categoryOther => 'Other';
 
   @override
   String get habitStackingHint =>
-      '• ハビット・スタッキング\nすでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。';
+      '• Habit Stacking\nAttach a new habit right after an existing daily action (your trigger) for the best results.';
 
   @override
   String get temptationBundlingHint =>
-      '• テンプテーション・バンドリング\nやるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。';
+      '• Temptation Bundling\nPair something you should do (task) with something you want to do (reward) to build stronger motivation.';
 
   @override
-  String get profileNoTaskPlaceholder => '（タスク）';
+  String get profileNoTaskPlaceholder => '(Task)';
 
   @override
-  String get occupationEmployee => '会社員';
+  String get occupationEmployee => 'Office Worker';
 
   @override
-  String get occupationExecutive => '経営者・役員';
+  String get occupationExecutive => 'Executive / Manager';
 
   @override
-  String get occupationCivilServant => '公務員';
+  String get occupationCivilServant => 'Civil Servant';
 
   @override
-  String get occupationSelfEmployed => '自営業・フリーランス';
+  String get occupationSelfEmployed => 'Self-Employed / Freelancer';
 
   @override
-  String get occupationProfessional => '専門職（医師・弁護士など）';
+  String get occupationProfessional => 'Professional (Doctor, Lawyer, etc.)';
 
   @override
-  String get occupationEducation => '教員・教育関係';
+  String get occupationEducation => 'Education / Teaching';
 
   @override
-  String get occupationStudent => '学生';
+  String get occupationStudent => 'Student';
 
   @override
-  String get occupationPartTime => 'パート・アルバイト';
+  String get occupationPartTime => 'Part-time Worker';
 
   @override
-  String get occupationHomemaker => '専業主婦・主夫';
+  String get occupationHomemaker => 'Homemaker';
 
   @override
-  String get occupationUnemployed => '無職';
+  String get occupationUnemployed => 'Unemployed';
 
   @override
-  String get occupationOther => 'その他';
+  String get occupationOther => 'Other';
 
   @override
-  String get hintNameExample => '例: V EFFECT';
+  String get hintNameExample => 'e.g. V EFFECT';
 
   @override
   String timeHour(int hour) {
-    return '$hour時';
+    return '$hour';
   }
 
   @override
   String timeMinute(String minute) {
-    return '$minute分';
+    return '$minute';
   }
 
   @override
-  String get timePeriodAm => '午前';
+  String get timePeriodAm => 'AM';
 
   @override
-  String get timePeriodPm => '午後';
+  String get timePeriodPm => 'PM';
 
   @override
-  String get hintTaskExample => '例: ランニング3km';
+  String get hintTaskExample => 'e.g. Run 3km';
 
   @override
-  String get taskTemplateBook => '本を開く';
+  String get taskTemplateBook => 'Open a Book';
 
   @override
-  String get taskTemplateBookDesc => '好きな本を開いて写真を撮ろう';
+  String get taskTemplateBookDesc => 'Open your favorite book and snap a photo';
 
   @override
-  String get taskTemplateBreathing => '外で深呼吸する';
+  String get taskTemplateBreathing => 'Breathe Outside';
 
   @override
-  String get taskTemplateBreathingDesc => '外に出て深呼吸している瞬間を撮ろう';
+  String get taskTemplateBreathingDesc =>
+      'Step outside and capture a deep breath moment';
 
   @override
-  String get taskTemplateWater => '水を飲む';
+  String get taskTemplateWater => 'Drink Water';
 
   @override
-  String get taskTemplateWaterDesc => 'コップ一杯の水を飲む瞬間を撮ろう';
+  String get taskTemplateWaterDesc =>
+      'Drink a full glass of water and snap the moment';
 
   @override
-  String get taskTemplateCustom => '自分で決める';
+  String get taskTemplateCustom => 'Set Your Own';
 
   @override
-  String get taskTemplateCustomDesc => '好きなヒーロータスクを自由に設定しよう';
+  String get taskTemplateCustomDesc => 'Create any Hero Task you want';
 
   @override
-  String get adVeffectLabel => 'VEFFECT 広告';
+  String get adVeffectLabel => 'VEFFECT Sponsored';
 
   @override
   String postSuccessDaysUntilNext(String label, int days) {
-    return '$label まで あと$days日';
+    return '$days day(s) until $label';
   }
 
   @override
-  String get defaultUsername => 'ユーザー';
+  String get defaultUsername => 'User';
 
   @override
-  String get vPracticeDistributeBadge => '全ユーザーへバッジ配布';
+  String get vPracticeDistributeBadge => 'Distribute Badge to All';
 
   @override
-  String get vPracticeCreateBlog => 'ブログ記事を作成';
+  String get vPracticeCreateBlog => 'Create Blog Post';
 
   @override
-  String get vPracticeError => 'エラーが発生しました';
+  String get vPracticeError => 'An error occurred';
 
   @override
-  String get vPracticeNoNews => 'お知らせはまだありません';
+  String get vPracticeNoNews => 'No news yet';
 
   @override
-  String get vPracticeBadgeIdRequired => 'バッジID（または tester など）を入力してください';
+  String get vPracticeBadgeIdRequired =>
+      'Please enter a badge ID (e.g. tester)';
 
   @override
   String vPracticeBadgeDistributed(String badgeUrl) {
-    return '全ユーザーにバッジ「$badgeUrl」を配布・装備させました！';
+    return 'Badge \"$badgeUrl\" distributed to all users!';
   }
 
   @override
-  String get vPracticeBadgeDistributeFailed => 'バッジの配布に失敗しました';
+  String get vPracticeBadgeDistributeFailed => 'Failed to distribute badge';
 
   @override
-  String get vPracticeDialogTitle => '全ユーザーへバッジ配布';
+  String get vPracticeDialogTitle => 'Distribute Badge to All';
 
   @override
   String get vPracticeDialogDesc =>
-      '現在登録されている全てのユーザーに、指定したバッジを強制的に装備させます。通知は飛びません。';
+      'Forcibly equip the specified badge on all currently registered users. No notifications will be sent.';
 
   @override
-  String get vPracticeBadgeIdHint => 'バッジID (例: tester)';
+  String get vPracticeBadgeIdHint => 'Badge ID (e.g. tester)';
 
   @override
-  String get vPracticeCancel => 'キャンセル';
+  String get vPracticeCancel => 'Cancel';
 
   @override
-  String get vPracticeDistribute => '配布する';
+  String get vPracticeDistribute => 'Distribute';
 }
