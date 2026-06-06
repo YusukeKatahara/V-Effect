@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
@@ -612,6 +614,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       imageUrl: _user!.equippedBadgeUrl,
                       animationType: _user!.equippedBadgeAnimation ?? 'none',
                       size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  if (_user != null &&
+                      _user!.instagramId != null &&
+                      _user!.instagramId!.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () async {
+                        final instagramId = _user!.instagramId!;
+                        final appUri = Uri.parse('instagram://user?username=$instagramId');
+                        final webUri = Uri.parse('https://instagram.com/$instagramId');
+                        try {
+                          if (await canLaunchUrl(appUri)) {
+                            await launchUrl(appUri);
+                          } else {
+                            await launchUrl(webUri, mode: LaunchMode.externalApplication);
+                          }
+                        } catch (e) {
+                          debugPrint('Could not launch instagram: $e');
+                        }
+                      },
+                      child: const FaIcon(
+                        FontAwesomeIcons.instagram,
+                        color: AppColors.white,
+                        size: 22,
+                      ),
                     ),
                   ],
                 ],

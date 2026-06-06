@@ -23,6 +23,8 @@ import 'qr_scanner_screen.dart';
 import '../widgets/responsive_container.dart';
 import '../widgets/full_screen_image_viewer.dart';
 import 'past_comparison_screen.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 class ProfileScreen extends StatefulWidget {
@@ -1163,6 +1165,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             imageUrl: _user!.equippedBadgeUrl,
                             animationType: _user!.equippedBadgeAnimation ?? 'none',
                             size: 20,
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        if (_user!.instagramId != null && _user!.instagramId!.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              final instagramId = _user!.instagramId!;
+                              final appUri = Uri.parse('instagram://user?username=$instagramId');
+                              final webUri = Uri.parse('https://instagram.com/$instagramId');
+                              try {
+                                if (await canLaunchUrl(appUri)) {
+                                  await launchUrl(appUri);
+                                } else {
+                                  await launchUrl(webUri, mode: LaunchMode.externalApplication);
+                                }
+                              } catch (e) {
+                                debugPrint('Could not launch instagram: $e');
+                              }
+                            },
+                            child: const FaIcon(
+                              FontAwesomeIcons.instagram,
+                              color: AppColors.white,
+                              size: 22,
+                            ),
                           ),
                         ],
                       ],

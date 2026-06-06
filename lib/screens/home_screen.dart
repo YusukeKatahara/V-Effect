@@ -23,16 +23,16 @@ import '../services/sound_service.dart';
 import '../utils/ad_helper.dart';
 import '../widgets/v_effect_header.dart';
 import '../widgets/native_ad_card.dart';
-import '../widgets/weekly_review_banner.dart';
+import '../widgets/home/home_skeleton_body.dart';
+import '../widgets/home/friend_request_banner.dart';
+import '../widgets/home/announcement_area.dart';
+import '../widgets/home/home_empty_state.dart';
+import '../widgets/home/refresh_ring_button.dart';
 import 'weekly_review_screen.dart';
 import '../providers/home_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'main_shell.dart';
-import '../services/friend_service.dart';
-import '../models/friend_request.dart';
-import '../models/app_user.dart';
 import '../widgets/v_badge_widget.dart';
-import '../providers/dev_blog_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final ValueChanged<bool>? onLoadingChanged;
@@ -66,8 +66,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   
   DateTime? _lastPausedTime;
 
-  // ── フレンド申請の楽観的UI用 ──
-  final Set<String> _hiddenRequestIds = {};
 
   // ── VFIRE デバウンス用 ──
   final Map<String, Timer> _flameDebounceTimers = {};
@@ -1089,7 +1087,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           if (_lastHomeData == null) ...[
             // 初回ロード: まだ一度もデータを受信していない
             homeAsync.when(
-              loading: () => _buildHomeSkeletonBody(),
+              loading: () => HomeSkeletonBody(titleBar: _buildTitleBar()),
               error: (err, stack) => _buildErrorBody(err),
               data: (_) => _buildMainContent(),
             ),
@@ -1129,27 +1127,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ));
   }
 
-  Widget _buildHomeSkeletonBody() {
-    return SafeArea(
-      child: Column(
-        children: [
-          _buildTitleBar(),
-          const Spacer(),
-          Center(
-            child: Container(
-              width: MediaQuery.sizeOf(context).width * 0.72,
-              height: MediaQuery.sizeOf(context).height * 0.6,
-              decoration: BoxDecoration(
-                color: AppColors.grey10,
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-          ),
-          const Spacer(),
-        ],
-      ),
-    );
-  }
 
   /// ローカル状態変数を使ってメインコンテンツを構築する。
   /// プロバイダーの AsyncValue に依存しないため、リフレッシュ中もちらつかない。
@@ -1158,8 +1135,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       child: Column(
         children: [
           _buildTitleBar(),
-          _buildFriendRequestBanner(),
-          _buildAnnouncementArea(),
+          const FriendRequestBanner(),
+          AnnouncementArea(onOpenWeeklyReview: _openWeeklyReview),
           Expanded(
             child: !_postedToday
                 ? _GuardedStateLayer(
@@ -1168,7 +1145,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     onRefresh: () => ref.invalidate(homeDataProvider),
                   )
                 : (_feedItems.isEmpty
-                    ? _buildEmptyState()
+                    ? HomeEmptyState(onRefresh: () => ref.invalidate(homeDataProvider))
                     : _buildCardStack()),
           ),
         ],
@@ -1208,431 +1185,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     trailing: const NotificationBellIcon(),
   );
 
-  Widget _buildFriendRequestBanner() {
-    return StreamBuilder<List<FriendRequest>>(
-      stream: FriendService.instance.getReceivedRequests(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SizedBox.shrink();
-        }
-        // ローカルで非表示（処理中）にしたリクエストを除外
-        final requests = snapshot.data!
-            .where((req) => !_hiddenRequestIds.contains(req.id))
-            .toList();
-            
-        if (requests.isEmpty) return const SizedBox.shrink();
-        
-        return AnimatedSize(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: requests.length == 1
-                ? _buildSingleRequestCard(requests.first)
-                : _buildMultipleRequestsCard(requests),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSingleRequestCard(FriendRequest request) {
-    return FutureBuilder<AppUser?>(
-      future: FriendService.instance.getUserByUid(request.fromUid),
-      builder: (context, snapshot) {
-        final user = snapshot.data;
-        final photoUrl = user?.photoUrl;
-        
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.white.withValues(alpha: 0.12),
-              width: 0.5,
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                color: AppColors.white.withValues(alpha: 0.05),
-                child: Row(
-                  children: [
-                    // アバター部分（タップでプロフィール遷移）
-                    GestureDetector(
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        AppRoutes.userProfile,
-                        arguments: {
-                          'uid': request.fromUid,
-                          'username': request.fromUsername,
-                          'photoUrl': photoUrl,
-                        },
-                      ),
-                      child: CircleAvatar(
-                        radius: 20,
-                        backgroundColor: AppColors.grey10,
-                        backgroundImage: photoUrl != null
-                            ? NetworkImage(photoUrl)
-                            : null,
-                        child: photoUrl == null
-                            ? const Icon(Icons.person, size: 20, color: AppColors.grey50)
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // 名前とID（タップでプロフィール遷移）
-                    Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          AppRoutes.userProfile,
-                          arguments: {
-                            'uid': request.fromUid,
-                            'username': request.fromUsername,
-                            'photoUrl': photoUrl,
-                          },
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              request.fromUsername,
-                              style: const TextStyle(
-                                color: AppColors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              '@${request.fromUserId}',
-                              style: const TextStyle(
-                                color: AppColors.grey50,
-                                fontSize: 11,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // 承認・拒否ボタン (丸いアイコンで誤タップ防止＆スタイリッシュに)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // 承認ボタン (✓)
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () async {
-                            final reqId = request.id;
-                            // 楽観的UI: タップした瞬間にUIから消す
-                            setState(() => _hiddenRequestIds.add(reqId));
-                            try {
-                              await FriendService.instance.acceptRequest(request);
-                            } catch (e) {
-                              // エラー時はフワッと復活させてエラー通知
-                              if (context.mounted) {
-                                setState(() => _hiddenRequestIds.remove(reqId));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('承認に失敗しました: $e')),
-                                );
-                              }
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.check_rounded,
-                              color: Color(0xFF00E5FF),
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // 拒否ボタン (×)
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () async {
-                            final reqId = request.id;
-                            // 楽観的UI: タップした瞬間にUIから消す
-                            setState(() => _hiddenRequestIds.add(reqId));
-                            try {
-                              await FriendService.instance.rejectRequest(request);
-                            } catch (e) {
-                              // エラー時はフワッと復活させてエラー通知
-                              if (context.mounted) {
-                                setState(() => _hiddenRequestIds.remove(reqId));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('処理に失敗しました: $e')),
-                                );
-                              }
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.grey50.withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.white.withValues(alpha: 0.15),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.close_rounded,
-                              color: AppColors.white,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildAnnouncementArea() {
-    final hasUnreadBlog = ref.watch(hasUnreadBlogProvider);
-    final isWeekend = DateTime.now().weekday == DateTime.saturday || DateTime.now().weekday == DateTime.sunday;
-
-    final List<Widget> banners = [];
-    
-    if (hasUnreadBlog) {
-      banners.add(_buildDevBlogBanner());
-    }
-    
-    if (isWeekend) {
-      banners.add(
-        SizedBox(
-          height: 76,
-          child: Center(
-            child: WeeklyReviewBanner(onTap: _openWeeklyReview),
-          ),
-        ),
-      );
-    }
-
-    if (banners.isEmpty) {
-      return const SizedBox(height: 76);
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (int i = 0; i < banners.length; i++) ...[
-          if (i > 0) const SizedBox(height: 4),
-          banners[i],
-        ],
-        // お知らせバナーだけが表示されていて高さが76に満たない場合でも、
-        // Expandedが画面を埋めるので全体のレイアウトは崩れにくいですが、
-        // 余裕を持たせるためのパディングを入れます
-        if (banners.length == 1 && hasUnreadBlog) const SizedBox(height: 12),
-      ],
-    );
-  }
-
-  Widget _buildDevBlogBanner() {
-    final postsAsync = ref.watch(blogPostsProvider);
-    final posts = postsAsync.valueOrNull;
-    if (posts == null || posts.isEmpty) return const SizedBox.shrink();
-
-    final latestPost = posts.first;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppColors.white.withValues(alpha: 0.12),
-            width: 0.5,
-          ),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: InkWell(
-              onTap: () => Navigator.pushNamed(context, AppRoutes.vPractice),
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                color: AppColors.white.withValues(alpha: 0.05),
-                child: Row(
-                  children: [
-                    // アイコン
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.accentGold.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.campaign_rounded, size: 18, color: AppColors.accentGold),
-                    ),
-                    const SizedBox(width: 12),
-                    // メッセージ
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            '運営からのお知らせ',
-                            style: TextStyle(
-                              color: AppColors.accentGold,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            latestPost.title,
-                            style: const TextStyle(
-                              color: AppColors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: AppColors.grey50,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMultipleRequestsCard(List<FriendRequest> requests) {
-    final latestReq = requests.first;
-    final otherCount = requests.length - 1;
-    
-    return FutureBuilder<AppUser?>(
-      future: FriendService.instance.getUserByUid(latestReq.fromUid),
-      builder: (context, snapshot) {
-        final user = snapshot.data;
-        final photoUrl = user?.photoUrl;
-        
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.white.withValues(alpha: 0.12),
-              width: 0.5,
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: InkWell(
-                onTap: () => Navigator.pushNamed(context, '/pending-requests'),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  color: AppColors.white.withValues(alpha: 0.05),
-                  child: Row(
-                    children: [
-                      // アバター
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: AppColors.grey10,
-                        backgroundImage: photoUrl != null
-                            ? NetworkImage(photoUrl)
-                            : null,
-                        child: photoUrl == null
-                            ? const Icon(Icons.person, size: 18, color: AppColors.grey50)
-                            : null,
-                      ),
-                      const SizedBox(width: 12),
-                      // メッセージ
-                      Expanded(
-                        child: Text(
-                          '${latestReq.fromUsername}さん他$otherCount名から申請が届いています',
-                          style: const TextStyle(
-                            color: AppColors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppColors.grey50,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _RefreshRingButton(
-            icon: Icons.local_fire_department_outlined,
-            onTap: () => ref.invalidate(homeDataProvider),
-          ),
-          const SizedBox(height: 32),
-          Text(
-            'あなたはトップランナーだ。',
-            style: GoogleFonts.notoSansJp(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.grey50,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '小さな選択、小さな勝利が証拠となり\n理想とする自分が真実になる。',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.notoSansJp(
-              fontSize: 13,
-              color: AppColors.grey30,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
 
 
@@ -2252,7 +1804,7 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _RefreshRingButton(
+              RefreshRingButton(
                 icon: Icons.lock_outline_rounded,
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -3082,177 +2634,6 @@ class _EmojiExplosionPainter extends CustomPainter {
   @override
   bool shouldRepaint(_EmojiExplosionPainter old) =>
       elapsed != old.elapsed || particles.length != old.particles.length;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared: リフレッシュ矢印リングボタン
-// ロック画面・Empty State で共通利用される、
-// タップで「→が回る円」がスピンする高級感あるリフレッシュUI
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _RefreshRingButton extends StatefulWidget {
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  const _RefreshRingButton({required this.icon, this.onTap});
-
-  @override
-  State<_RefreshRingButton> createState() => _RefreshRingButtonState();
-}
-
-class _RefreshRingButtonState extends State<_RefreshRingButton>
-    with TickerProviderStateMixin {
-  // 常時パルス（波紋）アニメーション
-  late final AnimationController _pulseController;
-  // タップ時にリングをくるっと回す
-  late final AnimationController _spinController;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat();
-
-    _spinController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-  }
-
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    _spinController.dispose();
-    super.dispose();
-  }
-
-  void _handleTap() {
-    HapticFeedback.heavyImpact();
-    _spinController.forward(from: 0).then((_) {
-      HapticFeedback.lightImpact();
-    });
-    widget.onTap?.call();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _handleTap,
-      child: SizedBox(
-        width: 130,
-        height: 130,
-        child: AnimatedBuilder(
-          animation: Listenable.merge([_pulseController, _spinController]),
-          builder: (context, child) {
-            // スピンはEaseInOut で加速→減速する1回転
-            final spinAngle =
-                Curves.easeInOut.transform(_spinController.value) * 2 * pi;
-
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                // ── 回転するリフレッシュ矢印リング ──
-                Transform.rotate(
-                  angle: spinAngle,
-                  child: CustomPaint(
-                    size: const Size(108, 108),
-                    painter: _RefreshRingPainter(
-                      color: AppColors.accentGold,
-                    ),
-                  ),
-                ),
-
-                // ── 内側のサークル + アイコン ──
-                child!,
-              ],
-            );
-          },
-          child: Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              color: AppColors.grey10.withValues(alpha: 0.92),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.accentGold.withValues(alpha: 0.25),
-                  blurRadius: 24,
-                  spreadRadius: 4,
-                ),
-              ],
-            ),
-            child: Icon(
-              widget.icon,
-              color: AppColors.accentGold,
-              size: 36,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 1本の弧＋右上に1つの矢印（参考画像準拠）
-class _RefreshRingPainter extends CustomPainter {
-  final Color color;
-
-  const _RefreshRingPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 4;
-
-    final paint = Paint()
-      ..color = color.withValues(alpha: 0.85)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.8
-      ..strokeCap = StrokeCap.round;
-
-    // 弧の開始: 3時をわずかに過ぎた位置（0.2 rad ≈ 11°）
-    // 弧の終了: 1時半位置（5.5 rad ≈ 315° = 右上）
-    // これで約304°の弧になり、右上に矢印が来る
-    const startAngle = 0.2;
-    const sweepAngle = 5.3;
-
-    final arcRect = Rect.fromCircle(center: center, radius: radius);
-    canvas.drawArc(arcRect, startAngle, sweepAngle, false, paint);
-
-    // 矢印の先端は弧の終点（右上 = endAngle ≈ 5.5 rad）
-    const endAngle = startAngle + sweepAngle;
-    final tipX = center.dx + radius * cos(endAngle);
-    final tipY = center.dy + radius * sin(endAngle);
-    final tip = Offset(tipX, tipY);
-
-    // 時計回りの接線方向（endAngle + pi/2）
-    const tangentAngle = endAngle + pi / 2;
-    const arrowLen = 8.0;
-    const arrowSpread = 0.44;
-
-    final a1 = Offset(
-      tip.dx + arrowLen * cos(tangentAngle + pi - arrowSpread),
-      tip.dy + arrowLen * sin(tangentAngle + pi - arrowSpread),
-    );
-    final a2 = Offset(
-      tip.dx + arrowLen * cos(tangentAngle + pi + arrowSpread),
-      tip.dy + arrowLen * sin(tangentAngle + pi + arrowSpread),
-    );
-
-    final arrowPaint = Paint()
-      ..color = color.withValues(alpha: 0.85)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.8
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawLine(tip, a1, arrowPaint);
-    canvas.drawLine(tip, a2, arrowPaint);
-  }
-
-  @override
-  bool shouldRepaint(_RefreshRingPainter old) => old.color != color;
 }
 
 class _TooltipTailPainter extends CustomPainter {

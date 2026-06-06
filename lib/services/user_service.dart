@@ -176,6 +176,7 @@ class UserService {
     bool updateEditDate = false,
     String? equippedBadgeUrl,
     String? equippedBadgeAnimation,
+    String? instagramId,
   }) async {
     final uid = _auth.currentUser!.uid;
     final batch = _db.batch();
@@ -202,6 +203,9 @@ class UserService {
     }
     if (equippedBadgeAnimation != null) {
       publicData['equippedBadgeAnimation'] = equippedBadgeAnimation.isEmpty ? null : equippedBadgeAnimation;
+    }
+    if (instagramId != null) {
+      publicData['instagramId'] = instagramId.isEmpty ? null : instagramId;
     }
 
     if (publicData.isNotEmpty) {

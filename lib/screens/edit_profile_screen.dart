@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
@@ -33,6 +34,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _usernameCtrl;
   late TextEditingController _userIdCtrl;
+  late TextEditingController _instagramIdCtrl;
   final _userService = UserService.instance;
 
   bool _isSaving = false;
@@ -65,6 +67,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     _usernameCtrl = TextEditingController(text: widget.user.username);
     _userIdCtrl = TextEditingController(text: widget.user.userId);
+    _instagramIdCtrl = TextEditingController(text: widget.user.instagramId ?? '');
     _currentPhotoUrl = widget.user.photoUrl;
     _equippedBadgeUrl = widget.user.equippedBadgeUrl;
     _equippedBadgeAnimation = widget.user.equippedBadgeAnimation;
@@ -101,6 +104,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     _usernameCtrl.dispose();
     _userIdCtrl.dispose();
+    _instagramIdCtrl.dispose();
     super.dispose();
   }
 
@@ -146,6 +150,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final newUserId = _userIdCtrl.text.trim();
     final newUsername = _usernameCtrl.text.trim();
+    final newInstagramId = _instagramIdCtrl.text.trim();
 
 
     bool isRestrictedFieldsChanged = false;
@@ -235,6 +240,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         updateEditDate: isRestrictedFieldsChanged,
         equippedBadgeUrl: _equippedBadgeUrl,
         equippedBadgeAnimation: _equippedBadgeAnimation,
+        instagramId: newInstagramId,
       );
 
       if (mounted) {
@@ -316,6 +322,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           const SizedBox(height: 16),
                           _buildUserIdField(),
                           _buildPersonalInfoFields(),
+                          const SizedBox(height: 16),
+                          _buildInstagramIdField(),
                           const SizedBox(height: 32),
 
                           // Section: Preferences
@@ -695,6 +703,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  Widget _buildInstagramIdField() {
+    return TextFormField(
+      controller: _instagramIdCtrl,
+      style: const TextStyle(color: AppColors.textPrimary),
+      decoration: const InputDecoration(
+        labelText: 'Instagram ID',
+        prefixIcon: Icon(FontAwesomeIcons.instagram, color: AppColors.textMuted, size: 20),
+      ),
+      validator: (v) {
+        if (v != null && v.trim().isNotEmpty) {
+          if (!RegExp(r'^[a-zA-Z0-9_\.]+$').hasMatch(v.trim())) {
+            return '英数字、アンダースコア、ドットのみ使えます';
+          }
+        }
+        return null;
+      },
+    );
+  }
 
   Widget _buildTimestampToggle() {
     return Container(
