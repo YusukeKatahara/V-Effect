@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/auth_service.dart';
@@ -47,16 +48,16 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgElevated,
-        title: const Text('パスワードを変更', style: TextStyle(color: AppColors.textPrimary)),
-        content: Text('$email 宛にパスワード再設定用のメールを送信しますか？', style: const TextStyle(color: AppColors.textSecondary)),
+        title: Text(AppLocalizations.of(context)!.securityChangePasswordDialogTitle, style: const TextStyle(color: AppColors.textPrimary)),
+        content: Text(AppLocalizations.of(context)!.securityChangePasswordDialogDesc(email), style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('キャンセル', style: TextStyle(color: AppColors.grey50)),
+            child: Text(AppLocalizations.of(context)!.securityChangePasswordCancel, style: const TextStyle(color: AppColors.grey50)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('送信', style: TextStyle(color: AppColors.primary)),
+            child: Text(AppLocalizations.of(context)!.securityChangePasswordSend, style: const TextStyle(color: AppColors.primary)),
           ),
         ],
       ),
@@ -67,7 +68,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         await _auth.sendPasswordResetEmail(email: email);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('再設定メールを送信しました。メールをご確認ください。')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.securityPasswordResetSent)),
           );
         }
       } catch (e) {
@@ -82,23 +83,23 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgElevated,
-        title: const Text('メールアドレスを変更', style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.securityChangeEmailDialogTitle, style: const TextStyle(color: AppColors.textPrimary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '新しいメールアドレスを入力してください。確認メールを送信します。',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            Text(
+              AppLocalizations.of(context)!.securityChangeEmailDialogDesc,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: emailController,
               style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                labelText: '新しいメールアドレス',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.securityNewEmailLabel,
                 hintText: 'example@mail.com',
-                hintStyle: TextStyle(color: AppColors.textMuted),
+                hintStyle: const TextStyle(color: AppColors.textMuted),
               ),
               keyboardType: TextInputType.emailAddress,
             ),
@@ -107,11 +108,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('キャンセル', style: TextStyle(color: AppColors.grey50)),
+            child: Text(AppLocalizations.of(context)!.securityChangePasswordCancel, style: const TextStyle(color: AppColors.grey50)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('確認メールを送信', style: TextStyle(color: AppColors.primary)),
+            child: Text(AppLocalizations.of(context)!.securityChangeEmailSend, style: const TextStyle(color: AppColors.primary)),
           ),
         ],
       ),
@@ -122,7 +123,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         await _auth.currentUser?.verifyBeforeUpdateEmail(emailController.text.trim());
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('新しいアドレスに確認メールを送信しました。リンクをタップして変更を完了してください。')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.securityEmailVerificationSent)),
           );
         }
       } catch (e) {
@@ -132,14 +133,15 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   void _handleError(dynamic e) {
-    String message = 'エラーが発生しました。';
+    final l10n = AppLocalizations.of(context)!;
+    String message = l10n.securityErrorGeneric;
     if (e is FirebaseAuthException) {
       if (e.code == 'requires-recent-login') {
-        message = 'セキュリティのため、一度ログアウトして再度ログインしてからやり直してください。';
+        message = l10n.securityErrorRecentLogin;
       } else if (e.code == 'invalid-email') {
-        message = '無効なメールアドレスです。';
+        message = l10n.securityErrorInvalidEmail;
       } else if (e.code == 'email-already-in-use') {
-        message = 'このメールアドレスは既に登録されています。';
+        message = l10n.securityErrorEmailInUse;
       }
     }
     if (mounted) {
@@ -154,12 +156,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgElevated,
-        title: const Text('ログアウト', style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('本当にログアウトしますか？', style: TextStyle(color: AppColors.textSecondary)),
+        title: Text(AppLocalizations.of(context)!.securityLogoutConfirmTitle, style: const TextStyle(color: AppColors.textPrimary)),
+        content: Text(AppLocalizations.of(context)!.securityLogoutConfirmMessage, style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('キャンセル', style: TextStyle(color: AppColors.grey50)),
+            child: Text(AppLocalizations.of(context)!.securityLogoutConfirmCancel, style: const TextStyle(color: AppColors.grey50)),
           ),
           TextButton(
             onPressed: () async {
@@ -170,9 +172,9 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 Navigator.pushReplacementNamed(context, AppRoutes.login);
               }
             },
-            child: const Text(
-              'ログアウト',
-              style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+            child: Text(
+              AppLocalizations.of(context)!.securityLogoutConfirmButton,
+              style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -185,19 +187,19 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgElevated,
-        title: const Text('アカウントを削除しますか？', style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text(
-          'プロフィール・投稿などすべてのデータが完全に削除されます。この操作は取り消せません。',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        title: Text(AppLocalizations.of(context)!.securityDeleteConfirmTitle, style: const TextStyle(color: AppColors.textPrimary)),
+        content: Text(
+          AppLocalizations.of(context)!.securityDeleteConfirmDesc,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('キャンセル', style: TextStyle(color: AppColors.grey50)),
+            child: Text(AppLocalizations.of(context)!.securityDeleteConfirmCancel, style: const TextStyle(color: AppColors.grey50)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('削除', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+            child: Text(AppLocalizations.of(context)!.securityDeleteConfirmButton, style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -208,22 +210,22 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgElevated,
-        title: const Text(
-          '本当に削除しますか？',
-          style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(context)!.securityDeleteFinalTitle,
+          style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
         ),
-        content: const Text(
-          'この操作は元に戻せません。アカウントを完全に削除してよろしいですか？',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        content: Text(
+          AppLocalizations.of(context)!.securityDeleteFinalDesc,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('キャンセル', style: TextStyle(color: AppColors.grey50)),
+            child: Text(AppLocalizations.of(context)!.securityDeleteFinalCancel, style: const TextStyle(color: AppColors.grey50)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('完全に削除する', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+            child: Text(AppLocalizations.of(context)!.securityDeleteFinalButton, style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -246,8 +248,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       if (mounted) {
         Navigator.pop(context); // ローディングを閉じる
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('アカウントの削除に失敗しました。再ログインして再度お試しください。'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.securityDeleteFailed),
             backgroundColor: AppColors.error,
           ),
         );
@@ -261,19 +263,19 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
-        title: const Text('パスワードとセキュリティ', style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.securitySettingsTitle, style: const TextStyle(color: AppColors.textPrimary)),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
         elevation: 0,
       ),
       body: ListView(
         children: [
-          _buildSectionHeader('ログインとリカバリー', 'パスワード、ログイン設定、リカバリー方法を管理できます。'),
+          _buildSectionHeader(AppLocalizations.of(context)!.securityLoginRecoveryTitle, AppLocalizations.of(context)!.securityLoginRecoveryDesc),
           if (_isEmailProvider) ...[
-            _buildListTile('パスワードを変更', Icons.lock_outline, onTap: _changePassword),
-            _buildListTile('メールアドレスを変更', Icons.email_outlined, onTap: _changeEmail),
+            _buildListTile(AppLocalizations.of(context)!.securityChangePassword, Icons.lock_outline, onTap: _changePassword),
+            _buildListTile(AppLocalizations.of(context)!.securityChangeEmail, Icons.email_outlined, onTap: _changeEmail),
             if (!_isEmailVerified)
               _buildListTile(
-                'メールアドレスを認証する',
+                AppLocalizations.of(context)!.securityVerifyEmail,
                 Icons.mark_email_unread_outlined,
                 onTap: () async {
                   final verified = await Navigator.of(context).push<bool>(
@@ -287,9 +289,9 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           ],
           _buildLinkedAccounts(),
 
-          _buildSectionHeader('アカウント管理', 'アプリへのアクセスやアカウントのデータに関する設定を行います。'),
-          _buildListTile('ログアウト', Icons.logout, isDestructive: true, onTap: _confirmLogout),
-          _buildListTile('アカウントを削除', Icons.delete_forever_outlined, isDestructive: true, onTap: _deleteAccount),
+          _buildSectionHeader(AppLocalizations.of(context)!.securityAccountManagementTitle, AppLocalizations.of(context)!.securityAccountManagementDesc),
+          _buildListTile(AppLocalizations.of(context)!.securityLogout, Icons.logout, isDestructive: true, onTap: _confirmLogout),
+          _buildListTile(AppLocalizations.of(context)!.securityDeleteAccount, Icons.delete_forever_outlined, isDestructive: true, onTap: _deleteAccount),
         ],
       ),
     );
@@ -349,9 +351,9 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '連携済みのアカウント',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.securityLinkedAccounts,
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
@@ -359,7 +361,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             ),
             const SizedBox(height: 12),
             if (_linkedProviders.isEmpty)
-              const Text('なし', style: TextStyle(color: AppColors.textMuted, fontSize: 13))
+              Text(AppLocalizations.of(context)!.securityNoLinkedAccounts, style: const TextStyle(color: AppColors.textMuted, fontSize: 13))
             else
               ..._linkedProviders.map((p) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -395,7 +397,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     switch (providerId) {
       case 'google.com': return 'Google';
       case 'apple.com': return 'Apple';
-      case 'password': return 'メールアドレス';
+      case 'password': return AppLocalizations.of(context)!.securityProviderEmail;
       default: return providerId;
     }
   }

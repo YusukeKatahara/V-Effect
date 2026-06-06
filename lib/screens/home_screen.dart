@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/material.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -754,14 +755,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       debugPrint('WeeklyReview Load Error (Firebase): ${e.code}\n$e\n$stack');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('振り返りデータの取得に失敗しました (${e.code})')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.homeWeeklyReviewLoadFailed(e.code))),
         );
       }
     } catch (e, stack) {
       debugPrint('WeeklyReview Load Error (Unexpected): $e\n$stack');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('予期せぬエラーが発生しました')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.homeUnexpectedError)),
         );
       }
     } finally {
@@ -792,7 +793,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             const SizedBox(height: 20),
             ListTile(
               leading: const Icon(Icons.block_rounded, color: AppColors.textPrimary),
-              title: const Text('ユーザーをブロック', style: TextStyle(color: AppColors.textPrimary)),
+              title: Text(AppLocalizations.of(context)!.homeBlockUser, style: const TextStyle(color: AppColors.textPrimary)),
               onTap: () {
                 Navigator.pop(context);
                 _confirmBlock(post.userId);
@@ -800,7 +801,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             ListTile(
               leading: const Icon(Icons.report_problem_rounded, color: AppColors.error),
-              title: const Text('不適切な投稿を通報する', style: TextStyle(color: AppColors.error)),
+              title: Text(AppLocalizations.of(context)!.homeReportPost, style: const TextStyle(color: AppColors.error)),
               onTap: () {
                 Navigator.pop(context);
                 _showReportDialog(post);
@@ -818,12 +819,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgSurface,
-        title: const Text('ブロックしますか？', style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('このユーザーの投稿が表示されなくなります。', style: TextStyle(color: AppColors.textSecondary)),
+        title: Text(AppLocalizations.of(context)!.homeBlockConfirmTitle, style: const TextStyle(color: AppColors.textPrimary)),
+        content: Text(AppLocalizations.of(context)!.homeBlockConfirmDesc, style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(AppLocalizations.of(context)!.homeBlockConfirmCancel, style: const TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () async {
@@ -833,18 +834,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ref.invalidate(homeDataProvider);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('ユーザーをブロックしました')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.homeBlockSuccess)),
                   );
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('ブロックに失敗しました')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.homeBlockFailed)),
                   );
                 }
               }
             },
-            child: const Text('ブロックする', style: TextStyle(color: AppColors.error)),
+            child: Text(AppLocalizations.of(context)!.homeBlockButton, style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -856,21 +857,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgSurface,
-        title: const Text('通報する理由を選択', style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.homeReportTitle, style: const TextStyle(color: AppColors.textPrimary)),
         contentPadding: const EdgeInsets.symmetric(vertical: 8),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _reportOption(ctx, post, 'スパム', 'spam'),
-            _reportOption(ctx, post, 'ハラスメント', 'harassment'),
-            _reportOption(ctx, post, '不適切なコンテンツ', 'inappropriate'),
-            _reportOption(ctx, post, 'その他', 'other'),
+            _reportOption(ctx, post, AppLocalizations.of(context)!.homeReportSpam, 'spam'),
+            _reportOption(ctx, post, AppLocalizations.of(context)!.homeReportHarassment, 'harassment'),
+            _reportOption(ctx, post, AppLocalizations.of(context)!.homeReportInappropriate, 'inappropriate'),
+            _reportOption(ctx, post, AppLocalizations.of(context)!.homeReportOther, 'other'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(AppLocalizations.of(context)!.homeReportCancel, style: const TextStyle(color: AppColors.textSecondary)),
           ),
         ],
       ),
@@ -886,13 +887,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           await BlockService.instance.reportPost(post.id, post.userId, reason);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('通報しました。ご協力ありがとうございます。')),
+              SnackBar(content: Text(AppLocalizations.of(context)!.homeReportSuccess)),
             );
           }
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('通報に失敗しました')),
+              SnackBar(content: Text(AppLocalizations.of(context)!.homeReportFailed)),
             );
           }
         }
@@ -1183,7 +1184,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         children: [
           const Icon(Icons.error_outline, color: AppColors.accentGold, size: 48),
           const SizedBox(height: 16),
-          Text('エラーが発生しました', style: GoogleFonts.outfit(color: AppColors.white)),
+          Text(AppLocalizations.of(context)!.homeErrorOccurred, style: GoogleFonts.outfit(color: AppColors.white)),
           const SizedBox(height: 8),
           Text('$err', style: TextStyle(color: AppColors.grey50, fontSize: 12)),
           const SizedBox(height: 24),
@@ -1193,7 +1194,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               foregroundColor: AppColors.white,
             ),
             onPressed: () => ref.invalidate(homeDataProvider),
-            child: const Text('再試行'),
+            child: Text(AppLocalizations.of(context)!.homeRetry),
           )
         ],
       ),
@@ -1342,7 +1343,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               if (context.mounted) {
                                 setState(() => _hiddenRequestIds.remove(reqId));
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('承認に失敗しました: $e')),
+                                  SnackBar(content: Text(AppLocalizations.of(context)!.homeFriendRequestApproveFailed(e))),
                                 );
                               }
                             }
@@ -1378,7 +1379,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               if (context.mounted) {
                                 setState(() => _hiddenRequestIds.remove(reqId));
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('処理に失敗しました: $e')),
+                                  SnackBar(content: Text(AppLocalizations.of(context)!.homeFriendRequestProcessFailed(e))),
                                 );
                               }
                             }
@@ -1495,9 +1496,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            '運営からのお知らせ',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.homeNewsTitle,
+                            style: const TextStyle(
                               color: AppColors.accentGold,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -1576,7 +1577,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       // メッセージ
                       Expanded(
                         child: Text(
-                          '${latestReq.fromUsername}さん他$otherCount名から申請が届いています',
+                          AppLocalizations.of(context)!.homeFriendRequestMultiple(latestReq.fromUsername ?? '', otherCount),
                           style: const TextStyle(
                             color: AppColors.white,
                             fontSize: 13,
@@ -1612,7 +1613,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
           const SizedBox(height: 32),
           Text(
-            'あなたはトップランナーだ。',
+            AppLocalizations.of(context)!.homeMotivationText1,
             style: GoogleFonts.notoSansJp(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -1621,7 +1622,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            '小さな選択、小さな勝利が証拠となり\n理想とする自分が真実になる。',
+            AppLocalizations.of(context)!.homeMotivationText2,
             textAlign: TextAlign.center,
             style: GoogleFonts.notoSansJp(
               fontSize: 13,
@@ -1894,9 +1895,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                             ),
                                           ],
                                         ),
-                                        child: const Text(
-                                          'タップして絵文字で応援！',
-                                          style: TextStyle(
+                                        child: Text(
+                                          AppLocalizations.of(context)!.homeEmojiReactionHint,
+                                          style: const TextStyle(
                                             color: AppColors.black,
                                             fontWeight: FontWeight.w700,
                                             fontSize: 12,
@@ -2256,8 +2257,8 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> {
                 icon: Icons.lock_outline_rounded,
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('（更新）タスクを投稿してフレンドの投稿を見れる状態にしよう！'),
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!.homePostToSeeFriends),
                       duration: Duration(seconds: 2),
                     ),
                   );
@@ -2330,7 +2331,7 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> {
                     }(),
                     const SizedBox(width: 8),
                     Text(
-                      '仲間の努力が届いています',
+                      AppLocalizations.of(context)!.homeFriendPostsTitle,
                       style: GoogleFonts.notoSansJp(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -2343,7 +2344,7 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> {
               ],
 
               Text(
-                'Victory を証明しましょう',
+                AppLocalizations.of(context)!.homeProveVictory,
                 style: GoogleFonts.notoSansJp(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -2355,7 +2356,7 @@ class _GuardedStateLayerState extends State<_GuardedStateLayer> {
               Text(
                 // 勝利者効果 (Winner Effect: 成功体験がさらなる成功を呼び込む心理的効果) は、
                 // たとえ継続が途切れても、再び歩み始めることで何度でも自分の意志で再現できるという励ましのメッセージです。
-                'ストリークが止まったとしても、\nあなたの歩みさえ止まらなければ\nV EFFECTは何度でも引き起こせる。',
+                AppLocalizations.of(context)!.homeStreakResetMessage,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.notoSansJp(
                   fontSize: 13,

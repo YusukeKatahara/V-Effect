@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../../config/app_colors.dart';
 import '../../config/routes.dart';
 import '../../services/user_service.dart';
@@ -36,9 +37,22 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
   late final Animation<double> _formAnim;
 
   // プレースホルダーのループ
-  static const _placeholders = ['ジム', '英語学習', '部屋 of 掃除', 'ランニング', '栄養管理'];
-  static const _triggerPlaceholders = ['朝起きたら', '帰宅したら', 'お風呂から上がったら', '机に座ったら'];
-  static const _rewardPlaceholders = ['美味しいコーヒーを飲む', 'SNSを5分見る', '動画を1本見る', 'お気に入りのゲームをする', '漫画を読む'];
+  static const _taskPlaceholderCount = 5;
+  static const _triggerPlaceholderCount = 4;
+  static const _rewardPlaceholderCount = 5;
+
+  List<String> _taskPlaceholders(BuildContext ctx) {
+    final l = AppLocalizations.of(ctx)!;
+    return [l.firstQuestTaskHint1, l.firstQuestTaskHint2, l.firstQuestTaskHint3, l.firstQuestTaskHint4, l.firstQuestTaskHint5];
+  }
+  List<String> _triggerPlaceholders(BuildContext ctx) {
+    final l = AppLocalizations.of(ctx)!;
+    return [l.firstQuestTriggerHint1, l.firstQuestTriggerHint2, l.firstQuestTriggerHint3, l.firstQuestTriggerHint4];
+  }
+  List<String> _rewardPlaceholders(BuildContext ctx) {
+    final l = AppLocalizations.of(ctx)!;
+    return [l.firstQuestRewardHint1, l.firstQuestRewardHint2, l.firstQuestRewardHint3, l.firstQuestRewardHint4, l.firstQuestRewardHint5];
+  }
   int _placeholderIndex = 0;
   int _triggerPlaceholderIndex = 0;
   int _rewardPlaceholderIndex = 0;
@@ -97,9 +111,9 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     _placeholderTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (mounted) {
         setState(() {
-          _placeholderIndex = (_placeholderIndex + 1) % _placeholders.length;
-          _triggerPlaceholderIndex = (_triggerPlaceholderIndex + 1) % _triggerPlaceholders.length;
-          _rewardPlaceholderIndex = (_rewardPlaceholderIndex + 1) % _rewardPlaceholders.length;
+          _placeholderIndex = (_placeholderIndex + 1) % _taskPlaceholderCount;
+          _triggerPlaceholderIndex = (_triggerPlaceholderIndex + 1) % _triggerPlaceholderCount;
+          _rewardPlaceholderIndex = (_rewardPlaceholderIndex + 1) % _rewardPlaceholderCount;
         });
       }
     });
@@ -207,7 +221,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.onboardingFirstQuestSaveFailed(e))));
         setState(() => _isSaving = false);
       }
     }
@@ -252,7 +266,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                               child: FadeTransition(
                                 opacity: _questionAnim,
                                 child: Text(
-                                  'あなたが理想とする姿はどんなだろう？\nあなたの習慣化したい習慣は何だろう？',
+                                  AppLocalizations.of(context)!.onboardingFirstQuestQuestionText,
                                   style: GoogleFonts.notoSansJp(
                                     fontSize: 13,
                                     color: AppColors.grey50,
@@ -287,7 +301,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                               color: AppColors.white,
                             ),
                             children: [
-                              const TextSpan(text: '最初の '),
+                              TextSpan(text: AppLocalizations.of(context)!.firstQuestTitlePrefix),
                               TextSpan(
                                 text: 'V Quest',
                                 style: GoogleFonts.outfit(
@@ -297,14 +311,14 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                                 ),
                               ),
                               TextSpan(
-                                text: ' (ヒーロータスク)',
+                                text: AppLocalizations.of(context)!.firstQuestHeroTaskLabel,
                                 style: GoogleFonts.notoSansJp(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: AppColors.grey50,
                                 ),
                               ),
-                              const TextSpan(text: ' を決めましょう'),
+                              TextSpan(text: AppLocalizations.of(context)!.firstQuestTitleSuffix),
                             ],
                           ),
                         ),
@@ -319,7 +333,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                               _isSaving ? null : () => _complete(skip: false),
                           isLoading: _isSaving,
                           child: Text(
-                            '完了',
+                            AppLocalizations.of(context)!.onboardingFirstQuestCompleteButton,
                             style: GoogleFonts.notoSansJp(
                               fontWeight: FontWeight.w700,
                             ),
@@ -331,7 +345,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                             onPressed:
                                 _isSaving ? null : () => _complete(skip: true),
                             child: Text(
-                              'スキップ',
+                              AppLocalizations.of(context)!.onboardingFirstQuestSkipButton,
                               style: GoogleFonts.notoSansJp(
                                 fontSize: 13,
                                 color: AppColors.grey50,
@@ -360,7 +374,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'トリガー（任意）',
+          AppLocalizations.of(context)!.onboardingFirstQuestTriggerLabel,
           style: GoogleFonts.notoSansJp(
             fontSize: 12,
             color: AppColors.grey50,
@@ -409,7 +423,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                           ),
                         ),
                     child: Text(
-                      '例: ${_triggerPlaceholders[_triggerPlaceholderIndex]}',
+                      AppLocalizations.of(context)!.hintExampleFormat(_triggerPlaceholders(context)[_triggerPlaceholderIndex]),
                       key: ValueKey<int>(_triggerPlaceholderIndex),
                       style: GoogleFonts.notoSansJp(
                         color: AppColors.grey30,
@@ -423,7 +437,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
         ),
         const SizedBox(height: 16),
         Text(
-          'タスク名（行動：必要な習慣）',
+          AppLocalizations.of(context)!.onboardingFirstQuestTaskLabel,
           style: GoogleFonts.notoSansJp(
             fontSize: 12,
             color: AppColors.grey50,
@@ -472,7 +486,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                           ),
                         ),
                     child: Text(
-                      '例: ${_placeholders[_placeholderIndex]}',
+                      AppLocalizations.of(context)!.hintExampleFormat(_taskPlaceholders(context)[_placeholderIndex]),
                       key: ValueKey<int>(_placeholderIndex),
                       style: GoogleFonts.notoSansJp(
                         color: AppColors.grey30,
@@ -486,7 +500,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
         ),
         const SizedBox(height: 16),
         Text(
-          'ご褒美（任意）',
+          AppLocalizations.of(context)!.onboardingFirstQuestRewardLabel,
           style: GoogleFonts.notoSansJp(
             fontSize: 12,
             color: AppColors.grey50,
@@ -535,7 +549,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                           ),
                         ),
                     child: Text(
-                      '例: ${_rewardPlaceholders[_rewardPlaceholderIndex]}',
+                      AppLocalizations.of(context)!.hintExampleFormat(_rewardPlaceholders(context)[_rewardPlaceholderIndex]),
                       key: ValueKey<int>(_rewardPlaceholderIndex),
                       style: GoogleFonts.notoSansJp(
                         color: AppColors.grey30,
@@ -549,7 +563,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
         ),
         const SizedBox(height: 12),
         Text(
-          '※ トリガーとご褒美は自分にのみ表示されます（他のユーザーには公開されません）',
+          AppLocalizations.of(context)!.onboardingFirstQuestPrivacyNote,
           style: GoogleFonts.notoSansJp(
             fontSize: 11,
             color: AppColors.grey50,
@@ -601,7 +615,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
             const SizedBox(height: 8),
           ],
           Text(
-            hasQuest ? _questCtrl.text : '（タスク）',
+            hasQuest ? _questCtrl.text : AppLocalizations.of(context)!.firstQuestNoTaskPlaceholder,
             style: GoogleFonts.notoSerifJp(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -648,7 +662,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
               const Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 14),
               const SizedBox(width: 6),
               Text(
-                '習慣化のコツ',
+                AppLocalizations.of(context)!.onboardingFirstQuestHabitTipsTitle,
                 style: GoogleFonts.notoSansJp(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -659,7 +673,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            '• ハビット・スタッキング\nすでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。',
+            '• ${AppLocalizations.of(context)!.onboardingFirstQuestHabitStackingTitle}\n${AppLocalizations.of(context)!.onboardingFirstQuestHabitStackingDesc}',
             style: GoogleFonts.notoSansJp(
               fontSize: 11,
               color: AppColors.grey50,
@@ -668,7 +682,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
           ),
           const SizedBox(height: 4),
           Text(
-            '• テンプテーション・バンドリング\nやるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。',
+            '• ${AppLocalizations.of(context)!.onboardingFirstQuestTemptationBundlingTitle}\n${AppLocalizations.of(context)!.onboardingFirstQuestTemptationBundlingDesc}',
             style: GoogleFonts.notoSansJp(
               fontSize: 11,
               color: AppColors.grey50,
@@ -681,7 +695,8 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
   }
 
   List<Widget> _buildKeywords(BoxConstraints constraints) {
-    const keywords = ['勝利', '努力', '達成感', '目標', '習慣化', '継続'];
+    final l = AppLocalizations.of(context)!;
+    final keywords = [l.firstQuestKeyword1, l.firstQuestKeyword2, l.firstQuestKeyword3, l.firstQuestKeyword4, l.firstQuestKeyword5, l.firstQuestKeyword6];
     // 画面幅に依存しない相対的な配置（左上原点）
     const positions = [
       [0.48, 0.08], // 勝利: 右上寄り

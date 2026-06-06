@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
@@ -24,28 +25,17 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
   final UserService _userService = UserService.instance;
 
   // テンプレート定義
-  static const List<_TaskTemplate> _templates = [
-    _TaskTemplate(
-      icon: Icons.menu_book_rounded,
-      title: '本を開く',
-      subtitle: '好きな本を開いて写真を撮ろう',
-    ),
-    _TaskTemplate(
-      icon: Icons.air_rounded,
-      title: '外で深呼吸する',
-      subtitle: '外に出て深呼吸している瞬間を撮ろう',
-    ),
-    _TaskTemplate(
-      icon: Icons.water_drop_rounded,
-      title: '水を飲む',
-      subtitle: 'コップ一杯の水を飲む瞬間を撮ろう',
-    ),
-    _TaskTemplate(
-      icon: Icons.edit_rounded,
-      title: '自分で決める',
-      subtitle: '好きなヒーロータスクを自由に設定しよう',
-    ),
-  ];
+  static const _templateCount = 4;
+
+  List<_TaskTemplate> _getTemplates(BuildContext ctx) {
+    final l = AppLocalizations.of(ctx)!;
+    return [
+      _TaskTemplate(icon: Icons.menu_book_rounded, title: l.taskTemplateBook, subtitle: l.taskTemplateBookDesc),
+      _TaskTemplate(icon: Icons.air_rounded, title: l.taskTemplateBreathing, subtitle: l.taskTemplateBreathingDesc),
+      _TaskTemplate(icon: Icons.water_drop_rounded, title: l.taskTemplateWater, subtitle: l.taskTemplateWaterDesc),
+      _TaskTemplate(icon: Icons.edit_rounded, title: l.taskTemplateCustom, subtitle: l.taskTemplateCustomDesc),
+    ];
+  }
 
   int? _selectedIndex;
   bool _isProcessing = false;
@@ -88,11 +78,11 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
   String? get _selectedTaskName {
     if (_selectedIndex == null) return null;
     // 「自分で決める」の場合はカスタム入力値
-    if (_selectedIndex == _templates.length - 1) {
+    if (_selectedIndex == _templateCount - 1) {
       final custom = _customTaskCtrl.text.trim();
       return custom.isNotEmpty ? custom : null;
     }
-    return _templates[_selectedIndex!].title;
+    return _getTemplates(context)[_selectedIndex!].title;
   }
 
   /// テンプレート選択 → カメラ起動 → 投稿完了でヒーロータスク設定へ遷移
@@ -107,7 +97,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
       // Analytics: テンプレート選択を記録
       AnalyticsService.instance.logTemplateSelected(
         templateName: taskName,
-        isCustom: _selectedIndex == _templates.length - 1,
+        isCustom: _selectedIndex == _templateCount - 1,
       );
 
       // テンプレートのヒーロータスクを一時的に保存（初回投稿用）
@@ -125,7 +115,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
       if (mounted) {
         setState(() => _isProcessing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('エラーが発生しました。もう一度お試しください。')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.taskTemplateError)),
         );
       }
     }
@@ -174,8 +164,8 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
                         TextButton(
                           onPressed: _isProcessing ? null : _onSkip,
                           child: Text(
-                            'スキップ',
-                            style: TextStyle(
+                            AppLocalizations.of(context)!.taskTemplateSkip,
+                            style: const TextStyle(
                               color: AppColors.textMuted,
                               fontSize: 14,
                             ),
@@ -200,7 +190,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
                           const SizedBox(height: 28),
 
                           // ── Template cards ──
-                          ...List.generate(_templates.length, (index) {
+                          ...List.generate(_templateCount, (index) {
                             return _buildTemplateCard(index);
                           }),
 
@@ -258,7 +248,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
         ),
         const SizedBox(height: 16),
         Text(
-          'まずは一つ、やってみよう！',
+          AppLocalizations.of(context)!.taskTemplateTitle,
           textAlign: TextAlign.center,
           style: GoogleFonts.notoSansJp(
             fontSize: 20,
@@ -268,7 +258,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
         ),
         const SizedBox(height: 8),
         Text(
-          'かんたんなヒーロータスクを選んで\nアプリをはじめましょう',
+          AppLocalizations.of(context)!.taskTemplateSubtitle,
           textAlign: TextAlign.center,
           style: GoogleFonts.notoSansJp(
             fontSize: 14,
@@ -281,11 +271,11 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
   }
 
   Widget _buildTemplateCard(int index) {
-    final template = _templates[index];
+    final template = _getTemplates(context)[index];
     final isSelected = _selectedIndex == index;
 
     // Staggered animation
-    final delay = index / _templates.length;
+    final delay = index / _templateCount;
     final end = (delay + 0.5) > 1.0 ? 1.0 : (delay + 0.5);
     final animation = CurvedAnimation(
       parent: _staggerCtrl,
@@ -313,7 +303,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
                   setState(() {
                     _selectedIndex = index;
                     // 「自分で決める」の場合はカスタム入力を表示
-                    _showCustomInput = index == _templates.length - 1;
+                    _showCustomInput = index == _templateCount - 1;
                   });
                 },
           child: AnimatedContainer(
@@ -433,8 +423,8 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
           fontSize: 15,
         ),
         decoration: InputDecoration(
-          labelText: 'ヒーロータスク名を入力',
-          hintText: '例: ランニング3km',
+          labelText: AppLocalizations.of(context)!.taskTemplateCustomInputLabel,
+          hintText: AppLocalizations.of(context)!.hintTaskExample,
           labelStyle: TextStyle(color: AppColors.textSecondary),
           hintStyle: TextStyle(color: AppColors.textMuted),
           prefixIcon:
@@ -497,7 +487,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'アプリをはじめる',
+                          AppLocalizations.of(context)!.taskTemplateStartButton,
                           style: GoogleFonts.notoSansJp(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,

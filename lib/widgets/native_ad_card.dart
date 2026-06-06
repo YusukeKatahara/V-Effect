@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../utils/ad_helper.dart';
 
@@ -119,7 +120,7 @@ class NativeAdCard extends StatelessWidget {
                   border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.3)),
                 ),
                 child: Text(
-                  '広告',
+                  AppLocalizations.of(context)!.adLabel,
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -164,7 +165,7 @@ class NativeAdCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'VEFFECT 広告',
+                        AppLocalizations.of(context)!.adVeffectLabel,
                         style: GoogleFonts.outfit(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

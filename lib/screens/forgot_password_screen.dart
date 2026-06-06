@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../widgets/premium_background.dart';
@@ -50,7 +51,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     final email = _emailCtrl.text.trim();
 
     if (userId.isEmpty || email.isEmpty) {
-      _showMessage('ユーザーIDとメールアドレスの両方を入力してください。');
+      _showMessage(AppLocalizations.of(context)!.forgotPasswordBothRequired);
       return;
     }
 
@@ -67,7 +68,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (mounted) setState(() => _sent = true);
     } catch (e) {
-      _showMessage('ユーザーIDまたはメールアドレスが正しくありません。');
+      _showMessage(AppLocalizations.of(context)!.forgotPasswordInvalid);
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -103,8 +104,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                               color: AppColors.textPrimary),
                           onPressed: () => Navigator.pop(context),
                         ),
-                        const Text('パスワードをリセット',
-                            style: TextStyle(
+                        Text(AppLocalizations.of(context)!.forgotPasswordResetTitle,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
@@ -135,36 +136,36 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         const PremiumIconHeader(
             icon: Icons.lock_reset, size: 72, iconSize: 40),
         const SizedBox(height: 24),
-        const Text(
-          'パスワードをお忘れですか？',
+        Text(
+          AppLocalizations.of(context)!.loginForgotPassword,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary),
         ),
         const SizedBox(height: 12),
-        const Text(
-          'ユーザーIDと登録したメールアドレスを入力してください。',
+        Text(
+          AppLocalizations.of(context)!.forgotPasswordInstruction,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
         TextField(
           controller: _userIdCtrl,
           style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(
-            labelText: 'ユーザーID',
-            prefixIcon: Icon(Icons.person_outline),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.forgotPasswordUserId,
+            prefixIcon: const Icon(Icons.person_outline),
           ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _emailCtrl,
           style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(
-            labelText: 'メールアドレス',
-            prefixIcon: Icon(Icons.email_outlined),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.registerEmail,
+            prefixIcon: const Icon(Icons.email_outlined),
           ),
           keyboardType: TextInputType.emailAddress,
         ),
@@ -172,7 +173,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         GradientButton(
           onPressed: _sendResetEmail,
           isLoading: _isSending,
-          child: const Text('リセットメールを送信'),
+          child: Text(AppLocalizations.of(context)!.forgotPasswordSendReset),
         ),
       ],
     );
@@ -202,17 +203,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
               size: 40, color: AppColors.black),
         ),
         const SizedBox(height: 24),
-        const Text(
-          'メールを送信しました',
+        Text(
+          AppLocalizations.of(context)!.forgotPasswordEmailSent,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary),
         ),
         const SizedBox(height: 12),
         Text(
-          '${_emailCtrl.text.trim()} 宛に\nパスワードリセット用のメールを送信しました。',
+          AppLocalizations.of(context)!.forgotPasswordEmailSentDesc(_emailCtrl.text.trim()),
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
@@ -221,7 +222,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           onPressed: () {
             Navigator.pushNamed(context, AppRoutes.resetPassword);
           },
-          child: const Text('メールのリンクで再設定する'),
+          child: Text(AppLocalizations.of(context)!.forgotPasswordResetViaLink),
         ),
         const SizedBox(height: 16),
         OutlinedButton(
@@ -229,14 +230,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
-          child: const Text('ログイン画面に戻る'),
+          child: Text(AppLocalizations.of(context)!.forgotPasswordBackToLogin),
         ),
         const SizedBox(height: 12),
         TextButton(
           onPressed: () => setState(() => _sent = false),
-          child: const Text(
-            'メールが届かない場合はもう一度送信',
-            style: TextStyle(color: AppColors.textMuted),
+          child: Text(
+            AppLocalizations.of(context)!.forgotPasswordResend,
+            style: const TextStyle(color: AppColors.textMuted),
           ),
         ),
       ],

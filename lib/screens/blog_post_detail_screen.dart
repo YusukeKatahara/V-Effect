@@ -4,6 +4,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
@@ -183,7 +184,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
                   )),
             ),
             Text(
-              DateFormat('yyyy年M月d日').format(post.createdAt),
+              DateFormat(AppLocalizations.of(context)!.dateFormatFull).format(post.createdAt),
               style: GoogleFonts.outfit(
                 fontSize: 13,
                 color: AppColors.grey50,
@@ -267,19 +268,19 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          '記事を削除しますか？',
+          AppLocalizations.of(context)!.blogPostDetailDeleteTitle,
           style: GoogleFonts.notoSansJp(
               color: AppColors.white, fontWeight: FontWeight.w700),
         ),
         content: Text(
-          'この操作は取り消せません。',
+          AppLocalizations.of(context)!.blogPostDetailDeleteDesc,
           style: GoogleFonts.notoSansJp(
               color: AppColors.grey50, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('キャンセル',
+            child: Text(AppLocalizations.of(context)!.blogPostDetailDeleteCancel,
                 style:
                     GoogleFonts.outfit(color: AppColors.grey50)),
           ),
@@ -290,7 +291,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
               await DevBlogService.instance.deletePost(post.id);
               if (mounted) nav.pop();
             },
-            child: Text('削除',
+            child: Text(AppLocalizations.of(context)!.blogPostDetailDeleteButton,
                 style: GoogleFonts.outfit(
                     color: AppColors.error,
                     fontWeight: FontWeight.w700)),

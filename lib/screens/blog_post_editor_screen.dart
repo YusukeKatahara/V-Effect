@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../models/dev_blog_post.dart';
@@ -115,7 +116,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
     final TextSelection newSel;
 
     if (sel.isCollapsed) {
-      const placeholder = 'テキスト';
+      final placeholder = AppLocalizations.of(context)!.blogEditorTextBlockPlaceholder;
       newText =
           text.replaceRange(sel.start, sel.end, '$before$placeholder$after');
       newSel = TextSelection(
@@ -156,7 +157,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
     _bodyFocusNode.requestFocus();
 
     final text = ctrl.text;
-    const placeholder = 'コードをここに入力';
+    final placeholder = AppLocalizations.of(context)!.blogEditorCodeBlockPlaceholder;
 
     if (sel.isCollapsed) {
       final block = '\n```\n$placeholder\n```\n';
@@ -197,7 +198,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
     final body = _bodyController.text.trim();
     final bodyEn = _bodyEnController.text.trim();
     if (title.isEmpty || body.isEmpty) {
-      _showError('タイトルと本文を入力してください');
+      _showError(AppLocalizations.of(context)!.blogPostEditorRequiredError);
       return;
     }
 
@@ -285,7 +286,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
       debugPrint('Save error: $e');
       if (mounted) {
         setState(() => _isSaving = false);
-        _showError('エラー: $e');
+        _showError(AppLocalizations.of(context)!.blogPostEditorSaveError(e));
       }
     }
   }
@@ -370,7 +371,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             TextButton(
               onPressed: _isSaving ? null : _save,
               child: Text(
-                isEditing ? '更新' : '投稿',
+                isEditing ? AppLocalizations.of(context)!.blogPostEditorUpdateButton : AppLocalizations.of(context)!.blogPostEditorPostButton,
                 style: GoogleFonts.outfit(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
@@ -408,7 +409,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           GradientButton(
             isLoading: _isSaving,
             onPressed: _isSaving ? null : _save,
-            child: Text(isEditing ? '記事を更新する' : '記事を投稿する'),
+            child: Text(isEditing ? AppLocalizations.of(context)!.blogPostEditorArticleUpdate : AppLocalizations.of(context)!.blogPostEditorArticlePost),
           ),
         ],
       ),
@@ -460,7 +461,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 60),
                 child: Text(
-                  'タイトルと本文を入力してください',
+                  AppLocalizations.of(context)!.blogPostEditorPreviewEmpty,
                   style: GoogleFonts.notoSansJp(color: AppColors.grey30),
                 ),
               ),
@@ -623,9 +624,9 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
         setState(() {
           _seasonBadgeImageUrlController.text = url;
         });
-        _showError('バッジ画像をアップロードしました'); // Use _showError to show success as snackbar
+        _showError(AppLocalizations.of(context)!.blogPostEditorBadgeUploadSuccess);
       } catch (e) {
-        _showError('アップロードに失敗しました');
+        _showError(AppLocalizations.of(context)!.blogPostEditorBadgeUploadFailed);
       } finally {
         setState(() => _isSaving = false);
       }
@@ -678,7 +679,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          hasCover ? 'カバー画像を変更' : 'カバー画像を追加',
+                          hasCover ? AppLocalizations.of(context)!.blogPostEditorCoverChange : AppLocalizations.of(context)!.blogPostEditorCoverAdd,
                           style: GoogleFonts.notoSansJp(
                             fontSize: 13,
                             color: hasCover
@@ -703,7 +704,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'カテゴリ',
+          AppLocalizations.of(context)!.blogPostEditorCategoryLabel,
           style: GoogleFonts.outfit(
               fontSize: 13,
               color: AppColors.grey50,
@@ -771,7 +772,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           ),
           const SizedBox(width: 10),
           Text(
-            'この記事をピン留めする',
+            AppLocalizations.of(context)!.blogPostEditorPinLabel,
             style: GoogleFonts.notoSansJp(
                 fontSize: 14, color: AppColors.grey70),
           ),
@@ -788,7 +789,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'タイトル',
+          AppLocalizations.of(context)!.blogPostEditorTitleLabel,
           style: GoogleFonts.outfit(
               fontSize: 13,
               color: AppColors.grey50,
@@ -803,7 +804,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
               fontWeight: FontWeight.w700),
           maxLines: 2,
           minLines: 1,
-          decoration: _inputDecoration('タイトルを入力'),
+          decoration: _inputDecoration(AppLocalizations.of(context)!.blogPostEditorTitleHint),
         ),
       ],
     );
@@ -814,7 +815,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'タイトル (ENGLISH)',
+          AppLocalizations.of(context)!.blogPostEditorTitleEnLabel,
           style: GoogleFonts.outfit(
               fontSize: 13,
               color: AppColors.grey50,
@@ -842,7 +843,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
         Row(
           children: [
             Text(
-              '本文',
+              AppLocalizations.of(context)!.blogPostEditorBodyLabel,
               style: GoogleFonts.outfit(
                   fontSize: 13,
                   color: AppColors.grey50,
@@ -850,7 +851,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             ),
             const SizedBox(width: 8),
             Text(
-              '— Markdownが使えます',
+              AppLocalizations.of(context)!.blogPostEditorBodyMarkdown,
               style: GoogleFonts.outfit(
                   fontSize: 11, color: AppColors.grey30),
             ),
@@ -865,7 +866,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           maxLines: null,
           minLines: 10,
           keyboardType: TextInputType.multiline,
-          decoration: _inputDecoration('本文を入力\n\n## 見出し\n**太字** *斜体*\n- 箇条書き'),
+          decoration: _inputDecoration(AppLocalizations.of(context)!.blogPostEditorBodyHint),
         ),
       ],
     );
@@ -878,7 +879,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
         Row(
           children: [
             Text(
-              '本文 (ENGLISH)',
+              AppLocalizations.of(context)!.blogPostEditorBodyEnLabel,
               style: GoogleFonts.outfit(
                   fontSize: 13,
                   color: AppColors.grey50,
@@ -886,7 +887,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             ),
             const SizedBox(width: 8),
             Text(
-              '— Markdownが使えます',
+              AppLocalizations.of(context)!.blogPostEditorBodyMarkdown,
               style: GoogleFonts.outfit(
                   fontSize: 11, color: AppColors.grey30),
             ),
@@ -940,7 +941,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _isSeasonTask ? 'シーズンタスク設定済み' : 'シーズンタスクを設定する',
+                        _isSeasonTask ? AppLocalizations.of(context)!.blogPostEditorSeasonSet : AppLocalizations.of(context)!.blogPostEditorSeasonNotSet,
                         style: GoogleFonts.notoSansJp(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -950,8 +951,8 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                       const SizedBox(height: 4),
                       Text(
                         _isSeasonTask
-                            ? '${_seasonTaskNameController.text} (${_seasonDurationController.text}日間)'
-                            : 'このお知らせと一緒にシーズンタスクを配布・通知します。',
+                            ? '${_seasonTaskNameController.text} (${AppLocalizations.of(context)!.blogEditorSeasonDays(_seasonDurationController.text)})'
+                            : AppLocalizations.of(context)!.blogPostEditorSeasonDesc,
                         style: GoogleFonts.notoSansJp(
                           fontSize: 12,
                           color: AppColors.grey50,
@@ -999,7 +1000,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'シーズンタスクの設定',
+                        AppLocalizations.of(context)!.blogPostEditorSeasonModalTitle,
                         style: GoogleFonts.notoSansJp(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -1018,26 +1019,26 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                   ),
                   const SizedBox(height: 24),
                   if (_isSeasonTask) ...[
-                    Text('タスク名 (必須)', style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
+                    Text(AppLocalizations.of(context)!.blogPostEditorSeasonTaskName, style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _seasonTaskNameController,
                       style: GoogleFonts.notoSansJp(color: AppColors.white),
-                      decoration: _inputDecoration('例: 感謝を伝える'),
+                      decoration: _inputDecoration(AppLocalizations.of(context)!.blogEditorExampleTaskHint),
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 16),
-                    Text('実施期間(日数)', style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
+                    Text(AppLocalizations.of(context)!.blogPostEditorSeasonDuration, style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _seasonDurationController,
                       keyboardType: TextInputType.number,
                       style: GoogleFonts.notoSansJp(color: AppColors.white),
-                      decoration: _inputDecoration('例: 7'),
+                      decoration: _inputDecoration(AppLocalizations.of(context)!.blogEditorExampleDurationHint),
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 16),
-                    Text('ヒントタイトル', style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
+                    Text(AppLocalizations.of(context)!.blogPostEditorSeasonHintTitle, style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _seasonHintTitleController,
@@ -1045,16 +1046,16 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                       decoration: _inputDecoration('例: 📸 何を撮ればいいの？（撮影のヒント）'),
                     ),
                     const SizedBox(height: 16),
-                    Text('ヒント本文', style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
+                    Text(AppLocalizations.of(context)!.blogPostEditorSeasonHintBody, style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _seasonHintBodyController,
                       maxLines: 4,
                       style: GoogleFonts.notoSansJp(color: AppColors.white),
-                      decoration: _inputDecoration('ユーザーが写真を撮る際のヒントを入力してください'),
+                      decoration: _inputDecoration(AppLocalizations.of(context)!.blogPostEditorSeasonHintBodyHint),
                     ),
                     const SizedBox(height: 16),
-                    Text('バッジ画像URL', style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
+                    Text(AppLocalizations.of(context)!.blogPostEditorSeasonBadgeUrl, style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -1062,7 +1063,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                           child: TextField(
                             controller: _seasonBadgeImageUrlController,
                             style: GoogleFonts.notoSansJp(color: AppColors.white),
-                            decoration: _inputDecoration('例: tester (またはFirebase URL)'),
+                            decoration: _inputDecoration(AppLocalizations.of(context)!.blogEditorExampleTesterHint),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1072,7 +1073,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                             await _pickBadgeImage();
                             setStateModal(() {});
                           },
-                          tooltip: '画像を選択してアップロード',
+                          tooltip: AppLocalizations.of(context)!.blogEditorImageUploadTooltip,
                         ),
                       ],
                     ),
@@ -1088,7 +1089,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                       elevation: 0,
                     ),
                     child: Text(
-                      '完了',
+                      AppLocalizations.of(context)!.blogPostEditorSeasonDone,
                       style: GoogleFonts.notoSansJp(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),

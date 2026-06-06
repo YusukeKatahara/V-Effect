@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
@@ -51,7 +52,7 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.stars_rounded, color: AppColors.accentGold, size: 22),
-                          tooltip: '全ユーザーへバッジ配布',
+                          tooltip: AppLocalizations.of(context)!.vPracticeDistributeBadge,
                           onPressed: () {
                             showDialog(
                               context: context,
@@ -61,7 +62,7 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.add_rounded, color: AppColors.white, size: 22),
-                          tooltip: 'ブログ記事を作成',
+                          tooltip: AppLocalizations.of(context)!.vPracticeCreateBlog,
                           onPressed: () =>
                               Navigator.pushNamed(context, AppRoutes.blogPostEditor),
                         ),
@@ -87,8 +88,8 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
                 ),
                 error: (e, _) => Center(
                   child: Text(
-                    'エラーが発生しました',
-                    style: TextStyle(color: AppColors.grey50, fontSize: 14),
+                    AppLocalizations.of(context)!.vPracticeError,
+                    style: const TextStyle(color: AppColors.grey50, fontSize: 14),
                   ),
                 ),
               ),
@@ -272,7 +273,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'お知らせはまだありません',
+            AppLocalizations.of(context)!.vPracticeNoNews,
             style: GoogleFonts.notoSansJp(
               fontSize: 14,
               color: AppColors.grey50,
@@ -302,9 +303,10 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
   }
 
   Future<void> _distributeBadge() async {
+    final l = AppLocalizations.of(context)!;
     final badgeUrl = _controller.text.trim();
     if (badgeUrl.isEmpty) {
-      _showError('バッジID（または tester など）を入力してください');
+      _showError(l.vPracticeBadgeIdRequired);
       return;
     }
 
@@ -332,7 +334,7 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('全ユーザーにバッジ「$badgeUrl」を配布・装備させました！',
+            content: Text(l.vPracticeBadgeDistributed(badgeUrl),
                 style: GoogleFonts.notoSansJp(color: AppColors.white)),
             backgroundColor: AppColors.accentGold,
           ),
@@ -341,7 +343,7 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
       }
     } catch (e) {
       debugPrint('配布エラー: $e');
-      _showError('バッジの配布に失敗しました');
+      _showError(l.vPracticeBadgeDistributeFailed);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -365,7 +367,7 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
           const Icon(Icons.stars_rounded, color: AppColors.accentGold),
           const SizedBox(width: 8),
           Expanded(
-            child: Text('全ユーザーへバッジ配布',
+            child: Text(AppLocalizations.of(context)!.vPracticeDialogTitle,
                 style: GoogleFonts.notoSansJp(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           ),
         ],
@@ -374,14 +376,14 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('現在登録されている全てのユーザーに、指定したバッジを強制的に装備させます。通知は飛びません。',
+          Text(AppLocalizations.of(context)!.vPracticeDialogDesc,
               style: GoogleFonts.notoSansJp(color: AppColors.grey70, fontSize: 13)),
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
             style: GoogleFonts.notoSansJp(color: AppColors.white),
             decoration: InputDecoration(
-              hintText: 'バッジID (例: tester)',
+              hintText: AppLocalizations.of(context)!.vPracticeBadgeIdHint,
               hintStyle: GoogleFonts.notoSansJp(color: AppColors.grey30),
               filled: true,
               fillColor: AppColors.black.withValues(alpha: 0.3),
@@ -400,7 +402,7 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
       actions: [
         TextButton(
           onPressed: _isSaving ? null : () => Navigator.pop(context),
-          child: Text('キャンセル', style: GoogleFonts.notoSansJp(color: AppColors.grey50)),
+          child: Text(AppLocalizations.of(context)!.vPracticeCancel, style: GoogleFonts.notoSansJp(color: AppColors.grey50)),
         ),
         _isSaving
             ? const SizedBox(
@@ -409,7 +411,7 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
               )
             : TextButton(
                 onPressed: _distributeBadge,
-                child: Text('配布する', style: GoogleFonts.notoSansJp(color: AppColors.accentGold, fontWeight: FontWeight.bold)),
+                child: Text(AppLocalizations.of(context)!.vPracticeDistribute, style: GoogleFonts.notoSansJp(color: AppColors.accentGold, fontWeight: FontWeight.bold)),
               ),
       ],
     );

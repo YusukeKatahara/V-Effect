@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../services/user_service.dart';
 import '../widgets/notification_prompt_sheet.dart';
@@ -106,7 +107,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('設定の保存に失敗しました')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.notificationSettingsSaveFailed)));
         _loadSettings(); // Revert
       }
     }
@@ -118,7 +119,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
-        title: const Text('通知設定', style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.notificationSettingsTitle, style: const TextStyle(color: AppColors.textPrimary)),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
         elevation: 0,
       ),
@@ -127,54 +128,54 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         : ListView(
             children: [
               _buildSwitch(
-                'プッシュ通知を許可',
-                'フォローや仲間の新しい投稿のお知らせ',
+                AppLocalizations.of(context)!.notificationSettingsPush,
+                AppLocalizations.of(context)!.notificationSettingsPushDesc,
                 _pushNotifications,
                 (v) => _updateSetting('pushNotifications', v),
               ),
               _buildSwitch(
-                'リアクション通知を許可',
-                '投稿にリアクションが届いたとき',
+                AppLocalizations.of(context)!.notificationSettingsReaction,
+                AppLocalizations.of(context)!.notificationSettingsReactionDesc,
                 _reactionNotifications,
                 (v) => _updateSetting('reactionNotifications', v),
               ),
               _buildSwitch(
-                'V Alert 通知を許可',
-                '設定した時間のタスクリマインダー',
+                AppLocalizations.of(context)!.notificationSettingsVAlert,
+                AppLocalizations.of(context)!.notificationSettingsVAlertDesc,
                 _focusTimeNotifications,
                 (v) => _updateSetting('focusTimeNotifications', v),
               ),
               _buildSwitch(
-                'V FIRE通知を許可',
-                '投稿にV FIREが届いたとき',
+                AppLocalizations.of(context)!.notificationSettingsVFire,
+                AppLocalizations.of(context)!.notificationSettingsVFireDesc,
                 _vFireNotifications,
                 (v) => _updateSetting('vFireNotifications', v),
               ),
               _buildSwitch(
-                '保護シールド通知を許可',
-                'シールドによるストリーク維持のお知らせ',
+                AppLocalizations.of(context)!.notificationSettingsShield,
+                AppLocalizations.of(context)!.notificationSettingsShieldDesc,
                 _protectionNotifications,
                 (v) => _updateSetting('protectionNotifications', v),
               ),
               _buildSwitch(
-                'ストリーク達成祝いを許可',
-                '30日や100日などの大きな節目のお知らせ',
+                AppLocalizations.of(context)!.notificationSettingsStreakCelebration,
+                AppLocalizations.of(context)!.notificationSettingsStreakCelebrationDesc,
                 _streakCelebrationNotifications,
                 (v) => _updateSetting('streakCelebrationNotifications', v),
               ),
               _buildSwitch(
-                'ストリーク危機通知を許可',
-                '夜になってもタスクが完了していない時のリマインダー',
+                AppLocalizations.of(context)!.notificationSettingsStreakWarning,
+                AppLocalizations.of(context)!.notificationSettingsStreakWarningDesc,
                 _streakWarningNotifications,
                 (v) => _updateSetting('streakWarningNotifications', v),
               ),
               if (kDebugMode) ...[
                 const Divider(color: AppColors.grey30, height: 40),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
-                    '開発者向けデバッグ機能',
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.notificationSettingsDebugTitle,
+                    style: const TextStyle(
                       color: AppColors.accentGold,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -183,8 +184,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 ),
                 const SizedBox(height: 8),
                 ListTile(
-                  title: const Text('通知プレ・ダイアログの表示フラグをリセット', style: TextStyle(color: AppColors.textPrimary)),
-                  subtitle: const Text('「一度のみ表示」の制限フラグを消去します', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  title: Text(AppLocalizations.of(context)!.notificationSettingsDebugResetTitle, style: const TextStyle(color: AppColors.textPrimary)),
+                  subtitle: Text(AppLocalizations.of(context)!.notificationSettingsDebugResetDesc, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                   trailing: const Icon(Icons.refresh, color: AppColors.textPrimary),
                   onTap: () async {
                     final prefs = await SharedPreferences.getInstance();
@@ -193,15 +194,15 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                       await prefs.remove('notification_prompt_shown_$uid');
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('通知ダイアログ表示フラグをリセットしました。')),
+                          SnackBar(content: Text(AppLocalizations.of(context)!.notificationSettingsDebugResetDone)),
                         );
                       }
                     }
                   },
                 ),
                 ListTile(
-                  title: const Text('通知プレ・ダイアログをテスト表示', style: TextStyle(color: AppColors.textPrimary)),
-                  subtitle: const Text('現在の通知許可状態に関わらずモーダルを表示します', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  title: Text(AppLocalizations.of(context)!.notificationSettingsDebugTestTitle, style: const TextStyle(color: AppColors.textPrimary)),
+                  subtitle: Text(AppLocalizations.of(context)!.notificationSettingsDebugTestDesc, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                   trailing: const Icon(Icons.play_arrow, color: AppColors.textPrimary),
                   onTap: () {
                     NotificationPromptSheet.show(context);

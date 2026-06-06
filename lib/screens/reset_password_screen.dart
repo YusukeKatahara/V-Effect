@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../widgets/premium_background.dart';
@@ -91,15 +92,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         });
       }
     } on FirebaseAuthException catch (e) {
-      String msg = 'リンクが無効です。もう一度お試しください。';
+      String msg = AppLocalizations.of(context)!.resetPasswordLinkInvalid;
       if (e.code == 'expired-action-code') {
-        msg = 'リンクの有効期限が切れています。もう一度メールを送信してください。';
+        msg = AppLocalizations.of(context)!.resetPasswordLinkExpired;
       } else if (e.code == 'invalid-action-code') {
-        msg = 'リンクが無効です。正しいリンクを貼り付けてください。';
+        msg = AppLocalizations.of(context)!.resetPasswordLinkInvalidPaste;
       }
       _showMessage(msg);
     } catch (e) {
-      _showMessage('エラーが発生しました。もう一度お試しください。');
+      _showMessage(AppLocalizations.of(context)!.errorGenericRetry);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -109,7 +110,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
   Future<void> _submitLink() async {
     final code = _extractOobCode(_linkCtrl.text);
     if (code == null) {
-      _showMessage('メールに記載されたリンクを貼り付けてください。');
+      _showMessage(AppLocalizations.of(context)!.resetPasswordPasteLink);
       return;
     }
     await _verifyCode(code);
@@ -121,11 +122,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
     final confirm = _confirmCtrl.text;
 
     if (password.length < 6) {
-      _showMessage('パスワードは6文字以上にしてください。');
+      _showMessage(AppLocalizations.of(context)!.registerWeakPassword);
       return;
     }
     if (password != confirm) {
-      _showMessage('パスワードが一致しません。');
+      _showMessage(AppLocalizations.of(context)!.resetPasswordMismatch);
       return;
     }
 
@@ -134,15 +135,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
       await _auth.confirmPasswordReset(code: _oobCode!, newPassword: password);
       if (mounted) setState(() => _resetDone = true);
     } on FirebaseAuthException catch (e) {
-      String msg = 'パスワードの再設定に失敗しました。';
+      String msg = AppLocalizations.of(context)!.resetPasswordFailed;
       if (e.code == 'expired-action-code') {
-        msg = 'リンクの有効期限が切れています。もう一度メールを送信してください。';
+        msg = AppLocalizations.of(context)!.resetPasswordLinkExpired;
       } else if (e.code == 'weak-password') {
-        msg = 'パスワードが弱すぎます。より強いパスワードを設定してください。';
+        msg = AppLocalizations.of(context)!.resetPasswordWeakPassword;
       }
       _showMessage(msg);
     } catch (e) {
-      _showMessage('エラーが発生しました。もう一度お試しください。');
+      _showMessage(AppLocalizations.of(context)!.errorGenericRetry);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -178,8 +179,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                               color: AppColors.textPrimary),
                           onPressed: () => Navigator.pop(context),
                         ),
-                        const Text('パスワード再設定',
-                            style: TextStyle(
+                        Text(AppLocalizations.of(context)!.resetPasswordTitle,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
@@ -214,28 +215,28 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
       children: [
         const PremiumIconHeader(icon: Icons.link, size: 72, iconSize: 40),
         const SizedBox(height: 24),
-        const Text(
-          'メールのリンクを貼り付け',
+        Text(
+          AppLocalizations.of(context)!.resetPasswordPasteLinkTitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary),
         ),
         const SizedBox(height: 12),
-        const Text(
-          'パスワードリセットのメールに記載されている\nリンクをコピーして、下の欄に貼り付けてください。',
+        Text(
+          AppLocalizations.of(context)!.resetPasswordPasteLinkDesc,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
         TextField(
           controller: _linkCtrl,
           style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(
-            labelText: 'リンクを貼り付け',
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.resetPasswordPasteLinkLabel,
             hintText: 'https://...',
-            prefixIcon: Icon(Icons.content_paste),
+            prefixIcon: const Icon(Icons.content_paste),
           ),
           maxLines: 2,
           keyboardType: TextInputType.url,
@@ -244,7 +245,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         GradientButton(
           onPressed: _submitLink,
           isLoading: _isLoading,
-          child: const Text('次へ'),
+          child: Text(AppLocalizations.of(context)!.resetPasswordNext),
         ),
       ],
     );
@@ -259,10 +260,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         const PremiumIconHeader(
             icon: Icons.lock_open, size: 72, iconSize: 40),
         const SizedBox(height: 24),
-        const Text(
-          '新しいパスワードを設定',
+        Text(
+          AppLocalizations.of(context)!.resetPasswordNewTitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary),
@@ -279,9 +280,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         TextField(
           controller: _passwordCtrl,
           style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(
-            labelText: '新しいパスワード',
-            prefixIcon: Icon(Icons.lock_outline),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.resetPasswordNew,
+            prefixIcon: const Icon(Icons.lock_outline),
           ),
           obscureText: true,
         ),
@@ -289,9 +290,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         TextField(
           controller: _confirmCtrl,
           style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(
-            labelText: 'パスワードを確認',
-            prefixIcon: Icon(Icons.lock_outline),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.resetPasswordConfirm,
+            prefixIcon: const Icon(Icons.lock_outline),
           ),
           obscureText: true,
         ),
@@ -299,7 +300,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         GradientButton(
           onPressed: _resetPassword,
           isLoading: _isLoading,
-          child: const Text('パスワードを再設定'),
+          child: Text(AppLocalizations.of(context)!.resetPasswordButton),
         ),
       ],
     );
@@ -331,19 +332,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
           ),
         ),
         const SizedBox(height: 24),
-        const Text(
-          'パスワードを再設定しました',
+        Text(
+          AppLocalizations.of(context)!.resetPasswordDone,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary),
         ),
         const SizedBox(height: 12),
-        const Text(
-          '新しいパスワードでログインしてください。',
+        Text(
+          AppLocalizations.of(context)!.resetPasswordLoginWithNew,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
         GradientButton(
@@ -354,7 +355,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
               (route) => false,
             );
           },
-          child: const Text('ログイン画面へ'),
+          child: Text(AppLocalizations.of(context)!.resetPasswordGoToLogin),
         ),
       ],
     );

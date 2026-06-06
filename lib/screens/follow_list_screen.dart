@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/friend_service.dart';
@@ -47,7 +48,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
 
     final uid = args['uid'] as String;
     final isFollowing = args['isFollowing'] as bool;
-    _title = args['title'] as String? ?? (isFollowing ? 'フォロー中' : 'フォロワー');
+    _title = args['title'] as String? ?? (isFollowing ? AppLocalizations.of(context)!.followListFollowing : AppLocalizations.of(context)!.followListFollowers);
 
     // 自分のフォロワー画面の場合、保留中の申請があるか確認する
     final isMyFollowers = !isFollowing && uid == _myUid;
@@ -99,7 +100,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
                   child: _users.isEmpty
                       ? Center(
                           child: Text(
-                            'ユーザーがいません',
+                            AppLocalizations.of(context)!.followListNoUsers,
                             style: const TextStyle(
                                 color: AppColors.textSecondary),
                           ),
@@ -136,10 +137,10 @@ class _FollowListScreenState extends State<FollowListScreen> {
               size: 20,
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'フォロー申請が届いています',
-                style: TextStyle(
+                AppLocalizations.of(context)!.followListPendingBanner,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
@@ -176,7 +177,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
         style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
       ),
       trailing: isMe
-          ? const Text('自分', style: TextStyle(color: AppColors.textMuted, fontSize: 12))
+          ? Text(AppLocalizations.of(context)!.followListMe, style: const TextStyle(color: AppColors.textMuted, fontSize: 12))
           : const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
     );
   }

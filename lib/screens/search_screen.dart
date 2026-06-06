@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/friend_service.dart';
@@ -73,7 +74,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         await _friendService.unfollowUser(targetUser.uid);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${targetUser.username}さんのフォローを解除しました')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.searchUnfollowed(targetUser.username ?? ''))),
           );
         }
       } else {
@@ -81,7 +82,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         await _friendService.sendRequest(targetUser.uid);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${targetUser.username}さんにフォローリクエストを送りました')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.searchFollowRequestSent(targetUser.username ?? ''))),
           );
         }
       }
@@ -93,7 +94,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           });
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('操作に失敗しました: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.searchActionFailed(e))),
         );
       }
     }
@@ -115,9 +116,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           controller: _searchController,
           autofocus: true,
           style: const TextStyle(color: AppColors.white, fontSize: 15),
-          decoration: const InputDecoration(
-            hintText: 'IDまたは名前を検索',
-            hintStyle: TextStyle(color: AppColors.grey30, fontSize: 15),
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.searchHint,
+            hintStyle: const TextStyle(color: AppColors.grey30, fontSize: 15),
             border: InputBorder.none,
           ),
           onSubmitted: _performSearch,
@@ -143,24 +144,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      '検索エラー:\n$_errorMessage',
+                      AppLocalizations.of(context)!.searchError(_errorMessage ?? ''),
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: AppColors.error, fontSize: 13),
                     ),
                   ),
                 )
               : _query.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
-                        '検索キーワードを入力してください',
-                        style: TextStyle(color: AppColors.textSecondary),
+                        AppLocalizations.of(context)!.searchKeywordPrompt,
+                        style: const TextStyle(color: AppColors.textSecondary),
                       ),
                     )
                   : _results.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
-                            'ユーザーが見つかりませんでした',
-                            style: TextStyle(color: AppColors.textSecondary),
+                            AppLocalizations.of(context)!.searchNoResults,
+                            style: const TextStyle(color: AppColors.textSecondary),
                           ),
                         )
                       : ListView.builder(
@@ -219,9 +220,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                       ),
                                       onPressed: () => _toggleFollow(user, isFollowing),
                                       child: Text(
-                                        isFollowing 
-                                          ? 'フォロー中' 
-                                          : (_pendingUids.contains(user.uid) ? '申請中' : 'フォロー'),
+                                        isFollowing
+                                          ? AppLocalizations.of(context)!.searchFollowing
+                                          : (_pendingUids.contains(user.uid) ? AppLocalizations.of(context)!.searchPending : AppLocalizations.of(context)!.searchFollow),
                                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                                       ),
                                     ),

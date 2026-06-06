@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../../config/app_colors.dart';
 import '../../config/routes.dart';
 import '../../services/user_service.dart';
@@ -52,7 +53,7 @@ class _OnboardingProfileSettingsScreenState
   }
 
   String? _validateUserId(String? v) {
-    if (v == null || v.trim().isEmpty) return 'ユーザーIDを入力してください';
+    if (v == null || v.trim().isEmpty) return AppLocalizations.of(context)!.onboardingProfileUserIdRequired;
     const adminEmails = [
       'ren0930ren0930@gmail.com',
       'yusuke@example.com',
@@ -62,9 +63,9 @@ class _OnboardingProfileSettingsScreenState
     final isAdmin = adminEmails
         .contains(FirebaseAuth.instance.currentUser?.email);
     if (!isAdmin) {
-      if (v.trim().length < 5) return '5文字以上で入力してください';
+      if (v.trim().length < 5) return AppLocalizations.of(context)!.onboardingProfileUserIdMinLength;
       if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v.trim())) {
-        return '英数字とアンダースコアのみ使えます';
+        return AppLocalizations.of(context)!.onboardingProfileUserIdAlphanumeric;
       }
     }
     return null;
@@ -82,7 +83,7 @@ class _OnboardingProfileSettingsScreenState
         sourcePath: picked.path,
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: '画像を調整',
+            toolbarTitle: AppLocalizations.of(context)!.onboardingProfileImageAdjust,
             toolbarColor: AppColors.bgSurface,
             toolbarWidgetColor: AppColors.textPrimary,
             initAspectRatio: CropAspectRatioPreset.square,
@@ -91,7 +92,7 @@ class _OnboardingProfileSettingsScreenState
             cropStyle: CropStyle.circle,
           ),
           IOSUiSettings(
-            title: '画像を調整',
+            title: AppLocalizations.of(context)!.onboardingProfileImageAdjust,
             aspectRatioLockEnabled: true,
             resetAspectRatioEnabled: false,
             aspectRatioPickerButtonHidden: true,
@@ -118,7 +119,7 @@ class _OnboardingProfileSettingsScreenState
       if (!available) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('このユーザーIDは既に使われています')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.onboardingProfileUserIdAlreadyUsed)),
           );
         }
         return;
@@ -141,7 +142,7 @@ class _OnboardingProfileSettingsScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存に失敗しました: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.onboardingProfileSaveFailed(e))),
         );
       }
     } finally {
@@ -163,7 +164,7 @@ class _OnboardingProfileSettingsScreenState
               children: [
                 const SizedBox(height: 64),
                 Text(
-                  'V EFFECT へようこそ',
+                  AppLocalizations.of(context)!.onboardingProfileWelcome,
                   style: GoogleFonts.outfit(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -173,7 +174,7 @@ class _OnboardingProfileSettingsScreenState
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'プロフィールを設定しましょう',
+                  AppLocalizations.of(context)!.onboardingProfileSubtitle,
                   style: GoogleFonts.notoSansJp(
                     fontSize: 14,
                     color: AppColors.grey50,
@@ -228,18 +229,18 @@ class _OnboardingProfileSettingsScreenState
                     fontSize: 15,
                   ),
                   decoration: InputDecoration(
-                    labelText: 'ユーザー名',
+                    labelText: AppLocalizations.of(context)!.onboardingProfileUsernameLabel,
                     labelStyle: GoogleFonts.notoSansJp(
                       color: AppColors.grey50,
                     ),
-                    hintText: '表示名を入力してください',
+                    hintText: AppLocalizations.of(context)!.onboardingProfileUsernameHint,
                     hintStyle: GoogleFonts.notoSansJp(
                       color: AppColors.grey30,
                       fontSize: 14,
                     ),
                   ),
                   validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'ユーザー名を入力してください' : null,
+                      (v == null || v.trim().isEmpty) ? AppLocalizations.of(context)!.onboardingProfileUsernameRequired : null,
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
@@ -249,11 +250,11 @@ class _OnboardingProfileSettingsScreenState
                     fontSize: 15,
                   ),
                   decoration: InputDecoration(
-                    labelText: 'ユーザーID',
+                    labelText: AppLocalizations.of(context)!.onboardingProfileUserIdLabel,
                     labelStyle: GoogleFonts.notoSansJp(
                       color: AppColors.grey50,
                     ),
-                    hintText: '例: v_effect',
+                    hintText: AppLocalizations.of(context)!.onboardingProfileExampleIdHint,
                     hintStyle: GoogleFonts.notoSansJp(
                       color: AppColors.grey30,
                       fontSize: 14,
@@ -262,7 +263,7 @@ class _OnboardingProfileSettingsScreenState
                       Icons.alternate_email,
                       color: AppColors.grey50,
                     ),
-                    helperText: '5文字以上・英数字とアンダースコアのみ',
+                    helperText: AppLocalizations.of(context)!.onboardingProfileHelperText,
                     helperStyle: GoogleFonts.notoSansJp(
                       color: AppColors.grey30,
                       fontSize: 11,
@@ -275,7 +276,7 @@ class _OnboardingProfileSettingsScreenState
                   onPressed: _canProceed ? _save : null,
                   isLoading: _isSaving,
                   child: Text(
-                    '最初の V を証明する →',
+                    AppLocalizations.of(context)!.onboardingProfileStartButton,
                     style: GoogleFonts.notoSansJp(
                       fontWeight: FontWeight.w700,
                     ),

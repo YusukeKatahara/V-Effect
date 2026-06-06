@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../providers/language_provider.dart';
@@ -43,7 +43,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('リンクを開けませんでした')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorCannotOpenLink)));
       }
     }
   }
@@ -111,9 +111,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           padding: const EdgeInsets.only(bottom: 60, top: 8),
           children: [
             ListTile(
-              title: const Text(
-                '通知',
-                style: TextStyle(color: AppColors.textPrimary),
+              title: Text(
+                AppLocalizations.of(context)!.settingsNotification,
+                style: const TextStyle(color: AppColors.textPrimary),
               ),
               trailing: const Icon(
                 Icons.chevron_right,
@@ -127,15 +127,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 style: const TextStyle(color: AppColors.textPrimary),
               ),
               trailing: Text(
-                ref.watch(languageProvider) == 'en' ? 'ENGLISH' : '日本語',
+                ref.watch(languageProvider) == 'en'
+                  ? AppLocalizations.of(context)!.languageEnglish
+                  : AppLocalizations.of(context)!.languageJapanese,
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
               ),
               onTap: () => _showLanguageDialog(context, ref),
             ),
             ListTile(
-              title: const Text(
-                'パスワードとセキュリティ',
-                style: TextStyle(color: AppColors.textPrimary),
+              title: Text(
+                AppLocalizations.of(context)!.settingsPasswordSecurity,
+                style: const TextStyle(color: AppColors.textPrimary),
               ),
               trailing: const Icon(
                 Icons.chevron_right,
@@ -144,11 +146,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onTap: () => Navigator.pushNamed(context, AppRoutes.securitySettings),
             ),
             
-            _buildSectionHeader('サポート・法的情報'),
+            _buildSectionHeader(AppLocalizations.of(context)!.settingsSupportLegal),
             ListTile(
-              title: const Text(
-                'お問い合わせ / バグ報告',
-                style: TextStyle(color: AppColors.textPrimary),
+              title: Text(
+                AppLocalizations.of(context)!.settingsContactBugReport,
+                style: const TextStyle(color: AppColors.textPrimary),
               ),
               trailing: const Icon(
                 Icons.open_in_new,
@@ -158,9 +160,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onTap: () => _launchURL('https://veffect.web.app/support/'),
             ),
             ListTile(
-              title: const Text(
-                '利用規約',
-                style: TextStyle(color: AppColors.textPrimary),
+              title: Text(
+                AppLocalizations.of(context)!.settingsTerms,
+                style: const TextStyle(color: AppColors.textPrimary),
               ),
               trailing: const Icon(
                 Icons.chevron_right,
@@ -169,9 +171,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onTap: () => Navigator.pushNamed(context, AppRoutes.terms),
             ),
             ListTile(
-              title: const Text(
-                'プライバシーポリシー',
-                style: TextStyle(color: AppColors.textPrimary),
+              title: Text(
+                AppLocalizations.of(context)!.settingsPrivacyPolicy,
+                style: const TextStyle(color: AppColors.textPrimary),
               ),
               trailing: const Icon(
                 Icons.chevron_right,
@@ -180,9 +182,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onTap: () => Navigator.pushNamed(context, AppRoutes.privacyPolicy),
             ),
             ListTile(
-              title: const Text(
-                'バージョン情報',
-                style: TextStyle(color: AppColors.textPrimary),
+              title: Text(
+                AppLocalizations.of(context)!.settingsVersionInfo,
+                style: const TextStyle(color: AppColors.textPrimary),
               ),
               trailing: Text(
                 _appVersion,

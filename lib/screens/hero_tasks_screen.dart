@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -403,18 +404,18 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       builder:
           (ctx) => AlertDialog(
             backgroundColor: AppColors.bgElevated,
-            title: const Text('投稿を削除', style: TextStyle(color: AppColors.white)),
-            content: const Text('この投稿を削除してもよろしいですか？\n(今日の達成記録も取り消されます)'),
+            title: Text(AppLocalizations.of(context)!.heroTasksDeletePostTitle, style: const TextStyle(color: AppColors.white)),
+            content: Text(AppLocalizations.of(context)!.heroTasksDeletePostDesc),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('キャンセル'),
+                child: Text(AppLocalizations.of(context)!.heroTasksDeletePostCancel),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text(
-                  '削除',
-                  style: TextStyle(color: AppColors.error),
+                child: Text(
+                  AppLocalizations.of(context)!.heroTasksDeletePostButton,
+                  style: const TextStyle(color: AppColors.error),
                 ),
               ),
             ],
@@ -781,18 +782,18 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               color: AppColors.grey20,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'ヒーロータスクが設定されていません',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.heroTasksNoTasks,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: AppColors.grey50,
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'プロフィールからヒーロータスクを設定',
-              style: TextStyle(fontSize: 12, color: AppColors.grey30),
+            Text(
+              AppLocalizations.of(context)!.heroTasksNoTasksDesc,
+              style: const TextStyle(fontSize: 12, color: AppColors.grey30),
             ),
           ],
         ),
@@ -1086,7 +1087,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'V EFFECTへようこそ。\nここはあなたにとって最適な環境です。\n\nまずはカメラアイコンをタップして、\n最初のVを証明しましょう。',
+                        AppLocalizations.of(context)!.heroTasksWelcomeMessage,
                         style: GoogleFonts.notoSansJp(
                           color: AppColors.black,
                           fontSize: 13,
@@ -1580,7 +1581,7 @@ class _TaskCardState extends State<_TaskCard> {
                       const SizedBox(width: 8),
                       Text(
                         item.isSeason
-                            ? 'SEASON | 残り${item.season != null ? item.season!.endDate.difference(DateTime.now()).inDays.clamp(0, 999) : 0}日'
+                            ? AppLocalizations.of(context)!.heroTaskSeasonDaysLeft(item.season != null ? item.season!.endDate.difference(DateTime.now()).inDays.clamp(0, 999) : 0)
                             : item.isOneTime
                                 ? 'ONE-TIME'
                                 : 'READY',

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../models/app_task.dart';
@@ -214,16 +215,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         CupertinoButton(
-                          child: const Text(
-                            'キャンセル',
-                            style: TextStyle(color: AppColors.grey50),
+                          child: Text(
+                            AppLocalizations.of(context)!.profileSetupPickerCancel,
+                            style: const TextStyle(color: AppColors.grey50),
                           ),
                           onPressed: () => Navigator.pop(context),
                         ),
                         CupertinoButton(
-                          child: const Text(
-                            '完了',
-                            style: TextStyle(
+                          child: Text(
+                            AppLocalizations.of(context)!.profileSetupPickerDone,
+                            style: const TextStyle(
                               color: AppColors.white,
                               fontWeight: FontWeight.bold,
                             ),
@@ -256,7 +257,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               debugPrint('Error updating taskTime: $e');
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('時刻の更新に失敗しました')),
+                                  SnackBar(content: Text(AppLocalizations.of(context)!.profileScreenTimeUpdateFailed)),
                                 );
                               }
                             }
@@ -328,9 +329,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
-                    const Text(
-                      '🔥 ウィークリートレンド習慣',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.profileScreenTrendTitle,
+                      style: const TextStyle(
                         color: AppColors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -338,7 +339,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 16),
                     if (_trendingTasks.isEmpty)
-                      const Text('トレンドデータがまだありません。', style: TextStyle(color: AppColors.grey70))
+                      Text(AppLocalizations.of(context)!.profileScreenTrendEmpty, style: const TextStyle(color: AppColors.grey70))
                     else
                       Expanded(
                         child: ListView.separated(
@@ -433,9 +434,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'タスクを追加',
-                        style: TextStyle(color: AppColors.white),
+                      Text(
+                        AppLocalizations.of(context)!.profileScreenAddTask,
+                        style: const TextStyle(color: AppColors.white),
                       ),
                       IconButton(
                         icon: const Icon(
@@ -456,9 +457,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         TextField(
                           controller: triggerController,
                           style: const TextStyle(color: AppColors.white),
-                          decoration: const InputDecoration(
-                            hintText: 'トリガー（任意）',
-                            hintStyle: TextStyle(color: AppColors.grey30),
+                          decoration: InputDecoration(
+                            hintText: AppLocalizations.of(context)!.profileScreenTaskTriggerHint,
+                            hintStyle: const TextStyle(color: AppColors.grey30),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -466,18 +467,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           controller: controller,
                           autofocus: true,
                           style: const TextStyle(color: AppColors.white),
-                          decoration: const InputDecoration(
-                            hintText: 'タスク名 (例: 読書)',
-                            hintStyle: TextStyle(color: AppColors.grey30),
+                          decoration: InputDecoration(
+                            hintText: AppLocalizations.of(context)!.profileScreenTaskNameHint,
+                            hintStyle: const TextStyle(color: AppColors.grey30),
                           ),
                         ),
                         const SizedBox(height: 16),
                         TextField(
                           controller: rewardController,
                           style: const TextStyle(color: AppColors.white),
-                          decoration: const InputDecoration(
-                            hintText: 'ご褒美（任意）',
-                            hintStyle: TextStyle(color: AppColors.grey30),
+                          decoration: InputDecoration(
+                            hintText: AppLocalizations.of(context)!.profileScreenTaskRewardHint,
+                            hintStyle: const TextStyle(color: AppColors.grey30),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -491,8 +492,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               fontSize: 14,
                             ),
                           ),
-                          subtitle: const Text(
-                            '完了から24時間後に自動削除されます',
+                          subtitle: Text(
+                            AppLocalizations.of(context)!.profileScreenOneTimeTaskTitle,
                             style: TextStyle(
                               color: AppColors.grey50,
                               fontSize: 11,
@@ -512,9 +513,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text(
-                        'キャンセル',
-                        style: TextStyle(color: AppColors.grey50),
+                      child: Text(
+                        AppLocalizations.of(context)!.editProfileCancel,
+                        style: const TextStyle(color: AppColors.grey50),
                       ),
                     ),
                     TextButton(
@@ -525,9 +526,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             'reward': rewardController.text,
                             'isOneTime': isOneTime,
                           }),
-                      child: const Text(
-                        '追加',
-                        style: TextStyle(color: AppColors.white),
+                      child: Text(
+                        AppLocalizations.of(context)!.profileScreenAddTask,
+                        style: const TextStyle(color: AppColors.white),
                       ),
                     ),
                   ],
@@ -567,9 +568,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'タスクを編集',
-                        style: TextStyle(color: AppColors.white),
+                      Text(
+                        AppLocalizations.of(context)!.profileScreenEditTask,
+                        style: const TextStyle(color: AppColors.white),
                       ),
                       IconButton(
                         icon: const Icon(
@@ -590,9 +591,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           TextField(
                             controller: triggerController,
                             style: const TextStyle(color: AppColors.white),
-                            decoration: const InputDecoration(
-                              hintText: 'トリガー（任意）',
-                              hintStyle: TextStyle(color: AppColors.grey30),
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(context)!.profileScreenTaskTriggerHint,
+                              hintStyle: const TextStyle(color: AppColors.grey30),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -600,18 +601,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             controller: controller,
                             autofocus: true,
                             style: const TextStyle(color: AppColors.white),
-                            decoration: const InputDecoration(
-                              hintText: 'タスク名 (例: 読書)',
-                              hintStyle: TextStyle(color: AppColors.grey30),
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(context)!.profileScreenTaskNameHint,
+                              hintStyle: const TextStyle(color: AppColors.grey30),
                             ),
                           ),
                           const SizedBox(height: 16),
                           TextField(
                             controller: rewardController,
                             style: const TextStyle(color: AppColors.white),
-                            decoration: const InputDecoration(
-                              hintText: 'ご褒美（任意）',
-                              hintStyle: TextStyle(color: AppColors.grey30),
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(context)!.profileScreenTaskRewardHint,
+                              hintStyle: const TextStyle(color: AppColors.grey30),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -625,8 +626,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 fontSize: 14,
                               ),
                             ),
-                            subtitle: const Text(
-                              '完了から24時間後に自動削除されます',
+                            subtitle: Text(
+                              AppLocalizations.of(context)!.profileScreenOneTimeTaskTitle,
                               style: TextStyle(
                                 color: AppColors.grey50,
                                 fontSize: 11,
@@ -646,9 +647,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text(
-                        'キャンセル',
-                        style: TextStyle(color: AppColors.grey50),
+                      child: Text(
+                        AppLocalizations.of(context)!.editProfileCancel,
+                        style: const TextStyle(color: AppColors.grey50),
                       ),
                     ),
                     TextButton(
@@ -659,9 +660,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             'reward': rewardController.text,
                             'isOneTime': isOneTime,
                           }),
-                      child: const Text(
-                        '保存',
-                        style: TextStyle(color: AppColors.white),
+                      child: Text(
+                        AppLocalizations.of(context)!.profileScreenSaveTask,
+                        style: const TextStyle(color: AppColors.white),
                       ),
                     ),
                   ],
@@ -710,7 +711,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '習慣化のコツ',
+                  AppLocalizations.of(context)!.profileScreenHabitTipsTitle,
                   style: GoogleFonts.notoSansJp(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -724,7 +725,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '• ハビット・スタッキング\nすでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。',
+                  AppLocalizations.of(context)!.habitStackingHint,
                   style: GoogleFonts.notoSansJp(
                     fontSize: 13,
                     color: AppColors.grey50,
@@ -733,7 +734,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '• テンプテーション・バンドリング\nやるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。',
+                  AppLocalizations.of(context)!.temptationBundlingHint,
                   style: GoogleFonts.notoSansJp(
                     fontSize: 13,
                     color: AppColors.grey50,
@@ -745,9 +746,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text(
-                  '閉じる',
-                  style: TextStyle(color: AppColors.white),
+                child: Text(
+                  AppLocalizations.of(context)!.profileScreenHabitTipsClose,
+                  style: const TextStyle(color: AppColors.white),
                 ),
               ),
             ],
@@ -762,24 +763,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder:
           (ctx) => AlertDialog(
             backgroundColor: AppColors.bgElevated,
-            title: const Text(
-              '削除の確認',
-              style: TextStyle(color: AppColors.white),
+            title: Text(
+              AppLocalizations.of(context)!.profileScreenDeleteTaskTitle,
+              style: const TextStyle(color: AppColors.white),
             ),
-            content: const Text('このタスクを削除しますか？'),
+            content: Text(AppLocalizations.of(context)!.profileScreenDeleteTaskMessage),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text(
-                  'キャンセル',
-                  style: TextStyle(color: AppColors.grey50),
+                child: Text(
+                  AppLocalizations.of(context)!.profileScreenDeleteTaskCancel,
+                  style: const TextStyle(color: AppColors.grey50),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text(
-                  '削除',
-                  style: TextStyle(color: AppColors.error),
+                child: Text(
+                  AppLocalizations.of(context)!.profileScreenDeleteTaskButton,
+                  style: const TextStyle(color: AppColors.error),
                 ),
               ),
             ],
@@ -849,7 +850,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 6),
                       ],
                       Text(
-                        hasQuest ? taskVal.text.trim() : '（タスク）',
+                        hasQuest ? taskVal.text.trim() : AppLocalizations.of(context)!.profileNoTaskPlaceholder,
                         style: GoogleFonts.notoSerifJp(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -909,10 +910,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
+    return Center(
       child: Text(
-        'プロフィールが見つかりません',
-        style: TextStyle(color: AppColors.textSecondary),
+        AppLocalizations.of(context)!.profileScreenProfileNotFound,
+        style: const TextStyle(color: AppColors.textSecondary),
       ),
     );
   }
@@ -967,7 +968,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               // より柔らかい表現にするため、ひらがな表記の「積み重ねを振りかえる」にしました
                               Text(
-                                '積み重ねを振りかえる',
+                                AppLocalizations.of(context)!.profileScreenReviewButton,
                                 style: GoogleFonts.notoSansJp(
                                   color: AppColors.accentGold,
                                   fontWeight: FontWeight.bold,
@@ -1035,9 +1036,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder:
           (ctx) => SimpleDialog(
             backgroundColor: AppColors.bgSurface,
-            title: const Text(
-              'QRコード',
-              style: TextStyle(color: AppColors.textPrimary),
+            title: Text(
+              AppLocalizations.of(context)!.profileScreenQrTitle,
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
             children: [
               SimpleDialogOption(
@@ -1050,9 +1051,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   );
                 },
-                child: const Text(
-                  '表示する',
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                child: Text(
+                  AppLocalizations.of(context)!.profileScreenQrDisplay,
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
                 ),
               ),
               SimpleDialogOption(
@@ -1063,9 +1064,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     MaterialPageRoute(builder: (_) => const QrScannerScreen()),
                   );
                 },
-                child: const Text(
-                  '読み取る',
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                child: Text(
+                  AppLocalizations.of(context)!.profileScreenQrScan,
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
                 ),
               ),
             ],
@@ -1194,7 +1195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: AppColors.textPrimary,
                     size: 26,
                   ),
-                  tooltip: 'QRコードで繋がる',
+                  tooltip: AppLocalizations.of(context)!.profileScreenQrTooltip,
                   onPressed: _showQrActionDialog,
                 ),
               ),
@@ -1222,7 +1223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Expanded(
                           child: _buildFollowStat(
-                            'フォロー',
+                            AppLocalizations.of(context)!.profileScreenFollowing,
                             _user!.following.length,
                             onTap:
                                 () => Navigator.pushNamed(
@@ -1231,7 +1232,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   arguments: {
                                     'uid': _uid,
                                     'isFollowing': true,
-                                    'title': 'フォロー中',
+                                    'title': AppLocalizations.of(context)!.profileScreenFollowingTitle,
                                   },
                                 ),
                           ),
@@ -1243,7 +1244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         Expanded(
                           child: _buildFollowStat(
-                            'フォロワー',
+                            AppLocalizations.of(context)!.profileScreenFollowers,
                             _user!.followers.length,
                             onTap:
                                 () => Navigator.pushNamed(
@@ -1252,7 +1253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   arguments: {
                                     'uid': _uid,
                                     'isFollowing': false,
-                                    'title': 'フォロワー',
+                                    'title': AppLocalizations.of(context)!.profileScreenFollowersTitle,
                                   },
                                 ),
                           ),
@@ -1264,7 +1265,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         Expanded(
                           child: _buildFollowStat(
-                            'ストリーク',
+                            AppLocalizations.of(context)!.profileScreenStreak,
                             _user!.streak,
                             icon: Icons.local_fire_department_rounded,
                           ),
@@ -1303,7 +1304,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color:
-                    label == 'ストリーク' ? AppColors.accentGold : AppColors.white,
+                    icon != null ? AppColors.accentGold : AppColors.white,
                 letterSpacing: 0.5,
               ),
             ),
@@ -1374,12 +1375,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const _SectionTitle(title: 'ヒーロータスク'),
+            _SectionTitle(title: AppLocalizations.of(context)!.profileScreenHeroTasks),
             TextButton(
               onPressed: _showTrendingTasksBottomSheet,
-              child: const Text(
-                '🔥 ウィークリートレンド習慣',
-                style: TextStyle(color: AppColors.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
+              child: Text(
+                AppLocalizations.of(context)!.profileScreenWeeklyTrend,
+                style: const TextStyle(color: AppColors.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -1465,9 +1466,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: AppColors.white.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 12),
-            const Text(
-              '最初のタスクを追加',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.profileScreenAddFirstTask,
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../services/analytics_service.dart';
@@ -31,19 +32,17 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   TimeOfDay? _taskTime;
   
   String? _occupation;
-  static const _occupationOptions = [
-    '会社員',
-    '経営者・役員',
-    '公務員',
-    '自営業・フリーランス',
-    '専門職（医師・弁護士など）',
-    '教員・教育関係',
-    '学生',
-    'パート・アルバイト',
-    '専業主婦・主夫',
-    '無職',
-    'その他',
-  ];
+  static const _occupationCount = 11;
+
+  List<String> _occupationOptions(BuildContext ctx) {
+    final l = AppLocalizations.of(ctx)!;
+    return [
+      l.occupationEmployee, l.occupationExecutive, l.occupationCivilServant,
+      l.occupationSelfEmployed, l.occupationProfessional, l.occupationEducation,
+      l.occupationStudent, l.occupationPartTime, l.occupationHomemaker,
+      l.occupationUnemployed, l.occupationOther,
+    ];
+  }
 
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
@@ -68,7 +67,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   }
 
   String _formatTime(TimeOfDay? time) {
-    if (time == null) return '選択してください';
+    if (time == null) return AppLocalizations.of(context)!.profileSetupSelectPlaceholder;
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
@@ -100,12 +99,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       TextButton(
-                        child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+                        child: Text(AppLocalizations.of(context)!.profileSetupPickerCancel, style: const TextStyle(color: AppColors.textSecondary)),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       Text(title, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
                       TextButton(
-                        child: const Text('完了', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        child: Text(AppLocalizations.of(context)!.profileSetupPickerDone, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                         onPressed: () {
                           onTimeSelected(selectedTime);
                           Navigator.of(context).pop();
@@ -141,7 +140,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   }
 
   void _showOccupationPickerBottomSheet(BuildContext context) {
-    int selectedIndex = _occupationOptions.indexOf(_occupation ?? _occupationOptions[0]);
+    final occupationOpts = _occupationOptions(context);
+    int selectedIndex = occupationOpts.indexOf(_occupation ?? occupationOpts[0]);
     if (selectedIndex == -1) selectedIndex = 0;
 
     showModalBottomSheet(
@@ -161,15 +161,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
-                      child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+                      child: Text(AppLocalizations.of(context)!.profileSetupPickerCancel, style: const TextStyle(color: AppColors.textSecondary)),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
-                    const Text('職業を選択', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(AppLocalizations.of(context)!.profileSetupOccupationPickerTitle, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
                     TextButton(
-                      child: const Text('完了', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      child: Text(AppLocalizations.of(context)!.profileSetupPickerDone, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                       onPressed: () {
                         setState(() {
-                          _occupation = _occupationOptions[selectedIndex];
+                          _occupation = occupationOpts[selectedIndex];
                         });
                         Navigator.of(context).pop();
                       },
@@ -191,7 +191,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                     onSelectedItemChanged: (int index) {
                       selectedIndex = index;
                     },
-                    children: _occupationOptions.map((String value) {
+                    children: occupationOpts.map((String value) {
                       return Center(
                         child: Text(
                           value,
@@ -215,13 +215,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     // 追加項目のバリデーション
     if (_occupation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('職業を選択してください')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.profileSetupOccupationRequired)),
       );
       return;
     }
     if (_taskTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ヒーロータスク時間を設定してください')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.profileSetupTaskTimeRequired)),
       );
       return;
     }
@@ -236,7 +236,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
         if (mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('このユーザーIDは既に使われています')));
+          ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.profileSetupUserIdAlreadyUsed)));
         }
         return;
       }
@@ -259,7 +259,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('保存に失敗しました。もう一度お試しください。')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.profileSetupSaveFailed)));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -294,9 +294,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             ),
                             onPressed: () => Navigator.pop(context),
                           ),
-                        const Text(
-                          'プロフィール設定',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.profileSetupTitle,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -330,10 +330,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'あなたのプロフィールを設定しましょう',
+                            Text(
+                              AppLocalizations.of(context)!.profileSetupSubtitle,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,
@@ -347,15 +347,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                               style: const TextStyle(
                                 color: AppColors.textPrimary,
                               ),
-                              decoration: const InputDecoration(
-                                labelText: 'ユーザー名',
-                                hintText: '例: V EFFECT',
-                                prefixIcon: Icon(Icons.badge),
+                              decoration: InputDecoration(
+                                labelText: AppLocalizations.of(context)!.profileSetupUsernameLabel,
+                                hintText: AppLocalizations.of(context)!.hintNameExample,
+                                prefixIcon: const Icon(Icons.badge),
                               ),
                               validator:
                                   (v) =>
                                       (v == null || v.trim().isEmpty)
-                                          ? 'ユーザー名を入力してください'
+                                          ? AppLocalizations.of(context)!.profileSetupUsernameRequired
                                           : null,
                             ),
                             const SizedBox(height: 16),
@@ -366,14 +366,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                               style: const TextStyle(
                                 color: AppColors.textPrimary,
                               ),
-                              decoration: const InputDecoration(
-                                labelText: 'ユーザーID',
-                                hintText: '例: v_effect',
-                                prefixIcon: Icon(Icons.alternate_email),
+                              decoration: InputDecoration(
+                                labelText: AppLocalizations.of(context)!.profileSetupUserIdLabel,
+                                hintText: AppLocalizations.of(context)!.onboardingProfileExampleIdHint,
+                                prefixIcon: const Icon(Icons.alternate_email),
                               ),
                               validator: (v) {
                                 if (v == null || v.trim().isEmpty) {
-                                  return 'ユーザーIDを入力してください';
+                                  return AppLocalizations.of(context)!.profileSetupUserIdRequired;
                                 }
                                 final adminEmails = [
                                   'ren0930ren0930@gmail.com',
@@ -384,12 +384,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                 final isSpecialAdmin = adminEmails.contains(FirebaseAuth.instance.currentUser?.email);
                                 if (!isSpecialAdmin) {
                                   if (v.trim().length < 5) {
-                                    return '5文字以上で入力してください';
+                                    return AppLocalizations.of(context)!.profileSetupUserIdMinLength;
                                   }
                                   if (!RegExp(
                                     r'^[a-zA-Z0-9_]+$',
                                   ).hasMatch(v.trim())) {
-                                    return '英数字とアンダースコアのみ使えます';
+                                    return AppLocalizations.of(context)!.profileSetupUserIdAlphanumeric;
                                   }
                                 }
                                 return null;
@@ -398,7 +398,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             const SizedBox(height: 24),
 
                             // 職業
-                            const SectionTitle(title: '職業（非公開情報）'),
+                            SectionTitle(title: AppLocalizations.of(context)!.profileSetupOccupationSection),
                             const SizedBox(height: 8),
                             InkWell(
                               onTap: () => _showOccupationPickerBottomSheet(context),
@@ -414,7 +414,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      _occupation ?? '選択してください',
+                                      _occupation ?? AppLocalizations.of(context)!.profileSetupSelectPlaceholder,
                                       style: TextStyle(
                                         color: _occupation == null ? AppColors.textSecondary : AppColors.textPrimary,
                                         fontSize: 16,
@@ -432,12 +432,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             // ヒーロータスク時間
 
                             // ヒーロータスク時間
-                            const SectionTitle(title: 'ヒーロータスク実行時間'),
+                            SectionTitle(title: AppLocalizations.of(context)!.profileSetupTaskTimeSection),
                             const SizedBox(height: 8),
                             InkWell(
                               onTap: () => _showTimePickerBottomSheet(
                                 context,
-                                'ヒーロータスク実行時間を設定',
+                                AppLocalizations.of(context)!.profileSetupTaskTimePickerTitle,
                                 _taskTime,
                                 (t) => setState(() => _taskTime = t),
                               ),
@@ -470,7 +470,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             GradientButton(
                               onPressed: _saveAndNext,
                               isLoading: _isSaving,
-                              child: const Text('次へ'),
+                              child: Text(AppLocalizations.of(context)!.profileSetupNextButton),
                             ),
                             const SizedBox(height: 24),
                           ],

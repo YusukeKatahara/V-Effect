@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../../config/app_colors.dart';
 import '../../config/routes.dart';
 import '../../services/user_service.dart';
@@ -133,7 +134,7 @@ class _ConceptPageState extends State<_ConceptPage> with SingleTickerProviderSta
           FadeTransition(
             opacity: _anims[0],
             child: Text(
-              'V EFFECT とは',
+              AppLocalizations.of(context)!.vEffectConceptTitle,
               style: GoogleFonts.outfit(
                 fontSize: 34,
                 fontWeight: FontWeight.w800,
@@ -146,7 +147,7 @@ class _ConceptPageState extends State<_ConceptPage> with SingleTickerProviderSta
           FadeTransition(
             opacity: _anims[1],
             child: Text(
-              'V EFFECT の V は Victory（勝利）のVである。',
+              AppLocalizations.of(context)!.vEffectDefinition,
               style: GoogleFonts.notoSansJp(
                 fontSize: 15,
                 color: AppColors.white,
@@ -170,7 +171,7 @@ class _ConceptPageState extends State<_ConceptPage> with SingleTickerProviderSta
           FadeTransition(
             opacity: _anims[3],
             child: Text(
-              '小さな勝利の積み重ねが理想のあなたに近づける。',
+              AppLocalizations.of(context)!.vEffectConceptLine1,
               style: GoogleFonts.notoSansJp(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -182,7 +183,7 @@ class _ConceptPageState extends State<_ConceptPage> with SingleTickerProviderSta
           FadeTransition(
             opacity: _anims[4],
             child: Text(
-              'このプラットフォームはそんなあなたの勝利と習慣をサポートします。',
+              AppLocalizations.of(context)!.vEffectConceptLine2,
               style: GoogleFonts.notoSansJp(
                 fontSize: 14,
                 color: AppColors.grey50,
@@ -199,15 +200,15 @@ class _ConceptPageState extends State<_ConceptPage> with SingleTickerProviderSta
                   color: AppColors.grey50,
                 ),
                 children: [
-                  const TextSpan(text: 'さあ、仲間と共に'),
+                  TextSpan(text: AppLocalizations.of(context)!.vEffectConceptLine3Prefix),
                   TextSpan(
-                    text: 'V EFFECT(勝利者効果)',
+                    text: AppLocalizations.of(context)!.vEffectTerm,
                     style: GoogleFonts.notoSansJp(
                       fontWeight: FontWeight.bold,
                       color: AppColors.white, // 強調のために白色にします
                     ),
                   ),
-                  const TextSpan(text: 'を起こそう。'),
+                  TextSpan(text: AppLocalizations.of(context)!.vEffectConceptLine3Suffix),
                 ],
               ),
             ),
@@ -276,7 +277,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
           FadeTransition(
             opacity: _anims[0],
             child: Text(
-              'V EFFECT のコア機能',
+              AppLocalizations.of(context)!.vEffectCoreTitle,
               style: GoogleFonts.outfit(
                 fontSize: 30,
                 fontWeight: FontWeight.w800,
@@ -301,7 +302,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
                     ),
                   ),
                   TextSpan(
-                    text: ' (ヒーロータスク)',
+                    text: AppLocalizations.of(context)!.vEffectHeroTaskLabel,
                     style: GoogleFonts.notoSansJp(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -316,7 +317,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
           FadeTransition(
             opacity: _anims[2],
             child: Text(
-              'V を証明しよう。きれいじゃなくていい。',
+              AppLocalizations.of(context)!.vEffectSlogan,
               style: GoogleFonts.notoSansJp(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -328,7 +329,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
           FadeTransition(
             opacity: _anims[3],
             child: Text(
-              '今日の達成を写真にする、それだけです。',
+              AppLocalizations.of(context)!.vEffectFeatureLine1,
               style: GoogleFonts.notoSansJp(
                 fontSize: 13,
                 color: AppColors.grey50,
@@ -339,7 +340,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
           FadeTransition(
             opacity: _anims[4],
             child: Text(
-              'やり遂げたその事実があなたを作りあげます。',
+              AppLocalizations.of(context)!.vEffectFeatureLine2,
               style: GoogleFonts.notoSansJp(
                 fontSize: 13,
                 color: AppColors.grey50,
@@ -363,7 +364,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
           FadeTransition(
             opacity: _anims[6],
             child: Text(
-              'お互いの努力が繋がりになる。',
+              AppLocalizations.of(context)!.vEffectFeatureLine3,
               style: GoogleFonts.notoSansJp(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -375,7 +376,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
           FadeTransition(
             opacity: _anims[7],
             child: Text(
-              '今日 V を達成した仲間が見える。',
+              AppLocalizations.of(context)!.vEffectFeatureLine4,
               style: GoogleFonts.notoSansJp(
                 fontSize: 13,
                 color: AppColors.grey50,
@@ -386,7 +387,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
           FadeTransition(
             opacity: _anims[8],
             child: Text(
-              '努力証明した者だけが届き、届けられる。',
+              AppLocalizations.of(context)!.vEffectFeatureLine5,
               style: GoogleFonts.notoSansJp(
                 fontSize: 13,
                 color: AppColors.grey50,
@@ -399,7 +400,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
             child: GradientButton(
               onPressed: widget.onPressed,
               child: Text(
-                'V EFFECT に参加する →',
+                AppLocalizations.of(context)!.vEffectJoinButton,
                 style: GoogleFonts.notoSansJp(
                   fontWeight: FontWeight.w700,
                 ),

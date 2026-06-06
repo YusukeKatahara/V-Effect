@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
@@ -151,13 +152,13 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.primary,
                             ),
-                            child: const Text('キャンセル'),
+                            child: Text(AppLocalizations.of(context)!.taskSetupTimePickerCancel),
                           ),
                         Expanded(
                           child: Center(
-                            child: const Text(
-                              'ヒーロータスクの時間',
-                              style: TextStyle(
+                            child: Text(
+                              AppLocalizations.of(context)!.taskSetupTimePickerTitle,
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,
@@ -179,9 +180,9 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.primary,
                           ),
-                          child: const Text(
-                            '完了',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                          child: Text(
+                            AppLocalizations.of(context)!.taskSetupTimePickerDone,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -210,7 +211,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                 final isSelected = index == selectedHour;
                                 return Center(
                                   child: Text(
-                                    '$index時',
+                                    AppLocalizations.of(context)!.timeHour(index),
                                     style: TextStyle(
                                       fontSize: isSelected ? 22 : 16,
                                       fontWeight:
@@ -247,7 +248,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                 final isSelected = minute == selectedMinute;
                                 return Center(
                                   child: Text(
-                                    '${minute.toString().padLeft(2, '0')}分',
+                                    AppLocalizations.of(context)!.timeMinute(minute.toString().padLeft(2, '0')),
                                     style: TextStyle(
                                       fontSize: isSelected ? 22 : 16,
                                       fontWeight:
@@ -279,7 +280,8 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
 
   /// 時間を「午前 7:00」「午後 9:00」のような日本語形式で画面に表示します
   String _formatTime(TimeOfDay time) {
-    final period = time.hour < 12 ? '午前' : '午後';
+    final l = AppLocalizations.of(context)!;
+    final period = time.hour < 12 ? l.timePeriodAm : l.timePeriodPm;
     final h = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
     final m = time.minute.toString().padLeft(2, '0');
     return '$period $h:$m';
@@ -311,7 +313,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
     if (tasks.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('ヒーロータスクを1つ以上入力してください')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.taskSetupAtLeastOne)));
       return;
     }
 
@@ -353,7 +355,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('保存に失敗しました。もう一度お試しください。'),
+            content: Text(AppLocalizations.of(context)!.taskSetupSaveFailed),
             duration: const Duration(seconds: 10),
           ),
         );
@@ -391,9 +393,9 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             ),
                             onPressed: () => Navigator.pop(context),
                           ),
-                        const Text(
-                          'ヒーロータスク設定',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.taskSetupTitle,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
@@ -427,10 +429,10 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'ヒーロータスクとスケジュールをカスタマイズしましょう',
+                            Text(
+                              AppLocalizations.of(context)!.taskSetupSubtitle,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,
@@ -439,7 +441,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             const SizedBox(height: 32),
 
                             // ── プロフィール写真 ──
-                            const SectionTitle(title: 'プロフィール写真'),
+                            SectionTitle(title: AppLocalizations.of(context)!.taskSetupProfilePhoto),
                             const SizedBox(height: 12),
                             Center(
                               child: GestureDetector(
@@ -470,19 +472,19 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                             : null,
                                     child:
                                         _profileImage == null
-                                            ? const Column(
+                                            ? Column(
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
                                               children: [
-                                                Icon(
+                                                const Icon(
                                                   Icons.camera_alt,
                                                   size: 32,
                                                   color: AppColors.textMuted,
                                                 ),
-                                                SizedBox(height: 4),
+                                                const SizedBox(height: 4),
                                                 Text(
-                                                  '写真を選択',
-                                                  style: TextStyle(
+                                                  AppLocalizations.of(context)!.taskSetupSelectPhoto,
+                                                  style: const TextStyle(
                                                     fontSize: 12,
                                                     color: AppColors.textMuted,
                                                   ),
@@ -497,7 +499,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             const SizedBox(height: 24),
 
                             // ── ヒーロータスク入力欄 ──
-                            const SectionTitle(title: 'やりたいヒーロータスク'),
+                            SectionTitle(title: AppLocalizations.of(context)!.taskSetupHeroTasks),
                             const SizedBox(height: 8),
                             ...List.generate(_taskCtrls.length, (index) {
                               return Padding(
@@ -530,8 +532,8 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                           color: AppColors.textPrimary,
                                         ),
                                         decoration: InputDecoration(
-                                          labelText: 'ヒーロータスク ${index + 1}',
-                                          hintText: '例: ランニング3km',
+                                          labelText: AppLocalizations.of(context)!.taskSetupHeroTaskLabel(index + 1),
+                                          hintText: AppLocalizations.of(context)!.hintTaskExample,
                                         ),
                                       ),
                                     ),
@@ -552,7 +554,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                 alignment: Alignment.centerLeft,
                                 child: TextButton.icon(
                                   icon: const Icon(Icons.add),
-                                  label: const Text('ヒーロータスクを追加'),
+                                  label: Text(AppLocalizations.of(context)!.taskSetupAddTask),
                                   onPressed: _addTaskField,
                                 ),
                               ),
@@ -563,11 +565,11 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             // ── ヒーロータスク実行時間 ──
 
                             // ── ヒーロータスク実行時間 ──
-                            const SectionTitle(title: 'ヒーロータスクをいつやりたいですか？'),
+                            SectionTitle(title: AppLocalizations.of(context)!.taskSetupTimeSection),
                             const SizedBox(height: 4),
-                            const Text(
-                              'この時間に通知を送ってヒーロータスクをリマインドします',
-                              style: TextStyle(
+                            Text(
+                              AppLocalizations.of(context)!.taskSetupTimeDesc,
+                              style: const TextStyle(
                                 fontSize: 13,
                                 color: AppColors.textSecondary,
                               ),
@@ -594,7 +596,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             GradientButton(
                               onPressed: _saveAndFinish,
                               isLoading: _isSaving,
-                              child: const Text('設定を完了してはじめる'),
+                              child: Text(AppLocalizations.of(context)!.taskSetupCompleteButton),
                             ),
                             const SizedBox(height: 24),
                           ],

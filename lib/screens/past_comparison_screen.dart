@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
@@ -158,7 +159,7 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
         iconTheme: const IconThemeData(color: AppColors.white),
         // どのタスクでも違和感なく振り返りができ、より柔らかい表現になるように「積み重ねを振りかえる」に統一しました
         title: Text(
-          '積み重ねを振りかえる',
+          AppLocalizations.of(context)!.pastComparisonTitle,
           style: GoogleFonts.notoSansJp(
             color: AppColors.white,
             fontWeight: FontWeight.bold,
@@ -169,7 +170,7 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
           IconButton(
             icon: const Icon(Icons.swap_vert), // 上下矢印アイコン
             onPressed: _isLoading ? null : _toggleSortOrder,
-            tooltip: _isDescending ? '古い順にする' : '新しい順にする',
+            tooltip: _isDescending ? AppLocalizations.of(context)!.pastComparisonSortOld : AppLocalizations.of(context)!.pastComparisonSortNew,
           ),
         ],
         bottom: _validTabs.isEmpty ? null : TabBar(
@@ -178,7 +179,7 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
           indicatorColor: AppColors.accentGold,
           labelColor: AppColors.accentGold,
           unselectedLabelColor: AppColors.grey50,
-          tabs: _validTabs.map((t) => Tab(text: t)).toList(),
+          tabs: _validTabs.map((t) => Tab(text: t == 'その他' ? AppLocalizations.of(context)!.categoryOther : t)).toList(),
         ),
       ),
       body: _isLoading
@@ -198,7 +199,7 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
   Widget _buildEmptyState() {
     return Center(
       child: Text(
-        'まだ投稿がありません',
+        AppLocalizations.of(context)!.pastComparisonEmpty,
         style: GoogleFonts.notoSansJp(color: AppColors.grey50),
       ),
     );
@@ -208,7 +209,7 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
     if (posts.isEmpty) {
       return Center(
         child: Text(
-          'このタスクの投稿はまだありません',
+          AppLocalizations.of(context)!.pastComparisonTaskEmpty,
           style: GoogleFonts.notoSansJp(color: AppColors.grey50),
         ),
       );
@@ -330,7 +331,7 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
         foregroundColor: isReady ? AppColors.black : AppColors.grey70,
         icon: const Icon(Icons.compare_arrows),
         label: Text(
-          isReady ? '比較する' : '2枚選んでください',
+          isReady ? AppLocalizations.of(context)!.pastComparisonCompare : AppLocalizations.of(context)!.pastComparisonSelectTwo,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       );
@@ -340,9 +341,9 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
         backgroundColor: AppColors.bgElevated,
         foregroundColor: AppColors.accentGold,
         icon: const Icon(Icons.check_box_outlined),
-        label: const Text(
-          '比較モード',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        label: Text(
+          AppLocalizations.of(context)!.pastComparisonMode,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       );
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
@@ -126,7 +127,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _isPending = oldPending;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('フォローリクエストを送信できませんでした')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.userProfileFollowFailed)),
         );
       }
     } finally {
@@ -142,7 +143,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       arguments: {
         'uid': _targetUid,
         'isFollowing': isFollowing,
-        'title': isFollowing ? 'フォロー中' : 'フォロワー',
+        'title': isFollowing ? AppLocalizations.of(context)!.userProfileFollowing : AppLocalizations.of(context)!.userProfileFollowers,
       },
     );
   }
@@ -169,7 +170,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   color: _isBlocked ? AppColors.textPrimary : AppColors.error,
                 ),
                 title: Text(
-                  _isBlocked ? 'ブロックを解除' : 'ブロック',
+                  _isBlocked ? AppLocalizations.of(context)!.userProfileUnblock : AppLocalizations.of(context)!.userProfileBlock,
                   style: TextStyle(
                     color: _isBlocked
                         ? AppColors.textPrimary
@@ -186,9 +187,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   Icons.flag_rounded,
                   color: AppColors.textSecondary,
                 ),
-                title: const Text(
-                  '通報',
-                  style: TextStyle(color: AppColors.textSecondary),
+                title: Text(
+                  AppLocalizations.of(context)!.userProfileReport,
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -208,20 +209,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: AppColors.bgSurface,
-          title: const Text(
-            'ブロックを解除',
-            style: TextStyle(color: AppColors.textPrimary),
+          title: Text(
+            AppLocalizations.of(context)!.userProfileUnblockConfirmTitle,
+            style: const TextStyle(color: AppColors.textPrimary),
           ),
-          content: const Text(
-            'このユーザーのブロックを解除しますか？',
-            style: TextStyle(color: AppColors.textSecondary),
+          content: Text(
+            AppLocalizations.of(context)!.userProfileUnblockConfirmDesc,
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text(
-                'キャンセル',
-                style: TextStyle(color: AppColors.textSecondary),
+              child: Text(
+                AppLocalizations.of(context)!.userProfileUnblockCancel,
+                style: const TextStyle(color: AppColors.textSecondary),
               ),
             ),
             TextButton(
@@ -229,9 +230,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Navigator.pop(ctx);
                 _performUnblock();
               },
-              child: const Text(
-                '解除する',
-                style: TextStyle(color: AppColors.textPrimary),
+              child: Text(
+                AppLocalizations.of(context)!.userProfileUnblockButton,
+                style: const TextStyle(color: AppColors.textPrimary),
               ),
             ),
           ],
@@ -242,20 +243,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: AppColors.bgSurface,
-          title: const Text(
-            'ブロック',
-            style: TextStyle(color: AppColors.error),
+          title: Text(
+            AppLocalizations.of(context)!.userProfileBlockConfirmTitle,
+            style: const TextStyle(color: AppColors.error),
           ),
-          content: const Text(
-            'このユーザーをブロックします。フォロー関係も解除されます。',
-            style: TextStyle(color: AppColors.textSecondary),
+          content: Text(
+            AppLocalizations.of(context)!.userProfileBlockConfirmDesc,
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text(
-                'キャンセル',
-                style: TextStyle(color: AppColors.textSecondary),
+              child: Text(
+                AppLocalizations.of(context)!.userProfileBlockCancel,
+                style: const TextStyle(color: AppColors.textSecondary),
               ),
             ),
             TextButton(
@@ -263,9 +264,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Navigator.pop(ctx);
                 _performBlock();
               },
-              child: const Text(
-                'ブロック',
-                style: TextStyle(color: AppColors.error),
+              child: Text(
+                AppLocalizations.of(context)!.userProfileBlockButton,
+                style: const TextStyle(color: AppColors.error),
               ),
             ),
           ],
@@ -283,7 +284,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ブロックに失敗しました')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.userProfileBlockFailed)),
         );
       }
     } finally {
@@ -300,7 +301,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ブロック解除に失敗しました')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.userProfileUnblockFailed)),
         );
       }
     } finally {
@@ -313,26 +314,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgSurface,
-        title: const Text(
-          '通報する理由を選択',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          AppLocalizations.of(context)!.userProfileReportTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         contentPadding: const EdgeInsets.symmetric(vertical: 8),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _reportOption(ctx, 'スパム', 'spam'),
-            _reportOption(ctx, 'ハラスメント', 'harassment'),
-            _reportOption(ctx, '不適切なコンテンツ', 'inappropriate'),
-            _reportOption(ctx, 'その他', 'other'),
+            _reportOption(ctx, AppLocalizations.of(context)!.userProfileReportSpam, 'spam'),
+            _reportOption(ctx, AppLocalizations.of(context)!.userProfileReportHarassment, 'harassment'),
+            _reportOption(ctx, AppLocalizations.of(context)!.userProfileReportInappropriate, 'inappropriate'),
+            _reportOption(ctx, AppLocalizations.of(context)!.userProfileReportOther, 'other'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'キャンセル',
-              style: TextStyle(color: AppColors.textSecondary),
+            child: Text(
+              AppLocalizations.of(context)!.userProfileReportCancel,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -356,14 +357,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       await BlockService.instance.reportUser(_targetUid!, reason);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('通報しました。ご協力ありがとうございます。')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.userProfileReportDone)),
         );
       }
     } catch (e) {
       if (mounted) {
         final msg = e.toString().contains('already_reported')
-            ? '7日以内に同じユーザーへの通報があります'
-            : '通報に失敗しました';
+            ? AppLocalizations.of(context)!.userProfileReportAlready
+            : AppLocalizations.of(context)!.userProfileReportFailed;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg)),
         );
@@ -409,10 +410,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       body: _user == null && _loading
           ? _buildSkeleton()
           : _user == null && !_loading
-              ? const Center(
+              ? Center(
                   child: Text(
-                    'ユーザーが見つかりません',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    AppLocalizations.of(context)!.userProfileNotFound,
+                    style: const TextStyle(color: AppColors.textSecondary),
                   ),
                 )
               : RefreshIndicator(
@@ -638,17 +639,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _buildStatItem(
-          'フォロー',
+          AppLocalizations.of(context)!.userProfileFollowing,
           _user!.following.length,
           onTap: canViewList ? () => _openFollowList(isFollowing: true) : null,
         ),
         _buildStatItem(
-          'フォロワー',
+          AppLocalizations.of(context)!.userProfileFollowers,
           _user!.followers.length,
           onTap: canViewList ? () => _openFollowList(isFollowing: false) : null,
         ),
         _buildStatItem(
-          'ストリーク',
+          AppLocalizations.of(context)!.userProfileStreak,
           _user!.streak,
           icon: Icons.local_fire_department_rounded,
         ),
@@ -712,17 +713,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final BorderSide border;
 
     if (_isFollowing) {
-      label = 'フォロー中';
+      label = AppLocalizations.of(context)!.userProfileFollowing;
       bgColor = AppColors.bgSurface;
       fgColor = AppColors.textPrimary;
       border = const BorderSide(color: AppColors.border);
     } else if (_isPending) {
-      label = '申請中';
+      label = AppLocalizations.of(context)!.userProfilePending;
       bgColor = AppColors.bgSurface;
       fgColor = AppColors.textSecondary;
       border = const BorderSide(color: AppColors.border);
     } else {
-      label = 'フォローをリクエスト';
+      label = AppLocalizations.of(context)!.userProfileFollowRequest;
       bgColor = AppColors.white;
       fgColor = AppColors.black;
       border = BorderSide.none;
@@ -769,9 +770,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            const Text(
-              'ヒーロータスク',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)!.userProfileHeroTasks,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,

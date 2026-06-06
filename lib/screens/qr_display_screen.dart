@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:gal/gal.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/invite_service.dart';
@@ -32,13 +33,13 @@ class _QrDisplayScreenState extends State<QrDisplayScreen> {
       await Gal.putImageBytes(bytes);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('QRコードを保存しました')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.qrDisplaySaved)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存に失敗しました: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.qrDisplaySaveFailed(e))),
         );
       }
     } finally {
@@ -57,8 +58,8 @@ class _QrDisplayScreenState extends State<QrDisplayScreen> {
         backgroundColor: AppColors.bgBase,
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
-        title: const Text('QRコード',
-            style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.qrDisplayTitle,
+            style: const TextStyle(color: AppColors.textPrimary)),
       ),
       body: SafeArea(
         child: Center(
@@ -195,7 +196,7 @@ class _QrDisplayScreenState extends State<QrDisplayScreen> {
                         ),
                       )
                     : const Icon(Icons.download_outlined),
-                label: Text(_isDownloading ? '保存中...' : 'ダウンロード'),
+                label: Text(_isDownloading ? AppLocalizations.of(context)!.qrDisplaySaving : AppLocalizations.of(context)!.qrDisplayDownload),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accentGold,
                   foregroundColor: Colors.black,

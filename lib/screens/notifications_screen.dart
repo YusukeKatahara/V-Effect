@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/app_notification.dart';
 import '../models/app_user.dart';
@@ -47,13 +48,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('フォローしました！')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.notificationsFollowed)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('フォローに失敗しました。')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.notificationsFollowFailed)),
         );
       }
     } finally {
@@ -186,7 +187,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('削除に失敗しました。もう一度お試しください。')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.notificationsDeleteFailed)));
       }
     }
   }
@@ -200,27 +201,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            title: const Text(
-              '通知を全て削除',
-              style: TextStyle(color: AppColors.textPrimary),
+            title: Text(
+              AppLocalizations.of(context)!.notificationsDeleteAllTitle,
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
-            content: const Text(
-              '全ての通知を削除しますか？',
-              style: TextStyle(color: AppColors.textSecondary),
+            content: Text(
+              AppLocalizations.of(context)!.notificationsDeleteAllMessage,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text(
-                  'キャンセル',
-                  style: TextStyle(color: AppColors.textMuted),
+                child: Text(
+                  AppLocalizations.of(context)!.notificationsDeleteAllCancel,
+                  style: const TextStyle(color: AppColors.textMuted),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text(
-                  '削除',
-                  style: TextStyle(color: AppColors.error),
+                child: Text(
+                  AppLocalizations.of(context)!.notificationsDeleteAllButton,
+                  style: const TextStyle(color: AppColors.error),
                 ),
               ),
             ],
@@ -234,7 +235,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('削除に失敗しました。もう一度お試しください。')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.notificationsDeleteFailed)));
       }
     }
   }
@@ -265,7 +266,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (mounted && request != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(accept ? 'フォローリクエストを承認しました！' : 'フォローリクエストを拒否しました。'),
+            content: Text(accept ? AppLocalizations.of(context)!.notificationsApproveRequest : AppLocalizations.of(context)!.notificationsRejectRequest),
           ),
         );
       }
@@ -274,7 +275,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('承認に失敗しました。もう一度お試しください。')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.notificationsApproveFailed)));
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -325,7 +326,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('フォロー中', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              child: Text(AppLocalizations.of(context)!.notificationsFollowing, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
             );
           } else {
             return ElevatedButton(
@@ -339,7 +340,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('フォローバック', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              child: Text(AppLocalizations.of(context)!.notificationsFollowBack, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
             );
           }
         },
@@ -359,7 +360,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('承認', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text(AppLocalizations.of(context)!.notificationsApprove, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 8),
           ElevatedButton(
@@ -373,7 +374,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('削除', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text(AppLocalizations.of(context)!.notificationsReject, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           ),
         ],
       );
@@ -387,7 +388,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Scaffold(
         backgroundColor: AppColors.bgBase,
         appBar: AppBar(
-        title: const Text('通知'),
+        title: Text(AppLocalizations.of(context)!.notificationsTitle),
         backgroundColor: AppColors.bgBase,
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
@@ -395,7 +396,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           IconButton(
             icon: const Icon(Icons.delete_sweep),
             onPressed: _deleteAll,
-            tooltip: '全て削除',
+            tooltip: AppLocalizations.of(context)!.notificationsDeleteAll,
           ),
         ],
       ),
@@ -405,7 +406,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                'エラーが発生しました: ${snapshot.error}',
+                AppLocalizations.of(context)!.notificationsError(snapshot.error ?? ''),
                 style: const TextStyle(color: AppColors.textSecondary),
               ),
             );
@@ -456,9 +457,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    '通知はありません',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 16),
+                  Text(
+                    AppLocalizations.of(context)!.notificationsEmpty,
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 16),
                   ),
                 ],
               ),

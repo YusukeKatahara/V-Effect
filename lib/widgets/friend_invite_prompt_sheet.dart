@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/invite_service.dart';
@@ -44,9 +45,9 @@ class FriendInvitePromptSheet extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: const Text(
-          'QRコード',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+        title: Text(
+          AppLocalizations.of(context)!.friendInviteQrTitle,
+          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
         ),
         children: [
           SimpleDialogOption(
@@ -59,13 +60,13 @@ class FriendInvitePromptSheet extends StatelessWidget {
                 ),
               );
             },
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.qr_code_rounded, color: AppColors.textSecondary),
-                SizedBox(width: 12),
+                const Icon(Icons.qr_code_rounded, color: AppColors.textSecondary),
+                const SizedBox(width: 12),
                 Text(
-                  'マイQRコードを表示',
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                  AppLocalizations.of(context)!.friendInviteQrDisplay,
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
                 ),
               ],
             ),
@@ -79,13 +80,13 @@ class FriendInvitePromptSheet extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const QrScannerScreen()),
               );
             },
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.qr_code_scanner_rounded, color: AppColors.textSecondary),
-                SizedBox(width: 12),
+                const Icon(Icons.qr_code_scanner_rounded, color: AppColors.textSecondary),
+                const SizedBox(width: 12),
                 Text(
-                  'QRコードをスキャン',
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                  AppLocalizations.of(context)!.friendInviteQrScan,
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
                 ),
               ],
             ),
@@ -148,7 +149,7 @@ class FriendInvitePromptSheet extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'V (勝利) を仲間と証明しよう！',
+              AppLocalizations.of(context)!.friendInviteTitle,
               textAlign: TextAlign.center,
               style: GoogleFonts.notoSansJp(
                 fontSize: 18,
@@ -160,7 +161,7 @@ class FriendInvitePromptSheet extends StatelessWidget {
 
             // ── 説明文 ──
             Text(
-              '最初のV Questの設定が完了しました！\n努力と勝利を共有するフレンドを誘いましょう！',
+              AppLocalizations.of(context)!.friendInviteDesc,
               textAlign: TextAlign.center,
               style: GoogleFonts.notoSansJp(
                 fontSize: 13,
@@ -194,13 +195,13 @@ class FriendInvitePromptSheet extends StatelessWidget {
                       userId: (user.userId != null && user.userId!.isNotEmpty)
                           ? user.userId!
                           : user.uid,
-                      username: user.username ?? 'ユーザー',
+                      username: user.username ?? AppLocalizations.of(context)!.defaultUsername,
                     );
                   },
                   icon: const Icon(Icons.share_rounded, color: AppColors.black, size: 20),
-                  label: const Text(
-                    '友達を招待する (LINE等でシェア)',
-                    style: TextStyle(
+                  label: Text(
+                    AppLocalizations.of(context)!.friendInviteShareButton,
+                    style: const TextStyle(
                       color: AppColors.black,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
@@ -231,9 +232,9 @@ class FriendInvitePromptSheet extends StatelessWidget {
                   Navigator.pop(context, FriendInviteResult.qrCode);
                 },
                 icon: const Icon(Icons.qr_code_2_rounded, color: AppColors.accentGold, size: 20),
-                label: const Text(
-                  'すでにやっている友達と繋がる (QRコード)',
-                  style: TextStyle(
+                label: Text(
+                  AppLocalizations.of(context)!.friendInviteQrButton,
+                  style: const TextStyle(
                     color: AppColors.accentGold,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
@@ -256,7 +257,7 @@ class FriendInvitePromptSheet extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.pop(context, FriendInviteResult.dismissed),
               child: Text(
-                '今はしない',
+                AppLocalizations.of(context)!.friendInviteLater,
                 style: GoogleFonts.notoSansJp(
                   color: AppColors.textMuted,
                   fontSize: 13,

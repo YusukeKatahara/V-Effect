@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../services/push_notification_service.dart';
 
@@ -94,7 +95,7 @@ class _NotificationPromptSheetState extends State<NotificationPromptSheet> {
 
             // ── タイトル ──
             Text(
-              '「仲間の努力」を習慣の味方にしますか？',
+              AppLocalizations.of(context)!.notificationPromptTitle,
               textAlign: TextAlign.center,
               style: GoogleFonts.notoSansJp(
                 fontSize: 18,
@@ -106,7 +107,7 @@ class _NotificationPromptSheetState extends State<NotificationPromptSheet> {
 
             // ── 説明文 ──
             Text(
-              'V EFFECTで最も強い習慣化の力は「仲間の存在」です。\n\n通知をONにすることで、仲間の達成がリアルタイムにあなたの刺激になり、あなたの努力も仲間に届きます。\nお互いの存在を背中に感じながら、強固な習慣を築きましょう。',
+              AppLocalizations.of(context)!.notificationPromptDesc,
               textAlign: TextAlign.center,
               style: GoogleFonts.notoSansJp(
                 fontSize: 13,
@@ -132,7 +133,7 @@ class _NotificationPromptSheetState extends State<NotificationPromptSheet> {
                   elevation: 0,
                 ),
                 child: Text(
-                  '次へ',
+                  AppLocalizations.of(context)!.notificationPromptNext,
                   style: GoogleFonts.notoSansJp(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -154,7 +155,7 @@ class _NotificationPromptSheetState extends State<NotificationPromptSheet> {
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
               ),
               child: Text(
-                '今はしない',
+                AppLocalizations.of(context)!.notificationPromptLater,
                 style: GoogleFonts.notoSansJp(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
