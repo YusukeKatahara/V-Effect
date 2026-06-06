@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
+import '../providers/language_provider.dart';
 import '../widgets/responsive_container.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _appVersion = '';
 
   @override
@@ -45,15 +48,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-
-
+  void _showLanguageDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        // ダイアログ内でも現在の設定を反映させるために Consumer を使用
+        return Consumer(
+          builder: (context, ref, child) {
+            final currentLang = ref.watch(languageProvider);
+            return AlertDialog(
+              backgroundColor: AppColors.grey15,
+              title: Text(
+                AppLocalizations.of(context)!.languageSetting,
+                style: const TextStyle(color: AppColors.white),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RadioListTile<String>(
+                    title: Text(AppLocalizations.of(context)!.languageJapanese, style: const TextStyle(color: AppColors.white)),
+                    value: 'ja',
+                    groupValue: currentLang,
+                    activeColor: AppColors.accentGold,
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref.read(languageProvider.notifier).setLanguage(val);
+                        Navigator.pop(context);
+                      }
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: Text(AppLocalizations.of(context)!.languageEnglish, style: const TextStyle(color: AppColors.white)),
+                    value: 'en',
+                    groupValue: currentLang,
+                    activeColor: AppColors.accentGold,
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref.read(languageProvider.notifier).setLanguage(val);
+                        Navigator.pop(context);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
-        title: const Text('設定', style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.settingsTitle, style: const TextStyle(color: AppColors.textPrimary)),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       body: ResponsiveContainer(
@@ -70,6 +120,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: AppColors.textMuted,
               ),
               onTap: () => Navigator.pushNamed(context, AppRoutes.notificationSettings),
+            ),
+            ListTile(
+              title: Text(
+                AppLocalizations.of(context)!.languageSetting,
+                style: const TextStyle(color: AppColors.textPrimary),
+              ),
+              trailing: Text(
+                ref.watch(languageProvider) == 'en' ? 'ENGLISH' : '日本語',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+              ),
+              onTap: () => _showLanguageDialog(context, ref),
             ),
             ListTile(
               title: const Text(

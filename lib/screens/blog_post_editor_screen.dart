@@ -23,7 +23,9 @@ class BlogPostEditorScreen extends StatefulWidget {
 class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
   DevBlogPost? _editingPost;
   final _titleController = TextEditingController();
+  final _titleEnController = TextEditingController();
   final _bodyController = TextEditingController();
+  final _bodyEnController = TextEditingController();
   final _bodyFocusNode = FocusNode();
   BlogCategory _category = BlogCategory.progress;
   bool _isPinned = false;
@@ -48,7 +50,9 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
     if (arg is DevBlogPost) {
       _editingPost = arg;
       _titleController.text = arg.title;
+      _titleEnController.text = arg.titleEn ?? '';
       _bodyController.text = arg.body;
+      _bodyEnController.text = arg.bodyEn ?? '';
       _category = arg.category;
       _isPinned = arg.isPinned;
       _existingCoverUrl = arg.coverImageUrl;
@@ -58,7 +62,9 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
   @override
   void dispose() {
     _titleController.dispose();
+    _titleEnController.dispose();
     _bodyController.dispose();
+    _bodyEnController.dispose();
     _bodyFocusNode.dispose();
     _seasonTaskNameController.dispose();
     _seasonDurationController.dispose();
@@ -187,7 +193,9 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
 
   Future<void> _save() async {
     final title = _titleController.text.trim();
+    final titleEn = _titleEnController.text.trim();
     final body = _bodyController.text.trim();
+    final bodyEn = _bodyEnController.text.trim();
     if (title.isEmpty || body.isEmpty) {
       _showError('タイトルと本文を入力してください');
       return;
@@ -216,6 +224,8 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           isPinned: _isPinned,
           createdAt: now,
           updatedAt: now,
+          titleEn: titleEn.isNotEmpty ? titleEn : null,
+          bodyEn: bodyEn.isNotEmpty ? bodyEn : null,
         );
         await DevBlogService.instance.createPost(post);
 
@@ -248,6 +258,8 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           coverImageUrl: coverUrl,
           isPinned: _isPinned,
           updatedAt: now,
+          titleEn: titleEn.isNotEmpty ? titleEn : null,
+          bodyEn: bodyEn.isNotEmpty ? bodyEn : null,
         );
         await DevBlogService.instance.updatePost(updated);
 
@@ -385,7 +397,11 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           const SizedBox(height: 24),
           _buildTitleField(),
           const SizedBox(height: 16),
+          _buildTitleEnField(),
+          const SizedBox(height: 16),
           _buildBodyField(),
+          const SizedBox(height: 16),
+          _buildBodyEnField(),
           const SizedBox(height: 24),
           _buildSeasonTaskToggle(),
           const SizedBox(height: 32),
@@ -793,6 +809,32 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
     );
   }
 
+  Widget _buildTitleEnField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'タイトル (ENGLISH)',
+          style: GoogleFonts.outfit(
+              fontSize: 13,
+              color: AppColors.grey50,
+              fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _titleEnController,
+          style: GoogleFonts.notoSansJp(
+              fontSize: 16,
+              color: AppColors.white,
+              fontWeight: FontWeight.w700),
+          maxLines: 2,
+          minLines: 1,
+          decoration: _inputDecoration('Enter title in English'),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBodyField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -824,6 +866,41 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           minLines: 10,
           keyboardType: TextInputType.multiline,
           decoration: _inputDecoration('本文を入力\n\n## 見出し\n**太字** *斜体*\n- 箇条書き'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBodyEnField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              '本文 (ENGLISH)',
+              style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  color: AppColors.grey50,
+                  fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '— Markdownが使えます',
+              style: GoogleFonts.outfit(
+                  fontSize: 11, color: AppColors.grey30),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _bodyEnController,
+          style: GoogleFonts.notoSansJp(
+              fontSize: 15, color: AppColors.grey85, height: 1.7),
+          maxLines: null,
+          minLines: 10,
+          keyboardType: TextInputType.multiline,
+          decoration: _inputDecoration('Enter body in English\n\n## Heading\n**Bold** *Italic*\n- List'),
         ),
       ],
     );

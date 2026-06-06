@@ -9,6 +9,7 @@ import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/dev_blog_post.dart';
 import '../providers/dev_blog_provider.dart';
+import '../providers/language_provider.dart';
 import '../widgets/v_effect_header.dart';
 
 class VPracticeScreen extends ConsumerStatefulWidget {
@@ -99,13 +100,19 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
   }
 }
 
-class _BlogCard extends StatelessWidget {
+class _BlogCard extends ConsumerWidget {
   const _BlogCard({required this.post});
 
   final DevBlogPost post;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(languageProvider);
+    final isEnglish = lang == 'en';
+    final title = isEnglish && post.titleEn != null && post.titleEn!.isNotEmpty 
+        ? post.titleEn! 
+        : post.title;
+
     return GestureDetector(
       onTap: () => Navigator.pushNamed(
         context,
@@ -159,7 +166,7 @@ class _BlogCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    post.title,
+                    title,
                     style: GoogleFonts.notoSansJp(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,

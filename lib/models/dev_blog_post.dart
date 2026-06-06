@@ -35,6 +35,8 @@ class DevBlogPost {
     required this.isPinned,
     required this.createdAt,
     required this.updatedAt,
+    this.titleEn,
+    this.bodyEn,
   });
 
   final String id;
@@ -47,6 +49,8 @@ class DevBlogPost {
   final bool isPinned;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? titleEn;
+  final String? bodyEn;
 
   static DevBlogPost fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -64,6 +68,8 @@ class DevBlogPost {
       isPinned: (data['isPinned'] as bool?) ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      titleEn: data['titleEn'] as String?,
+      bodyEn: data['bodyEn'] as String?,
     );
   }
 
@@ -77,6 +83,8 @@ class DevBlogPost {
         'isPinned': isPinned,
         'createdAt': Timestamp.fromDate(createdAt),
         'updatedAt': Timestamp.fromDate(updatedAt),
+        'titleEn': titleEn,
+        'bodyEn': bodyEn,
       };
 
   DevBlogPost copyWith({
@@ -86,6 +94,8 @@ class DevBlogPost {
     String? coverImageUrl,
     bool? isPinned,
     DateTime? updatedAt,
+    String? titleEn,
+    String? bodyEn,
   }) {
     return DevBlogPost(
       id: id,
@@ -98,6 +108,8 @@ class DevBlogPost {
       isPinned: isPinned ?? this.isPinned,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      titleEn: titleEn ?? this.titleEn,
+      bodyEn: bodyEn ?? this.bodyEn,
     );
   }
 }

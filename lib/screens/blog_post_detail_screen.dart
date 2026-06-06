@@ -9,6 +9,7 @@ import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/dev_blog_post.dart';
 import '../providers/dev_blog_provider.dart';
+import '../providers/language_provider.dart';
 import '../services/dev_blog_service.dart';
 
 class BlogPostDetailScreen extends ConsumerStatefulWidget {
@@ -125,6 +126,15 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
   }
 
   Widget _buildContent(DevBlogPost post) {
+    final lang = ref.watch(languageProvider);
+    final isEnglish = lang == 'en';
+    final title = isEnglish && post.titleEn != null && post.titleEn!.isNotEmpty 
+        ? post.titleEn! 
+        : post.title;
+    final body = isEnglish && post.bodyEn != null && post.bodyEn!.isNotEmpty 
+        ? post.bodyEn! 
+        : post.body;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -141,7 +151,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
         const SizedBox(height: 14),
 
         Text(
-          post.title,
+          title,
           style: GoogleFonts.notoSansJp(
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -189,7 +199,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
         ),
 
         MarkdownBody(
-          data: post.body,
+          data: body,
           selectable: true,
           styleSheet: MarkdownStyleSheet(
             h1: GoogleFonts.notoSansJp(

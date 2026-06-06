@@ -9,9 +9,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app_links/app_links.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'firebase_options.dart';
 import 'config/routes.dart';
 import 'config/theme.dart';
+import 'providers/language_provider.dart';
 import 'services/analytics_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/deep_link_service.dart';
@@ -182,17 +184,17 @@ class _AppInitializerState extends State<AppInitializer> {
   }
 }
 
-class VEffectApp extends StatefulWidget {
+class VEffectApp extends ConsumerStatefulWidget {
   const VEffectApp({super.key});
 
   static final navigatorKey = GlobalKey<NavigatorState>();
   static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 
   @override
-  State<VEffectApp> createState() => _VEffectAppState();
+  ConsumerState<VEffectApp> createState() => _VEffectAppState();
 }
 
-class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
+class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObserver {
   final _appLinks = AppLinks();
   Timer? _midnightTimer;
   String _lastCheckedDate = '';
@@ -310,6 +312,7 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: VEffectApp.themeNotifier,
       builder: (context, themeMode, _) {
+        final lang = ref.watch(languageProvider);
         return MaterialApp(
           navigatorKey: VEffectApp.navigatorKey,
           title: 'V EFFECT',
@@ -317,12 +320,16 @@ class _VEffectAppState extends State<VEffectApp> with WidgetsBindingObserver {
           darkTheme: AppTheme.dark,
           themeMode: themeMode,
           localizationsDelegates: const [
+            AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [Locale('ja', 'JP')],
-          locale: const Locale('ja', 'JP'),
+          supportedLocales: const [
+            Locale('ja', 'JP'),
+            Locale('en', 'US'),
+          ],
+          locale: Locale(lang),
           initialRoute: AppRoutes.wrapper,
           routes: AppRoutes.routes,
           navigatorObservers: [AnalyticsService.instance.observer],
