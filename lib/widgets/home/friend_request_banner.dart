@@ -5,6 +5,7 @@ import '../../config/routes.dart';
 import '../../models/friend_request.dart';
 import '../../models/app_user.dart';
 import '../../services/friend_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class FriendRequestBanner extends StatefulWidget {
   const FriendRequestBanner({super.key});
@@ -167,7 +168,7 @@ class SingleRequestCard extends StatelessWidget {
                               if (context.mounted) {
                                 onRestore(reqId);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('承認に失敗しました: $e')),
+                                  SnackBar(content: Text(AppLocalizations.of(context)!.homeFriendRequestApproveFailed(e))),
                                 );
                               }
                             }
@@ -201,7 +202,7 @@ class SingleRequestCard extends StatelessWidget {
                               if (context.mounted) {
                                 onRestore(reqId);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('処理に失敗しました: $e')),
+                                  SnackBar(content: Text(AppLocalizations.of(context)!.homeFriendRequestProcessFailed(e))),
                                 );
                               }
                             }
@@ -286,7 +287,7 @@ class MultipleRequestsCard extends StatelessWidget {
                       // メッセージ
                       Expanded(
                         child: Text(
-                          '${latestReq.fromUsername}さん他$otherCount名から申請が届いています',
+                          AppLocalizations.of(context)!.homeFriendRequestMultiple(latestReq.fromUsername, otherCount),
                           style: const TextStyle(
                             color: AppColors.white,
                             fontSize: 13,

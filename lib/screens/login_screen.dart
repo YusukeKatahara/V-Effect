@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../firebase_options.dart';
@@ -111,19 +112,19 @@ class _LoginScreenState extends State<LoginScreen>
       // そのまま表示する。それ以外は一般化したメッセージ。
       final msg = e.code == 'resource-exhausted' && (e.message?.isNotEmpty ?? false)
           ? e.message!
-          : 'ユーザーIDまたはパスワードが間違っています';
+          : AppLocalizations.of(context)!.loginErrorIdOrPassword;
       scaffold?.showSnackBar(SnackBar(content: Text(msg)));
       if (mounted) setState(() => _isEmailLoading = false);
     } on FirebaseAuthException catch (e) {
-      String msg = 'ログインに失敗しました';
-      if (e.code == 'user-not-found') msg = 'ユーザーが見つかりません';
-      if (e.code == 'wrong-password') msg = 'パスワードが間違っています';
-      if (e.code == 'invalid-credential') msg = 'メールアドレスまたはパスワードが間違っています';
+      String msg = AppLocalizations.of(context)!.loginFailed;
+      if (e.code == 'user-not-found') msg = AppLocalizations.of(context)!.loginErrorUserNotFound;
+      if (e.code == 'wrong-password') msg = AppLocalizations.of(context)!.loginErrorWrongPassword;
+      if (e.code == 'invalid-credential') msg = AppLocalizations.of(context)!.loginErrorInvalidCredential;
       scaffold?.showSnackBar(SnackBar(content: Text(msg)));
       if (mounted) setState(() => _isEmailLoading = false);
     } catch (e) {
       debugPrint('Login error: $e');
-      scaffold?.showSnackBar(const SnackBar(content: Text('ログインに失敗しました')));
+      scaffold?.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.loginFailed)));
       if (mounted) setState(() => _isEmailLoading = false);
     }
   }
@@ -152,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (!isCanceled) {
         scaffold?.showSnackBar(
-          const SnackBar(content: Text('Appleでのログインに失敗しました')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.loginAppleFailed)),
         );
       }
       if (mounted) setState(() => _isAppleLoading = false);
@@ -174,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen>
     } catch (e) {
       debugPrint('Google sign-in error: $e');
       scaffold?.showSnackBar(
-        const SnackBar(content: Text('Googleでのログインに失敗しました')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.loginGoogleFailed)),
       );
       if (mounted) setState(() => _isGoogleLoading = false);
     }
@@ -292,7 +293,7 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         const SizedBox(height: 8),
         Text(
-          '日々の努力を、仲間と共に。',
+          AppLocalizations.of(context)!.loginTagline,
           style: TextStyle(
             fontSize: 13,
             color: AppColors.textSecondary,
@@ -314,9 +315,9 @@ class _LoginScreenState extends State<LoginScreen>
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
           style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(
-            labelText: 'メールアドレスまたはユーザーID',
-            prefixIcon: Icon(Icons.person_outline_rounded),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.loginEmailOrId,
+            prefixIcon: const Icon(Icons.person_outline_rounded),
           ),
         ),
         const SizedBox(height: 16),
@@ -327,7 +328,7 @@ class _LoginScreenState extends State<LoginScreen>
           obscureText: _obscurePass,
           style: const TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
-            labelText: 'パスワード',
+            labelText: AppLocalizations.of(context)!.loginPassword,
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               icon: Icon(
@@ -348,7 +349,7 @@ class _LoginScreenState extends State<LoginScreen>
           child: TextButton(
             onPressed:
                 () => Navigator.pushNamed(context, AppRoutes.forgotPassword),
-            child: const Text('パスワードをお忘れですか？'),
+            child: Text(AppLocalizations.of(context)!.loginForgotPassword),
           ),
         ),
         const SizedBox(height: 20),
@@ -386,9 +387,9 @@ class _LoginScreenState extends State<LoginScreen>
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    'ログイン',
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context)!.loginButton,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.3,
@@ -413,7 +414,7 @@ class _LoginScreenState extends State<LoginScreen>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'または',
+                AppLocalizations.of(context)!.loginOrDivider,
                 style: TextStyle(color: AppColors.textMuted, fontSize: 13),
               ),
             ),
@@ -427,8 +428,8 @@ class _LoginScreenState extends State<LoginScreen>
           onPressed: _isLoadingAny ? null : _signInWithApple,
           isLoading: _isAppleLoading,
           icon: const Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
-          label: 'Appleでログイン',
-          baseLabel: 'Googleでログイン',
+          label: AppLocalizations.of(context)!.loginWithApple,
+          baseLabel: AppLocalizations.of(context)!.loginWithGoogle,
         ),
         const SizedBox(height: 12),
 
@@ -451,7 +452,7 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
           ),
-          label: 'Googleでログイン',
+          label: AppLocalizations.of(context)!.loginWithGoogle,
         ),
       ],
     );
@@ -467,20 +468,20 @@ class _LoginScreenState extends State<LoginScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'アカウントをお持ちでないですか？',
+              AppLocalizations.of(context)!.loginNoAccount,
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             TextButton(
               onPressed: () => Navigator.pushNamed(context, AppRoutes.register),
-              child: const Text('新規登録'),
+              child: Text(AppLocalizations.of(context)!.loginRegister),
             ),
           ],
         ),
         TextButton(
           onPressed: () => _launchURL('https://veffect.web.app/support/'),
-          child: const Text(
-            'ログインできない等のご相談・お問い合わせ',
-            style: TextStyle(
+          child: Text(
+            AppLocalizations.of(context)!.loginContactSupport,
+            style: const TextStyle(
               color: AppColors.textMuted,
               fontSize: 12,
               decoration: TextDecoration.underline,
@@ -495,14 +496,14 @@ class _LoginScreenState extends State<LoginScreen>
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
-                'ログインすることで、',
+                AppLocalizations.of(context)!.loginByLoggingIn,
                 style: TextStyle(color: AppColors.textMuted, fontSize: 11),
               ),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, AppRoutes.terms),
-                child: const Text(
-                  '利用規約',
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(context)!.settingsTerms,
+                  style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
                     decoration: TextDecoration.underline,
@@ -510,14 +511,14 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
               ),
               Text(
-                'および',
+                AppLocalizations.of(context)!.loginAnd,
                 style: TextStyle(color: AppColors.textMuted, fontSize: 11),
               ),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, AppRoutes.privacyPolicy),
-                child: const Text(
-                  'プライバシーポリシー',
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(context)!.settingsPrivacyPolicy,
+                  style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
                     decoration: TextDecoration.underline,
@@ -525,7 +526,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
               ),
               Text(
-                'に同意したものとみなされます。',
+                AppLocalizations.of(context)!.loginAgreeTerms,
                 style: TextStyle(color: AppColors.textMuted, fontSize: 11),
               ),
             ],
@@ -541,7 +542,7 @@ class _LoginScreenState extends State<LoginScreen>
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('リンクを開けませんでした')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorCannotOpenLink)));
       }
     }
   }

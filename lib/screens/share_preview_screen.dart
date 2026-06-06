@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 
@@ -50,17 +51,18 @@ class _SharePreviewScreenState extends State<SharePreviewScreen> {
       final file = File(path);
       await file.writeAsBytes(pngBytes);
 
+      final l10n = AppLocalizations.of(context)!;
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(path)],
-          text: '今週も${widget.postsCount}回のヒーロータスクを完遂！\n現在のストリーク: ${widget.currentStreak}日 🔥\n#VEffect',
+          text: l10n.sharePreviewShareText(widget.postsCount, widget.currentStreak),
         ),
       );
     } catch (e) {
       debugPrint('Share error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('シェアに失敗しました。もう一度お試しください。')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.sharePreviewFailed)),
         );
       }
     } finally {
@@ -82,7 +84,7 @@ class _SharePreviewScreenState extends State<SharePreviewScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('プレビュー', style: TextStyle(color: AppColors.white)),
+        title: Text(AppLocalizations.of(context)!.sharePreviewTitle, style: const TextStyle(color: AppColors.white)),
       ),
       body: SafeArea(
         child: Column(
@@ -176,7 +178,7 @@ class _SharePreviewScreenState extends State<SharePreviewScreen> {
                 icon: _isSharing
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bgBase))
                     : const Icon(Icons.share, color: AppColors.bgBase),
-                label: Text(_isSharing ? '準備中...' : 'SNSへシェア', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
+                label: Text(_isSharing ? AppLocalizations.of(context)!.sharePreviewPreparing : AppLocalizations.of(context)!.sharePreviewShareButton, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accentGold,
                   minimumSize: const Size(double.infinity, 56),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../services/analytics_service.dart';
 import '../services/friend_service.dart';
@@ -70,6 +71,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
       _error = null;
     });
 
+    final l = AppLocalizations.of(context)!;
     try {
       final presetUserIds = <String>[];
       if (_rennSelected) presetUserIds.add(_rennUserId);
@@ -86,13 +88,13 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
         try {
           final user = await _friendService.searchByUserId(userId);
           if (user == null) {
-            errors.add('@$userId: ユーザーが見つかりません');
+            errors.add(l.initialFriendAtUserNotFound(userId));
             continue;
           }
           await _friendService.sendRequest(user.uid);
           sentCount++;
         } catch (e) {
-          errors.add('@$userId: 送信に失敗しました');
+          errors.add(l.initialFriendAtSendFailed(userId));
         }
       }
 
@@ -101,13 +103,13 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
         try {
           final user = await _friendService.searchByUserId(otherUserId);
           if (user == null) {
-            errors.add('$otherUserId: ユーザーが見つかりません');
+            errors.add(l.initialFriendOtherUserNotFound(otherUserId));
           } else {
             await _friendService.sendRequest(user.uid);
             sentCount++;
           }
         } catch (e) {
-          errors.add('$otherUserId: 送信に失敗しました');
+          errors.add(l.initialFriendOtherSendFailed(otherUserId));
         }
       }
 
@@ -125,7 +127,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
         if (sentCount > 0) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$sentCount件のフレンドリクエストを送信しました！'),
+              content: Text(AppLocalizations.of(context)!.initialFriendSentCount(sentCount)),
             ),
           );
         }
@@ -137,7 +139,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = '送信に失敗しました。もう一度お試しください。');
+        setState(() => _error = AppLocalizations.of(context)!.initialFriendSendFailed);
       }
     } finally {
       if (mounted) setState(() => _isSending = false);
@@ -217,9 +219,9 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                               color: AppColors.textPrimary),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
-                        const Text(
-                          'フレンド登録',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.initialFriendTitle,
+                          style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -239,10 +241,10 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                           const PremiumIconHeader(
                               icon: Icons.people, size: 72, iconSize: 40),
                           const SizedBox(height: 16),
-                          const Text(
-                            '一緒に頑張る仲間を登録しよう！',
+                          Text(
+                            AppLocalizations.of(context)!.initialFriendSubtitle,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
@@ -251,7 +253,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                           const SizedBox(height: 32),
 
                           // ── 誰に誘われましたか？ ──
-                          const SectionTitle(title: '誰に誘われましたか？'),
+                          SectionTitle(title: AppLocalizations.of(context)!.initialFriendWhoInvited),
                           const SizedBox(height: 12),
 
                           // Renn
@@ -275,7 +277,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                             selected: _otherSelected,
                             onTap: () => setState(
                                 () => _otherSelected = !_otherSelected),
-                            label: 'その他のユーザー：ユーザーIDを入力',
+                            label: AppLocalizations.of(context)!.initialFriendOtherUser,
                           ),
 
                           // ユーザーID入力欄（「その他」選択時のみ表示）
@@ -288,9 +290,9 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                                 controller: _userIdCtrl,
                                 style: const TextStyle(
                                     color: AppColors.textPrimary),
-                                decoration: const InputDecoration(
-                                  labelText: 'ユーザーID',
-                                  hintText: '例: user_123',
+                                decoration: InputDecoration(
+                                  labelText: AppLocalizations.of(context)!.initialFriendUserIdLabel,
+                                  hintText: AppLocalizations.of(context)!.initialFriendExampleIdHint,
                                   prefixIcon: Icon(Icons.person_search),
                                 ),
                                 onChanged: (_) => setState(() {}),
@@ -313,7 +315,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                           GradientButton(
                             onPressed: _hasSelection ? _register : null,
                             isLoading: _isSending,
-                            child: const Text('登録する'),
+                            child: Text(AppLocalizations.of(context)!.initialFriendRegister),
                           ),
 
                           const SizedBox(height: 16),
@@ -329,9 +331,9 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                                             referrers: [], skipped: true);
                                     Navigator.of(context).pop();
                                   },
-                            child: const Text(
-                              'あとで登録する',
-                              style: TextStyle(
+                            child: Text(
+                              AppLocalizations.of(context)!.initialFriendLater,
+                              style: const TextStyle(
                                   color: AppColors.textMuted, fontSize: 15),
                             ),
                           ),

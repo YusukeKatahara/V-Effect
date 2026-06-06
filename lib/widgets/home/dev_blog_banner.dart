@@ -5,6 +5,8 @@ import '../../config/app_colors.dart';
 import '../../config/routes.dart';
 import '../../providers/dev_blog_provider.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class DevBlogBanner extends ConsumerWidget {
   const DevBlogBanner({super.key});
 
@@ -53,9 +55,9 @@ class DevBlogBanner extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            '運営からのお知らせ',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.of(context)!.homeNewsTitle,
+                            style: const TextStyle(
                               color: AppColors.accentGold,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,

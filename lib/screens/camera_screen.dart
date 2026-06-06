@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../services/post_service.dart';
 
@@ -390,7 +391,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   Future<void> _uploadPost() async {
     if (_image == null) return;
-    final taskName = _taskName ?? '今日のヒーロータスク';
+    final taskName = _taskName ?? AppLocalizations.of(context)!.cameraScreenTaskDefault;
 
     setState(() => _isUploading = true);
 
@@ -443,7 +444,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       debugPrint('POST UPLOAD ERROR: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('投稿に失敗しました。もう一度お試しください。')));
+            .showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.cameraScreenUploadFailed)));
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -503,7 +504,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                           controller: _captionController,
                           style: const TextStyle(color: AppColors.white),
                           decoration: InputDecoration(
-                            hintText: '一言を添える (任意)',
+                            hintText: AppLocalizations.of(context)!.cameraScreenCaption,
                             hintStyle: const TextStyle(color: AppColors.grey50),
                             filled: true,
                             fillColor: AppColors.white.withValues(alpha: 0.1),
@@ -756,11 +757,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   /// カメラ読み込み中のプレースホルダー
   Widget _buildCameraLoading() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
+          const SizedBox(
             width: 32,
             height: 32,
             child: CircularProgressIndicator(
@@ -768,10 +769,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               color: AppColors.grey50,
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Text(
-            'カメラを起動中...',
-            style: TextStyle(color: AppColors.grey30, fontSize: 14),
+            AppLocalizations.of(context)!.cameraScreenCameraLoading,
+            style: const TextStyle(color: AppColors.grey30, fontSize: 14),
           ),
         ],
       ),
@@ -865,7 +866,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   /// ── 写真プレビュー（撮影済み） ──
   Widget _buildPreview() {
-    final taskName = _taskName ?? '今日のヒーロータスク';
+    final taskName = _taskName ?? AppLocalizations.of(context)!.cameraScreenTaskDefault;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -1109,7 +1110,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'ドラッグ・ピンチで位置調整',
+                      AppLocalizations.of(context)!.cameraScreenDragPinch,
                       style: GoogleFonts.notoSansJp(
                         fontSize: 10,
                         color: AppColors.white.withValues(alpha: 0.6),
@@ -1194,7 +1195,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                         child: CircularProgressIndicator(
                           strokeWidth: 2, color: AppColors.grey50))
                     : Text(
-                        '投稿する',
+                        AppLocalizations.of(context)!.cameraScreenPost,
                         style: GoogleFonts.notoSansJp(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -1327,9 +1328,9 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '音楽を追加',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.cameraMusicAdd,
+                  style: const TextStyle(
                     color: AppColors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1339,7 +1340,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
                   onPressed: () {
                     Navigator.pop(context, 'remove');
                   },
-                  child: const Text('BGMを削除', style: TextStyle(color: AppColors.error)),
+                  child: Text(AppLocalizations.of(context)!.cameraMusicRemoveBgm, style: const TextStyle(color: AppColors.error)),
                 ),
               ],
             ),
@@ -1352,7 +1353,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
               controller: _searchController,
               style: const TextStyle(color: AppColors.white),
               decoration: InputDecoration(
-                hintText: '曲名やアーティストで検索...',
+                hintText: AppLocalizations.of(context)!.cameraMusicSearchHint,
                 hintStyle: const TextStyle(color: AppColors.grey50),
                 prefixIcon: const Icon(Icons.search, color: AppColors.grey50),
                 filled: true,
@@ -1393,11 +1394,11 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
       padding: const EdgeInsets.only(top: 16, bottom: 40),
       children: [
         if (_recentSongs.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
-              '最近使った曲',
-              style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              AppLocalizations.of(context)!.cameraMusicRecentSongs,
+              style: const TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
           SizedBox(
@@ -1441,11 +1442,11 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
           ),
           const SizedBox(height: 16),
         ],
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            '日本のトレンド',
-            style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            AppLocalizations.of(context)!.cameraMusicTrends,
+            style: const TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
         ..._topSongs.map((item) => _buildMusicTile(item)),
@@ -1506,7 +1507,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         ),
         onPressed: () => _selectSong(item),
-        child: const Text('選択', style: TextStyle(fontWeight: FontWeight.bold)),
+        child: Text(AppLocalizations.of(context)!.cameraMusicSelect, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }

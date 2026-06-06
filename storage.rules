@@ -1,16 +1,30 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // ────────────────────────────────────────
+    // ヘルパー: app_config/developers.developerUids に含まれる Auth UID なら開発者
+    // ※ 動作には GCP 側で Storage Rules 用サービスエージェントに Firestore 読み取り権限
+    //   (roles/datastore.viewer) が付与されている必要がある（プロジェクトセットアップ手順参照）
+    // ────────────────────────────────────────
+    function isDeveloper() {
+      return request.auth != null
+        && firestore.get(
+              /databases/(default)/documents/app_config/developers
+           ).data.developerUids.hasAny([request.auth.uid]);
+    }
+
+    // V-Practice ブログのカバー画像。書き込みは開発者のみ。
     match /dev_blog/{postId}/{fileName} {
       allow read: if request.auth != null;
-      // TODO(Vuln-6): firestore.get() を使用した開発者判定は、GCP側で Firebase Storage サービスアカウントに
-      // Firestore の読み取り権限（IAM）を付与するまで機能せずエラーになるため、一時的に全ログインユーザーに書き込みを許可します。
-      allow write: if request.auth != null;
+      allow write: if isDeveloper();
     }
+
+    // 開発者が配布するバッジ画像。書き込みは開発者のみ。
     match /badges/{fileName} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow write: if isDeveloper();
     }
+
     match /posts/{userId}/{fileName} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;

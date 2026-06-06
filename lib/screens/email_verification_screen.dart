@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
@@ -59,7 +60,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('まだ認証が完了していません。メールをご確認ください。')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.emailVerificationNotYet)),
         );
       }
     } finally {
@@ -74,7 +75,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         final remaining = (_resendCooldown - elapsed).inSeconds;
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${remaining}秒後に再送信できます。')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.emailVerificationResendCooldown(remaining))),
         );
         return;
       }
@@ -86,12 +87,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       _lastSentAt = DateTime.now();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('認証メールを再送信しました。')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.emailVerificationResent)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('送信に失敗しました。しばらくしてからお試しください。')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.emailVerificationResendFailed)),
       );
     } finally {
       if (mounted) setState(() => _isResending = false);
@@ -105,9 +106,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
-        title: const Text(
-          'メールアドレスの認証',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          AppLocalizations.of(context)!.emailVerificationTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
@@ -123,9 +124,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 color: AppColors.textPrimary,
               ),
               const SizedBox(height: 24),
-              const Text(
-                'メールアドレスを認証してください',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.emailVerificationHeading,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -134,7 +135,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                '$email\nに認証メールを送信しました。\nメール内のリンクをタップして認証を完了してください。',
+                AppLocalizations.of(context)!.emailVerificationSent(email),
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.textSecondary,
@@ -148,15 +149,15 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   color: AppColors.textMuted.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline, size: 16, color: AppColors.textMuted),
-                    SizedBox(width: 8),
+                    const Icon(Icons.info_outline, size: 16, color: AppColors.textMuted),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'メールが届かない場合は、迷惑メールフォルダやゴミ箱をご確認ください。',
-                        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        AppLocalizations.of(context)!.emailVerificationSpamNote,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                       ),
                     ),
                   ],
@@ -188,8 +189,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                             height: 22,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text(
-                            '認証を確認',
+                        : Text(
+                            AppLocalizations.of(context)!.emailVerificationConfirmButton,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -207,9 +208,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text(
-                        '認証メールを再送信',
-                        style: TextStyle(color: AppColors.textSecondary),
+                    : Text(
+                        AppLocalizations.of(context)!.emailVerificationResendButton,
+                        style: const TextStyle(color: AppColors.textSecondary),
                       ),
               ),
             ],

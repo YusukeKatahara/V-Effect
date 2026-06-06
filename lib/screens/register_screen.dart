@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 
@@ -110,14 +111,14 @@ class _RegisterScreenState extends State<RegisterScreen>
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.wrapper, (r) => false);
     } on FirebaseAuthException catch (e) {
-      String msg = '登録に失敗しました。';
-      if (e.code == 'email-already-in-use') msg = 'このメールアドレスは既に使われています。';
-      if (e.code == 'weak-password') msg = 'パスワードは6文字以上にしてください。';
+      String msg = AppLocalizations.of(context)!.registerFailed;
+      if (e.code == 'email-already-in-use') msg = AppLocalizations.of(context)!.registerEmailInUse;
+      if (e.code == 'weak-password') msg = AppLocalizations.of(context)!.registerWeakPassword;
       scaffold?.showSnackBar(SnackBar(content: Text(msg)));
       if (mounted) setState(() => _isEmailLoading = false);
     } catch (e) {
       debugPrint('Registration error: $e');
-      scaffold?.showSnackBar(const SnackBar(content: Text('登録に失敗しました。しばらくしてからお試しください。')));
+      scaffold?.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.registerFailedRetry)));
       if (mounted) setState(() => _isEmailLoading = false);
     }
   }
@@ -136,7 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       }
     } catch (e) {
       debugPrint('Apple sign-in error: $e');
-      scaffold?.showSnackBar(const SnackBar(content: Text('Appleでの登録に失敗しました。')));
+      scaffold?.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.registerAppleFailed)));
       if (mounted) setState(() => _isAppleLoading = false);
     }
   }
@@ -155,7 +156,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       }
     } catch (e) {
       debugPrint('Google sign-in error: $e');
-      scaffold?.showSnackBar(const SnackBar(content: Text('Googleでの登録に失敗しました。')));
+      scaffold?.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.registerGoogleFailed)));
       if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
@@ -187,9 +188,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                           ),
                           onPressed: () => Navigator.pop(context),
                         ),
-                        const Text(
-                          '新規登録',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.loginRegister,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -277,9 +278,9 @@ class _RegisterScreenState extends State<RegisterScreen>
       children: [
         const AnimatedVLogo(size: 72),
         const SizedBox(height: 14),
-        const Text(
-          'アカウントを作成',
-          style: TextStyle(
+        Text(
+          AppLocalizations.of(context)!.registerCreateAccount,
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -287,7 +288,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         ),
         const SizedBox(height: 4),
         Text(
-          'V EFFECTに参加して仲間と高め合おう',
+          AppLocalizations.of(context)!.registerSubtitle,
           style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
       ],
@@ -302,13 +303,13 @@ class _RegisterScreenState extends State<RegisterScreen>
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
           style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(
-            labelText: 'メールアドレス',
-            prefixIcon: Icon(Icons.mail_outline_rounded),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.registerEmail,
+            prefixIcon: const Icon(Icons.mail_outline_rounded),
           ),
           validator:
               (v) =>
-                  (v == null || v.trim().isEmpty) ? 'メールアドレスを入力してください' : null,
+                  (v == null || v.trim().isEmpty) ? AppLocalizations.of(context)!.registerEmailRequired : null,
         ),
         const SizedBox(height: 14),
 
@@ -318,7 +319,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           obscureText: _obscurePass,
           style: const TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
-            labelText: 'パスワード',
+            labelText: AppLocalizations.of(context)!.loginPassword,
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             suffixIcon: IconButton(
               icon: Icon(
@@ -331,8 +332,8 @@ class _RegisterScreenState extends State<RegisterScreen>
             ),
           ),
           validator: (v) {
-            if (v == null || v.trim().isEmpty) return 'パスワードを入力してください';
-            if (v.trim().length < 6) return '6文字以上で入力してください';
+            if (v == null || v.trim().isEmpty) return AppLocalizations.of(context)!.registerPasswordRequired;
+            if (v.trim().length < 6) return AppLocalizations.of(context)!.registerPasswordMinLength;
             return null;
           },
         ),
@@ -344,7 +345,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           obscureText: _obscureConf,
           style: const TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
-            labelText: 'パスワード（確認）',
+            labelText: AppLocalizations.of(context)!.registerPasswordConfirm,
             prefixIcon: const Icon(Icons.lock_person_outlined),
             suffixIcon: IconButton(
               icon: Icon(
@@ -357,8 +358,8 @@ class _RegisterScreenState extends State<RegisterScreen>
             ),
           ),
           validator: (v) {
-            if (v == null || v.trim().isEmpty) return 'パスワードを再入力してください';
-            if (v.trim() != _passCtrl.text.trim()) return 'パスワードが一致しません';
+            if (v == null || v.trim().isEmpty) return AppLocalizations.of(context)!.registerPasswordReenter;
+            if (v.trim() != _passCtrl.text.trim()) return AppLocalizations.of(context)!.registerPasswordMismatch;
             return null;
           },
         ),
@@ -366,16 +367,16 @@ class _RegisterScreenState extends State<RegisterScreen>
         _buildAgreementCheckbox(
           value: _agreedToTerms,
           onChanged: (v) => setState(() => _agreedToTerms = v ?? false),
-          label: 'に同意する',
-          linkText: '利用規約',
+          label: AppLocalizations.of(context)!.registerAgreeToSuffix,
+          linkText: AppLocalizations.of(context)!.settingsTerms,
           url: 'https://veffect.web.app/terms/',
         ),
         const SizedBox(height: 8),
         _buildAgreementCheckbox(
           value: _agreedToPrivacy,
           onChanged: (v) => setState(() => _agreedToPrivacy = v ?? false),
-          label: 'に同意する',
-          linkText: 'プライバシーポリシー',
+          label: AppLocalizations.of(context)!.registerAgreeToSuffix,
+          linkText: AppLocalizations.of(context)!.settingsPrivacyPolicy,
           url: 'https://veffect.web.app/privacy/',
         ),
         const SizedBox(height: 20),
@@ -411,9 +412,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    'アカウントを作成',
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context)!.registerCreateAccount,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.3,
@@ -435,7 +436,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'または',
+                AppLocalizations.of(context)!.loginOrDivider,
                 style: TextStyle(color: AppColors.textMuted, fontSize: 13),
               ),
             ),
@@ -455,19 +456,19 @@ class _RegisterScreenState extends State<RegisterScreen>
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Row(
+                : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
-                      SizedBox(width: 12),
+                      const Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
+                      const SizedBox(width: 12),
                       Stack(
                         alignment: Alignment.centerLeft,
                         children: [
                           Opacity(
                             opacity: 0,
                             child: Text(
-                              'Googleで作成',
-                              style: TextStyle(
+                              AppLocalizations.of(context)!.registerWithGoogle,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 15,
                                 letterSpacing: 0.3,
@@ -475,8 +476,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                             ),
                           ),
                           Text(
-                            'Appleで作成',
-                            style: TextStyle(
+                            AppLocalizations.of(context)!.registerWithApple,
+                            style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 15,
                               letterSpacing: 0.3,
@@ -502,10 +503,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Row(
+                : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 24,
                         height: 24,
                         child: Center(
@@ -520,10 +521,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                           ),
                         ),
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Text(
-                        'Googleで作成',
-                        style: TextStyle(
+                        AppLocalizations.of(context)!.registerWithGoogle,
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
                           letterSpacing: 0.3,

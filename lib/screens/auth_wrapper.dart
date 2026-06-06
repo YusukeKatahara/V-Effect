@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/routes.dart';
 import '../services/analytics_service.dart';
 import '../widgets/splash_loading.dart';
@@ -102,7 +103,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
             }
 
             if (docSnapshot.hasError) {
-              return GlobalErrorWidget(error: 'Firestore読み込みエラー: ${docSnapshot.error}');
+              final l10n = AppLocalizations.of(context)!;
+              return GlobalErrorWidget(error: l10n.firestoreReadError(docSnapshot.error ?? ''));
             }
 
             // docSnapshot.data が null の場合は、キャッシュによる早期ルーティング中
@@ -223,9 +225,9 @@ class _SplashWithTimeoutState extends State<_SplashWithTimeout> {
               color: Colors.transparent,
               child: Column(
                 children: [
-                  const Text(
-                    '接続に時間がかかっています...',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  Text(
+                    AppLocalizations.of(context)!.authWrapperConnecting,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
@@ -233,7 +235,7 @@ class _SplashWithTimeoutState extends State<_SplashWithTimeout> {
                       // 再読み込みを促す
                       Navigator.of(context).pushReplacementNamed(AppRoutes.wrapper);
                     },
-                    child: const Text('再試行'),
+                    child: Text(AppLocalizations.of(context)!.authWrapperRetry),
                   ),
                 ],
               ),

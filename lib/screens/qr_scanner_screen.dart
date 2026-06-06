@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/app_user.dart';
@@ -49,7 +50,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       if (!mounted) return;
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ユーザーが見つかりません')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.qrScannerUserNotFound)),
         );
         setState(() => _isProcessing = false);
         _controller.start();
@@ -67,7 +68,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('エラーが発生しました: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.qrScannerError(e))),
         );
         setState(() => _isProcessing = false);
         _controller.start();
@@ -84,7 +85,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('画像からQRコードが見つかりませんでした')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.qrScannerNoQrInImage)),
         );
       }
     }
@@ -98,12 +99,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         backgroundColor: AppColors.bgBase,
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
-        title: const Text('QRスキャン',
-            style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.qrScannerTitle,
+            style: const TextStyle(color: AppColors.textPrimary)),
         actions: [
           IconButton(
             icon: const Icon(Icons.flashlight_on_outlined),
-            tooltip: 'フラッシュライト',
+            tooltip: AppLocalizations.of(context)!.qrScannerFlashlight,
             onPressed: () => _controller.toggleTorch(),
           ),
         ],
@@ -193,23 +194,23 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                           ),
                         ),
                         // ── 説明テキスト ─────────────────────────────
-                        const Padding(
-                          padding: EdgeInsets.fromLTRB(20, 0, 20, 22),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 22),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                'QRコードをスキャン',
-                                style: TextStyle(
+                                AppLocalizations.of(context)!.qrScannerScanLabel,
+                                style: const TextStyle(
                                   color: AppColors.textPrimary,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
-                                '枠内にQRコードを写してください',
-                                style: TextStyle(
+                                AppLocalizations.of(context)!.qrScannerInstruction,
+                                style: const TextStyle(
                                   color: AppColors.textMuted,
                                   fontSize: 12,
                                 ),
@@ -226,7 +227,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               ElevatedButton.icon(
                 onPressed: _isProcessing ? null : _pickFromGallery,
                 icon: const Icon(Icons.photo_library_outlined),
-                label: const Text('フォルダーから選択'),
+                label: Text(AppLocalizations.of(context)!.qrScannerPickFromGallery),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.bgElevated,
                   foregroundColor: AppColors.textPrimary,

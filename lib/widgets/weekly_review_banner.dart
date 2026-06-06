@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 
 /// 週末にだけ表示される、今週の振り返りへの誘導バナー
@@ -118,9 +119,9 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
                           ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
-                          '今週の振り返りが届いています！',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.weeklyReviewBannerTitle,
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: AppColors.white,

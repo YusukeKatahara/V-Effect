@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/app_task.dart';
 import '../models/season.dart';
@@ -78,7 +79,7 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    widget.season.hintTitle ?? 'シーズンタスクのヒント💡',
+                    widget.season.hintTitle ?? AppLocalizations.of(context)!.seasonHintDefaultTitle,
                     style: GoogleFonts.notoSansJp(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -90,7 +91,7 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
             ),
             const SizedBox(height: 16),
             Text(
-              widget.season.hintBody ?? 'このシーズンタスクを習慣にするためのアドバイスです。',
+              widget.season.hintBody ?? AppLocalizations.of(context)!.seasonHintDefaultBody,
               style: GoogleFonts.notoSansJp(
                 fontSize: 14,
                 color: AppColors.grey20,
@@ -109,7 +110,7 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
                   Navigator.of(context).pushNamed(AppRoutes.blogPostDetail, arguments: widget.season.relatedBlogId);
                 },
                 icon: const Icon(Icons.article_outlined, size: 20),
-                label: const Text('開発者の想い・経緯を読む'),
+                label: Text(AppLocalizations.of(context)!.seasonHintReadBlog),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.accentGold,
                   side: const BorderSide(color: AppColors.accentGold),
@@ -122,7 +123,7 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
 
             // トリガー設定フォーム
             Text(
-              'あなたのトリガー（きっかけ）',
+              AppLocalizations.of(context)!.seasonHintTriggerLabel,
               style: GoogleFonts.notoSansJp(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -134,7 +135,7 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
               controller: _triggerController,
               style: const TextStyle(color: AppColors.white),
               decoration: InputDecoration(
-                hintText: '例: 朝起きたら、通勤電車で',
+                hintText: AppLocalizations.of(context)!.seasonHintTriggerHint,
                 hintStyle: const TextStyle(color: AppColors.grey70),
                 filled: true,
                 fillColor: AppColors.black.withValues(alpha: 0.3),
@@ -158,9 +159,9 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
                 ),
                 elevation: 0,
               ),
-              child: const Text(
-                'トリガーを保存',
-                style: TextStyle(
+              child: Text(
+                AppLocalizations.of(context)!.seasonHintSaveButton,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
@@ -46,7 +47,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _showTimestamp = true;
   String? _birthDate;
   String? _gender;
-  static const _genderOptions = ['男性', '女性', 'その他'];
+  List<String> _genderOptions(BuildContext ctx) {
+    final l = AppLocalizations.of(ctx)!;
+    return [l.editProfileGenderMale, l.editProfileGenderFemale, l.editProfileGenderOther];
+  }
 
   bool _isRestricted = false;
   int _daysRemaining = 0;
@@ -119,7 +123,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         sourcePath: pickedFile.path,
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: '画像を調整',
+            toolbarTitle: AppLocalizations.of(context)!.editProfileImageAdjust,
             toolbarColor: AppColors.bgSurface,
             toolbarWidgetColor: AppColors.textPrimary,
             initAspectRatio: CropAspectRatioPreset.square,
@@ -128,7 +132,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             cropStyle: CropStyle.circle,
           ),
           IOSUiSettings(
-            title: '画像を調整',
+            title: AppLocalizations.of(context)!.editProfileImageAdjust,
             aspectRatioLockEnabled: true,
             resetAspectRatioEnabled: false,
             aspectRatioPickerButtonHidden: true,
@@ -162,7 +166,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (isRestrictedFieldsChanged && _isRestricted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ユーザーIDの変更はあと $_daysRemaining 日経過するまでできません。')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.editProfileChangeRestriction(_daysRemaining))),
       );
       return;
     }
@@ -176,20 +180,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              title: const Text(
-                '確認',
-                style: TextStyle(color: AppColors.textPrimary),
+              title: Text(
+                AppLocalizations.of(context)!.editProfileConfirmTitle,
+                style: const TextStyle(color: AppColors.textPrimary),
               ),
-              content: const Text(
-                'この変更を保存すると、ユーザーIDは今後90日間変更できなくなります。\n\n本当によろしいですか？',
-                style: TextStyle(color: AppColors.textSecondary),
+              content: Text(
+                AppLocalizations.of(context)!.editProfileConfirmMessage,
+                style: const TextStyle(color: AppColors.textSecondary),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text(
-                    'キャンセル',
-                    style: TextStyle(color: AppColors.textMuted),
+                  child: Text(
+                    AppLocalizations.of(context)!.editProfileCancel,
+                    style: const TextStyle(color: AppColors.textMuted),
                   ),
                 ),
                 ElevatedButton(
@@ -198,7 +202,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.black,
                   ),
-                  child: const Text('変更'),
+                  child: Text(AppLocalizations.of(context)!.editProfileChange),
                 ),
               ],
             ),
@@ -215,7 +219,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           if (mounted) {
             ScaffoldMessenger.of(
               context,
-            ).showSnackBar(const SnackBar(content: Text('このユーザーIDは既に使われています')));
+            ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.editProfileUserIdAlreadyUsed)));
             setState(() => _isSaving = false);
           }
           return;
@@ -255,7 +259,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.editProfileSaveFailed(e))));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -289,9 +293,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Text(
-                        '設定',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context)!.editProfileSettingsHeader,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
@@ -316,9 +320,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           const SizedBox(height: 32),
 
                           // Section: Account
-                          const SectionTitle(title: 'アカウント'),
+                          SectionTitle(title: AppLocalizations.of(context)!.editProfileAccount),
                           const SizedBox(height: 12),
-                          _buildTextField(_usernameCtrl, '名前', Icons.badge),
+                          _buildTextField(_usernameCtrl, AppLocalizations.of(context)!.editProfileNameLabel, Icons.badge),
                           const SizedBox(height: 16),
                           _buildUserIdField(),
                           _buildPersonalInfoFields(),
@@ -327,7 +331,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           const SizedBox(height: 32),
 
                           // Section: Preferences
-                          const SectionTitle(title: 'ステータス'),
+                          SectionTitle(title: AppLocalizations.of(context)!.editProfileStatus),
                           const SizedBox(height: 12),
 
                           _buildBadgeRow(),
@@ -340,7 +344,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           GradientButton(
                             onPressed: _saveProfile,
                             isLoading: _isSaving,
-                            child: const Text('保存'),
+                            child: Text(AppLocalizations.of(context)!.editProfileSave),
                           ),
                           const SizedBox(height: 40),
                         ],
@@ -390,12 +394,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       TextButton(
-                        child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+                        child: Text(AppLocalizations.of(context)!.editProfilePickerCancel, style: const TextStyle(color: AppColors.textSecondary)),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
-                      const Text('生年月日', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(AppLocalizations.of(context)!.editProfileBirthDatePickerTitle, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
                       TextButton(
-                        child: const Text('完了', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        child: Text(AppLocalizations.of(context)!.editProfilePickerDone, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                         onPressed: () {
                           setState(() {
                             _birthDate = '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
@@ -434,7 +438,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _showGenderPickerBottomSheet() {
-    int selectedIndex = _genderOptions.indexOf(_gender ?? _genderOptions[0]);
+    final genderOpts = _genderOptions(context);
+    int selectedIndex = genderOpts.indexOf(_gender ?? genderOpts[0]);
     if (selectedIndex == -1) selectedIndex = 0;
 
     showModalBottomSheet(
@@ -454,15 +459,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
-                      child: const Text('キャンセル', style: TextStyle(color: AppColors.textSecondary)),
+                      child: Text(AppLocalizations.of(context)!.editProfilePickerCancel, style: const TextStyle(color: AppColors.textSecondary)),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
-                    const Text('性別', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(AppLocalizations.of(context)!.editProfileGenderPickerTitle, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
                     TextButton(
-                      child: const Text('完了', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      child: Text(AppLocalizations.of(context)!.editProfilePickerDone, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                       onPressed: () {
                         setState(() {
-                          _gender = _genderOptions[selectedIndex];
+                          _gender = genderOpts[selectedIndex];
                         });
                         Navigator.of(context).pop();
                       },
@@ -484,7 +489,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     onSelectedItemChanged: (int index) {
                       selectedIndex = index;
                     },
-                    children: _genderOptions.map((String value) {
+                    children: genderOpts.map((String value) {
                       return Center(
                         child: Text(
                           value,
@@ -524,7 +529,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const Icon(Icons.cake_outlined, color: AppColors.textMuted),
                     const SizedBox(width: 12),
                     Text(
-                      _birthDate ?? '生年月日 (任意)',
+                      _birthDate ?? AppLocalizations.of(context)!.editProfileBirthDate,
                       style: TextStyle(
                         color: _birthDate == null ? AppColors.textSecondary : AppColors.textPrimary,
                         fontSize: 16,
@@ -556,7 +561,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const Icon(Icons.person_outline, color: AppColors.textMuted),
                     const SizedBox(width: 12),
                     Text(
-                      _gender ?? '性別 (任意)',
+                      _gender ?? AppLocalizations.of(context)!.editProfileGender,
                       style: TextStyle(
                         color: _gender == null ? AppColors.textSecondary : AppColors.textPrimary,
                         fontSize: 16,
@@ -588,7 +593,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'ユーザーIDは前回の変更から90日間変更できません。\nあと $_daysRemaining 日お待ちください。',
+              AppLocalizations.of(context)!.editProfileRestrictionMessage(_daysRemaining),
               style: const TextStyle(color: AppColors.error, fontSize: 13),
             ),
           ),
@@ -675,7 +680,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         prefixIcon: Icon(icon, color: AppColors.textMuted),
       ),
       validator:
-          (v) => (v == null || v.trim().isEmpty) ? '$labelを入力してください' : null,
+          (v) => (v == null || v.trim().isEmpty) ? AppLocalizations.of(context)!.editProfileNameRequired : null,
     );
   }
 
@@ -686,16 +691,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       style: TextStyle(
         color: _isRestricted ? AppColors.textMuted : AppColors.textPrimary,
       ),
-      decoration: const InputDecoration(
-        labelText: 'ユーザーID',
-        prefixIcon: Icon(Icons.alternate_email, color: AppColors.textMuted),
+      decoration: InputDecoration(
+        labelText: AppLocalizations.of(context)!.editProfileUserIdLabel,
+        prefixIcon: const Icon(Icons.alternate_email, color: AppColors.textMuted),
       ),
       validator: (v) {
-        if (v == null || v.trim().isEmpty) return 'ユーザーIDを入力してください';
+        if (v == null || v.trim().isEmpty) return AppLocalizations.of(context)!.editProfileUserIdRequired;
         if (!_isAdmin) {
-          if (v.trim().length < 5) return '5文字以上で入力してください';
+          if (v.trim().length < 5) return AppLocalizations.of(context)!.editProfileUserIdMinLength;
           if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v.trim())) {
-            return '英数字とアンダースコアのみ使えます';
+            return AppLocalizations.of(context)!.editProfileUserIdAlphanumeric;
           }
         }
         return null;
@@ -734,21 +739,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         children: [
           const Icon(Icons.timer_outlined, color: AppColors.textMuted),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '写真のタイムスタンプ',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.editProfileTimestampLabel,
+                  style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
-                  '投稿写真に時刻を表示します',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.editProfileTimestampDesc,
+                  style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,
                   ),
@@ -781,10 +786,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           children: [
             const Icon(Icons.stars_rounded, color: AppColors.textMuted),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'バッジ',
-                style: TextStyle(
+                AppLocalizations.of(context)!.editProfileBadgeLabel,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -815,9 +820,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     else
                       const Icon(Icons.verified, color: AppColors.primary, size: 14),
                     const SizedBox(width: 4),
-                    const Text(
-                      '装着中',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.editProfileBadgeEquipped,
+                      style: const TextStyle(
                         color: AppColors.primary,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -827,11 +832,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               )
             else
-              const Padding(
-                padding: EdgeInsets.only(right: 8.0),
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
                 child: Text(
-                  '未設定',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.editProfileBadgeNone,
+                  style: const TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 12,
                   ),
@@ -843,9 +848,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 color: AppColors.grey20,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text(
-                '変更',
-                style: TextStyle(
+              child: Text(
+                AppLocalizations.of(context)!.editProfileBadgeChange,
+                style: const TextStyle(
                   color: AppColors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -878,9 +883,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'バッジを選択',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.editProfileBadgeSelectTitle,
+                  style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -897,9 +902,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       alignment: WrapAlignment.center,
                       children: badges.map((badgeUrl) {
                         String label = '';
-                        if (badgeUrl == '') label = 'なし';
-                        else if (badgeUrl == 'tester') label = 'テスター';
-                        else label = 'シーズンバッジ';
+                        if (badgeUrl == '') label = AppLocalizations.of(context)!.editProfileBadgeOptionNone;
+                        else if (badgeUrl == 'tester') label = AppLocalizations.of(context)!.editProfileBadgeOptionTester;
+                        else label = AppLocalizations.of(context)!.editProfileBadgeOptionSeason;
                         
                         return _buildBadgeOption(label, badgeUrl);
                       }).toList(),

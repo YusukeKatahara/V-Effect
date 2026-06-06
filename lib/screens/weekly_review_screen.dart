@@ -15,6 +15,7 @@ import '../providers/weekly_review_provider.dart';
 import 'share_preview_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 
 /// 今週の振り返りをVウォール形式で表示する画面
 class WeeklyReviewScreen extends ConsumerStatefulWidget {
@@ -86,16 +87,16 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '背景画像を選択',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.white),
+                Text(
+                  AppLocalizations.of(context)!.weeklyReviewSelectBackground,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.white),
                 ),
                 const SizedBox(height: 16),
                 if (_imagePosts.isEmpty)
                   Container(
                     height: 100,
                     alignment: Alignment.center,
-                    child: const Text('今週の投稿はまだありません。\nデフォルトの背景でシェアします。', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary)),
+                    child: Text(AppLocalizations.of(context)!.weeklyReviewNoPostsDefault, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
                   )
                 else
                   SizedBox(
@@ -139,7 +140,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('背景画像なしでシェア'),
+                    child: Text(AppLocalizations.of(context)!.weeklyReviewShareWithoutBackground),
                   ),
                 ),
               ],
@@ -173,7 +174,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
         loading: () => const Scaffold(backgroundColor: AppColors.bgBase, body: Center(child: CircularProgressIndicator())),
         error: (err, stack) => Scaffold(
           backgroundColor: AppColors.bgBase,
-          body: Center(child: Text('読み込みエラー: $err', style: const TextStyle(color: AppColors.white))),
+          body: Center(child: Text(AppLocalizations.of(context)!.weeklyReviewLoadError(err), style: const TextStyle(color: AppColors.white))),
         ),
         data: (data) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -239,7 +240,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
               child: ElevatedButton.icon(
                 onPressed: _showShareImageSelection,
                 icon: const Icon(Icons.share, color: AppColors.bgBase),
-                label: const Text('SNSへシェア', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
+                label: Text(AppLocalizations.of(context)!.weeklyReviewShareToSns, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accentGold,
                   minimumSize: const Size(double.infinity, 56),
@@ -263,13 +264,13 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildStatRow('今週のタスク', '${_posts.length}'),
+          _buildStatRow(AppLocalizations.of(context)!.weeklyReviewStatTasks, '${_posts.length}'),
           Divider(color: AppColors.white.withValues(alpha: 0.1), height: 1, indent: 16),
-          _buildStatRow('連続達成', '$_currentStreak'),
+          _buildStatRow(AppLocalizations.of(context)!.weeklyReviewStatStreak, '$_currentStreak'),
           Divider(color: AppColors.white.withValues(alpha: 0.1), height: 1, indent: 16),
-          _buildStatRow('累計VFIRE', '$_totalVFire'),
+          _buildStatRow(AppLocalizations.of(context)!.weeklyReviewStatVFire, '$_totalVFire'),
           Divider(color: AppColors.white.withValues(alpha: 0.1), height: 1, indent: 16),
-          _buildStatRow('リアクション', '$_totalReactions'),
+          _buildStatRow(AppLocalizations.of(context)!.weeklyReviewStatReactions, '$_totalReactions'),
         ],
       ),
     );
@@ -280,7 +281,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       return Container(
         height: 200,
         alignment: Alignment.center,
-        child: const Text('今週の投稿はまだありません', style: TextStyle(color: AppColors.textSecondary)),
+        child: Text(AppLocalizations.of(context)!.weeklyReviewNoPosts, style: const TextStyle(color: AppColors.textSecondary)),
       );
     }
 

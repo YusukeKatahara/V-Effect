@@ -4,11 +4,13 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/dev_blog_post.dart';
 import '../providers/dev_blog_provider.dart';
+import '../providers/language_provider.dart';
 import '../services/dev_blog_service.dart';
 
 class BlogPostDetailScreen extends ConsumerStatefulWidget {
@@ -125,6 +127,15 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
   }
 
   Widget _buildContent(DevBlogPost post) {
+    final lang = ref.watch(languageProvider);
+    final isEnglish = lang == 'en';
+    final title = isEnglish && post.titleEn != null && post.titleEn!.isNotEmpty 
+        ? post.titleEn! 
+        : post.title;
+    final body = isEnglish && post.bodyEn != null && post.bodyEn!.isNotEmpty 
+        ? post.bodyEn! 
+        : post.body;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -141,7 +152,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
         const SizedBox(height: 14),
 
         Text(
-          post.title,
+          title,
           style: GoogleFonts.notoSansJp(
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -173,7 +184,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
                   )),
             ),
             Text(
-              DateFormat('yyyy年M月d日').format(post.createdAt),
+              DateFormat(AppLocalizations.of(context)!.dateFormatFull).format(post.createdAt),
               style: GoogleFonts.outfit(
                 fontSize: 13,
                 color: AppColors.grey50,
@@ -189,7 +200,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
         ),
 
         MarkdownBody(
-          data: post.body,
+          data: body,
           selectable: true,
           styleSheet: MarkdownStyleSheet(
             h1: GoogleFonts.notoSansJp(
@@ -257,19 +268,19 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          '記事を削除しますか？',
+          AppLocalizations.of(context)!.blogPostDetailDeleteTitle,
           style: GoogleFonts.notoSansJp(
               color: AppColors.white, fontWeight: FontWeight.w700),
         ),
         content: Text(
-          'この操作は取り消せません。',
+          AppLocalizations.of(context)!.blogPostDetailDeleteDesc,
           style: GoogleFonts.notoSansJp(
               color: AppColors.grey50, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('キャンセル',
+            child: Text(AppLocalizations.of(context)!.blogPostDetailDeleteCancel,
                 style:
                     GoogleFonts.outfit(color: AppColors.grey50)),
           ),
@@ -280,7 +291,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
               await DevBlogService.instance.deletePost(post.id);
               if (mounted) nav.pop();
             },
-            child: Text('削除',
+            child: Text(AppLocalizations.of(context)!.blogPostDetailDeleteButton,
                 style: GoogleFonts.outfit(
                     color: AppColors.error,
                     fontWeight: FontWeight.w700)),

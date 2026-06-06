@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 
 // ── Tier System ──────────────────────────────────────────────────────────────
@@ -538,7 +539,7 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
       child: Transform.translate(
         offset: const Offset(1.0, 0),
         child: Text(
-          widget.isRecordUpdating ? '🏆  RECORD UPDATED' : '継続中',
+          widget.isRecordUpdating ? '🏆  RECORD UPDATED' : AppLocalizations.of(context)!.postSuccessStreakContinuing,
           style: GoogleFonts.outfit(
             fontSize: 13,
             fontWeight: FontWeight.w600,
@@ -593,7 +594,7 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
               ),
             ),
             Text(
-              '${tier.nextLabel} まで あと$daysLeft日',
+              AppLocalizations.of(context)!.postSuccessDaysUntilNext(tier.nextLabel, daysLeft),
               style: GoogleFonts.outfit(
                 fontSize: 10,
                 fontWeight: FontWeight.w500,

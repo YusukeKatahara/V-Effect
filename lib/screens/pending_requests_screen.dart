@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/friend_request.dart';
 import '../services/friend_service.dart';
@@ -20,9 +21,9 @@ class PendingRequestsScreen extends StatelessWidget {
           backgroundColor: AppColors.bgBase,
           surfaceTintColor: Colors.transparent,
           foregroundColor: AppColors.textPrimary,
-          title: const Text(
-            'フォロー申請',
-            style: TextStyle(color: AppColors.textPrimary),
+          title: Text(
+            AppLocalizations.of(context)!.pendingRequestsTitle,
+            style: const TextStyle(color: AppColors.textPrimary),
           ),
         ),
         body: StreamBuilder<List<FriendRequest>>(
@@ -33,10 +34,10 @@ class PendingRequestsScreen extends StatelessWidget {
             }
             final requests = snapshot.data ?? [];
             if (requests.isEmpty) {
-              return const Center(
+              return Center(
                 child: Text(
-                  '申請はありません',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  AppLocalizations.of(context)!.pendingRequestsEmpty,
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               );
             }
@@ -77,7 +78,7 @@ class _RequestTileState extends State<_RequestTile> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('承認に失敗しました: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.pendingRequestsAcceptFailed(e))));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -92,7 +93,7 @@ class _RequestTileState extends State<_RequestTile> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('拒否に失敗しました: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.pendingRequestsRejectFailed(e))));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -132,9 +133,9 @@ class _RequestTileState extends State<_RequestTile> {
               : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _ActionButton(label: '承認', filled: true, onTap: _accept),
+                  _ActionButton(label: AppLocalizations.of(context)!.pendingRequestsAccept, filled: true, onTap: _accept),
                   const SizedBox(width: 8),
-                  _ActionButton(label: '拒否', filled: false, onTap: _reject),
+                  _ActionButton(label: AppLocalizations.of(context)!.pendingRequestsReject, filled: false, onTap: _reject),
                 ],
               ),
     );

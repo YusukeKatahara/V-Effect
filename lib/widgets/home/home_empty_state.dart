@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../config/app_colors.dart';
 import 'refresh_ring_button.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class HomeEmptyState extends StatelessWidget {
   final VoidCallback onRefresh;
 
@@ -20,7 +22,7 @@ class HomeEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Text(
-            'あなたはトップランナーだ。',
+            AppLocalizations.of(context)!.homeMotivationText1,
             style: GoogleFonts.notoSansJp(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -29,7 +31,7 @@ class HomeEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '小さな選択、小さな勝利が証拠となり\n理想とする自分が真実になる。',
+            AppLocalizations.of(context)!.homeMotivationText2,
             textAlign: TextAlign.center,
             style: GoogleFonts.notoSansJp(
               fontSize: 13,
