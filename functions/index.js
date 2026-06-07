@@ -1,6 +1,8 @@
-const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onTaskDispatched } = require("firebase-functions/v2/tasks");
+const { getFunctions } = require("firebase-admin/functions");
 const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
@@ -14,102 +16,210 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 initializeApp();
 
+/** リアクション通知のプッシュをまとめる際のデバウンスウィンドウ（秒） */
+const REACTION_PUSH_DEBOUNCE_SECONDS = 30;
+/** デバウンスロックの失効時間（ms）。配信タスクが消失した場合の保険。 */
+const REACTION_LOCK_STALE_MS = 5 * 60 * 1000;
+
 /**
- * notifications コレクションに新しいドキュメントが作成されたとき、
- * 受信者の FCM トークンを取得してプッシュ通知を送信する
+ * 指定ユーザーへ FCM プッシュを1通送信する。
+ * 受信者のマスタープッシュ設定を確認し、無効トークンは取得元から削除する。
  */
-exports.sendPushNotification = onDocumentCreated(
+async function sendPushToUser(toUid, title, body) {
+  const db = getFirestore();
+
+  // 受信者の公開情報を取得（プッシュ通知設定の確認用）
+  const userDoc = await db.collection("users").doc(toUid).get();
+  if (!userDoc.exists) return;
+
+  const userData = userDoc.data();
+
+  // マスターのプッシュ通知設定をチェック
+  if (userData.pushNotifications === false) {
+    return;
+  }
+
+  // fcmToken は private subcollection を優先参照。
+  // 旧バージョンのアプリは users/{uid}.fcmToken（公開エリア）に書き込み続けるため、
+  // 移行期間中は public 側にフォールバックする。
+  // どちらから取得したかを覚えておき、無効化時に正しい場所を削除する。
+  const privateDoc = await db.collection("users").doc(toUid)
+      .collection("private").doc("data").get();
+  let fcmToken = privateDoc.exists ? privateDoc.data().fcmToken : null;
+  let fcmTokenSource = "private";
+  if (!fcmToken) {
+    fcmToken = userData.fcmToken || null;
+    fcmTokenSource = "public";
+  }
+  if (!fcmToken) return;
+
+  // FCM メッセージを送信
+  const message = {
+    token: fcmToken,
+    notification: {
+      title: title,
+      ...(body ? { body: body } : {}),
+    },
+    android: {
+      priority: "high",
+      notification: {
+        channelId: "veffect_notifications",
+        defaultSound: true,
+      },
+    },
+    apns: {
+      headers: {
+        "apns-priority": "10",
+        "apns-push-type": "alert",
+      },
+      payload: {
+        aps: {
+          sound: "default",
+          badge: 1,
+          // "content-available": 1, // バックグラウンド処理が必要な場合はコメントを外す
+        },
+      },
+    },
+  };
+
+  try {
+    await getMessaging().send(message);
+    console.log(`Successfully sent message to ${toUid}`);
+  } catch (error) {
+    console.error(`Error sending push notification to ${toUid}:`, error);
+    // トークンが無効な場合は取得元の場所から削除
+    if (
+      error.code === "messaging/invalid-registration-token" ||
+      error.code === "messaging/registration-token-not-registered"
+    ) {
+      if (fcmTokenSource === "private") {
+        await db.collection("users").doc(toUid).collection("private")
+            .doc("data").set({ fcmToken: FieldValue.delete() }, { merge: true });
+      } else {
+        await db.collection("users").doc(toUid).update({
+          fcmToken: FieldValue.delete(),
+        });
+      }
+      console.log(`Deleted invalid FCM token for ${toUid} (source=${fcmTokenSource})`);
+    }
+  }
+}
+
+/**
+ * notifications コレクションのドキュメントが書き込まれたとき、プッシュ通知を送信する。
+ *
+ * - リアクション以外の通知（投稿・ストリーク・フレンド等）は固有IDで新規作成されるため、
+ *   従来通り「新規作成時のみ」即時送信する。
+ * - リアクション通知は (投稿 × リアクション送信者) で固定IDのドキュメントにカウントを
+ *   合算する設計のため、onDocumentCreated では2回目以降のリアクションでプッシュが
+ *   飛ばなかった。ここでは onDocumentWritten で更新も拾い、連続リアクションを1通に
+ *   集約したまま確実にプッシュを届けるためにデバウンス送信を行う。
+ */
+exports.sendPushNotification = onDocumentWritten(
   "notifications/{notificationId}",
   async (event) => {
-    const data = event.data?.data();
-    if (!data) return;
+    const after = event.data?.after?.data();
+    if (!after) return; // 削除イベントは無視
 
-    const { toUid, title, body, sendPush } = data;
+    const { toUid, title, body, sendPush, type } = after;
     if (!toUid || !title) return;
 
     // フロントエンドで指定されたプッシュ送出フラグをチェック
-    // sendPush が明示的に false の場合（V FIREリアクション等）は送信しない
-    if (sendPush === false) {
+    // sendPush が明示的に false の場合（受信者が当該通知をオフ）は送信しない
+    if (sendPush === false) return;
+
+    const before = event.data?.before?.data();
+    const isReaction = type === "reactionReceived";
+
+    // ── リアクション以外：従来通り「新規作成時のみ」即時送信 ──
+    if (!isReaction) {
+      if (before) return; // 更新（isRead 変更等）では送信しない（旧 onDocumentCreated 互換）
+      await sendPushToUser(toUid, title, body);
       return;
     }
+
+    // ── リアクション通知：デバウンス送信 ──
+    // 新しいリアクションがあった（カウント増加 or 新規作成）時だけ処理する。
+    // isRead 更新やサーバー自身の pushScheduled 書き込みでは発火しないようにし、
+    // 無限ループを防ぐ。
+    const beforeCount = before?.reactionCount ?? 0;
+    const afterCount = after.reactionCount ?? 0;
+    const isNewReaction = !before || afterCount > beforeCount;
+    if (!isNewReaction) return;
 
     const db = getFirestore();
+    const notificationId = event.params.notificationId;
 
-    // 受信者の公開情報を取得（プッシュ通知設定の確認用）
-    const userDoc = await db.collection("users").doc(toUid).get();
-    if (!userDoc.exists) return;
+    // デバウンス用ロックは notifications ドキュメント外（Admin SDK 専用コレクション）
+    // に置く。こうすることで、古いアプリ版がリアクション通知ドキュメントを
+    // 全置換（merge なし set）で上書きしてもロック状態が消えず、
+    // 新旧すべてのクライアントで「連続リアクション → 1通」の集約が保たれる。
+    const lockRef = db.collection("reaction_push_locks").doc(notificationId);
 
-    const userData = userDoc.data();
+    const shouldSchedule = await db.runTransaction(async (tx) => {
+      const lock = await tx.get(lockRef);
+      if (lock.exists) {
+        const scheduledAt = lock.data().scheduledAt ?? 0;
+        // 予約中（ウィンドウ内）ならスキップ。タスク消失に備え一定時間で失効させる。
+        if (Date.now() - scheduledAt < REACTION_LOCK_STALE_MS) return false;
+      }
+      tx.set(lockRef, { scheduledAt: Date.now(), notificationId });
+      return true;
+    });
 
-    // マスターのプッシュ通知設定をチェック
-    if (userData.pushNotifications === false) {
-      return;
-    }
-
-    // fcmToken は private subcollection を優先参照。
-    // 旧バージョンのアプリは users/{uid}.fcmToken（公開エリア）に書き込み続けるため、
-    // 移行期間中は public 側にフォールバックする。
-    // どちらから取得したかを覚えておき、無効化時に正しい場所を削除する。
-    const privateDoc = await db.collection("users").doc(toUid)
-        .collection("private").doc("data").get();
-    let fcmToken = privateDoc.exists ? privateDoc.data().fcmToken : null;
-    let fcmTokenSource = "private";
-    if (!fcmToken) {
-      fcmToken = userData.fcmToken || null;
-      fcmTokenSource = "public";
-    }
-    if (!fcmToken) return;
-
-    // FCM メッセージを送信
-    const message = {
-      token: fcmToken,
-      notification: {
-        title: title,
-        ...(body ? { body: body } : {}),
-      },
-      android: {
-        priority: "high",
-        notification: {
-          channelId: "veffect_notifications",
-          defaultSound: true,
-        },
-      },
-      apns: {
-        headers: {
-          "apns-priority": "10",
-          "apns-push-type": "alert",
-        },
-        payload: {
-          aps: {
-            sound: "default",
-            badge: 1,
-            // "content-available": 1, // バックグラウンド処理が必要な場合はコメントを外す
-          },
-        },
-      },
-    };
+    if (!shouldSchedule) return;
 
     try {
-      await getMessaging().send(message);
-      console.log(`Successfully sent message to ${toUid}`);
+      const queue = getFunctions().taskQueue("deliverReactionPush");
+      await queue.enqueue(
+        { notificationId },
+        { scheduleDelaySeconds: REACTION_PUSH_DEBOUNCE_SECONDS }
+      );
+      console.log(`Scheduled reaction push for ${notificationId}`);
     } catch (error) {
-      console.error(`Error sending push notification to ${toUid}:`, error);
-      // トークンが無効な場合は取得元の場所から削除
-      if (
-        error.code === "messaging/invalid-registration-token" ||
-        error.code === "messaging/registration-token-not-registered"
-      ) {
-        if (fcmTokenSource === "private") {
-          await db.collection("users").doc(toUid).collection("private")
-              .doc("data").set({ fcmToken: FieldValue.delete() }, { merge: true });
-        } else {
-          await db.collection("users").doc(toUid).update({
-            fcmToken: FieldValue.delete(),
-          });
-        }
-        console.log(`Deleted invalid FCM token for ${toUid} (source=${fcmTokenSource})`);
-      }
+      console.error("Failed to enqueue deliverReactionPush:", error);
+      // 予約を取り消し、次のリアクション書き込みで再試行できるようにする
+      await lockRef.delete().catch(() => {});
     }
+  }
+);
+
+/**
+ * デバウンスウィンドウ終了後に実行され、リアクション通知のプッシュを1通だけ送信する。
+ * ウィンドウ内で合算された最新の title/body（カウント込み）を送るため、
+ * 「同じ人が10回連続でリアクション → 1通（10回分）の通知」が実現される。
+ */
+exports.deliverReactionPush = onTaskDispatched(
+  {
+    retryConfig: {
+      maxAttempts: 3,
+      minBackoffSeconds: 30,
+    },
+    rateLimits: {
+      maxConcurrentDispatches: 10,
+    },
+  },
+  async (request) => {
+    const { notificationId } = request.data;
+    if (!notificationId) return;
+
+    const db = getFirestore();
+    const ref = db.collection("notifications").doc(notificationId);
+    const snap = await ref.get();
+
+    // ロックを先に解除する。これ以降に届いたリアクションは
+    // 新しいウィンドウとして次のプッシュを予約できる。
+    await db.collection("reaction_push_locks").doc(notificationId).delete()
+        .catch(() => {});
+
+    if (!snap.exists) return; // 既に削除済み
+
+    const data = snap.data();
+    if (data.sendPush === false) return;
+    if (!data.toUid || !data.title) return;
+
+    await sendPushToUser(data.toUid, data.title, data.body);
+    console.log(`Delivered aggregated reaction push for ${notificationId}`);
   }
 );
 
@@ -728,9 +838,6 @@ exports.migrateFcmTokens = onCall(async (request) => {
   console.log(`migrateFcmTokens: migrated=${migrated} skipped=${skipped}`);
   return { migrated, skipped, total: usersSnap.size };
 });
-
-const { onTaskDispatched } = require("firebase-functions/v2/tasks");
-const { getFunctions } = require("firebase-admin/functions");
 
 /**
  * 投稿作成時に、1分後に実行されるタスクをエンキューし、
