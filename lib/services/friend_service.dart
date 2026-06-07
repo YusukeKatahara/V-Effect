@@ -177,14 +177,7 @@ class FriendService {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // 相手に通知を送る
-      await _notificationService.createNotification(
-        toUid: targetUid,
-        type: NotificationType.friendRequestReceived,
-        params: {'username': myUsername},
-        fromUid: myUid,
-        relatedId: docRef.id,
-      );
+
 
       _analytics.logFriendRequestSent();
     } finally {
@@ -240,15 +233,7 @@ class FriendService {
       await batch.commit();
 
       if (!alreadyFollowing) {
-        // 申請者に承認通知を送る
-        final myUsername = userSnap.data()?['username'] ?? '';
-        await _notificationService.createNotification(
-          toUid: request.fromUid,
-          type: NotificationType.friendRequestAccepted,
-          params: {'username': myUsername},
-          fromUid: myUid,
-          relatedId: request.id,
-        );
+        // 通知生成はCloud Functions側で行うため、ここでは何もしない
       }
       
       // ホーム等で承認した場合、通知画面に残っている「申請が届きました」通知を処理済みにする
@@ -338,19 +323,7 @@ class FriendService {
 
       await batch.commit();
 
-      // 通知を送る
-      try {
-        final mySnap = await _db.collection('users').doc(myUid).get();
-        final myUsername = mySnap.data()?['username'] ?? '誰か';
-        await _notificationService.createNotification(
-          toUid: targetUid,
-          type: NotificationType.friendRequestReceived, // 修正：直接フォロー時もリクエスト受信として扱う
-          params: {'username': myUsername},
-          fromUid: myUid,
-        );
-      } catch (e) {
-        debugPrint('Failed to send follow notification: $e');
-      }
+      // 通知生成はCloud Functions側で行うため、ここでは送信しない
 
       _analytics.logFriendRequestSent();
     } finally {

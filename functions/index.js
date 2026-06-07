@@ -1,4 +1,4 @@
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret } = require("firebase-functions/params");
@@ -1034,5 +1034,171 @@ exports.backfillAiCategories = onCall(
     });
 
     return { success: true, message: "ダミーのトレンドデータを投入しました" };
+  }
+);
+
+/**
+ * フレンド申請（friend_requests）の新規作成時、相手に通知を送る
+ */
+exports.onFriendRequestCreated = onDocumentCreated(
+  "friend_requests/{requestId}",
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+
+    if (data.status !== "pending") return;
+
+    const db = getFirestore();
+    const username = data.fromUsername || "誰か";
+
+    const templates = [
+      { title: '🔥 仲間の予感', body: '{username} さんがあなたの努力に惹かれています！仲間リクエストが届きました' },
+      { title: '👀 注目されています', body: '{username} さんがあなたに注目しています。共に成長する仲間に加えますか？' },
+    ];
+    const tmpl = templates[Math.floor(Math.random() * templates.length)];
+    const title = tmpl.title.replace('{username}', username);
+    const body = tmpl.body.replace('{username}', username);
+
+    const notifRef = db.collection("notifications").doc();
+    await notifRef.set({
+      toUid: data.toUid,
+      fromUid: data.fromUid,
+      type: "friendRequestReceived",
+      relatedId: event.params.requestId,
+      title: title,
+      body: body,
+      sendPush: true,
+      isRead: false,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  }
+);
+
+/**
+ * フレンド申請（friend_requests）の承認時、申請者に通知を送る
+ */
+exports.onFriendRequestUpdated = onDocumentUpdated(
+  "friend_requests/{requestId}",
+  async (event) => {
+    const beforeData = event.data?.before?.data();
+    const afterData = event.data?.after?.data();
+    if (!beforeData || !afterData) return;
+
+    if (beforeData.status === "pending" && afterData.status === "accepted") {
+      const db = getFirestore();
+      const username = afterData.toUsername || "仲間";
+
+      const templates = [
+        { title: '🤝 仲間が誕生しました', body: '{username} さんと仲間になりました！お互いのV Questを高め合いましょう！' },
+        { title: '⚔️ 戦友の合流', body: '{username} さんがリクエストを承認しました！共に高みを目指しましょう' },
+      ];
+      const tmpl = templates[Math.floor(Math.random() * templates.length)];
+      const title = tmpl.title.replace('{username}', username);
+      const body = tmpl.body.replace('{username}', username);
+
+      const notifRef = db.collection("notifications").doc();
+      await notifRef.set({
+        toUid: afterData.fromUid,
+        fromUid: afterData.toUid,
+        type: "friendRequestAccepted",
+        relatedId: event.params.requestId,
+        title: title,
+        body: body,
+        sendPush: true,
+        isRead: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+  }
+);
+
+/**
+ * 直接フォロー（followers配列の増加）を検知して通知を送る
+ * ただし、friend_requestsが存在する場合は申請時に通知済みなので無視する
+ */
+exports.onUserFollowersUpdated = onDocumentUpdated(
+  "users/{userId}",
+  async (event) => {
+    const beforeFollowers = event.data?.before?.data()?.followers;
+    const afterFollowers = event.data?.after?.data()?.followers;
+    
+    // followers が配列でない場合はスキップ
+    if (!Array.isArray(beforeFollowers) || !Array.isArray(afterFollowers)) return;
+
+    const newFollowers = afterFollowers.filter(uid => !beforeFollowers.includes(uid));
+    
+    if (newFollowers.length > 0) {
+      const db = getFirestore();
+      for (const followerUid of newFollowers) {
+        // フレンド申請が存在するかチェック
+        const reqSnap = await db.collection("friend_requests")
+          .where("fromUid", "==", followerUid)
+          .where("toUid", "==", event.params.userId)
+          .limit(1)
+          .get();
+
+        if (reqSnap.empty) {
+          // 申請を介さない直接フォロー
+          const followerSnap = await db.collection("users").doc(followerUid).get();
+          const followerName = followerSnap.exists ? (followerSnap.data().username || "誰か") : "誰か";
+          
+          const notifRef = db.collection("notifications").doc();
+          await notifRef.set({
+            toUid: event.params.userId,
+            fromUid: followerUid,
+            type: "friendRequestReceived",
+            relatedId: `follow_${followerUid}`,
+            title: "🔥 仲間の予感",
+            body: `${followerName} さんがあなたの努力に惹かれています！仲間リクエストが届きました`,
+            sendPush: true,
+            isRead: false,
+            createdAt: FieldValue.serverTimestamp(),
+          });
+        }
+      }
+    }
+  }
+);
+
+/**
+ * ユーザーのストリーク更新時、マイルストーンに達していればお祝い通知を送る
+ */
+exports.onUserStreakUpdated = onDocumentUpdated(
+  "users/{userId}",
+  async (event) => {
+    const beforeData = event.data?.before?.data();
+    const afterData = event.data?.after?.data();
+    if (!beforeData || !afterData) return;
+
+    const beforeStreak = beforeData.streak || 0;
+    const afterStreak = afterData.streak || 0;
+
+    if (afterStreak > beforeStreak) {
+      const pushEnabled = afterData.pushNotifications ?? true;
+      const celebrationEnabled = afterData.streakCelebrationNotifications ?? true;
+      
+      if (pushEnabled && celebrationEnabled) {
+        const milestones = [10, 30, 50, 100, 200, 365];
+        if (milestones.includes(afterStreak)) {
+          const db = getFirestore();
+          const username = afterData.username || "あなた";
+          const title = "🤯 どわー！";
+          const body = `${afterStreak}日連続！${username}さんはもう勝ち癖が付き始めているそうです...！`;
+
+          const notifRef = db.collection("notifications").doc();
+          await notifRef.set({
+            toUid: event.params.userId,
+            fromUid: "system",
+            type: "streakCelebration",
+            relatedId: `streak_${afterStreak}`,
+            title: title,
+            body: body,
+            sendPush: true,
+            isRead: false,
+            createdAt: FieldValue.serverTimestamp(),
+          });
+        }
+      }
+    }
   }
 );

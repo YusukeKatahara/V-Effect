@@ -40,14 +40,6 @@ abstract class NotificationMessages {
       ),
     ],
 
-    // ── フレンドのヒーロータスク完了 ──
-    NotificationType.friendTaskCompleted: [
-      _Template(title: '仲間の一歩', body: '{username}さんも今日の自分に勝ちました'),
-      _Template(title: '仲間の一歩', body: '{username}さんが今日も一歩を刻みました。同じ道を歩く仲間がいます'),
-      _Template(title: '仲間の一歩', body: '{username}さんが自分との約束を果たしました'),
-      _Template(title: '仲間の一歩', body: '{username}さんも戦っています。あなたは一人じゃない'),
-      _Template(title: '仲間の一歩', body: '{username}さんが今日の勝利を手にしました'),
-    ],
 
     // ── リアクション受信 ──
     NotificationType.reactionReceived: [
@@ -57,96 +49,15 @@ abstract class NotificationMessages {
       ),
     ],
 
-    // ── フレンドリクエスト（機能的通知：単一テンプレート） ──
-    NotificationType.friendRequestReceived: [
-      _Template(
-        title: '🔥 仲間の予感',
-        body: '{username} さんがあなたの努力に惹かれています！仲間リクエストが届きました',
-      ),
-      _Template(
-        title: '👀 注目されています',
-        body: '{username} さんがあなたに注目しています。共に成長する仲間に加えますか？',
-      ),
-    ],
-    NotificationType.friendRequestAccepted: [
-      _Template(
-        title: '🤝 仲間が誕生しました',
-        body: '{username} さんと仲間になりました！お互いのV Questを高め合いましょう！',
-      ),
-      _Template(
-        title: '⚔️ 戦友の合流',
-        body: '{username} さんがリクエストを承認しました！共に高みを目指しましょう',
-      ),
-    ],
-    // ── ストリーク達成祝い ──
-    NotificationType.streakCelebration: [
-      _Template(
-        title: '🤯 どわー！',
-        body: '{username}さんはもう勝ち癖が付き始めているそうです...！',
-      ),
-    ],
-    // ── ストリーク危機通知 ──
-    NotificationType.streakWarning: [
-      _Template(
-        title: '⚠️ 危機が迫っています',
-        body: '今日のV Questがまだ完了していません！このままでは{streak}日間のストリークが途切れてしまいます！',
-      ),
-      _Template(
-        title: '🔥 最後の踏ん張り',
-        body: 'ストリークを維持する時間は残りわずかです。自分との約束を果たしましょう！',
-      ),
-    ],
+
   };
 
-  /// 2つ目以上の複数タスク完了時の特別テンプレート（ランダムで選ばれる）
-  static final _multipleTaskTemplates = [
-    const _Template(
-      title: '🤚 さらなる高みへ',
-      body: '{username}さんは{count}つ目のタスクを達成。どうやら冷笑はもう古いようです🔍',
-    ),
-    const _Template(
-      title: '⚡️ 勝利者効果 / V EFFECT',
-      body: '勝利の連鎖がさらなる挑戦を熱くする！{username}さんが本日{count}回目の勝利を呼び込みました🔥',
-    ),
-    const _Template(
-      title: '📈 成長の複利ループ',
-      body: '1.01の積み重ねが未来を劇的に変える！{username}さんが本日{count}つ目の行動を重ね、複利で進化中🚀',
-    ),
-    const _Template(
-      title: '🧠 意志を超えた習慣化',
-      body: 'もはや努力は呼吸と同じ。{username}さんが本日{count}つ目のタスクを「当たり前」のように突破⚡️',
-    ),
-  ];
 
   /// 通知タイプ・パラメータからメッセージをランダムに生成します
   static NotificationContent build(
     NotificationType type, [
     Map<String, String> params = const {},
   ]) {
-    // 2回目以降のヒーロータスク達成の場合は、専用のランダムテンプレートを使用する
-    if (type == NotificationType.friendTaskCompleted) {
-      // 1. 同日2回目以降のタスク完了を最優先でチェックする
-      // (マイルストーン達成日であっても、2回目の投稿では2回目用の通知を優先する)
-      final countStr = params['count'];
-      if (countStr != null) {
-        final count = int.tryParse(countStr) ?? 1;
-        if (count > 1) {
-          final template = _multipleTaskTemplates[_random.nextInt(_multipleTaskTemplates.length)];
-          return NotificationContent(
-            title: _replacePlaceholders(template.title, params),
-            body: _replacePlaceholders(template.body, params),
-          );
-        }
-      }
-
-      // 2. その日の最初のタスクで、かつマイルストーン達成の場合
-      if (params['isMilestone'] == 'true') {
-        return NotificationContent(
-          title: '🤯 どわー！',
-          body: '${params['streak']}日連続！${params['username'] ?? ''}さんはもう勝ち癖が付き始めているそうです...！',
-        );
-      }
-    }
 
     final templates = _templates[type];
     if (templates == null || templates.isEmpty) {

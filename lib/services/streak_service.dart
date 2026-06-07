@@ -70,9 +70,7 @@ class StreakService {
       await userRef.update(updates);
     }
 
-    // ── ストリーク達成祝いの通知 ──
-    final newStreak = result['newStreak'] as int;
-    triggerMilestoneNotification(uid: uid, newStreak: newStreak, userData: data);
+
 
     return result;
   }
@@ -147,29 +145,7 @@ class StreakService {
     };
   }
 
-  /// マイルストーン達成時の通知を送信
-  void triggerMilestoneNotification({
-    required String uid,
-    required int newStreak,
-    required Map<String, dynamic> userData,
-  }) {
-    final pushEnabled = userData['pushNotifications'] ?? true;
-    final celebrationEnabled = userData['streakCelebrationNotifications'] ?? true;
-    
-    if (pushEnabled && celebrationEnabled) {
-      final milestones = [10, 30, 50, 100, 200, 365];
-      if (milestones.contains(newStreak)) {
-        NotificationService.instance.createNotification(
-          toUid: uid,
-          type: NotificationType.streakCelebration,
-          params: {
-            'streak': newStreak.toString(),
-            'username': userData['username']?.toString() ?? 'あなた',
-          },
-        ).catchError((e) => debugPrint('Celebration notification error: $e'));
-      }
-    }
-  }
+
 
   /// 実際のストリークの更新（下位互換性維持のためのメソッド）
   Future<Map<String, dynamic>> updateStreakLegacy(String uid, DateTime now) async {
@@ -246,23 +222,7 @@ class StreakService {
 
     await userRef.update(updates);
 
-    // ── ストリーク達成祝いの通知 ──
-    final pushEnabled = data['pushNotifications'] ?? true;
-    final celebrationEnabled = data['streakCelebrationNotifications'] ?? true;
-    
-    if (pushEnabled && celebrationEnabled) {
-      final milestones = [10, 30, 50, 100, 200, 365];
-      if (milestones.contains(newStreak)) {
-        NotificationService.instance.createNotification(
-          toUid: uid,
-          type: NotificationType.streakCelebration,
-          params: {
-            'streak': newStreak.toString(),
-            'username': data['username']?.toString() ?? 'あなた',
-          },
-        ).catchError((e) => debugPrint('Celebration notification error: $e'));
-      }
-    }
+
 
     return {'newStreak': newStreak, 'isRecordUpdating': isRecordUpdating};
   }

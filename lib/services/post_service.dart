@@ -300,14 +300,7 @@ class PostService {
       _analytics.logStreakMilestone(streak: newStreak);
     }
 
-    // お祝い通知のトリガー
-    _streakService.triggerMilestoneNotification(
-      uid: uid,
-      newStreak: newStreak,
-      userData: userData,
-    );
 
-    // Step5: フレンドに通知を送る処理は Cloud Functions のタスクキュー（1分遅延）に移行したため削除
 
     // 保護スケジュールを再計算
     PushNotificationService().restoreVAlertSchedule().catchError((_) {});
