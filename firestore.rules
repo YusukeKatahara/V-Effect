@@ -101,10 +101,25 @@ service cloud.firestore {
         && (resource.data.toUid == request.auth.uid
             || resource.data.get('fromUid', '') == request.auth.uid);
 
-      // 通知更新（既読・処理済みマーク）: 自分宛ての通知のみ & isRead, isProcessed のみ変更可
-      allow update: if request.auth != null
-        && resource.data.toUid == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'isProcessed']);
+      // 通知更新:
+      //   1. 受信者（toUid==自分）による既読・処理済みマーク（isRead, isProcessed のみ）
+      //   2. リアクション送信者（fromUid==自分）による、自分が送ったリアクション通知の
+      //      カウント集約・上書き。連続リアクションを1通にまとめるための更新を許可する。
+      //      （送信者は元々 create+delete 権限を持つため新たな権限拡大ではない。
+      //        ただし toUid / fromUid の改変は禁止し、対象は reactionReceived に限定する）
+      allow update: if request.auth != null && (
+        (
+          resource.data.toUid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'isProcessed'])
+        )
+        ||
+        (
+          resource.data.get('fromUid', '') == request.auth.uid
+          && resource.data.type == 'reactionReceived'
+          && request.resource.data.toUid == resource.data.toUid
+          && request.resource.data.get('fromUid', '') == resource.data.get('fromUid', '')
+        )
+      );
 
       // 通知削除:
       //   - 自分宛ての通知（ユーザーが通知を消す）
@@ -112,6 +127,15 @@ service cloud.firestore {
       allow delete: if request.auth != null
         && (resource.data.toUid == request.auth.uid
             || resource.data.get('fromUid', '') == request.auth.uid);
+    }
+
+    // ────────────────────────────────────────
+    // reaction_push_locks コレクション（Admin SDK 専用）
+    // リアクション通知プッシュのデバウンス制御に使う。クライアントから
+    // 触れないようにすることで、アプリ版に関わらず集約（連続リアクション→1通）を保つ。
+    // ────────────────────────────────────────
+    match /reaction_push_locks/{notificationId} {
+      allow read, write: if false;
     }
 
     // ────────────────────────────────────────
