@@ -1002,8 +1002,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get blogPostEditorSeasonModalTitle => 'シーズンタスクの設定';
 
-  @override
   String get blogPostEditorSeasonTaskName => 'タスク名 (必須)';
+
+  @override
+  String get blogPostEditorSeasonRequiredCount => '目標回数 (デフォルト: 12)';
+
+  @override
+  String get blogPostEditorSeasonRequiredCountHint => '例: 12';
 
   @override
   String get blogPostEditorSeasonDuration => '実施期間(日数)';
@@ -1032,8 +1037,15 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get blogPostEditorBadgeUploadSuccess => 'バッジ画像をアップロードしました';
 
-  @override
   String get blogPostEditorBadgeUploadFailed => 'アップロードに失敗しました';
+
+  @override
+  String get badgeAcquiredNotificationTitle => '🎉 バッジ獲得！';
+
+  @override
+  String badgeAcquiredNotificationBody(String taskName) {
+    return 'シーズンタスク「$taskName」を達成し、新しいバッジを獲得しました！プロフィールで確認できます。';
+  }
 
   @override
   String get taskSetupTitle => 'ヒーロータスク設定';

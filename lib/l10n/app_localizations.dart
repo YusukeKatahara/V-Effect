@@ -1994,6 +1994,18 @@ abstract class AppLocalizations {
   /// **'タスク名 (必須)'**
   String get blogPostEditorSeasonTaskName;
 
+  /// No description provided for @blogPostEditorSeasonRequiredCount.
+  ///
+  /// In ja, this message translates to:
+  /// **'目標回数 (デフォルト: 12)'**
+  String get blogPostEditorSeasonRequiredCount;
+
+  /// No description provided for @blogPostEditorSeasonRequiredCountHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'例: 12'**
+  String get blogPostEditorSeasonRequiredCountHint;
+
   /// No description provided for @blogPostEditorSeasonDuration.
   ///
   /// In ja, this message translates to:
@@ -2053,6 +2065,18 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'アップロードに失敗しました'**
   String get blogPostEditorBadgeUploadFailed;
+
+  /// No description provided for @badgeAcquiredNotificationTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'🎉 バッジ獲得！'**
+  String get badgeAcquiredNotificationTitle;
+
+  /// No description provided for @badgeAcquiredNotificationBody.
+  ///
+  /// In ja, this message translates to:
+  /// **'シーズンタスク「{taskName}」を達成し、新しいバッジを獲得しました！プロフィールで確認できます。'**
+  String badgeAcquiredNotificationBody(String taskName);
 
   /// No description provided for @taskSetupTitle.
   ///

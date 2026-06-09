@@ -1040,6 +1040,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get blogPostEditorSeasonTaskName => 'Task Name (required)';
 
   @override
+  String get blogPostEditorSeasonRequiredCount => 'Required Posts (Default: 12)';
+
+  @override
+  String get blogPostEditorSeasonRequiredCountHint => 'e.g. 12';
+
+  @override
   String get blogPostEditorSeasonDuration => 'Duration (days)';
 
   @override
@@ -1069,6 +1075,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get blogPostEditorBadgeUploadFailed => 'Upload failed';
+
+  @override
+  String get badgeAcquiredNotificationTitle => '🎉 Badge Acquired!';
+
+  @override
+  String badgeAcquiredNotificationBody(String taskName) {
+    return 'You achieved the season task "$taskName" and got a new badge! Check your profile.';
+  }
 
   @override
   String get taskSetupTitle => 'Hero Task Setup';

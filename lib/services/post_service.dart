@@ -279,10 +279,90 @@ class PostService {
       combinedUserUpdates['tasks'] = updatedTasks.map((t) => t.toFirestore()).toList();
     }
 
-    // 🚀 【爆速化 4】「投稿の保存（新規ドキュメント）」と「ユーザー情報の更新（既存ドキュメント）」を並列実行
+    // 🚀 【新規追加】シーズンタスクの判定とバッジ付与ロジック
     final List<Future> writeFutures = [
       _postsRef.doc(postId).set(newPost),
     ];
+
+    try {
+      final seasonsSnap = await _db
+          .collection('seasons')
+          .where('taskName', isEqualTo: taskName)
+          .where('startDate', isLessThanOrEqualTo: now)
+          .get();
+
+      for (var doc in seasonsSnap.docs) {
+        final seasonData = doc.data();
+        final endDate = (seasonData['endDate'] as Timestamp?)?.toDate();
+        if (endDate != null && now.isBefore(endDate)) {
+          // 過去の投稿をカウント（日付ベースでユニーク）
+          final postsSnap = await _db
+              .collection('posts')
+              .where('userId', isEqualTo: uid)
+              .where('taskName', isEqualTo: taskName)
+              .get();
+              
+          int count = 0;
+          final Map<String, int> dailyPostCounts = {};
+          final startDate = (seasonData['startDate'] as Timestamp).toDate();
+          
+          for (var postDoc in postsSnap.docs) {
+            final postCreatedAt = (postDoc.data()['createdAt'] as Timestamp?)?.toDate();
+            if (postCreatedAt != null &&
+                postCreatedAt.isAfter(startDate) &&
+                postCreatedAt.isBefore(endDate)) {
+              final dateKey = '${postCreatedAt.year}-${postCreatedAt.month.toString().padLeft(2, '0')}-${postCreatedAt.day.toString().padLeft(2, '0')}';
+              final currentDailyCount = dailyPostCounts[dateKey] ?? 0;
+              if (currentDailyCount < 1) {
+                count++;
+                dailyPostCounts[dateKey] = currentDailyCount + 1;
+              }
+            }
+          }
+          
+          // 今回の投稿分を追加（今日まだカウントされていなければ）
+          final todayKey = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+          if ((dailyPostCounts[todayKey] ?? 0) < 1) {
+            count++;
+          }
+          
+          final requiredCount = (seasonData['requiredPostsCount'] as num?)?.toInt() ?? 12;
+          final badgeUrl = seasonData['badgeImageUrl']?.toString();
+          
+          if (count >= requiredCount && badgeUrl != null && badgeUrl.isNotEmpty) {
+            final ownedBadges = List<String>.from(userData['ownedBadges'] ?? []);
+            if (!ownedBadges.contains(badgeUrl)) {
+              // バッジ付与と自動装備
+              combinedUserUpdates['ownedBadges'] = FieldValue.arrayUnion([badgeUrl]);
+              combinedUserUpdates['equippedBadgeUrl'] = badgeUrl;
+              combinedUserUpdates['equippedBadgeAnimation'] = seasonData['badgeAnimation'] ?? 'none';
+              
+              // アプリ内通知の作成
+              final notificationId = 'badge_${uid}_${doc.id}';
+              final badgeNotification = AppNotification(
+                id: notificationId,
+                toUid: uid,
+                type: NotificationType.badgeAcquired,
+                title: '🎉 バッジ獲得！',
+                body: 'シーズンタスク「$taskName」を達成し、新しいバッジを獲得しました！プロフィールで確認できます。',
+                createdAt: now,
+                sendPush: false,
+                isRead: false,
+                relatedId: doc.id,
+              );
+              writeFutures.add(
+                _db.collection('users').doc(uid).collection('notifications').doc(notificationId).set(badgeNotification.toFirestore())
+              );
+            }
+          }
+          break; // 最初に見つかった有効なシーズンタスクで処理完了
+        }
+      }
+    } catch (e) {
+      debugPrint('Error processing season task badge: $e');
+    }
+
+    // 🚀 【爆速化 4】「投稿の保存（新規ドキュメント）」と「ユーザー情報の更新（既存ドキュメント）」を並列実行
     if (combinedUserUpdates.isNotEmpty) {
       writeFutures.add(_db.collection('users').doc(uid).update(combinedUserUpdates));
     }

@@ -42,6 +42,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
   final _seasonHintTitleController = TextEditingController();
   final _seasonHintBodyController = TextEditingController();
   final _seasonBadgeImageUrlController = TextEditingController();
+  final _seasonRequiredPostsController = TextEditingController(text: '12');
 
   @override
   void didChangeDependencies() {
@@ -72,6 +73,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
     _seasonHintTitleController.dispose();
     _seasonHintBodyController.dispose();
     _seasonBadgeImageUrlController.dispose();
+    _seasonRequiredPostsController.dispose();
     super.dispose();
   }
 
@@ -238,6 +240,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             taskName: _seasonTaskNameController.text.trim(),
             startDate: now,
             endDate: now.add(Duration(days: durationDays)),
+            requiredPostsCount: int.tryParse(_seasonRequiredPostsController.text) ?? 12,
             hintTitle: _seasonHintTitleController.text.trim().isEmpty ? null : _seasonHintTitleController.text.trim(),
             hintBody: _seasonHintBodyController.text.trim().isEmpty ? null : _seasonHintBodyController.text.trim(),
             relatedBlogId: postId,
@@ -277,6 +280,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             taskName: _seasonTaskNameController.text.trim(),
             startDate: now, // 既存開始日を保持すべきだが簡易的に現在時刻とするか、今回は新規作成メインで考慮
             endDate: now.add(Duration(days: durationDays)),
+            requiredPostsCount: int.tryParse(_seasonRequiredPostsController.text) ?? 12,
             hintTitle: _seasonHintTitleController.text.trim().isEmpty ? null : _seasonHintTitleController.text.trim(),
             hintBody: _seasonHintBodyController.text.trim().isEmpty ? null : _seasonHintBodyController.text.trim(),
             relatedBlogId: _editingPost!.id,
@@ -1214,6 +1218,16 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                       keyboardType: TextInputType.number,
                       style: GoogleFonts.notoSansJp(color: AppColors.white),
                       decoration: _inputDecoration(AppLocalizations.of(context)!.blogEditorExampleDurationHint),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(AppLocalizations.of(context)!.blogPostEditorSeasonRequiredCount, style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _seasonRequiredPostsController,
+                      keyboardType: TextInputType.number,
+                      style: GoogleFonts.notoSansJp(color: AppColors.white),
+                      decoration: _inputDecoration(AppLocalizations.of(context)!.blogPostEditorSeasonRequiredCountHint),
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 16),

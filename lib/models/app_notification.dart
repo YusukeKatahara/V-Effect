@@ -9,6 +9,7 @@ enum NotificationType {
   friendTaskCompleted,   // フレンドのヒーロータスク完了
   streakCelebration,     // ストリーク達成祝い
   streakWarning,         // ストリーク危機通知
+  badgeAcquired,         // バッジ獲得通知
 }
 
 /// Firestore の notifications コレクションに対応するデータモデル

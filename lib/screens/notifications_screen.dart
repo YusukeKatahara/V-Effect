@@ -85,6 +85,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.workspace_premium;
       case NotificationType.streakWarning:
         return Icons.warning_amber_rounded;
+      case NotificationType.badgeAcquired:
+        return Icons.military_tech;
     }
   }
 
@@ -104,6 +106,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return AppColors.accentGold;
       case NotificationType.streakWarning:
         return AppColors.error;
+      case NotificationType.badgeAcquired:
+        return AppColors.accentGold;
     }
   }
 
@@ -141,6 +145,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       badge = _buildBadge('🎉');
     } else if (notif.type == NotificationType.streakWarning) {
       badge = _buildBadge('⚠️');
+    } else if (notif.type == NotificationType.badgeAcquired) {
+      badge = _buildBadge('🏅');
     }
 
     if (badge == null) return avatarBody;
