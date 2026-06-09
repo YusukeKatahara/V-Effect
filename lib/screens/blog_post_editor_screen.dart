@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -41,7 +42,6 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
   final _seasonHintTitleController = TextEditingController();
   final _seasonHintBodyController = TextEditingController();
   final _seasonBadgeImageUrlController = TextEditingController();
-  String _seasonBadgeAnimation = 'none';
 
   @override
   void didChangeDependencies() {
@@ -242,7 +242,13 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             hintBody: _seasonHintBodyController.text.trim().isEmpty ? null : _seasonHintBodyController.text.trim(),
             relatedBlogId: postId,
             badgeImageUrl: _seasonBadgeImageUrlController.text.trim().isEmpty ? null : _seasonBadgeImageUrlController.text.trim(),
-            badgeAnimation: _seasonBadgeImageUrlController.text.trim() == 'tester' ? 'shimmer' : 'none',
+            badgeAnimation: _seasonBadgeImageUrlController.text.trim().isEmpty
+                ? 'none'
+                : _seasonBadgeImageUrlController.text.trim() == 'tester'
+                    ? 'shimmer'
+                    : _seasonBadgeImageUrlController.text.trim().contains('gratitude_heart_badge')
+                        ? 'pixel_bounce'
+                        : 'none',
           );
           await FirebaseFirestore.instance.collection('seasons').doc(postId).set(season.toFirestore());
         }
@@ -275,7 +281,13 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             hintBody: _seasonHintBodyController.text.trim().isEmpty ? null : _seasonHintBodyController.text.trim(),
             relatedBlogId: _editingPost!.id,
             badgeImageUrl: _seasonBadgeImageUrlController.text.trim().isEmpty ? null : _seasonBadgeImageUrlController.text.trim(),
-            badgeAnimation: _seasonBadgeImageUrlController.text.trim() == 'tester' ? 'shimmer' : 'none',
+            badgeAnimation: _seasonBadgeImageUrlController.text.trim().isEmpty
+                ? 'none'
+                : _seasonBadgeImageUrlController.text.trim() == 'tester'
+                    ? 'shimmer'
+                    : _seasonBadgeImageUrlController.text.trim().contains('gratitude_heart_badge')
+                        ? 'pixel_bounce'
+                        : 'none',
           );
           await FirebaseFirestore.instance.collection('seasons').doc(_editingPost!.id).set(season.toFirestore());
         }
@@ -907,6 +919,173 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
     );
   }
 
+  Widget _buildAdminBadgeOption(StateSetter setStateModal, String label, String badgeUrl) {
+    final isSelected = _seasonBadgeImageUrlController.text == badgeUrl;
+    return GestureDetector(
+      onTap: () {
+        setStateModal(() {
+          _seasonBadgeImageUrlController.text = badgeUrl;
+        });
+      },
+      child: Container(
+        width: 100,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.2) : AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            if (badgeUrl == 'tester')
+              Container(
+                height: 40,
+                alignment: Alignment.center,
+                child: Transform(
+                  transform: Matrix4.skewX(-0.15),
+                  alignment: Alignment.center,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Text(
+                        'T',
+                        style: GoogleFonts.outfit(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          fontStyle: FontStyle.italic,
+                          foreground: Paint()
+                            ..style = PaintingStyle.stroke
+                            ..strokeWidth = 3.5
+                            ..color = AppColors.black.withValues(alpha: 0.8),
+                        ),
+                      ),
+                      ShaderMask(
+                        shaderCallback: (bounds) => const LinearGradient(
+                          colors: [
+                            Color(0xFFFFF2CC),
+                            Color(0xFFFFD700),
+                            Color(0xFFD4AF37),
+                            Color(0xFFFFF2CC),
+                          ],
+                          stops: [0.0, 0.4, 0.8, 1.0],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(bounds),
+                        child: Text(
+                          'T',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (badgeUrl.isNotEmpty)
+              Container(
+                height: 40,
+                width: 40,
+                alignment: Alignment.center,
+                child: badgeUrl.startsWith('http')
+                  ? CachedNetworkImage(
+                      imageUrl: badgeUrl,
+                      fit: BoxFit.contain,
+                      errorWidget: (c,u,e) => const Icon(Icons.broken_image, color: AppColors.textMuted),
+                    )
+                  : Image.asset(
+                      badgeUrl == 'assets/icon/gratitude_heart_badge.png' 
+                          ? 'assets/icon/gratitude_heart_badge_v3.png'
+                          : badgeUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: AppColors.textMuted),
+                    ),
+              )
+            else
+              const Icon(
+                Icons.do_disturb_alt_rounded,
+                color: AppColors.textMuted,
+                size: 40,
+              ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUploadBadgeOption(StateSetter setStateModal) {
+    return GestureDetector(
+      onTap: () async {
+        await _pickBadgeImage();
+        setStateModal(() {});
+      },
+      child: Container(
+        width: 100,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.border,
+            width: 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              height: 40,
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.add_photo_alternate,
+                color: AppColors.accentGold,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'アップロード',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomUrlBadgeOption(StateSetter setStateModal) {
+    final url = _seasonBadgeImageUrlController.text;
+    if (url.isEmpty || url == 'tester' || url == 'assets/icon/gratitude_heart_badge.png') {
+      return const SizedBox.shrink();
+    }
+    
+    return _buildAdminBadgeOption(setStateModal, 'アップロード済', url);
+  }
+
   Widget _buildSeasonTaskToggle() {
     return Container(
       decoration: BoxDecoration(
@@ -1057,24 +1236,15 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                     const SizedBox(height: 16),
                     Text(AppLocalizations.of(context)!.blogPostEditorSeasonBadgeUrl, style: GoogleFonts.notoSansJp(fontSize: 13, color: AppColors.grey50)),
                     const SizedBox(height: 8),
-                    Row(
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
                       children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _seasonBadgeImageUrlController,
-                            style: GoogleFonts.notoSansJp(color: AppColors.white),
-                            decoration: _inputDecoration(AppLocalizations.of(context)!.blogEditorExampleTesterHint),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(Icons.add_photo_alternate, color: AppColors.accentGold),
-                          onPressed: () async {
-                            await _pickBadgeImage();
-                            setStateModal(() {});
-                          },
-                          tooltip: AppLocalizations.of(context)!.blogEditorImageUploadTooltip,
-                        ),
+                        _buildAdminBadgeOption(setStateModal, 'なし', ''),
+                        _buildAdminBadgeOption(setStateModal, 'Tester', 'tester'),
+                        _buildAdminBadgeOption(setStateModal, '感謝', 'assets/icon/gratitude_heart_badge.png'),
+                        _buildUploadBadgeOption(setStateModal),
+                        _buildCustomUrlBadgeOption(setStateModal),
                       ],
                     ),
                     const SizedBox(height: 32),

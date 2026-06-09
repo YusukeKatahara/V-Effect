@@ -7,11 +7,11 @@ description: V EFFECT プロジェクトの概要・チーム構成・フォル�
 
 - **Project Name:** V EFFECT
 - **App Description:** An all-positive SNS app where users share their daily efforts with photos and praise each other to maintain motivation for growth. Users post photos once a day in a narrow community such as among friends, and only those who post can view others' posts (BeReal style). Combines goal management, roadmap creation, and game elements (skill tree, XP, streak) to visualize self-growth.
-- **Target Users:** 学生や、日々の目標に向かって泥臭く頑張る人たち。
+- **Target Users:** 自分磨きを頑張る、習慣化したいことがある、または常にある良習慣を強固にしたい人たちへ。サブタイトルは習慣化,努力と勝利の共有である。
 - **Platform:** Android / iOS (Cross-platform development using Flutter)
 - **Development Language:** Dart (Flutter framework)
 - **Development Members:** 2 members
-  - **renn** (Planner): A beginner with no programming experience. In charge of ideas, planning, and design direction.
+  - **renn** (Planner): アプリ全体の統一感UIUXetcを意識してください
   - **yusuke** (Technical Co-developer): Doctoral course (Engineering). Experienced in Python/C/C++/Matlab. Well-versed in machine learning, generative AI, mathematics, and English. Role is to technically realize the app upon consultation from renn.
 - **Source Code Management:** GitHub (Repository: YusukeKatahara/V-Effect)
 

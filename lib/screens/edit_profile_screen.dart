@@ -902,9 +902,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       alignment: WrapAlignment.center,
                       children: badges.map((badgeUrl) {
                         String label = '';
-                        if (badgeUrl == '') label = AppLocalizations.of(context)!.editProfileBadgeOptionNone;
-                        else if (badgeUrl == 'tester') label = AppLocalizations.of(context)!.editProfileBadgeOptionTester;
-                        else label = AppLocalizations.of(context)!.editProfileBadgeOptionSeason;
+                        if (badgeUrl == '') {
+                          label = AppLocalizations.of(context)!.editProfileBadgeOptionNone;
+                        } else if (badgeUrl == 'tester') {
+                          label = AppLocalizations.of(context)!.editProfileBadgeOptionTester;
+                        } else if (badgeUrl == 'assets/icon/gratitude_heart_badge.png') {
+                          label = '感謝';
+                        } else {
+                          label = AppLocalizations.of(context)!.editProfileBadgeOptionSeason;
+                        }
                         
                         return _buildBadgeOption(label, badgeUrl);
                       }).toList(),
@@ -928,8 +934,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _equippedBadgeUrl = badgeUrl;
           if (badgeUrl == 'tester') {
             _equippedBadgeAnimation = 'shimmer';
+          } else if (badgeUrl.contains('gratitude_heart_badge')) {
+            _equippedBadgeAnimation = 'pixel_bounce';
           } else {
-            _equippedBadgeAnimation = ''; // Custom animation is handled by Season docs, but for simplicity here we clear it
+            _equippedBadgeAnimation = 'none';
           }
         });
         Navigator.pop(context);
@@ -1000,11 +1008,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 height: 40,
                 width: 40,
                 alignment: Alignment.center,
-                child: CachedNetworkImage(
-                  imageUrl: badgeUrl,
-                  fit: BoxFit.contain,
-                  errorWidget: (c,u,e) => const Icon(Icons.broken_image, color: AppColors.textMuted),
-                ),
+                child: badgeUrl.startsWith('http')
+                  ? CachedNetworkImage(
+                      imageUrl: badgeUrl,
+                      fit: BoxFit.contain,
+                      errorWidget: (c,u,e) => const Icon(Icons.broken_image, color: AppColors.textMuted),
+                    )
+                  : Image.asset(
+                      badgeUrl == 'assets/icon/gratitude_heart_badge.png' 
+                          ? 'assets/icon/gratitude_heart_badge_v3.png'
+                          : badgeUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: AppColors.textMuted),
+                    ),
               )
             else
               const Icon(

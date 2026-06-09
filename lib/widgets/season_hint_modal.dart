@@ -9,17 +9,17 @@ import '../config/routes.dart';
 class SeasonHintModal extends StatefulWidget {
   final AppTask task;
   final Season season;
-  final ValueChanged<String> onTriggerUpdated;
+  final void Function(String trigger, String reward) onTaskUpdated;
 
   const SeasonHintModal({
     super.key,
     required this.task,
     required this.season,
-    required this.onTriggerUpdated,
+    required this.onTaskUpdated,
   });
 
   static Future<void> show(
-      BuildContext context, AppTask task, Season season, ValueChanged<String> onTriggerUpdated) async {
+      BuildContext context, AppTask task, Season season, void Function(String trigger, String reward) onTaskUpdated) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -27,7 +27,7 @@ class SeasonHintModal extends StatefulWidget {
       builder: (ctx) => SeasonHintModal(
         task: task,
         season: season,
-        onTriggerUpdated: onTriggerUpdated,
+        onTaskUpdated: onTaskUpdated,
       ),
     );
   }
@@ -38,21 +38,24 @@ class SeasonHintModal extends StatefulWidget {
 
 class _SeasonHintModalState extends State<SeasonHintModal> {
   late TextEditingController _triggerController;
+  late TextEditingController _rewardController;
 
   @override
   void initState() {
     super.initState();
     _triggerController = TextEditingController(text: widget.task.trigger ?? '');
+    _rewardController = TextEditingController(text: widget.task.reward ?? '');
   }
 
   @override
   void dispose() {
     _triggerController.dispose();
+    _rewardController.dispose();
     super.dispose();
   }
 
-  void _saveTrigger() {
-    widget.onTriggerUpdated(_triggerController.text.trim());
+  void _saveTask() {
+    widget.onTaskUpdated(_triggerController.text.trim(), _rewardController.text.trim());
     Navigator.of(context).pop();
   }
 
@@ -146,10 +149,36 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
               ),
             ),
             const SizedBox(height: 24),
+            
+            // ご褒美設定フォーム
+            Text(
+              'あなたへのご褒美（完了時）', // TODO: 多言語対応が必要な場合は arb に追加
+              style: GoogleFonts.notoSansJp(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.grey50,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _rewardController,
+              style: const TextStyle(color: AppColors.white),
+              decoration: InputDecoration(
+                hintText: '例: 好きな動画を見る、コーヒーを飲む',
+                hintStyle: const TextStyle(color: AppColors.grey70),
+                filled: true,
+                fillColor: AppColors.black.withValues(alpha: 0.3),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
 
             // 保存ボタン
             ElevatedButton(
-              onPressed: _saveTrigger,
+              onPressed: _saveTask,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accentGold,
                 foregroundColor: AppColors.black,

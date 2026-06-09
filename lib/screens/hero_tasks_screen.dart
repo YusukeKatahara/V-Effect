@@ -714,6 +714,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         final focusedTask =
             _taskItems.isNotEmpty ? _taskItems[_focusedIndex] : null;
         final isCompleted = focusedTask?.isCompleted ?? false;
+        final tierColor = _getTierColor(_streak);
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -723,29 +724,73 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const StreakFlame(size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$_streak Day Streak',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.grey70,
-                        letterSpacing: 0.5,
+                Tooltip(
+                  message: 'ストリークが途切れるのを1回防ぎます',
+                  triggerMode: TooltipTriggerMode.longPress,
+                  preferBelow: true,
+                  verticalOffset: 24,
+                  decoration: BoxDecoration(
+                    color: AppColors.black.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: tierColor.withValues(alpha: 0.5)),
+                  ),
+                  textStyle: GoogleFonts.notoSansJp(
+                    color: AppColors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: tierColor.withValues(alpha: 0.4),
+                        width: 1.5,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: tierColor.withValues(alpha: 0.15),
+                          blurRadius: 12,
+                          spreadRadius: 1,
+                        ),
+                      ],
                     ),
-                    if (_streakProtections > 0) ...[
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.shield_rounded,
-                        size: 14,
-                        color: _getTierColor(_streak).withValues(alpha: 0.8),
-                      ),
-                    ],
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const StreakFlame(size: 16),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$_streak Day Streak',
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        if (_streakProtections > 0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 4,
+                            height: 4,
+                            decoration: const BoxDecoration(
+                              color: AppColors.grey50,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.shield_rounded,
+                            size: 14,
+                            color: tierColor.withValues(alpha: 0.9),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
                 if (isCompleted && _expandedIndex == _focusedIndex)
                   Positioned(
@@ -1365,13 +1410,21 @@ class _TaskCardState extends State<_TaskCard> {
     const bgColorTop = Color(0xFF1C1D21);
     const bgColorBottom = Color(0xFF121316);
 
+    final bool isSeason = item.isSeason;
+
     final borderColor = isCompleted
         ? (isTop
             ? (postCount >= 2 ? AppColors.accentGold : AppColors.accentGold.withValues(alpha: 0.8))
             : tierColor.withValues(alpha: 0.1))
-        : (isTop
-            ? AppColors.white.withValues(alpha: 0.12)
-            : AppColors.white.withValues(alpha: 0.05));
+        : (isSeason
+            ? (isTop ? AppColors.accentGold.withValues(alpha: 0.6) : AppColors.accentGold.withValues(alpha: 0.2))
+            : (isTop
+                ? AppColors.white.withValues(alpha: 0.12)
+                : AppColors.white.withValues(alpha: 0.05)));
+
+    final borderWidth = isCompleted 
+        ? (isTop ? (postCount >= 2 ? 2.5 : 1.5) : 0.5) 
+        : (isSeason && isTop ? 1.5 : 0.8);
 
     final blurRadius = isTop ? (postCount >= 2 ? 40.0 : 30.0) : 10.0;
 
@@ -1393,7 +1446,7 @@ class _TaskCardState extends State<_TaskCard> {
               ),
         border: Border.all(
           color: borderColor,
-          width: isCompleted ? (isTop ? (postCount >= 2 ? 2.5 : 1.5) : 0.5) : 0.8,
+          width: borderWidth,
         ),
         boxShadow: [
           BoxShadow(
@@ -1406,9 +1459,11 @@ class _TaskCardState extends State<_TaskCard> {
             BoxShadow(
               color: isCompleted
                   ? AppColors.accentGold.withValues(alpha: postCount >= 2 ? 0.6 : 0.3)
-                  : tierColor.withValues(alpha: 0.04),
+                  : (isSeason 
+                      ? AppColors.accentGold.withValues(alpha: 0.2) 
+                      : tierColor.withValues(alpha: 0.04)),
               blurRadius: blurRadius,
-              spreadRadius: postCount >= 2 ? 4 : 2,
+              spreadRadius: isCompleted && postCount >= 2 ? 4 : 2,
             ),
         ],
       ),
@@ -1684,13 +1739,22 @@ class _TaskCardState extends State<_TaskCard> {
           ),
 
         // ヒントボタン（SEASONタスクの場合のみ、右上に配置）
-        if (item.isSeason && item.season != null && depth == 0)
+        if (item.isSeason && depth == 0)
           Positioned(
             top: 16,
             right: (isCompleted && postCount > 1) ? 72 : 16,
             child: IconButton(
               icon: const Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 28),
               onPressed: () {
+                final fallbackSeason = item.season ?? Season(
+                  id: item.seasonId ?? 'debug_season',
+                  taskName: item.name,
+                  startDate: DateTime.now(),
+                  endDate: DateTime.now().add(const Duration(days: 30)),
+                  hintTitle: 'シーズンタスクのヒント💡',
+                  hintBody: 'このシーズンタスクを習慣にするためのアドバイスです。',
+                );
+                
                 SeasonHintModal.show(
                   context,
                   AppTask(
@@ -1700,9 +1764,9 @@ class _TaskCardState extends State<_TaskCard> {
                     isSeason: item.isSeason,
                     seasonId: item.seasonId,
                   ),
-                  item.season!,
-                  (newTrigger) async {
-                    // trigger を更新して保存
+                  fallbackSeason,
+                  (newTrigger, newReward) async {
+                    // triggerとrewardを更新して保存
                     final uid = UserService.instance.currentUid;
                     if (uid == null) return;
                     final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
@@ -1715,6 +1779,8 @@ class _TaskCardState extends State<_TaskCard> {
                         return t.copyWith(
                           trigger: newTrigger.isEmpty ? null : newTrigger,
                           clearTrigger: newTrigger.isEmpty,
+                          reward: newReward.isEmpty ? null : newReward,
+                          clearReward: newReward.isEmpty,
                         );
                       }
                       return t;

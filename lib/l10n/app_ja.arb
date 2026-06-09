@@ -425,7 +425,7 @@
   "blogPostEditorSeasonHintTitle": "ヒントタイトル",
   "blogPostEditorSeasonHintBody": "ヒント本文",
   "blogPostEditorSeasonHintBodyHint": "ユーザーが写真を撮る際のヒントを入力してください",
-  "blogPostEditorSeasonBadgeUrl": "バッジ画像URL",
+  "blogPostEditorSeasonBadgeUrl": "バッジアイコン",
   "blogPostEditorSeasonDone": "完了",
   "blogPostEditorPlaceholder": "テキスト",
   "blogPostEditorCodePlaceholder": "コードをここに入力",

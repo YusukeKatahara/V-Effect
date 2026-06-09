@@ -8,6 +8,8 @@ enum BadgeAnimationType {
   none,
   shimmer,
   heartbeat,
+  bobbing,
+  pixelBounce,
 }
 
 /// 運営がお知らせエディタで設定したバッジを、指定されたアニメーション効果付きで表示する Widget。
@@ -40,12 +42,24 @@ class _VBadgeWidgetState extends State<VBadgeWidget>
   late AnimationController _shimmerController;
   late Animation<double> _shimmerAnimation;
 
+  late AnimationController _bobbingController;
+  late Animation<double> _bobbingAnimation;
+
+  late AnimationController _pixelBounceController;
+  late Animation<double> _pixelBounceAnimation;
+
   BadgeAnimationType get _type {
     switch (widget.animationType?.toLowerCase()) {
       case 'shimmer':
         return BadgeAnimationType.shimmer;
       case 'heartbeat':
         return BadgeAnimationType.heartbeat;
+      case 'bobbing':
+      case 'float':
+      case 'floating':
+        return BadgeAnimationType.bobbing;
+      case 'pixel_bounce':
+        return BadgeAnimationType.pixelBounce;
       default:
         return BadgeAnimationType.none;
     }
@@ -123,6 +137,31 @@ class _VBadgeWidgetState extends State<VBadgeWidget>
       ),
     );
 
+    _bobbingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    _bobbingAnimation = Tween<double>(begin: 0.0, end: -2.0).animate(
+      CurvedAnimation(
+        parent: _bobbingController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // 4. カクカクバウンス（ドット絵に合うコマ落ち風バウンス）
+    _pixelBounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _pixelBounceAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 25),
+      TweenSequenceItem(tween: ConstantTween(-2.0), weight: 25),
+      TweenSequenceItem(tween: ConstantTween(-4.0), weight: 25),
+      TweenSequenceItem(tween: ConstantTween(-2.0), weight: 25),
+    ]).animate(_pixelBounceController);
+
     _startAnimations();
   }
 
@@ -137,11 +176,17 @@ class _VBadgeWidgetState extends State<VBadgeWidget>
   void _startAnimations() {
     _heartbeatController.stop();
     _shimmerController.stop();
+    _bobbingController.stop();
+    _pixelBounceController.stop();
 
     if (_type == BadgeAnimationType.heartbeat) {
       _heartbeatController.repeat();
     } else if (_type == BadgeAnimationType.shimmer) {
       _shimmerController.repeat();
+    } else if (_type == BadgeAnimationType.bobbing) {
+      _bobbingController.repeat(reverse: true);
+    } else if (_type == BadgeAnimationType.pixelBounce) {
+      _pixelBounceController.repeat();
     }
   }
 
@@ -149,6 +194,8 @@ class _VBadgeWidgetState extends State<VBadgeWidget>
   void dispose() {
     _heartbeatController.dispose();
     _shimmerController.dispose();
+    _bobbingController.dispose();
+    _pixelBounceController.dispose();
     super.dispose();
   }
 
@@ -199,9 +246,14 @@ class _VBadgeWidgetState extends State<VBadgeWidget>
         ],
       );
     } else if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) {
-      badgeImage = widget.imageUrl!.startsWith('http')
+      String resolvedUrl = widget.imageUrl!;
+      if (resolvedUrl == 'assets/icon/gratitude_heart_badge.png') {
+        resolvedUrl = 'assets/icon/gratitude_heart_badge_v3.png';
+      }
+
+      badgeImage = resolvedUrl.startsWith('http')
           ? CachedNetworkImage(
-              imageUrl: widget.imageUrl!,
+              imageUrl: resolvedUrl,
               width: widget.size * 1.3,
               height: widget.size * 1.3,
               fit: BoxFit.contain,
@@ -215,7 +267,7 @@ class _VBadgeWidgetState extends State<VBadgeWidget>
               ),
             )
           : Image.asset(
-              widget.imageUrl!,
+              resolvedUrl,
               width: widget.size * 1.3,
               height: widget.size * 1.3,
               fit: BoxFit.contain,
@@ -298,6 +350,28 @@ class _VBadgeWidgetState extends State<VBadgeWidget>
               ).createShader(bounds);
             },
             blendMode: BlendMode.srcATop,
+            child: child,
+          );
+        },
+        child: badgeImage,
+      );
+    } else if (_type == BadgeAnimationType.bobbing) {
+      finalBadge = AnimatedBuilder(
+        animation: _bobbingAnimation,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, _bobbingAnimation.value),
+            child: child,
+          );
+        },
+        child: badgeImage,
+      );
+    } else if (_type == BadgeAnimationType.pixelBounce) {
+      finalBadge = AnimatedBuilder(
+        animation: _pixelBounceAnimation,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, _pixelBounceAnimation.value),
             child: child,
           );
         },

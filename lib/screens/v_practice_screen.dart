@@ -294,17 +294,20 @@ class _AdminBadgeDistributeDialog extends StatefulWidget {
 
 class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog> {
   final _controller = TextEditingController();
+  final _targetUsersController = TextEditingController();
   bool _isSaving = false;
 
   @override
   void dispose() {
     _controller.dispose();
+    _targetUsersController.dispose();
     super.dispose();
   }
 
   Future<void> _distributeBadge() async {
     final l = AppLocalizations.of(context)!;
     final badgeUrl = _controller.text.trim();
+    final targetUsersText = _targetUsersController.text.trim();
     if (badgeUrl.isEmpty) {
       _showError(l.vPracticeBadgeIdRequired);
       return;
@@ -313,14 +316,41 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
     setState(() => _isSaving = true);
     try {
       final db = FirebaseFirestore.instance;
-      final snapshot = await db.collection('users').get();
+      List<dynamic> targetDocs = [];
+      
+      if (targetUsersText.isNotEmpty) {
+        final targetUserIds = targetUsersText.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        for (var i = 0; i < targetUserIds.length; i += 10) {
+          final end = (i + 10 < targetUserIds.length) ? i + 10 : targetUserIds.length;
+          final chunk = targetUserIds.sublist(i, end);
+          final snap = await db.collection('users').where('userId', whereIn: chunk).get();
+          targetDocs.addAll(snap.docs);
+        }
+      } else {
+        final snap = await db.collection('users').get();
+        targetDocs = snap.docs;
+      }
+
+      if (targetDocs.isEmpty) {
+        if (mounted) {
+          _showError('対象のユーザーが見つかりませんでした');
+          setState(() => _isSaving = false);
+        }
+        return;
+      }
+
       final batch = db.batch();
       int count = 0;
-      final anim = badgeUrl == 'tester' ? 'shimmer' : 'none';
-      for (var doc in snapshot.docs) {
+      
+      for (var doc in targetDocs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final List<String> currentOwned = (data['ownedBadges'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+        if (!currentOwned.contains(badgeUrl)) {
+          currentOwned.add(badgeUrl);
+        }
+
         batch.update(doc.reference, {
-          'equippedBadgeUrl': badgeUrl,
-          'equippedBadgeAnimation': anim,
+          'ownedBadges': currentOwned,
         });
         count++;
         if (count >= 490) {
@@ -379,6 +409,25 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
           Text(AppLocalizations.of(context)!.vPracticeDialogDesc,
               style: GoogleFonts.notoSansJp(color: AppColors.grey70, fontSize: 13)),
           const SizedBox(height: 16),
+          TextField(
+            controller: _targetUsersController,
+            style: GoogleFonts.notoSansJp(color: AppColors.white),
+            decoration: InputDecoration(
+              hintText: '配布先ユーザーID（カンマ区切り。空欄で全員）',
+              hintStyle: GoogleFonts.notoSansJp(color: AppColors.grey50),
+              filled: true,
+              fillColor: AppColors.black.withValues(alpha: 0.3),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.grey30, width: 0.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.accentGold, width: 0.5),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           TextField(
             controller: _controller,
             style: GoogleFonts.notoSansJp(color: AppColors.white),

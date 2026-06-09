@@ -426,79 +426,111 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final rewardController = TextEditingController();
     bool isOneTime = false;
 
-    final result = await showDialog<Map<String, dynamic>>(
+    // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
+      isScrollControlled: true, // コンテンツサイズに応じて高さを調整可能にする
+      backgroundColor: Colors.transparent, // 角丸のコンテナを綺麗に表現するため背景は透明に設定
       builder:
           (ctx) => StatefulBuilder(
             builder:
-                (context, setModalState) => AlertDialog(
-                  backgroundColor: AppColors.bgElevated,
-                  title: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.profileScreenAddTask,
-                        style: const TextStyle(color: AppColors.white),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.lightbulb_outline,
-                          color: AppColors.accentGold,
-                          size: 20,
-                        ),
-                        onPressed: () => _showHabitTipsDialog(context),
-                      ),
-                    ],
+                (context, setModalState) => Container(
+                  decoration: const BoxDecoration(
+                    color: AppColors.bgElevated,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)), // 上部の角丸デザイン
                   ),
-                  content: SizedBox(
-                    width: double.maxFinite,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                  padding: EdgeInsets.only(
+                    top: 16,
+                    left: 16,
+                    right: 16,
+                    // MediaQueryを使用してキーボードの高さ分（viewInsets.bottom）だけ下部に余白を追加し、上に押し上げる
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // --- タイトルとヒントボタン ---
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              AppLocalizations.of(context)!.profileScreenAddTask,
+                              style: const TextStyle(
+                                color: AppColors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.lightbulb_outline,
+                                color: AppColors.accentGold,
+                                size: 18,
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => _showHabitTipsDialog(context),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // --- トリガー入力欄（習慣化のきっかけとなる行動、例：ワークアウト後） ---
                         TextField(
                           controller: triggerController,
-                          style: const TextStyle(color: AppColors.white),
+                          style: const TextStyle(color: AppColors.white, fontSize: 14),
                           decoration: InputDecoration(
                             hintText: AppLocalizations.of(context)!.profileScreenTaskTriggerHint,
-                            hintStyle: const TextStyle(color: AppColors.grey30),
+                            hintStyle: const TextStyle(color: AppColors.grey30, fontSize: 14),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
+                        // --- タスク名入力欄 ---
                         TextField(
                           controller: controller,
                           autofocus: true,
-                          style: const TextStyle(color: AppColors.white),
+                          style: const TextStyle(color: AppColors.white, fontSize: 14),
                           decoration: InputDecoration(
                             hintText: AppLocalizations.of(context)!.profileScreenTaskNameHint,
-                            hintStyle: const TextStyle(color: AppColors.grey30),
+                            hintStyle: const TextStyle(color: AppColors.grey30, fontSize: 14),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
+                        // --- ご褒美入力欄（任意） ---
                         TextField(
                           controller: rewardController,
-                          style: const TextStyle(color: AppColors.white),
+                          style: const TextStyle(color: AppColors.white, fontSize: 14),
                           decoration: InputDecoration(
                             hintText: AppLocalizations.of(context)!.profileScreenTaskRewardHint,
-                            hintStyle: const TextStyle(color: AppColors.grey30),
+                            hintStyle: const TextStyle(color: AppColors.grey30, fontSize: 14),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
+                        // --- リアルタイム組み立てプレビュー ---
                         _buildHabitPreviewForDialog(triggerController, controller, rewardController),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
+                        // --- 単発タスク切り替えスイッチ ---
                         SwitchListTile(
+                          visualDensity: VisualDensity.compact,
                           title: const Text(
                             'One-Time Task',
                             style: TextStyle(
                               color: AppColors.white,
-                              fontSize: 14,
+                              fontSize: 13,
                             ),
                           ),
                           subtitle: Text(
                             AppLocalizations.of(context)!.profileScreenOneTimeTaskTitle,
                             style: TextStyle(
                               color: AppColors.grey50,
-                              fontSize: 11,
+                              fontSize: 10,
                             ),
                           ),
                           value: isOneTime,
@@ -508,45 +540,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                           contentPadding: EdgeInsets.zero,
                         ),
+                        const SizedBox(height: 12),
+                        // --- 操作ボタン（キャンセル・追加） ---
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: Text(
+                                AppLocalizations.of(context)!.editProfileCancel,
+                                style: const TextStyle(color: AppColors.grey50),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, {
+                                'title': controller.text,
+                                'trigger': triggerController.text,
+                                'reward': rewardController.text,
+                                'isOneTime': isOneTime,
+                              }),
+                              child: Text(
+                                AppLocalizations.of(context)!.profileScreenAddTask,
+                                style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                    ),
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: Text(
-                        AppLocalizations.of(context)!.editProfileCancel,
-                        style: const TextStyle(color: AppColors.grey50),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed:
-                          () => Navigator.pop(ctx, {
-                            'title': controller.text,
-                            'trigger': triggerController.text,
-                            'reward': rewardController.text,
-                            'isOneTime': isOneTime,
-                          }),
-                      child: Text(
-                        AppLocalizations.of(context)!.profileScreenAddTask,
-                        style: const TextStyle(color: AppColors.white),
-                      ),
-                    ),
-                  ],
                 ),
           ),
     );
 
     if (result != null && result['title'].toString().trim().isNotEmpty) {
-      final updatedTasks = List<AppTask>.from(_user!.tasks)..add(
-        AppTask(
-          title: result['title'].toString().trim(),
-          trigger: result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim(),
-          reward: result['reward']?.toString().trim().isEmpty == true ? null : result['reward']?.toString().trim(),
-          isOneTime: result['isOneTime'] as bool,
-        ),
+      final rawTitle = result['title'].toString().trim();
+      // デバッグ・テスト用：タイトルが [SEASON] で始まる場合はシーズンタスクとして登録する
+      final isDebugSeason = rawTitle.toUpperCase().startsWith('[SEASON]');
+      final title = isDebugSeason ? rawTitle.substring('[SEASON]'.length).trim() : rawTitle;
+
+      final newTask = AppTask(
+        title: title.isEmpty ? 'Test Season Task' : title,
+        trigger: result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim(),
+        reward: result['reward']?.toString().trim().isEmpty == true ? null : result['reward']?.toString().trim(),
+        isOneTime: result['isOneTime'] as bool,
+        isSeason: isDebugSeason,
+        seasonId: isDebugSeason ? 'debug_season_test' : null,
       );
+
+      final updatedTasks = List<AppTask>.from(_user!.tasks);
+      if (isDebugSeason) {
+        updatedTasks.insert(0, newTask);
+      } else {
+        updatedTasks.add(newTask);
+      }
+      
       await _userService.updateProfile(tasks: updatedTasks);
       _loadProfile();
     }
@@ -560,114 +609,150 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final rewardController = TextEditingController(text: task.reward);
     bool isOneTime = task.isOneTime;
 
-    final result = await showDialog<Map<String, dynamic>>(
+    // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
+      isScrollControlled: true, // コンテンツサイズに応じて高さを調整可能にする
+      backgroundColor: Colors.transparent, // 角丸のコンテナを綺麗に表現するため背景は透明に設定
       builder:
           (ctx) => StatefulBuilder(
             builder:
-                (context, setModalState) => AlertDialog(
-                  backgroundColor: AppColors.bgElevated,
-                  title: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.profileScreenEditTask,
-                        style: const TextStyle(color: AppColors.white),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.lightbulb_outline,
-                          color: AppColors.accentGold,
-                          size: 20,
-                        ),
-                        onPressed: () => _showHabitTipsDialog(context),
-                      ),
-                    ],
+                (context, setModalState) => Container(
+                  decoration: const BoxDecoration(
+                    color: AppColors.bgElevated,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)), // 上部の角丸デザイン
                   ),
-                  content: SizedBox(
-                    width: double.maxFinite,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextField(
-                            controller: triggerController,
-                            style: const TextStyle(color: AppColors.white),
-                            decoration: InputDecoration(
-                              hintText: AppLocalizations.of(context)!.profileScreenTaskTriggerHint,
-                              hintStyle: const TextStyle(color: AppColors.grey30),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: controller,
-                            autofocus: true,
-                            style: const TextStyle(color: AppColors.white),
-                            decoration: InputDecoration(
-                              hintText: AppLocalizations.of(context)!.profileScreenTaskNameHint,
-                              hintStyle: const TextStyle(color: AppColors.grey30),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: rewardController,
-                            style: const TextStyle(color: AppColors.white),
-                            decoration: InputDecoration(
-                              hintText: AppLocalizations.of(context)!.profileScreenTaskRewardHint,
-                              hintStyle: const TextStyle(color: AppColors.grey30),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildHabitPreviewForDialog(triggerController, controller, rewardController),
-                          const SizedBox(height: 16),
-                          SwitchListTile(
-                            title: const Text(
-                              'One-Time Task',
-                              style: TextStyle(
+                  padding: EdgeInsets.only(
+                    top: 16,
+                    left: 16,
+                    right: 16,
+                    // MediaQueryを使用してキーボードの高さ分（viewInsets.bottom）だけ下部に余白を追加し、上に押し上げる
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // --- タイトルとヒントボタン ---
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              AppLocalizations.of(context)!.profileScreenEditTask,
+                              style: const TextStyle(
                                 color: AppColors.white,
-                                fontSize: 14,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            subtitle: Text(
-                              AppLocalizations.of(context)!.profileScreenOneTimeTaskTitle,
-                              style: TextStyle(
-                                color: AppColors.grey50,
-                                fontSize: 11,
+                            IconButton(
+                              icon: const Icon(
+                                Icons.lightbulb_outline,
+                                color: AppColors.accentGold,
+                                size: 18,
                               ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => _showHabitTipsDialog(context),
                             ),
-                            value: isOneTime,
-                            activeColor: AppColors.accentGold,
-                            onChanged: (val) {
-                              setModalState(() => isOneTime = val);
-                            },
-                            contentPadding: EdgeInsets.zero,
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // --- トリガー入力欄（習慣化のきっかけとなる行動、例：ワークアウト後） ---
+                        TextField(
+                          controller: triggerController,
+                          style: const TextStyle(color: AppColors.white, fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: AppLocalizations.of(context)!.profileScreenTaskTriggerHint,
+                            hintStyle: const TextStyle(color: AppColors.grey30, fontSize: 14),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 8),
+                        // --- タスク名入力欄 ---
+                        TextField(
+                          controller: controller,
+                          autofocus: true,
+                          style: const TextStyle(color: AppColors.white, fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: AppLocalizations.of(context)!.profileScreenTaskNameHint,
+                            hintStyle: const TextStyle(color: AppColors.grey30, fontSize: 14),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // --- ご褒美入力欄（任意） ---
+                        TextField(
+                          controller: rewardController,
+                          style: const TextStyle(color: AppColors.white, fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: AppLocalizations.of(context)!.profileScreenTaskRewardHint,
+                            hintStyle: const TextStyle(color: AppColors.grey30, fontSize: 14),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // --- リアルタイム組み立てプレビュー ---
+                        _buildHabitPreviewForDialog(triggerController, controller, rewardController),
+                        const SizedBox(height: 8),
+                        // --- 単発タスク切り替えスイッチ ---
+                        SwitchListTile(
+                          visualDensity: VisualDensity.compact,
+                          title: const Text(
+                            'One-Time Task',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 13,
+                            ),
+                          ),
+                          subtitle: Text(
+                            AppLocalizations.of(context)!.profileScreenOneTimeTaskTitle,
+                            style: TextStyle(
+                              color: AppColors.grey50,
+                              fontSize: 10,
+                            ),
+                          ),
+                          value: isOneTime,
+                          activeColor: AppColors.accentGold,
+                          onChanged: (val) {
+                            setModalState(() => isOneTime = val);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        const SizedBox(height: 12),
+                        // --- 操作ボタン（キャンセル・保存） ---
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: Text(
+                                AppLocalizations.of(context)!.editProfileCancel,
+                                style: const TextStyle(color: AppColors.grey50),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, {
+                                'title': controller.text,
+                                'trigger': triggerController.text,
+                                'reward': rewardController.text,
+                                'isOneTime': isOneTime,
+                              }),
+                              child: Text(
+                                AppLocalizations.of(context)!.profileScreenSaveTask,
+                                style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: Text(
-                        AppLocalizations.of(context)!.editProfileCancel,
-                        style: const TextStyle(color: AppColors.grey50),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed:
-                          () => Navigator.pop(ctx, {
-                            'title': controller.text,
-                            'trigger': triggerController.text,
-                            'reward': rewardController.text,
-                            'isOneTime': isOneTime,
-                          }),
-                      child: Text(
-                        AppLocalizations.of(context)!.profileScreenSaveTask,
-                        style: const TextStyle(color: AppColors.white),
-                      ),
-                    ),
-                  ],
                 ),
           ),
     );
@@ -820,10 +905,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   return const SizedBox.shrink();
                 }
 
+                // 余白やフォントサイズを極限まで縮小し、スクロールを減らすようにレイアウトを最適化
                 return Container(
-                  margin: const EdgeInsets.only(top: 12),
+                  margin: const EdgeInsets.only(top: 4),
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.grey10,
                     borderRadius: BorderRadius.circular(8),
@@ -837,41 +923,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Text(
                           triggerVal.text.trim(),
                           style: GoogleFonts.notoSansJp(
-                            fontSize: 13,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: AppColors.accentGold,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 2),
                         const Icon(
                           Icons.arrow_downward_rounded,
-                          size: 14,
+                          size: 10,
                           color: AppColors.grey50,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 2),
                       ],
                       Text(
                         hasQuest ? taskVal.text.trim() : AppLocalizations.of(context)!.profileNoTaskPlaceholder,
                         style: GoogleFonts.notoSerifJp(
-                          fontSize: 15,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: hasQuest ? AppColors.white : AppColors.grey50,
                         ),
                         textAlign: TextAlign.center,
                       ),
                       if (hasReward) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 2),
                         const Icon(
                           Icons.arrow_downward_rounded,
-                          size: 14,
+                          size: 10,
                           color: AppColors.grey50,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 2),
                         Text(
                           rewardVal.text.trim(),
                           style: GoogleFonts.notoSansJp(
-                            fontSize: 13,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: AppColors.accentGold,
                           ),
@@ -1537,6 +1623,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildQuestCard(int index, {Key? key}) {
     final task = _user!.tasks[index];
+    final bool isSeason = task.isSeason;
+
     return Padding(
       key: key,
       padding: const EdgeInsets.only(bottom: 8), // よりコンパクトに
@@ -1549,15 +1637,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             colors: [AppColors.grey15, AppColors.grey10],
           ),
           boxShadow: [
-            BoxShadow(
-              color: AppColors.black.withValues(alpha: 0.4), // 少し影を深めて奥行きを
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
+            if (isSeason)
+              BoxShadow(
+                color: AppColors.accentGold.withValues(alpha: 0.25), // うっすらとしたゴールドの発光
+                blurRadius: 12,
+                spreadRadius: 1,
+              )
+            else
+              BoxShadow(
+                color: AppColors.black.withValues(alpha: 0.4), // 少し影を深めて奥行きを
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
           ],
           border: Border.all(
-            color: AppColors.white.withValues(alpha: 0.08), // 高級感のある細い境界線
-            width: 0.5,
+            color: isSeason ? AppColors.accentGold.withValues(alpha: 0.8) : AppColors.white.withValues(alpha: 0.08),
+            width: isSeason ? 1.5 : 0.5,
           ),
         ),
         child: Material(
@@ -1565,18 +1660,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: InkWell(
             onTap: () {
               if (task.isSeason) {
-                final season = _seasonsMap[task.seasonId];
-                if (season != null) {
-                  SeasonHintModal.show(context, task, season, (newTrigger) async {
-                    final updatedTasks = List<AppTask>.from(_user!.tasks);
-                    updatedTasks[index] = task.copyWith(
-                      trigger: newTrigger.isEmpty ? null : newTrigger,
-                      clearTrigger: newTrigger.isEmpty,
-                    );
-                    await _userService.updateProfile(tasks: updatedTasks);
-                    _loadProfile();
-                  });
-                }
+                final season = _seasonsMap[task.seasonId] ?? Season(
+                  id: task.seasonId ?? 'debug_season',
+                  taskName: task.title,
+                  startDate: DateTime.now(),
+                  endDate: DateTime.now().add(const Duration(days: 30)),
+                  hintTitle: 'シーズンタスクのヒント💡',
+                  hintBody: 'このシーズンタスクを習慣にするためのアドバイスです。',
+                );
+                
+                SeasonHintModal.show(context, task, season, (newTrigger, newReward) async {
+                  final updatedTasks = List<AppTask>.from(_user!.tasks);
+                  updatedTasks[index] = task.copyWith(
+                    trigger: newTrigger.isEmpty ? null : newTrigger,
+                    clearTrigger: newTrigger.isEmpty,
+                    reward: newReward.isEmpty ? null : newReward,
+                    clearReward: newReward.isEmpty,
+                  );
+                  await _userService.updateProfile(tasks: updatedTasks);
+                  _loadProfile();
+                });
               } else {
                 _editTask(index);
               }
@@ -1594,21 +1697,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     height: 26,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.white.withValues(alpha: 0.05), // 主張を抑える
+                      color: isSeason ? AppColors.accentGold.withValues(alpha: 0.1) : AppColors.white.withValues(alpha: 0.05), // 主張を抑える
                       border: Border.all(
-                        color: AppColors.white.withValues(alpha: 0.08),
+                        color: isSeason ? AppColors.accentGold.withValues(alpha: 0.3) : AppColors.white.withValues(alpha: 0.08),
                         width: 0.5,
                       ),
                     ),
                     child: Center(
-                      child: Text(
-                        '${index + 1}',
-                        style: const TextStyle(
-                          fontSize: 12, // 文字サイズ調整
-                          fontWeight: FontWeight.w700, // ボールド感は維持
-                          color: AppColors.white,
-                        ),
-                      ),
+                      child: isSeason
+                          ? const Icon(
+                              Icons.star_rounded,
+                              size: 16,
+                              color: AppColors.accentGold,
+                            )
+                          : Text(
+                              '${index + 1}',
+                              style: const TextStyle(
+                                fontSize: 12, // 文字サイズ調整
+                                fontWeight: FontWeight.w700, // ボールド感は維持
+                                color: AppColors.white,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -1662,7 +1771,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  if (!task.isSeason)
+                  if (!task.isSeason || task.seasonId == 'debug_season_test')
                     IconButton(
                       onPressed: () => _deleteTask(index),
                       icon: Icon(
