@@ -13,6 +13,7 @@ import 'streak_service.dart';
 import 'notification_service.dart';
 import 'push_notification_service.dart';
 import '../models/app_task.dart';
+import '../models/season.dart';
 import 'widget_service.dart';
 
 /// 投稿の作成・取得・リアクションを担当するサービス
@@ -127,10 +128,79 @@ class PostService {
         if (f is Map) return f.keys.map((k) => k.toString()).toList();
         return <String>[];
       })(),
-
       'lastPostedDate': lastPostedDate,
       'postedTasksToday': postedPostsToday,
     };
+  }
+
+  /// 指定したユーザーの全てのシーズンタスクについて、現在の進捗（投稿数）を計算します。
+  /// [ProfileScreen] や [HeroTasksScreen] でプログレスバー等を表示するために利用します。
+  Future<Map<String, dynamic>> getSeasonProgressMap(String uid, List<AppTask> seasonTasks) async {
+    final Map<String, dynamic> result = {
+      'seasonsMap': <String, Season>{},
+      'seasonPostsCountMap': <String, int>{},
+    };
+
+    if (seasonTasks.isEmpty) return result;
+
+    final seasonIds = seasonTasks.where((t) => t.seasonId != null).map((t) => t.seasonId!).toSet().toList();
+    if (!seasonIds.contains('debug_season')) seasonIds.add('debug_season');
+    if (!seasonIds.contains('debug_season_test')) seasonIds.add('debug_season_test');
+
+    final seasonsSnap = await _db.collection('seasons').where(FieldPath.documentId, whereIn: seasonIds).get();
+    final newSeasonsMap = <String, Season>{};
+    for (var doc in seasonsSnap.docs) {
+      newSeasonsMap[doc.id] = Season.fromFirestore(doc);
+    }
+
+    QuerySnapshot? allPostsSnap;
+    try {
+      allPostsSnap = await _db.collection('posts').where('userId', isEqualTo: uid).get();
+    } catch (e) {
+      debugPrint('Error fetching posts for season count: $e');
+    }
+
+    final newSeasonPostsCountMap = <String, int>{};
+
+    for (var task in seasonTasks) {
+      final sId = task.seasonId ?? 'debug_season_test';
+      final season = newSeasonsMap[sId] ?? Season.createFallback(task.title, seasonId: sId);
+      newSeasonsMap[sId] = season;
+
+      if (allPostsSnap != null) {
+        int count = 0;
+        final Map<String, int> dailyPostCounts = {};
+        final targetName = season.taskName.replaceAll(RegExp(r'\s+'), '');
+
+        for (var postDoc in allPostsSnap.docs) {
+          final postData = postDoc.data() as Map<String, dynamic>;
+          final postTaskName = (postData['taskName'] as String? ?? '').replaceAll(RegExp(r'\s+'), '');
+          
+          final isMatch = postTaskName.contains(targetName) || 
+                          targetName.contains(postTaskName) || 
+                          (postTaskName.contains('感謝を伝える') && targetName.contains('感謝を伝える'));
+          
+          if (!isMatch) continue;
+
+          final createdAt = (postData['createdAt'] as Timestamp?)?.toDate();
+          if (createdAt != null &&
+              createdAt.isAfter(season.startDate) &&
+              createdAt.isBefore(season.endDate)) {
+            final dateKey = '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}';
+            final currentDailyCount = dailyPostCounts[dateKey] ?? 0;
+            if (currentDailyCount < 1) {
+              count++;
+              dailyPostCounts[dateKey] = currentDailyCount + 1;
+            }
+          }
+        }
+        newSeasonPostsCountMap[sId] = count;
+      }
+    }
+
+    result['seasonsMap'] = newSeasonsMap;
+    result['seasonPostsCountMap'] = newSeasonPostsCountMap;
+    return result;
   }
 
   /// フレンドUID一覧から表示用のフレンド情報を一括取得します

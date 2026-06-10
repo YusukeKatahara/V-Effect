@@ -22,13 +22,22 @@ class BlogPostDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
-  late DevBlogPost _initialPost;
+  DevBlogPost? _initialPost;
+  late String _postId;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _initialPost =
-        ModalRoute.of(context)!.settings.arguments as DevBlogPost;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is DevBlogPost) {
+      _initialPost = args;
+      _postId = args.id;
+    } else if (args is String) {
+      _postId = args;
+    } else {
+      // Fallback
+      _postId = '';
+    }
   }
 
   @override
@@ -37,10 +46,19 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.black,
-      body: StreamBuilder<DevBlogPost?>(
-        stream: DevBlogService.instance.getPost(_initialPost.id),
+      body: _postId.isEmpty 
+          ? const Center(child: Text('Invalid post ID', style: TextStyle(color: AppColors.white)))
+          : StreamBuilder<DevBlogPost?>(
+        stream: DevBlogService.instance.getPost(_postId),
         builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting && _initialPost == null) {
+            return const Center(child: CircularProgressIndicator(color: AppColors.accentGold));
+          }
+          
           final post = snapshot.data ?? _initialPost;
+          if (post == null) {
+            return const Center(child: Text('Post not found', style: TextStyle(color: AppColors.white)));
+          }
 
           return CustomScrollView(
             slivers: [

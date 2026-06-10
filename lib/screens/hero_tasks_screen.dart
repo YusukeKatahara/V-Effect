@@ -41,6 +41,7 @@ class _HeroTaskItem {
   final bool isSeason;
   final String? seasonId;
   final Season? season;
+  final int currentSeasonCount;
   bool get isCompleted => completedPosts.isNotEmpty;
 
   String get displayName => (trigger != null && trigger!.isNotEmpty) ? '$trigger：$name' : name;
@@ -59,6 +60,7 @@ class _HeroTaskItem {
     this.isSeason = false,
     this.seasonId,
     this.season,
+    this.currentSeasonCount = 0,
   });
 }
 
@@ -297,23 +299,20 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       final postedPosts =
           (homeData['postedTasksToday'] as List<dynamic>?)?.cast<Post>() ?? [];
 
-      // Seasonタスクが含まれていればFirestoreからSeason情報をフェッチ
-      final seasonIds = allTasks.where((t) => t.isSeason && t.seasonId != null).map((t) => t.seasonId!).toSet().toList();
-      final Map<String, Season> seasonsMap = {};
-      if (seasonIds.isNotEmpty) {
-        // デバッグ・開発用のIDを常にクエリ対象に追加する
-        if (!seasonIds.contains('debug_season')) seasonIds.add('debug_season');
-        if (!seasonIds.contains('debug_season_test')) seasonIds.add('debug_season_test');
-
-        final seasonsSnap = await FirebaseFirestore.instance.collection('seasons').where(FieldPath.documentId, whereIn: seasonIds).get();
-        for (var doc in seasonsSnap.docs) {
-          seasonsMap[doc.id] = Season.fromFirestore(doc);
-        }
+      // Seasonタスクの進行状況を取得
+      final seasonTasks = allTasks.where((t) => t.isSeason).toList();
+      Map<String, Season> seasonsMap = {};
+      Map<String, int> seasonPostsCountMap = {};
+      if (uid != null && seasonTasks.isNotEmpty) {
+        final progressData = await _postService.getSeasonProgressMap(uid, seasonTasks);
+        seasonsMap = Map<String, Season>.from(progressData['seasonsMap'] ?? {});
+        seasonPostsCountMap = Map<String, int>.from(progressData['seasonPostsCountMap'] ?? {});
       }
 
       final List<_HeroTaskItem> items = [];
       for (final task in allTasks) {
         final taskPosts = postedPosts.where((p) => p.taskName == task.title).toList();
+        final sId = task.seasonId ?? 'debug_season_test';
         items.add(_HeroTaskItem(
           name: task.title, 
           trigger: task.trigger,
@@ -322,9 +321,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           isOneTime: task.isOneTime,
           isSeason: task.isSeason,
           seasonId: task.seasonId,
-          season: (task.isSeason && task.seasonId != null) 
-              ? (seasonsMap[task.seasonId] ?? seasonsMap['debug_season'] ?? seasonsMap['debug_season_test']) 
+          season: (task.isSeason) 
+              ? (seasonsMap[sId] ?? seasonsMap['debug_season'] ?? seasonsMap['debug_season_test']) 
               : null,
+          currentSeasonCount: (task.isSeason) ? (seasonPostsCountMap[sId] ?? 0) : 0,
         ));
       }
 
@@ -1613,21 +1613,67 @@ class _TaskCardState extends State<_TaskCard> {
               if (isCompleted && depth == 0) ...[
                 _buildHabitStepSequence(item: item, isCompleted: true, depth: depth),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(width: 16, height: 1, color: AppColors.accentGold),
-                    const SizedBox(width: 8),
-                    Text(
-                      postCount >= 2 ? 'VICTORY x$postCount' : 'DONE',
-                      style: GoogleFonts.outfit(
-                        fontSize: 10,
-                        color: AppColors.accentGold,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 3,
+                if (item.isSeason) ...[
+                  Row(
+                    children: [
+                      Text(
+                        'Season ${item.currentSeasonCount}/${item.season?.requiredPostsCount ?? 12}',
+                        style: GoogleFonts.outfit(
+                          fontSize: 10,
+                          color: AppColors.accentGold,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final requiredCount = item.season?.requiredPostsCount ?? 12;
+                            final progress = (item.currentSeasonCount / requiredCount).clamp(0.0, 1.0);
+                            return Stack(
+                              children: [
+                                Container(
+                                  height: 2,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(1),
+                                  ),
+                                ),
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 800),
+                                  curve: Curves.easeOutCubic,
+                                  height: 2,
+                                  width: constraints.maxWidth * progress,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentGold,
+                                    borderRadius: BorderRadius.circular(1),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Container(width: 16, height: 1, color: AppColors.accentGold),
+                      const SizedBox(width: 8),
+                      Text(
+                        postCount >= 2 ? 'VICTORY x$postCount' : 'DONE',
+                        style: GoogleFonts.outfit(
+                          fontSize: 10,
+                          color: AppColors.accentGold,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (currentPost != null && currentPost.bgmTitle != null && depth == 0) ...[
                   const SizedBox(height: 12),
                   Row(

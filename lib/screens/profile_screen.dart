@@ -56,6 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _userStream = _db.collection('users').doc(_uid).snapshots();
     _loadPrivateData();
     _loadTrendingTasks();
+    _loadProfile();
   }
 
   Future<void> _loadTrendingTasks() async {
@@ -108,62 +109,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // ワンタイムタスクの期限切れチェックと削除
         await _checkAndCleanupOneTimeTasks(user);
 
-        // シーズン情報の取得
-        final seasonIds = user.tasks.where((t) => t.isSeason && t.seasonId != null).map((t) => t.seasonId!).toSet().toList();
-        final Map<String, Season> newSeasonsMap = {};
-        final Map<String, int> newSeasonPostsCountMap = {};
-        if (seasonIds.isNotEmpty) {
-          // デバッグ・開発用のIDを常にクエリ対象に追加する
-          if (!seasonIds.contains('debug_season')) seasonIds.add('debug_season');
-          if (!seasonIds.contains('debug_season_test')) seasonIds.add('debug_season_test');
-
-          final seasonsSnap = await FirebaseFirestore.instance.collection('seasons').where(FieldPath.documentId, whereIn: seasonIds).get();
-          for (var doc in seasonsSnap.docs) {
-            final season = Season.fromFirestore(doc);
-            newSeasonsMap[doc.id] = season;
-            
-            // シーズンタスクごとの投稿数をカウント（該当タスク名の全投稿を取得して期間内を集計）
-            try {
-              // taskNameでの完全一致フィルタを外し、userIdのみで全取得する（メモリ上で表記ゆれを考慮したフィルタを行うため）
-              final postsSnap = await FirebaseFirestore.instance
-                  .collection('posts')
-                  .where('userId', isEqualTo: uid)
-                  .get();
-              
-              int count = 0;
-              final Map<String, int> dailyPostCounts = {};
-              final targetName = season.taskName.replaceAll(RegExp(r'\s+'), '');
-
-              for (var postDoc in postsSnap.docs) {
-                final postData = postDoc.data();
-                final postTaskName = (postData['taskName'] as String? ?? '').replaceAll(RegExp(r'\s+'), '');
-                
-                // 表記ゆれや「（または記録する）」の有無に関わらず、部分一致で同一タスクと判定する
-                final isMatch = postTaskName.contains(targetName) || 
-                                targetName.contains(postTaskName) || 
-                                (postTaskName.contains('感謝を伝える') && targetName.contains('感謝を伝える'));
-                
-                if (!isMatch) continue;
-
-                final createdAt = (postData['createdAt'] as Timestamp?)?.toDate();
-                if (createdAt != null &&
-                    createdAt.isAfter(season.startDate) &&
-                    createdAt.isBefore(season.endDate)) {
-                  final dateKey = '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}';
-                  final currentDailyCount = dailyPostCounts[dateKey] ?? 0;
-                  if (currentDailyCount < 1) {
-                    count++;
-                    dailyPostCounts[dateKey] = currentDailyCount + 1;
-                  }
-                }
-              }
-              newSeasonPostsCountMap[doc.id] = count;
-            } catch (e) {
-              debugPrint('Error counting season posts: $e');
-              newSeasonPostsCountMap[doc.id] = 0;
-            }
-          }
-        }
+        // シーズン情報とカウントの取得
+        final seasonTasks = user.tasks.where((t) => t.isSeason).toList();
+        final progressData = await _postService.getSeasonProgressMap(uid, seasonTasks);
+        final Map<String, Season> newSeasonsMap = Map<String, Season>.from(progressData['seasonsMap'] ?? {});
+        final Map<String, int> newSeasonPostsCountMap = Map<String, int>.from(progressData['seasonPostsCountMap'] ?? {});
 
         // 今日の投稿を取得
         final todayPosts = await _postService.getFriendPostsList(uid);
@@ -1750,8 +1700,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         if (task.isSeason) ...[
                           const SizedBox(height: 2),
                           (() {
-                            final season = _seasonsMap[task.seasonId];
-                            final count = _seasonPostsCountMap[task.seasonId] ?? 0;
+                            final sId = task.seasonId ?? 'debug_season_test';
+                            final season = _seasonsMap[sId];
+                            final count = _seasonPostsCountMap[sId] ?? 0;
                             final requiredCount = season?.requiredPostsCount ?? 12;
                             return Text(
                               'Season ($count/$requiredCount)',

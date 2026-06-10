@@ -69,8 +69,8 @@ class Season {
     return Season(
       id: seasonId ?? 'debug_season',
       taskName: taskName,
-      startDate: DateTime.now(),
-      endDate: DateTime.now().add(const Duration(days: 30)),
+      startDate: DateTime(2024, 1, 1), // フォールバックは過去の日付にしてこれまでの投稿を含める
+      endDate: DateTime.now().add(const Duration(days: 365)),
       hintTitle: localHint['hintTitle'] ?? 'シーズンタスクのヒント💡',
       hintBody: localHint['hintBody'] ?? 'このシーズンタスクを習慣にするためのアドバイスです。',
     );
