@@ -107,13 +107,6 @@ async function sendPushToUser(toUid, title, body) {
 
 /**
  * notifications コレクションのドキュメントが書き込まれたとき、プッシュ通知を送信する。
- *
- * - リアクション以外の通知（投稿・ストリーク・フレンド等）は固有IDで新規作成されるため、
- *   従来通り「新規作成時のみ」即時送信する。
- * - リアクション通知は (投稿 × リアクション送信者) で固定IDのドキュメントにカウントを
- *   合算する設計のため、onDocumentCreated では2回目以降のリアクションでプッシュが
- *   飛ばなかった。ここでは onDocumentWritten で更新も拾い、連続リアクションを1通に
- *   集約したまま確実にプッシュを届けるためにデバウンス送信を行う。
  */
 exports.sendPushNotification = onDocumentWritten(
   "notifications/{notificationId}",
@@ -133,93 +126,19 @@ exports.sendPushNotification = onDocumentWritten(
 
     // ── リアクション以外：従来通り「新規作成時のみ」即時送信 ──
     if (!isReaction) {
-      if (before) return; // 更新（isRead 変更等）では送信しない（旧 onDocumentCreated 互換）
+      if (before) return; // 更新（isRead 変更等）では送信しない
       await sendPushToUser(toUid, title, body);
       return;
     }
 
-    // ── リアクション通知：デバウンス送信 ──
-    // 新しいリアクションがあった（カウント増加 or 新規作成）時だけ処理する。
-    // isRead 更新やサーバー自身の pushScheduled 書き込みでは発火しないようにし、
-    // 無限ループを防ぐ。
-    const beforeCount = before?.reactionCount ?? 0;
-    const afterCount = after.reactionCount ?? 0;
-    const isNewReaction = !before || afterCount > beforeCount;
-    if (!isNewReaction) return;
-
-    const db = getFirestore();
-    const notificationId = event.params.notificationId;
-
-    // デバウンス用ロックは notifications ドキュメント外（Admin SDK 専用コレクション）
-    // に置く。こうすることで、古いアプリ版がリアクション通知ドキュメントを
-    // 全置換（merge なし set）で上書きしてもロック状態が消えず、
-    // 新旧すべてのクライアントで「連続リアクション → 1通」の集約が保たれる。
-    const lockRef = db.collection("reaction_push_locks").doc(notificationId);
-
-    const shouldSchedule = await db.runTransaction(async (tx) => {
-      const lock = await tx.get(lockRef);
-      if (lock.exists) {
-        const scheduledAt = lock.data().scheduledAt ?? 0;
-        // 予約中（ウィンドウ内）ならスキップ。タスク消失に備え一定時間で失効させる。
-        if (Date.now() - scheduledAt < REACTION_LOCK_STALE_MS) return false;
-      }
-      tx.set(lockRef, { scheduledAt: Date.now(), notificationId });
-      return true;
-    });
-
-    if (!shouldSchedule) return;
-
-    try {
-      const queue = getFunctions().taskQueue("deliverReactionPush");
-      await queue.enqueue(
-        { notificationId },
-        { scheduleDelaySeconds: REACTION_PUSH_DEBOUNCE_SECONDS }
-      );
-      console.log(`Scheduled reaction push for ${notificationId}`);
-    } catch (error) {
-      console.error("Failed to enqueue deliverReactionPush:", error);
-      // 予約を取り消し、次のリアクション書き込みで再試行できるようにする
-      await lockRef.delete().catch(() => {});
+    // ── リアクション通知：初回のみ送信 ──
+    // 最初のリアクション（ドキュメント新規作成時）のみプッシュを送る。
+    // フロントエンドのVFIREは連打が止まってから通信される（デバウンス）ため、
+    // 「初回連打分」はまとめて1通として送られる。同じ人が後で追加リアクション
+    // してもプッシュは鳴らず、通知一覧が更新されるのみとなる。
+    if (!before) {
+      await sendPushToUser(toUid, title, body);
     }
-  }
-);
-
-/**
- * デバウンスウィンドウ終了後に実行され、リアクション通知のプッシュを1通だけ送信する。
- * ウィンドウ内で合算された最新の title/body（カウント込み）を送るため、
- * 「同じ人が10回連続でリアクション → 1通（10回分）の通知」が実現される。
- */
-exports.deliverReactionPush = onTaskDispatched(
-  {
-    retryConfig: {
-      maxAttempts: 3,
-      minBackoffSeconds: 30,
-    },
-    rateLimits: {
-      maxConcurrentDispatches: 10,
-    },
-  },
-  async (request) => {
-    const { notificationId } = request.data;
-    if (!notificationId) return;
-
-    const db = getFirestore();
-    const ref = db.collection("notifications").doc(notificationId);
-    const snap = await ref.get();
-
-    // ロックを先に解除する。これ以降に届いたリアクションは
-    // 新しいウィンドウとして次のプッシュを予約できる。
-    await db.collection("reaction_push_locks").doc(notificationId).delete()
-        .catch(() => {});
-
-    if (!snap.exists) return; // 既に削除済み
-
-    const data = snap.data();
-    if (data.sendPush === false) return;
-    if (!data.toUid || !data.title) return;
-
-    await sendPushToUser(data.toUid, data.title, data.body);
-    console.log(`Delivered aggregated reaction push for ${notificationId}`);
   }
 );
 
