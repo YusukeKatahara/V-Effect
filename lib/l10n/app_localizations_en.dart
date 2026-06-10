@@ -147,8 +147,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get registerWeakPassword => 'Password must be at least 6 characters.';
 
   @override
-  String get registerFailedRetry =>
-      'Registration failed. Please try again later.';
+  String get registerFailedRetry => 'Registration failed. Please try again later.';
 
   @override
   String get registerAppleFailed => 'Apple sign-up failed.';
@@ -166,12 +165,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get forgotPasswordResetTitle => 'Reset Password';
 
   @override
-  String get forgotPasswordInstruction =>
-      'Enter your user ID and registered email address';
+  String get forgotPasswordInstruction => 'Enter your user ID and registered email address';
 
   @override
-  String get forgotPasswordBothRequired =>
-      'Please enter your user ID and email';
+  String get forgotPasswordBothRequired => 'Please enter your user ID and email';
 
   @override
   String get forgotPasswordInvalid => 'No account found matching those details';
@@ -209,8 +206,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resetPasswordLinkExpired => 'This link has expired';
 
   @override
-  String get resetPasswordLinkInvalidPaste =>
-      'Invalid link. Please paste the link directly from your email.';
+  String get resetPasswordLinkInvalidPaste => 'Invalid link. Please paste the link directly from your email.';
 
   @override
   String get resetPasswordPasteLink => 'Please paste the link';
@@ -222,15 +218,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resetPasswordFailed => 'Failed to reset password';
 
   @override
-  String get resetPasswordWeakPassword =>
-      'Password must be at least 6 characters';
+  String get resetPasswordWeakPassword => 'Password must be at least 6 characters';
 
   @override
   String get resetPasswordPasteLinkTitle => 'Paste Your Link';
 
   @override
-  String get resetPasswordPasteLinkDesc =>
-      'Copy the link from your password reset email and paste it here';
+  String get resetPasswordPasteLinkDesc => 'Copy the link from your password reset email and paste it here';
 
   @override
   String get resetPasswordPasteLinkLabel => 'Password Reset Link';
@@ -260,15 +254,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resetPasswordGoToLogin => 'Go to Login';
 
   @override
-  String get errorGenericRetry =>
-      'Something went wrong. Please try again later.';
+  String get errorGenericRetry => 'Something went wrong. Please try again later.';
 
   @override
   String get weeklyReviewSelectBackground => 'Choose Background';
 
   @override
-  String get weeklyReviewNoPostsDefault =>
-      'No posts this week yet.\nShare with the default background.';
+  String get weeklyReviewNoPostsDefault => 'No posts this week yet.\nShare with the default background.';
 
   @override
   String get weeklyReviewShareWithoutBackground => 'Share without background';
@@ -428,12 +420,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get emailVerificationSpamNote =>
-      'Can\'t find it? Check your spam or trash folder.';
+  String get emailVerificationSpamNote => 'Can\'t find it? Check your spam or trash folder.';
 
   @override
-  String get emailVerificationNotYet =>
-      'Not verified yet. Please check your email.';
+  String get emailVerificationNotYet => 'Not verified yet. Please check your email.';
 
   @override
   String emailVerificationResendCooldown(int seconds) {
@@ -444,8 +434,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emailVerificationResent => 'Verification email resent.';
 
   @override
-  String get emailVerificationResendFailed =>
-      'Failed to send. Please try again later.';
+  String get emailVerificationResendFailed => 'Failed to send. Please try again later.';
 
   @override
   String get emailVerificationConfirmButton => 'I\'ve Verified';
@@ -463,75 +452,61 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationSettingsPush => 'Enable Push Notifications';
 
   @override
-  String get notificationSettingsPushDesc =>
-      'New posts and updates from people you follow';
+  String get notificationSettingsPushDesc => 'New posts and updates from people you follow';
 
   @override
   String get notificationSettingsReaction => 'Enable Reaction Notifications';
 
   @override
-  String get notificationSettingsReactionDesc =>
-      'When someone reacts to your posts';
+  String get notificationSettingsReactionDesc => 'When someone reacts to your posts';
 
   @override
   String get notificationSettingsVAlert => 'Enable V Alert Notifications';
 
   @override
-  String get notificationSettingsVAlertDesc =>
-      'Task reminder at your scheduled time';
+  String get notificationSettingsVAlertDesc => 'Task reminder at your scheduled time';
 
   @override
   String get notificationSettingsVFire => 'Enable V FIRE Notifications';
 
   @override
-  String get notificationSettingsVFireDesc =>
-      'When your post receives a V FIRE';
+  String get notificationSettingsVFireDesc => 'When your post receives a V FIRE';
 
   @override
   String get notificationSettingsShield => 'Enable Shield Notifications';
 
   @override
-  String get notificationSettingsShieldDesc =>
-      'When a shield protects your streak';
+  String get notificationSettingsShieldDesc => 'When a shield protects your streak';
 
   @override
-  String get notificationSettingsStreakCelebration =>
-      'Enable Streak Milestone Notifications';
+  String get notificationSettingsStreakCelebration => 'Enable Streak Milestone Notifications';
 
   @override
-  String get notificationSettingsStreakCelebrationDesc =>
-      'Milestones like 30 or 100 days';
+  String get notificationSettingsStreakCelebrationDesc => 'Milestones like 30 or 100 days';
 
   @override
-  String get notificationSettingsStreakWarning =>
-      'Enable Streak Risk Notifications';
+  String get notificationSettingsStreakWarning => 'Enable Streak Risk Notifications';
 
   @override
-  String get notificationSettingsStreakWarningDesc =>
-      'Reminder if your task isn\'t done by evening';
+  String get notificationSettingsStreakWarningDesc => 'Reminder if your task isn\'t done by evening';
 
   @override
   String get notificationSettingsDebugTitle => 'Developer Debug Tools';
 
   @override
-  String get notificationSettingsDebugResetTitle =>
-      'Reset Notification Pre-Dialog Flag';
+  String get notificationSettingsDebugResetTitle => 'Reset Notification Pre-Dialog Flag';
 
   @override
-  String get notificationSettingsDebugResetDesc =>
-      'Clears the \'show once\' restriction flag';
+  String get notificationSettingsDebugResetDesc => 'Clears the \'show once\' restriction flag';
 
   @override
-  String get notificationSettingsDebugResetDone =>
-      'Notification dialog flag has been reset.';
+  String get notificationSettingsDebugResetDone => 'Notification dialog flag has been reset.';
 
   @override
-  String get notificationSettingsDebugTestTitle =>
-      'Test Notification Pre-Dialog';
+  String get notificationSettingsDebugTestTitle => 'Test Notification Pre-Dialog';
 
   @override
-  String get notificationSettingsDebugTestDesc =>
-      'Shows the modal regardless of current permission status';
+  String get notificationSettingsDebugTestDesc => 'Shows the modal regardless of current permission status';
 
   @override
   String get editProfileSettingsHeader => 'Settings';
@@ -558,8 +533,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editProfileUserIdMinLength => 'Must be at least 5 characters';
 
   @override
-  String get editProfileUserIdAlphanumeric =>
-      'Only letters, numbers, and underscores';
+  String get editProfileUserIdAlphanumeric => 'Only letters, numbers, and underscores';
 
   @override
   String get editProfileUserIdAlreadyUsed => 'This user ID is already taken';
@@ -578,8 +552,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editProfileConfirmTitle => 'Confirm';
 
   @override
-  String get editProfileConfirmMessage =>
-      'Once saved, your user ID cannot be changed for 90 days.\n\nAre you sure?';
+  String get editProfileConfirmMessage => 'Once saved, your user ID cannot be changed for 90 days.\n\nAre you sure?';
 
   @override
   String get editProfileCancel => 'Cancel';
@@ -735,8 +708,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityLoginRecoveryTitle => 'Login & Recovery';
 
   @override
-  String get securityLoginRecoveryDesc =>
-      'Manage your password, login settings, and recovery options.';
+  String get securityLoginRecoveryDesc => 'Manage your password, login settings, and recovery options.';
 
   @override
   String get securityChangePassword => 'Change Password';
@@ -751,8 +723,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityAccountManagementTitle => 'Account Management';
 
   @override
-  String get securityAccountManagementDesc =>
-      'Manage your app access and account data.';
+  String get securityAccountManagementDesc => 'Manage your app access and account data.';
 
   @override
   String get securityLogout => 'Log Out';
@@ -784,15 +755,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityChangePasswordSend => 'Send';
 
   @override
-  String get securityPasswordResetSent =>
-      'Reset email sent. Please check your inbox.';
+  String get securityPasswordResetSent => 'Reset email sent. Please check your inbox.';
 
   @override
   String get securityChangeEmailDialogTitle => 'Change Email';
 
   @override
-  String get securityChangeEmailDialogDesc =>
-      'Enter your new email address. A confirmation email will be sent.';
+  String get securityChangeEmailDialogDesc => 'Enter your new email address. A confirmation email will be sent.';
 
   @override
   String get securityNewEmailLabel => 'New Email Address';
@@ -801,15 +770,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityChangeEmailSend => 'Send Confirmation Email';
 
   @override
-  String get securityEmailVerificationSent =>
-      'A confirmation email has been sent to your new address. Tap the link to complete the change.';
+  String get securityEmailVerificationSent => 'A confirmation email has been sent to your new address. Tap the link to complete the change.';
 
   @override
   String get securityErrorGeneric => 'An error occurred.';
 
   @override
-  String get securityErrorRecentLogin =>
-      'For security, please log out and log back in before trying again.';
+  String get securityErrorRecentLogin => 'For security, please log out and log back in before trying again.';
 
   @override
   String get securityErrorInvalidEmail => 'Invalid email address.';
@@ -821,8 +788,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityLogoutConfirmTitle => 'Log Out';
 
   @override
-  String get securityLogoutConfirmMessage =>
-      'Are you sure you want to log out?';
+  String get securityLogoutConfirmMessage => 'Are you sure you want to log out?';
 
   @override
   String get securityLogoutConfirmCancel => 'Cancel';
@@ -834,8 +800,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityDeleteConfirmTitle => 'Delete Account?';
 
   @override
-  String get securityDeleteConfirmDesc =>
-      'All your data — profile, posts, and everything else — will be permanently deleted. This cannot be undone.';
+  String get securityDeleteConfirmDesc => 'All your data — profile, posts, and everything else — will be permanently deleted. This cannot be undone.';
 
   @override
   String get securityDeleteConfirmCancel => 'Cancel';
@@ -847,8 +812,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityDeleteFinalTitle => 'Are you absolutely sure?';
 
   @override
-  String get securityDeleteFinalDesc =>
-      'This action is irreversible. Your account will be permanently deleted.';
+  String get securityDeleteFinalDesc => 'This action is irreversible. Your account will be permanently deleted.';
 
   @override
   String get securityDeleteFinalCancel => 'Cancel';
@@ -857,8 +821,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityDeleteFinalButton => 'Delete Permanently';
 
   @override
-  String get securityDeleteFailed =>
-      'Failed to delete account. Please log in again and try.';
+  String get securityDeleteFailed => 'Failed to delete account. Please log in again and try.';
 
   @override
   String get userProfileNotFound => 'User not found';
@@ -894,8 +857,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userProfileBlockConfirmTitle => 'Block User';
 
   @override
-  String get userProfileBlockConfirmDesc =>
-      'Blocking this user will also remove your follow connection.';
+  String get userProfileBlockConfirmDesc => 'Blocking this user will also remove your follow connection.';
 
   @override
   String get userProfileBlockCancel => 'Cancel';
@@ -907,8 +869,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userProfileUnblockConfirmTitle => 'Unblock User';
 
   @override
-  String get userProfileUnblockConfirmDesc =>
-      'Are you sure you want to unblock this user?';
+  String get userProfileUnblockConfirmDesc => 'Are you sure you want to unblock this user?';
 
   @override
   String get userProfileUnblockCancel => 'Cancel';
@@ -941,12 +902,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userProfileReportCancel => 'Cancel';
 
   @override
-  String get userProfileReportDone =>
-      'Reported. Thanks for helping keep V EFFECT safe.';
+  String get userProfileReportDone => 'Reported. Thanks for helping keep V EFFECT safe.';
 
   @override
-  String get userProfileReportAlready =>
-      'You\'ve already reported this user within the last 7 days';
+  String get userProfileReportAlready => 'You\'ve already reported this user within the last 7 days';
 
   @override
   String get userProfileReportFailed => 'Failed to report';
@@ -1000,8 +959,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get blogPostEditorBodyMarkdown => '— Markdown supported';
 
   @override
-  String get blogPostEditorBodyHint =>
-      'Write your post here\n\n## Heading\n**Bold** *Italic*\n- List item';
+  String get blogPostEditorBodyHint => 'Write your post here\n\n## Heading\n**Bold** *Italic*\n- List item';
 
   @override
   String get blogPostEditorBodyEnLabel => 'Body (ENGLISH)';
@@ -1030,20 +988,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get blogPostEditorSeasonSet => 'Season Task Set';
 
   @override
-  String get blogPostEditorSeasonDesc =>
-      'Distribute and notify users of a season task alongside this post.';
+  String get blogPostEditorSeasonDesc => 'Distribute and notify users of a season task alongside this post.';
 
   @override
   String get blogPostEditorSeasonModalTitle => 'Season Task Settings';
 
   @override
   String get blogPostEditorSeasonTaskName => 'Task Name (required)';
-
-  @override
-  String get blogPostEditorSeasonRequiredCount => 'Required Posts (Default: 12)';
-
-  @override
-  String get blogPostEditorSeasonRequiredCountHint => 'e.g. 12';
 
   @override
   String get blogPostEditorSeasonDuration => 'Duration (days)';
@@ -1055,11 +1006,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get blogPostEditorSeasonHintBody => 'Hint Body';
 
   @override
-  String get blogPostEditorSeasonHintBodyHint =>
-      'Enter a tip to help users take their photo';
+  String get blogPostEditorSeasonHintBodyHint => 'Enter a tip to help users take their photo';
 
   @override
-  String get blogPostEditorSeasonBadgeUrl => 'Badge Image URL';
+  String get blogPostEditorSeasonRequiredCount => 'Target Actions';
+
+  @override
+  String get blogPostEditorSeasonRequiredCountHint => 'e.g. 1';
+
+  @override
+  String get blogPostEditorSeasonBadgeUrl => 'Badge Icon';
 
   @override
   String get blogPostEditorSeasonDone => 'Done';
@@ -1075,14 +1031,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get blogPostEditorBadgeUploadFailed => 'Upload failed';
-
-  @override
-  String get badgeAcquiredNotificationTitle => '🎉 Badge Acquired!';
-
-  @override
-  String badgeAcquiredNotificationBody(String taskName) {
-    return 'You achieved the season task "$taskName" and got a new badge! Check your profile.';
-  }
 
   @override
   String get taskSetupTitle => 'Hero Task Setup';
@@ -1111,8 +1059,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskSetupTimeSection => 'When do you want to do your Hero Task?';
 
   @override
-  String get taskSetupTimeDesc =>
-      'We\'ll send you a reminder notification at this time';
+  String get taskSetupTimeDesc => 'We\'ll send you a reminder notification at this time';
 
   @override
   String get taskSetupCompleteButton => 'Complete Setup & Start';
@@ -1136,8 +1083,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskTemplateTitle => 'Start with one small win!';
 
   @override
-  String get taskTemplateSubtitle =>
-      'Pick a simple Hero Task\nand kick off your journey';
+  String get taskTemplateSubtitle => 'Pick a simple Hero Task\nand kick off your journey';
 
   @override
   String get taskTemplateSkip => 'Skip';
@@ -1173,8 +1119,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileSetupUserIdMinLength => 'Must be at least 5 characters';
 
   @override
-  String get profileSetupUserIdAlphanumeric =>
-      'Only letters, numbers, and underscores';
+  String get profileSetupUserIdAlphanumeric => 'Only letters, numbers, and underscores';
 
   @override
   String get profileSetupOccupationSection => 'Occupation (private)';
@@ -1273,8 +1218,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenDeleteTaskTitle => 'Delete Task?';
 
   @override
-  String get profileScreenDeleteTaskMessage =>
-      'Are you sure you want to delete this task?';
+  String get profileScreenDeleteTaskMessage => 'Are you sure you want to delete this task?';
 
   @override
   String get profileScreenDeleteTaskCancel => 'Cancel';
@@ -1295,8 +1239,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenTaskRewardHint => 'Reward (optional)';
 
   @override
-  String get profileScreenOneTimeTaskTitle =>
-      'Auto-deleted 24 hours after completion';
+  String get profileScreenOneTimeTaskTitle => 'Auto-deleted 24 hours after completion';
 
   @override
   String get profileScreenHabitTipsTitle => 'Habit-Building Tips';
@@ -1350,8 +1293,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get heroTasksDeletePostTitle => 'Delete Post';
 
   @override
-  String get heroTasksDeletePostDesc =>
-      'Are you sure you want to delete this post?\n(Your today\'s achievement will also be removed)';
+  String get heroTasksDeletePostDesc => 'Are you sure you want to delete this post?\n(Your today\'s achievement will also be removed)';
 
   @override
   String get heroTasksDeletePostCancel => 'Cancel';
@@ -1360,8 +1302,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get heroTasksDeletePostButton => 'Delete';
 
   @override
-  String get heroTasksWelcomeMessage =>
-      'Welcome to V EFFECT.\nThis is your arena.\n\nTap the camera icon and\nprove your first V.';
+  String get heroTasksWelcomeMessage => 'Welcome to V EFFECT.\nThis is your arena.\n\nTap the camera icon and\nprove your first V.';
 
   @override
   String get notificationsTitle => 'Notifications';
@@ -1379,8 +1320,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsDeleteAllTitle => 'Clear All Notifications';
 
   @override
-  String get notificationsDeleteAllMessage =>
-      'Are you sure you want to clear all notifications?';
+  String get notificationsDeleteAllMessage => 'Are you sure you want to clear all notifications?';
 
   @override
   String get notificationsDeleteAllCancel => 'Cancel';
@@ -1395,8 +1335,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsRejectRequest => 'Follow request declined.';
 
   @override
-  String get notificationsApproveFailed =>
-      'Failed to accept. Please try again.';
+  String get notificationsApproveFailed => 'Failed to accept. Please try again.';
 
   @override
   String get notificationsFollowed => 'Now following!';
@@ -1411,10 +1350,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsFollowBack => 'Follow Back';
 
   @override
-  String get notificationsApprove => 'Accept';
+  String get notificationsApprove => 'Approve';
 
   @override
-  String get notificationsReject => 'Decline';
+  String get notificationsReject => 'Reject';
+
+  @override
+  String get notificationsDelete => 'Delete';
+
+  @override
+  String get notificationsSeasonTaskJoined => 'Participated in the limited-time task!';
+
+  @override
+  String get notificationsSeasonTaskSkipped => 'Skipped the limited-time task.';
+
+  @override
+  String notificationsFriendAccepted(Object username) {
+    return '$username approved your friend request.';
+  }
 
   @override
   String notificationsError(Object error) {
@@ -1422,8 +1375,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get onboardingFirstQuestQuestionText =>
-      'What does your ideal self look like?\nWhat habit do you want to build?';
+  String get onboardingFirstQuestQuestionText => 'What does your ideal self look like?\nWhat habit do you want to build?';
 
   @override
   String get onboardingFirstQuestTriggerLabel => 'Trigger (optional)';
@@ -1435,8 +1387,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingFirstQuestRewardLabel => 'Reward (optional)';
 
   @override
-  String get onboardingFirstQuestPrivacyNote =>
-      '* Trigger and reward are only visible to you.';
+  String get onboardingFirstQuestPrivacyNote => '* Trigger and reward are only visible to you.';
 
   @override
   String get onboardingFirstQuestCompleteButton => 'Let\'s Go';
@@ -1456,16 +1407,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingFirstQuestHabitStackingTitle => 'Habit Stacking';
 
   @override
-  String get onboardingFirstQuestHabitStackingDesc =>
-      'Attach a new habit right after something you already do every day. That\'s your trigger.';
+  String get onboardingFirstQuestHabitStackingDesc => 'Attach a new habit right after something you already do every day. That\'s your trigger.';
 
   @override
-  String get onboardingFirstQuestTemptationBundlingTitle =>
-      'Temptation Bundling';
+  String get onboardingFirstQuestTemptationBundlingTitle => 'Temptation Bundling';
 
   @override
-  String get onboardingFirstQuestTemptationBundlingDesc =>
-      'Pair something you should do (your task) with something you want to do (your reward) to boost your drive.';
+  String get onboardingFirstQuestTemptationBundlingDesc => 'Pair something you should do (your task) with something you want to do (your reward) to boost your drive.';
 
   @override
   String get onboardingProfileWelcome => 'Welcome to V EFFECT';
@@ -1486,19 +1434,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingProfileUserIdLabel => 'User ID';
 
   @override
-  String get onboardingProfileUserIdMinLength =>
-      'Must be at least 5 characters';
+  String get onboardingProfileUserIdMinLength => 'Must be at least 5 characters';
 
   @override
-  String get onboardingProfileUserIdAlphanumeric =>
-      'Only letters, numbers, and underscores';
+  String get onboardingProfileUserIdAlphanumeric => 'Only letters, numbers, and underscores';
 
   @override
   String get onboardingProfileUserIdRequired => 'Please enter a user ID';
 
   @override
-  String get onboardingProfileUserIdAlreadyUsed =>
-      'This user ID is already taken';
+  String get onboardingProfileUserIdAlreadyUsed => 'This user ID is already taken';
 
   @override
   String onboardingProfileSaveFailed(Object error) {
@@ -1509,19 +1454,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingProfileStartButton => 'Prove your first V →';
 
   @override
-  String get onboardingProfileHelperText =>
-      '5+ characters · letters, numbers, underscores only';
+  String get onboardingProfileHelperText => '5+ characters · letters, numbers, underscores only';
 
   @override
   String get onboardingProfileImageAdjust => 'Adjust Image';
 
   @override
-  String get notificationPromptTitle =>
-      'Make your crew\'s hustle work for you.';
+  String get notificationPromptTitle => 'Make your crew\'s hustle work for you.';
 
   @override
-  String get notificationPromptDesc =>
-      'The most powerful force in V EFFECT is your crew.\n\nWith notifications on, your friends\' victories inspire you in real time — and your effort reaches them too.\nFeel each other\'s presence and build unbreakable habits together.';
+  String get notificationPromptDesc => 'The most powerful force in V EFFECT is your crew.\n\nWith notifications on, your friends\' victories inspire you in real time — and your effort reaches them too.\nFeel each other\'s presence and build unbreakable habits together.';
 
   @override
   String get notificationPromptNext => 'Next';
@@ -1533,8 +1475,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get friendInviteTitle => 'Prove V (Victory) with your crew!';
 
   @override
-  String get friendInviteDesc =>
-      'Your first V Quest is set!\nInvite friends to share your effort and victories!';
+  String get friendInviteDesc => 'Your first V Quest is set!\nInvite friends to share your effort and victories!';
 
   @override
   String get friendInviteShareButton => 'Invite friends (Share via LINE, etc.)';
@@ -1573,8 +1514,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get seasonHintDefaultTitle => 'Season Task Hint 💡';
 
   @override
-  String get seasonHintDefaultBody =>
-      'Tips to help you build this season task into a habit.';
+  String get seasonHintDefaultBody => 'Tips to help you build this season task into a habit.';
 
   @override
   String get seasonHintReadBlog => 'Read the story behind this task';
@@ -1583,8 +1523,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get seasonHintTriggerLabel => 'Your Trigger';
 
   @override
-  String get seasonHintTriggerHint =>
-      'e.g. Right after waking up, On the commute';
+  String get seasonHintTriggerHint => 'e.g. Right after waking up, On the commute';
 
   @override
   String get seasonHintSaveButton => 'Save Trigger';
@@ -1610,8 +1549,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeBlockConfirmTitle => 'Block this user?';
 
   @override
-  String get homeBlockConfirmDesc =>
-      'Their posts will no longer appear in your feed.';
+  String get homeBlockConfirmDesc => 'Their posts will no longer appear in your feed.';
 
   @override
   String get homeBlockConfirmCancel => 'Cancel';
@@ -1644,8 +1582,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeReportCancel => 'Cancel';
 
   @override
-  String get homeReportSuccess =>
-      'Reported. Thanks for helping keep V EFFECT a safe space.';
+  String get homeReportSuccess => 'Reported. Thanks for helping keep V EFFECT a safe space.';
 
   @override
   String get homeReportFailed => 'Failed to report';
@@ -1673,8 +1610,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeMotivationText1 => 'You are a front-runner.';
 
   @override
-  String get homeMotivationText2 =>
-      'Every small choice, every small victory becomes proof.\nYour ideal self becomes real.';
+  String get homeMotivationText2 => 'Every small choice, every small victory becomes proof.\nYour ideal self becomes real.';
 
   @override
   String get homeEmojiReactionHint => 'Tap to cheer with an emoji!';
@@ -1683,16 +1619,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeFriendPostsTitle => 'Your crew\'s effort is here';
 
   @override
-  String get homeStreakResetMessage =>
-      'Even if your streak breaks,\nas long as you keep moving forward,\nV EFFECT will ignite again.';
+  String get homeStreakResetMessage => 'Even if your streak breaks,\nas long as you keep moving forward,\nV EFFECT will ignite again.';
 
   @override
-  String get vEffectConceptLine1 =>
-      'Every small victory brings you closer to your ideal self.';
+  String get vEffectConceptLine1 => 'Every small victory brings you closer to your ideal self.';
 
   @override
-  String get vEffectConceptLine2 =>
-      'This platform is here to support your victories and your habits.';
+  String get vEffectConceptLine2 => 'This platform is here to support your victories and your habits.';
 
   @override
   String get vEffectConceptLine3Prefix => 'Now, with your crew, let\'s spark ';
@@ -1701,12 +1634,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vEffectConceptLine3Suffix => '.';
 
   @override
-  String get vEffectFeatureLine1 =>
-      'Capture today\'s achievement in a photo. That\'s it.';
+  String get vEffectFeatureLine1 => 'Capture today\'s achievement in a photo. That\'s it.';
 
   @override
-  String get vEffectFeatureLine2 =>
-      'The fact that you did it builds who you are.';
+  String get vEffectFeatureLine2 => 'The fact that you did it builds who you are.';
 
   @override
   String get vEffectFeatureLine3 => 'Each other\'s effort becomes connection.';
@@ -1715,8 +1646,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vEffectFeatureLine4 => 'See who proved their V today.';
 
   @override
-  String get vEffectFeatureLine5 =>
-      'Only those who prove their effort can reach — and be reached.';
+  String get vEffectFeatureLine5 => 'Only those who prove their effort can reach — and be reached.';
 
   @override
   String get vEffectJoinButton => 'Join V EFFECT →';
@@ -1756,8 +1686,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get homePostToSeeFriends =>
-      '(Update) Post a task to start seeing your friends\' posts!';
+  String get homePostToSeeFriends => '(Update) Post a task to start seeing your friends\' posts!';
 
   @override
   String get homeProveVictory => 'Prove your Victory';
@@ -1901,12 +1830,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryOther => 'Other';
 
   @override
-  String get habitStackingHint =>
-      '• Habit Stacking\nAttach a new habit right after an existing daily action (your trigger) for the best results.';
+  String get habitStackingHint => '• Habit Stacking\nAttach a new habit right after an existing daily action (your trigger) for the best results.';
 
   @override
-  String get temptationBundlingHint =>
-      '• Temptation Bundling\nPair something you should do (task) with something you want to do (reward) to build stronger motivation.';
+  String get temptationBundlingHint => '• Temptation Bundling\nPair something you should do (task) with something you want to do (reward) to build stronger motivation.';
 
   @override
   String get profileNoTaskPlaceholder => '(Task)';
@@ -1976,15 +1903,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskTemplateBreathing => 'Breathe Outside';
 
   @override
-  String get taskTemplateBreathingDesc =>
-      'Step outside and capture a deep breath moment';
+  String get taskTemplateBreathingDesc => 'Step outside and capture a deep breath moment';
 
   @override
   String get taskTemplateWater => 'Drink Water';
 
   @override
-  String get taskTemplateWaterDesc =>
-      'Drink a full glass of water and snap the moment';
+  String get taskTemplateWaterDesc => 'Drink a full glass of water and snap the moment';
 
   @override
   String get taskTemplateCustom => 'Set Your Own';
@@ -2016,8 +1941,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vPracticeNoNews => 'No news yet';
 
   @override
-  String get vPracticeBadgeIdRequired =>
-      'Please enter a badge ID (e.g. tester)';
+  String get vPracticeBadgeIdRequired => 'Please enter a badge ID (e.g. tester)';
 
   @override
   String vPracticeBadgeDistributed(String badgeUrl) {
@@ -2031,8 +1955,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vPracticeDialogTitle => 'Distribute Badge to All';
 
   @override
-  String get vPracticeDialogDesc =>
-      'Forcibly equip the specified badge on all currently registered users. No notifications will be sent.';
+  String get vPracticeDialogDesc => 'Forcibly equip the specified badge on all currently registered users. No notifications will be sent.';
 
   @override
   String get vPracticeBadgeIdHint => 'Badge ID (e.g. tester)';

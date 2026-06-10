@@ -53,6 +53,7 @@ firebase_options.dart
 *log*.txt
 *error*.txt
 ios/build_test/
+ios/build/
 .vscode/
 
 # iOS CocoaPods and build artifacts

@@ -379,4 +379,13 @@ class UserService {
       debugPrint('${expiredTasks.length}個のワンタイムタスクを期限切れ（翌日）のため削除しました');
     }
   }
+
+  /// シーズンタスク通知を処理済み（参加・削除）として記録します
+  Future<void> markSeasonTaskAsProcessed(String seasonId) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    await _db.collection('users').doc(uid).set({
+      'processedSeasonTaskIds': FieldValue.arrayUnion([seasonId])
+    }, SetOptions(merge: true));
+  }
 }

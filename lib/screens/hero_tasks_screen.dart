@@ -301,6 +301,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       final seasonIds = allTasks.where((t) => t.isSeason && t.seasonId != null).map((t) => t.seasonId!).toSet().toList();
       final Map<String, Season> seasonsMap = {};
       if (seasonIds.isNotEmpty) {
+        // デバッグ・開発用のIDを常にクエリ対象に追加する
+        if (!seasonIds.contains('debug_season')) seasonIds.add('debug_season');
+        if (!seasonIds.contains('debug_season_test')) seasonIds.add('debug_season_test');
+
         final seasonsSnap = await FirebaseFirestore.instance.collection('seasons').where(FieldPath.documentId, whereIn: seasonIds).get();
         for (var doc in seasonsSnap.docs) {
           seasonsMap[doc.id] = Season.fromFirestore(doc);
@@ -318,7 +322,9 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           isOneTime: task.isOneTime,
           isSeason: task.isSeason,
           seasonId: task.seasonId,
-          season: (task.isSeason && task.seasonId != null) ? seasonsMap[task.seasonId] : null,
+          season: (task.isSeason && task.seasonId != null) 
+              ? (seasonsMap[task.seasonId] ?? seasonsMap['debug_season'] ?? seasonsMap['debug_season_test']) 
+              : null,
         ));
       }
 
@@ -441,6 +447,46 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         if (mounted) setState(() => _loading = false);
       }
     }
+  }
+
+  void _showSeasonHint(_HeroTaskItem item) {
+    final fallbackSeason = item.season ?? Season.createFallback(
+      item.name,
+      seasonId: item.seasonId,
+    );
+    
+    SeasonHintModal.show(
+      context,
+      AppTask(
+        title: item.name,
+        trigger: item.trigger,
+        reward: item.reward,
+        isSeason: item.isSeason,
+        seasonId: item.seasonId,
+      ),
+      fallbackSeason,
+      (newTrigger, newReward) async {
+        final uid = _userService.currentUid;
+        if (uid == null) return;
+        final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        if (!snap.exists) return;
+        final tasks = (snap.data()?['tasks'] as List? ?? [])
+            .map((e) => AppTask.fromFirestore(e))
+            .toList();
+        final updatedTasks = tasks.map((t) {
+          if (t.title == item.name) {
+            return t.copyWith(
+              trigger: newTrigger.isEmpty ? null : newTrigger,
+              clearTrigger: newTrigger.isEmpty,
+              reward: newReward.isEmpty ? null : newReward,
+              clearReward: newReward.isEmpty,
+            );
+          }
+          return t;
+        }).toList();
+        await _userService.updateProfile(tasks: updatedTasks);
+      },
+    );
   }
 
   Future<void> _selectHeroTask(int index) async {
@@ -888,12 +934,14 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                       itemBuilder: (context, rawIndex) {
                         if (_taskItems.isEmpty) return const SizedBox.shrink();
                         final actualIndex = rawIndex % _taskItems.length;
+                        final item = _taskItems[actualIndex];
 
                         return Center(
                           child: SizedBox(
                             width: finalCardWidth,
                             height: maxCardHeight,
                             child: Stack(
+                              clipBehavior: Clip.none,
                               children: [
                                 // 全体検知（タップで拡大・タスク選択）
                                 GestureDetector(
@@ -939,6 +987,48 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                                   },
                                   child: const SizedBox.expand(),
                                 ),
+
+                                // [New] ヒントボタン（SEASONタスクの場合のみ、右上に配置）
+                                // 手前のフォーカスされたカード、または拡大されている時に表示する
+                                if (item.isSeason && 
+                                    (actualIndex == _focusedIndex || actualIndex == _expandedIndex) &&
+                                    !_isSublimating)
+                                  ValueListenableBuilder<double>(
+                                    valueListenable: _scrollPositionNotifier,
+                                    builder: (context, scrollPos, _) {
+                                      final isExpanded = actualIndex == _expandedIndex;
+                                      
+                                      // 拡大中でない場合、スワイプ中はズレを防ぐため＆スワイプの邪魔をしないために非表示にする
+                                      if (!isExpanded) {
+                                        final diff = (scrollPos - actualIndex).abs();
+                                        if (diff > 0.05) return const SizedBox.shrink();
+                                      }
+
+                                      // カードは通常0.9倍、拡大時は1.0倍でスケールされる
+                                      final scale = isExpanded ? 1.0 : 0.9;
+                                      final postCount = item.completedPosts.length;
+                                      final rightOffset = (item.isCompleted && postCount > 1) ? 72.0 : 16.0;
+
+                                      return Transform.scale(
+                                        scale: scale,
+                                        child: Stack(
+                                          clipBehavior: Clip.none,
+                                          children: [
+                                            Positioned(
+                                              top: 16,
+                                              right: rightOffset,
+                                              child: IconButton(
+                                                icon: const Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 28),
+                                                onPressed: () {
+                                                  _showSeasonHint(item);
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
                               ],
                             ),
                           ),
@@ -1735,60 +1825,6 @@ class _TaskCardState extends State<_TaskCard> {
                   color: AppColors.accentGold,
                 ),
               ),
-            ),
-          ),
-
-        // ヒントボタン（SEASONタスクの場合のみ、右上に配置）
-        if (item.isSeason && depth == 0)
-          Positioned(
-            top: 16,
-            right: (isCompleted && postCount > 1) ? 72 : 16,
-            child: IconButton(
-              icon: const Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 28),
-              onPressed: () {
-                final fallbackSeason = item.season ?? Season(
-                  id: item.seasonId ?? 'debug_season',
-                  taskName: item.name,
-                  startDate: DateTime.now(),
-                  endDate: DateTime.now().add(const Duration(days: 30)),
-                  hintTitle: 'シーズンタスクのヒント💡',
-                  hintBody: 'このシーズンタスクを習慣にするためのアドバイスです。',
-                );
-                
-                SeasonHintModal.show(
-                  context,
-                  AppTask(
-                    title: item.name,
-                    trigger: item.trigger,
-                    reward: item.reward,
-                    isSeason: item.isSeason,
-                    seasonId: item.seasonId,
-                  ),
-                  fallbackSeason,
-                  (newTrigger, newReward) async {
-                    // triggerとrewardを更新して保存
-                    final uid = UserService.instance.currentUid;
-                    if (uid == null) return;
-                    final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-                    if (!snap.exists) return;
-                    final tasks = (snap.data()?['tasks'] as List? ?? [])
-                        .map((e) => AppTask.fromFirestore(e))
-                        .toList();
-                    final updatedTasks = tasks.map((t) {
-                      if (t.title == item.name) {
-                        return t.copyWith(
-                          trigger: newTrigger.isEmpty ? null : newTrigger,
-                          clearTrigger: newTrigger.isEmpty,
-                          reward: newReward.isEmpty ? null : newReward,
-                          clearReward: newReward.isEmpty,
-                        );
-                      }
-                      return t;
-                    }).toList();
-                    await UserService.instance.updateProfile(tasks: updatedTasks);
-                  },
-                );
-              },
             ),
           ),
 

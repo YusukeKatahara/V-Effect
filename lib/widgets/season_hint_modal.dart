@@ -97,7 +97,7 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
               widget.season.hintBody ?? AppLocalizations.of(context)!.seasonHintDefaultBody,
               style: GoogleFonts.notoSansJp(
                 fontSize: 14,
-                color: AppColors.grey20,
+                color: AppColors.grey85,
                 height: 1.6,
               ),
             ),

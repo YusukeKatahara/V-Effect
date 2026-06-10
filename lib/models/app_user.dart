@@ -35,6 +35,7 @@ class AppUser {
   final String? equippedBadgeAnimation;
   final List<String> ownedBadges;
   final String? instagramId;
+  final List<String> processedSeasonTaskIds;
 
   const AppUser({
     required this.uid,
@@ -68,6 +69,7 @@ class AppUser {
     this.equippedBadgeAnimation,
     this.ownedBadges = const [],
     this.instagramId,
+    this.processedSeasonTaskIds = const [],
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -138,6 +140,7 @@ class AppUser {
       equippedBadgeAnimation: safeString(data['equippedBadgeAnimation']),
       ownedBadges: (data['ownedBadges'] as List?)?.map((e) => e.toString()).toList() ?? [],
       instagramId: safeString(data['instagramId']),
+      processedSeasonTaskIds: (data['processedSeasonTaskIds'] as List?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 
@@ -174,6 +177,7 @@ class AppUser {
       'equippedBadgeAnimation': equippedBadgeAnimation,
       'ownedBadges': ownedBadges,
       'instagramId': instagramId,
+      'processedSeasonTaskIds': processedSeasonTaskIds,
     };
   }
 }

@@ -425,6 +425,8 @@
   "blogPostEditorSeasonHintTitle": "Hint Title",
   "blogPostEditorSeasonHintBody": "Hint Body",
   "blogPostEditorSeasonHintBodyHint": "Enter a tip to help users take their photo",
+  "blogPostEditorSeasonRequiredCount": "Target Actions",
+  "blogPostEditorSeasonRequiredCountHint": "e.g. 1",
   "blogPostEditorSeasonBadgeUrl": "Badge Icon",
   "blogPostEditorSeasonDone": "Done",
   "blogPostEditorPlaceholder": "Text",
@@ -541,8 +543,12 @@
   "notificationsFollowFailed": "Failed to follow.",
   "notificationsFollowing": "Following",
   "notificationsFollowBack": "Follow Back",
-  "notificationsApprove": "Accept",
-  "notificationsReject": "Decline",
+  "notificationsApprove": "Approve",
+  "notificationsReject": "Reject",
+  "notificationsDelete": "Delete",
+  "notificationsSeasonTaskJoined": "Participated in the limited-time task!",
+  "notificationsSeasonTaskSkipped": "Skipped the limited-time task.",
+  "notificationsFriendAccepted": "{username} approved your friend request.",
   "notificationsError": "An error occurred: {error}",
   "@notificationsError": {
     "placeholders": {

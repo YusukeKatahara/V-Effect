@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
-import '../models/app_notification.dart';
 import '../models/app_user.dart';
+import '../models/app_notification.dart';
 import '../services/notification_service.dart';
 import '../services/friend_service.dart';
+import '../services/user_service.dart';
+import '../utils/date_helper.dart';
 import '../utils/date_helper.dart';
 import '../widgets/swipe_back_gate.dart';
 
@@ -87,6 +89,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.warning_amber_rounded;
       case NotificationType.badgeAcquired:
         return Icons.military_tech;
+      case NotificationType.seasonTaskDistributed:
+        return Icons.event_available;
     }
   }
 
@@ -107,6 +111,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NotificationType.streakWarning:
         return AppColors.error;
       case NotificationType.badgeAcquired:
+        return AppColors.accentGold;
+      case NotificationType.seasonTaskDistributed:
         return AppColors.accentGold;
     }
   }
@@ -147,6 +153,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       badge = _buildBadge('⚠️');
     } else if (notif.type == NotificationType.badgeAcquired) {
       badge = _buildBadge('🏅');
+    } else if (notif.type == NotificationType.seasonTaskDistributed) {
+      badge = _buildBadge('🎁');
     }
 
     if (badge == null) return avatarBody;
@@ -288,6 +296,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Future<void> _handleSeasonTaskParticipation(AppNotification notif, bool participate) async {
+    if (notif.relatedId == null) return;
+    
+    setState(() => _isProcessing = true);
+    try {
+      await UserService.instance.markSeasonTaskAsProcessed(notif.relatedId!);
+      // ローカルのストリームからも消すため、画面を再描画（Streamが再評価されるか、または状態を管理）
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(participate ? AppLocalizations.of(context)!.notificationsSeasonTaskJoined : AppLocalizations.of(context)!.notificationsSeasonTaskSkipped),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Season Task Process Error: $e');
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
   Widget _buildCompactButton({
     required String label,
     required VoidCallback onPressed,
@@ -380,7 +410,47 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text(AppLocalizations.of(context)!.notificationsReject, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text(AppLocalizations.of(context)!.notificationsDelete, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildSeasonTaskTrailing(AppNotification notif) {
+    if (notif.isProcessed) {
+      return const SizedBox.shrink();
+    } else {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ElevatedButton(
+            onPressed: () => _handleSeasonTaskParticipation(notif, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.white,
+              foregroundColor: AppColors.black,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              minimumSize: const Size(80, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(AppLocalizations.of(context)!.notificationsApprove, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: () => _handleSeasonTaskParticipation(notif, false),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: AppColors.textSecondary,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              minimumSize: const Size(80, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(AppLocalizations.of(context)!.notificationsDelete, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           ),
         ],
       );
@@ -554,9 +624,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               ],
                             ),
                           ),
-                          if (notif.type == NotificationType.friendRequestReceived) ...[
+                          if (notif.type == NotificationType.friendRequestReceived || notif.type == NotificationType.seasonTaskDistributed) ...[
                             const SizedBox(width: 12),
-                            _buildFriendRequestTrailing(notif),
+                            if (notif.type == NotificationType.friendRequestReceived)
+                              _buildFriendRequestTrailing(notif)
+                            else
+                              _buildSeasonTaskTrailing(notif),
                           ],
                         ],
                       ),

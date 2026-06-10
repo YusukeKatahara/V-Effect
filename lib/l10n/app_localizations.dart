@@ -62,8 +62,7 @@ import 'app_localizations_ja.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -71,8 +70,7 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate =
-      _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -84,18 +82,17 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
-      <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('ja'),
+    Locale('ja')
   ];
 
   /// No description provided for @settingsTitle.
@@ -1994,18 +1991,6 @@ abstract class AppLocalizations {
   /// **'タスク名 (必須)'**
   String get blogPostEditorSeasonTaskName;
 
-  /// No description provided for @blogPostEditorSeasonRequiredCount.
-  ///
-  /// In ja, this message translates to:
-  /// **'目標回数 (デフォルト: 12)'**
-  String get blogPostEditorSeasonRequiredCount;
-
-  /// No description provided for @blogPostEditorSeasonRequiredCountHint.
-  ///
-  /// In ja, this message translates to:
-  /// **'例: 12'**
-  String get blogPostEditorSeasonRequiredCountHint;
-
   /// No description provided for @blogPostEditorSeasonDuration.
   ///
   /// In ja, this message translates to:
@@ -2030,10 +2015,22 @@ abstract class AppLocalizations {
   /// **'ユーザーが写真を撮る際のヒントを入力してください'**
   String get blogPostEditorSeasonHintBodyHint;
 
+  /// No description provided for @blogPostEditorSeasonRequiredCount.
+  ///
+  /// In ja, this message translates to:
+  /// **'目標アクション数'**
+  String get blogPostEditorSeasonRequiredCount;
+
+  /// No description provided for @blogPostEditorSeasonRequiredCountHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'例: 1'**
+  String get blogPostEditorSeasonRequiredCountHint;
+
   /// No description provided for @blogPostEditorSeasonBadgeUrl.
   ///
   /// In ja, this message translates to:
-  /// **'バッジ画像URL'**
+  /// **'バッジアイコン'**
   String get blogPostEditorSeasonBadgeUrl;
 
   /// No description provided for @blogPostEditorSeasonDone.
@@ -2065,18 +2062,6 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'アップロードに失敗しました'**
   String get blogPostEditorBadgeUploadFailed;
-
-  /// No description provided for @badgeAcquiredNotificationTitle.
-  ///
-  /// In ja, this message translates to:
-  /// **'🎉 バッジ獲得！'**
-  String get badgeAcquiredNotificationTitle;
-
-  /// No description provided for @badgeAcquiredNotificationBody.
-  ///
-  /// In ja, this message translates to:
-  /// **'シーズンタスク「{taskName}」を達成し、新しいバッジを獲得しました！プロフィールで確認できます。'**
-  String badgeAcquiredNotificationBody(String taskName);
 
   /// No description provided for @taskSetupTitle.
   ///
@@ -2717,8 +2702,32 @@ abstract class AppLocalizations {
   /// No description provided for @notificationsReject.
   ///
   /// In ja, this message translates to:
-  /// **'削除'**
+  /// **'拒否'**
   String get notificationsReject;
+
+  /// No description provided for @notificationsDelete.
+  ///
+  /// In ja, this message translates to:
+  /// **'削除'**
+  String get notificationsDelete;
+
+  /// No description provided for @notificationsSeasonTaskJoined.
+  ///
+  /// In ja, this message translates to:
+  /// **'期間限定タスクに参加しました！'**
+  String get notificationsSeasonTaskJoined;
+
+  /// No description provided for @notificationsSeasonTaskSkipped.
+  ///
+  /// In ja, this message translates to:
+  /// **'期間限定タスクをスキップしました。'**
+  String get notificationsSeasonTaskSkipped;
+
+  /// No description provided for @notificationsFriendAccepted.
+  ///
+  /// In ja, this message translates to:
+  /// **'{username}さんがフレンド申請を承認しました'**
+  String notificationsFriendAccepted(Object username);
 
   /// No description provided for @notificationsError.
   ///
@@ -3843,8 +3852,7 @@ abstract class AppLocalizations {
   String get vPracticeDistribute;
 }
 
-class _AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -3853,26 +3861,25 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['en', 'ja'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>['en', 'ja'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en':
-      return AppLocalizationsEn();
-    case 'ja':
-      return AppLocalizationsJa();
+    case 'en': return AppLocalizationsEn();
+    case 'ja': return AppLocalizationsJa();
   }
 
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
+    'that was used.'
   );
 }

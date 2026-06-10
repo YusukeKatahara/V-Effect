@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/app_notification.dart';
 import '../models/notification_messages.dart';
 
@@ -54,11 +55,55 @@ class NotificationService {
         .collection('notifications')
         .where('toUid', isEqualTo: myUid)
         .snapshots()
-        .map((snap) {
+        .asyncMap((snap) async {
       final list = snap.docs
           .map((doc) => AppNotification.fromFirestore(doc))
           .where((n) => n.createdAt.isAfter(threeDaysAgo)) // 3日以内のみ
           .toList();
+
+      // --- ここからシーズンタスク動的マージ処理 ---
+      try {
+        final userDoc = await _db.collection('users').doc(myUid).get();
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          final processedSeasonTaskIds = (userData['processedSeasonTaskIds'] as List?)?.map((e) => e.toString()).toList() ?? [];
+          final now = DateTime.now();
+
+          // 開催中のシーズンを取得
+          final seasonsSnap = await _db
+              .collection('seasons')
+              .where('startDate', isLessThanOrEqualTo: now)
+              .get();
+
+          for (final seasonDoc in seasonsSnap.docs) {
+            final seasonData = seasonDoc.data();
+            final endDate = (seasonData['endDate'] as Timestamp?)?.toDate();
+            
+            // まだ処理されておらず、期間内（または endDate がない）のもの
+            if (!processedSeasonTaskIds.contains(seasonDoc.id) && 
+                (endDate == null || now.isBefore(endDate))) {
+              final taskName = seasonData['taskName'] as String? ?? 'シーズンタスク';
+              
+              list.add(AppNotification(
+                id: 'season_${seasonDoc.id}', // 疑似的なID
+                toUid: myUid,
+                type: NotificationType.seasonTaskDistributed,
+                title: '期間限定タスク',
+                body: '期間限定タスク「$taskName」が追加されました。',
+                relatedId: seasonDoc.id, // seasonIdを持たせる
+                isRead: false,
+                isProcessed: false,
+                sendPush: false,
+                createdAt: (seasonData['startDate'] as Timestamp).toDate(),
+              ));
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('シーズンタスクマージエラー: $e');
+      }
+      // --- マージ処理終了 ---
+
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });

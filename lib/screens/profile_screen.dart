@@ -113,6 +113,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final Map<String, Season> newSeasonsMap = {};
         final Map<String, int> newSeasonPostsCountMap = {};
         if (seasonIds.isNotEmpty) {
+          // デバッグ・開発用のIDを常にクエリ対象に追加する
+          if (!seasonIds.contains('debug_season')) seasonIds.add('debug_season');
+          if (!seasonIds.contains('debug_season_test')) seasonIds.add('debug_season_test');
+
           final seasonsSnap = await FirebaseFirestore.instance.collection('seasons').where(FieldPath.documentId, whereIn: seasonIds).get();
           for (var doc in seasonsSnap.docs) {
             final season = Season.fromFirestore(doc);
@@ -120,16 +124,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
             
             // シーズンタスクごとの投稿数をカウント（該当タスク名の全投稿を取得して期間内を集計）
             try {
+              // taskNameでの完全一致フィルタを外し、userIdのみで全取得する（メモリ上で表記ゆれを考慮したフィルタを行うため）
               final postsSnap = await FirebaseFirestore.instance
                   .collection('posts')
                   .where('userId', isEqualTo: uid)
-                  .where('taskName', isEqualTo: season.taskName)
                   .get();
               
               int count = 0;
               final Map<String, int> dailyPostCounts = {};
+              final targetName = season.taskName.replaceAll(RegExp(r'\s+'), '');
+
               for (var postDoc in postsSnap.docs) {
-                final createdAt = (postDoc.data()['createdAt'] as Timestamp?)?.toDate();
+                final postData = postDoc.data();
+                final postTaskName = (postData['taskName'] as String? ?? '').replaceAll(RegExp(r'\s+'), '');
+                
+                // 表記ゆれや「（または記録する）」の有無に関わらず、部分一致で同一タスクと判定する
+                final isMatch = postTaskName.contains(targetName) || 
+                                targetName.contains(postTaskName) || 
+                                (postTaskName.contains('感謝を伝える') && targetName.contains('感謝を伝える'));
+                
+                if (!isMatch) continue;
+
+                final createdAt = (postData['createdAt'] as Timestamp?)?.toDate();
                 if (createdAt != null &&
                     createdAt.isAfter(season.startDate) &&
                     createdAt.isBefore(season.endDate)) {
@@ -1660,13 +1676,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: InkWell(
             onTap: () {
               if (task.isSeason) {
-                final season = _seasonsMap[task.seasonId] ?? Season(
-                  id: task.seasonId ?? 'debug_season',
-                  taskName: task.title,
-                  startDate: DateTime.now(),
-                  endDate: DateTime.now().add(const Duration(days: 30)),
-                  hintTitle: 'シーズンタスクのヒント💡',
-                  hintBody: 'このシーズンタスクを習慣にするためのアドバイスです。',
+                final season = _seasonsMap[task.seasonId] ?? _seasonsMap['debug_season'] ?? _seasonsMap['debug_season_test'] ?? Season.createFallback(
+                  task.title,
+                  seasonId: task.seasonId,
                 );
                 
                 SeasonHintModal.show(context, task, season, (newTrigger, newReward) async {

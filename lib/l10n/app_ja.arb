@@ -425,6 +425,8 @@
   "blogPostEditorSeasonHintTitle": "ヒントタイトル",
   "blogPostEditorSeasonHintBody": "ヒント本文",
   "blogPostEditorSeasonHintBodyHint": "ユーザーが写真を撮る際のヒントを入力してください",
+  "blogPostEditorSeasonRequiredCount": "目標アクション数",
+  "blogPostEditorSeasonRequiredCountHint": "例: 1",
   "blogPostEditorSeasonBadgeUrl": "バッジアイコン",
   "blogPostEditorSeasonDone": "完了",
   "blogPostEditorPlaceholder": "テキスト",
@@ -542,7 +544,11 @@
   "notificationsFollowing": "フォロー中",
   "notificationsFollowBack": "フォローバック",
   "notificationsApprove": "承認",
-  "notificationsReject": "削除",
+  "notificationsReject": "拒否",
+  "notificationsDelete": "削除",
+  "notificationsSeasonTaskJoined": "期間限定タスクに参加しました！",
+  "notificationsSeasonTaskSkipped": "期間限定タスクをスキップしました。",
+  "notificationsFriendAccepted": "{username}さんがフレンド申請を承認しました",
   "notificationsError": "エラーが発生しました: {error}",
   "@notificationsError": {
     "placeholders": {
