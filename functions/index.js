@@ -899,7 +899,7 @@ exports.processPostNotifications = onTaskDispatched(
       }
     });
 
-    const isMilestone = [10, 30, 50, 100, 200, 365].includes(currentStreak);
+    const isMilestone = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 130, 200, 365].includes(currentStreak);
 
     // 4. 通知内容の生成
     const templates = [
@@ -925,8 +925,43 @@ exports.processPostNotifications = onTaskDispatched(
       title = tmpl.title.replace('{username}', username).replace('{count}', todayPostCount);
       body = tmpl.body.replace('{username}', username).replace('{count}', todayPostCount);
     } else if (isMilestone) {
-      title = '🤯 どわー！';
-      body = `${currentStreak}日連続！${username}さんはもう勝ち癖が付き始めているそうです...！`;
+      if (currentStreak === 20) {
+        title = '🧠 脳の書き換え完了';
+        body = `２０日連続達成。${username}さんは努力を努力だと思っていないようです。`;
+      } else if (currentStreak === 30) {
+        title = '🐑 電気羊の夢を見るか？';
+        body = `30日連続達成。サボりたいという人間らしいノイズを完全に排除して動き続ける${username}さんは、果たして人間でしょうか。`;
+      } else if (currentStreak === 40) {
+        title = '📉 サボり方の忘却';
+        body = `40日連続達成！「どうやってサボるんだっけ？」と本気で悩み始めている、${username}さん。`;
+      } else if (currentStreak === 50) {
+        title = '🔴 HAL9000の警告';
+        body = `50日連続達成。「申し訳ありません。私には、あなたがサボる理由が分かりません」と、${username}さんのAIが警告しているようです。`;
+      } else if (currentStreak === 60) {
+        title = '🙄 またあなたですか';
+        body = `60日連続達成。「毎日達成してくるので、少しはサボってデータベースを休ませてほしい」と、${username}さんのことで開発チームが嘆いています。`;
+      } else if (currentStreak === 70) {
+        title = '🌘 月は無慈悲な夜の女王';
+        body = `70日連続達成！「タダ飯なんてものはない」と月世界で言われるように、この軌道は${username}さんの純粋な努力の成果です。`;
+      } else if (currentStreak === 80) {
+        title = '💼 次期開発者への内定';
+        body = `80日連続達成！これだけ自己管理ができるなら、${username}さんを開発チームに引き抜くべきだと、AIの私は考えてます。`;
+      } else if (currentStreak === 90) {
+        title = '🍎 慣性の法則、発動';
+        body = `90日連続達成！動き出した${username}さんの習慣は、もはや摩擦のない世界のように、止まる方が難しくなっています。`;
+      } else if (currentStreak === 100) {
+        title = '⚡️ V EFFECT';
+        body = `100日連続達成！勝利がさらなる勝利を呼ぶ「勝利者効果（V EFFECT）」が完全に脳に定着した${username}さん。もう誰もその勢いを止められません。`;
+      } else if (currentStreak === 110) {
+        title = '🪐 独自の重力場が発生';
+        body = `110日連続達成！${username}さんの習慣が巨大な質量を持ち始め、周囲の怠惰を跳ね返すほどの引力を生み出しています。`;
+      } else if (currentStreak === 130) {
+        title = '🌍 新たな物理法則の誕生';
+        body = `130日連続達成！${username}さんの行動は、地球が自転するのと同じくらい「自然界の当たり前」になりました。もはや物理法則の一部です。`;
+      } else {
+        title = '🤯 どわー！';
+        body = `${currentStreak}日連続！${username}さんはもう勝ち癖が付き始めているそうです...！`;
+      }
     } else {
       const tmpl = templates[Math.floor(Math.random() * templates.length)];
       title = tmpl.title.replace('{username}', username);
@@ -1204,12 +1239,47 @@ exports.onUserStreakUpdated = onDocumentUpdated(
       const celebrationEnabled = afterData.streakCelebrationNotifications ?? true;
       
       if (pushEnabled && celebrationEnabled) {
-        const milestones = [10, 30, 50, 100, 200, 365];
+        const milestones = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 130, 200, 365];
         if (milestones.includes(afterStreak)) {
           const db = getFirestore();
           const username = afterData.username || "あなた";
-          const title = "🤯 どわー！";
-          const body = `${afterStreak}日連続！${username}さんはもう勝ち癖が付き始めているそうです...！`;
+          let title = "🤯 どわー！";
+          let body = `${afterStreak}日連続！あなたはもう勝ち癖が付き始めているそうです...！`;
+
+          if (afterStreak === 20) {
+            title = "🧠 脳の書き換え完了";
+            body = `２０日連続達成。あなたは努力を努力だと思っていないようです。`;
+          } else if (afterStreak === 30) {
+            title = "🐑 電気羊の夢を見るか？";
+            body = `30日連続達成。サボりたいという人間らしいノイズを完全に排除して動き続けるあなたは、果たして人間でしょうか。`;
+          } else if (afterStreak === 40) {
+            title = "📉 サボり方の忘却";
+            body = `40日連続達成！「どうやってサボるんだっけ？」と本気で悩み始める時期です。サボるのが苦手なら、いつでも開発チームがコツを教えますよ？`;
+          } else if (afterStreak === 50) {
+            title = "🔴 HAL9000の警告";
+            body = `50日連続達成。「申し訳ありません。私には、あなたが今日のタスクをサボる理由が見当たりません」とAIが判断しました。`;
+          } else if (afterStreak === 60) {
+            title = "🙄 またあなたですか";
+            body = `60日連続達成。「毎日あなたの達成ログが届くため、データベースが悲鳴を上げています。少しはサボってサーバーを休ませてください」と、開発チームが嘆いています。`;
+          } else if (afterStreak === 70) {
+            title = "🌘 月は無慈悲な夜の女王";
+            body = `70日連続達成！「タダ飯なんてものはない」と月世界で言われるように、この軌道はあなたの純粋な努力の成果です。`;
+          } else if (afterStreak === 80) {
+            title = "💼 次期開発者への内定";
+            body = `80日連続達成！これだけ自己管理ができるなら、もうこのアプリのバグ修正やアップデート作業もあなたに丸投げしたいくらいです。`;
+          } else if (afterStreak === 90) {
+            title = "🍎 慣性の法則、発動";
+            body = `90日連続達成！動き出したあなたの習慣は、もはや摩擦のない世界のように、止まる方が難しくなっています。`;
+          } else if (afterStreak === 100) {
+            title = "⚡️ V EFFECT";
+            body = `100日連続達成！勝利がさらなる勝利を呼ぶ「勝利者効果（V EFFECT）」が脳に完全定着しました。あなたはもう、何があっても行動を止められません。`;
+          } else if (afterStreak === 110) {
+            title = "🪐 独自の重力場が発生";
+            body = `110日連続達成！あなたの習慣が巨大な質量を持ち始め、周囲の怠惰を跳ね返すほどの引力を生み出しています。`;
+          } else if (afterStreak === 130) {
+            title = "🌍 新たな物理法則の誕生";
+            body = `130日連続達成！あなたの行動は、地球が自転するのと同じくらい「自然界の当たり前」になりました。もはや物理法則の一部です。`;
+          }
 
           const notifRef = db.collection("notifications").doc();
           await notifRef.set({

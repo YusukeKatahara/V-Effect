@@ -7,15 +7,23 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-06-02
+- **Last Updated:** 2026-06-11
 - **Activeエージェント:** Antigravity
-- **Current Task:** App version update to ver1.3.2
-- **Action:** Updated version to 1.3.2+11 in pubspec.yaml and synchronized dependencies/iOS configuration files, and optimized widget UI.
+- **Current Task:** Implement Streak Milestone Notifications (20, 30, 50, 70, 90, 110, 130)
+- **Action:** Added 20, 70, 90, 110, 130-day milestones and customized notification contents (SF trilogy and Physics trilogy) in Cloud Functions (functions/index.js).
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-06-11 (Antigravity)
+- **Streak Milestone Notifications (20日・30日・50日・70日・90日・110日・130日連続達成時の特別通知実装):**
+    - `functions/index.js` の `onUserStreakUpdated` および `processPostNotifications` 内のマイルストーン判定リストに `20`, `70`, `90`, `110`, `130` を追加しました（`30`, `50` は元から存在）。
+    - 20日「脳の書き換え」、および30日・50日・70日連続達成時の「名作SFオマージュ三部作」（電気羊 / HAL9000の警告 / 月は無慈悲な夜の女王）の通知を設定。
+    - 90日・110日・130日達成時の「物理法則三部作」（慣性の法則 / 独自の重力場 / 物理法則の誕生）の通知を設定。
+    - 20日・50日の通知の接続記号を冷静な「。」に、それ以外の熱量の高いものは「！」に調整し、以前のタイポを修正。
+    - `node --check` コマンドにより構文上の問題がないことを検証しました。
 
 ### 2026-06-02 (Antigravity)
 - **App Version Update to ver1.3.2 (アプリバージョンのver1.3.2への更新):**
