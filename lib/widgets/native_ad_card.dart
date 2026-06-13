@@ -3,7 +3,6 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
-import '../utils/ad_helper.dart';
 
 class NativeAdCard extends StatelessWidget {
   final double dimAlpha;
@@ -64,7 +63,7 @@ class NativeAdCard extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Center Area: Thank You Message & Ad Content
             Center(
               child: Column(
@@ -87,8 +86,13 @@ class NativeAdCard extends StatelessWidget {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(24),
+                          // medium テンプレートの自然な高さ(本文によって変動)を
+                          // クリップしないよう、固定 360 から余裕のある 440 に拡大。
+                          // 高さが足りないと NativeAdView の枠外にアセットがはみ出し、
+                          // バリデーターが "Advertiser assets outside native ad view"
+                          // を表示する。
                           child: SizedBox(
-                            height: 360,
+                            height: 440,
                             child: AdWidget(ad: nativeAd!),
                           ),
                         ),
@@ -107,7 +111,7 @@ class NativeAdCard extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Top Left Badge
             Positioned(
               top: 24,
@@ -130,56 +134,13 @@ class NativeAdCard extends StatelessWidget {
                 ),
               ),
             ),
-            
-            // Bottom Left: Fake Profile (Matches standard post layout)
-            Positioned(
-              bottom: 32,
-              left: 20,
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.grey20,
-                      border: Border.all(
-                        color: AppColors.accentGold.withValues(alpha: 0.5), 
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'AD',
-                        style: GoogleFonts.outfit(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.accentGold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.adVeffectLabel,
-                        style: GoogleFonts.outfit(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            
 
-            
+            // NOTE: 広告主名・アイコン・"広告" 表記といったアセットは、すべて
+            // ネイティブ広告テンプレート (AdWidget) が NativeAdView の *内部* に
+            // 描画する。広告主アセットをビュー外に偽装描画すると AdMob の
+            // ネイティブ広告ポリシー違反 (advertiser assets outside native ad view)
+            // になるため、従来あった偽の広告主プロフィールは撤去している。
+
             // Dim Overlay for un-focused cards
             if (dimAlpha > 0)
               Positioned.fill(
