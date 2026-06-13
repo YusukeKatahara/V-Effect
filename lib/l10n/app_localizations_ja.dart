@@ -206,7 +206,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get resetPasswordLinkExpired => 'リンクの有効期限が切れています';
 
   @override
-  String get resetPasswordLinkInvalidPaste => 'リンクが正しくありません。メールのリンクをそのまま貼り付けてください';
+  String get resetPasswordLinkInvalidPaste =>
+      'リンクが正しくありません。メールのリンクをそのまま貼り付けてください';
 
   @override
   String get resetPasswordPasteLink => 'リンクを貼り付けてください';
@@ -224,7 +225,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get resetPasswordPasteLinkTitle => 'リンクを貼り付ける';
 
   @override
-  String get resetPasswordPasteLinkDesc => 'パスワードリセットメールに記載されているリンクをコピーして貼り付けてください';
+  String get resetPasswordPasteLinkDesc =>
+      'パスワードリセットメールに記載されているリンクをコピーして貼り付けてください';
 
   @override
   String get resetPasswordPasteLinkLabel => 'パスワードリセットリンク';
@@ -482,13 +484,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get notificationSettingsStreakCelebration => 'ストリーク達成祝いを許可';
 
   @override
-  String get notificationSettingsStreakCelebrationDesc => '30日や100日などの大きな節目のお知らせ';
+  String get notificationSettingsStreakCelebrationDesc =>
+      '30日や100日などの大きな節目のお知らせ';
 
   @override
   String get notificationSettingsStreakWarning => 'ストリーク危機通知を許可';
 
   @override
-  String get notificationSettingsStreakWarningDesc => '夜になってもタスクが完了していない時のリマインダー';
+  String get notificationSettingsStreakWarningDesc =>
+      '夜になってもタスクが完了していない時のリマインダー';
 
   @override
   String get notificationSettingsDebugTitle => '開発者向けデバッグ機能';
@@ -552,7 +556,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get editProfileConfirmTitle => '確認';
 
   @override
-  String get editProfileConfirmMessage => 'この変更を保存すると、ユーザーIDは今後90日間変更できなくなります。\n\n本当によろしいですか？';
+  String get editProfileConfirmMessage =>
+      'この変更を保存すると、ユーザーIDは今後90日間変更できなくなります。\n\n本当によろしいですか？';
 
   @override
   String get editProfileCancel => 'キャンセル';
@@ -761,7 +766,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get securityChangeEmailDialogTitle => 'メールアドレスを変更';
 
   @override
-  String get securityChangeEmailDialogDesc => '新しいメールアドレスを入力してください。確認メールを送信します。';
+  String get securityChangeEmailDialogDesc =>
+      '新しいメールアドレスを入力してください。確認メールを送信します。';
 
   @override
   String get securityNewEmailLabel => '新しいメールアドレス';
@@ -770,13 +776,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get securityChangeEmailSend => '確認メールを送信';
 
   @override
-  String get securityEmailVerificationSent => '新しいアドレスに確認メールを送信しました。リンクをタップして変更を完了してください。';
+  String get securityEmailVerificationSent =>
+      '新しいアドレスに確認メールを送信しました。リンクをタップして変更を完了してください。';
 
   @override
   String get securityErrorGeneric => 'エラーが発生しました。';
 
   @override
-  String get securityErrorRecentLogin => 'セキュリティのため、一度ログアウトして再度ログインしてからやり直してください。';
+  String get securityErrorRecentLogin =>
+      'セキュリティのため、一度ログアウトして再度ログインしてからやり直してください。';
 
   @override
   String get securityErrorInvalidEmail => '無効なメールアドレスです。';
@@ -800,7 +808,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get securityDeleteConfirmTitle => 'アカウントを削除しますか？';
 
   @override
-  String get securityDeleteConfirmDesc => 'プロフィール・投稿などすべてのデータが完全に削除されます。この操作は取り消せません。';
+  String get securityDeleteConfirmDesc =>
+      'プロフィール・投稿などすべてのデータが完全に削除されます。この操作は取り消せません。';
 
   @override
   String get securityDeleteConfirmCancel => 'キャンセル';
@@ -1302,7 +1311,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get heroTasksDeletePostButton => '削除';
 
   @override
-  String get heroTasksWelcomeMessage => 'V EFFECTへようこそ。\nここはあなたにとって最適な環境です。\n\nまずはカメラアイコンをタップして、\n最初のVを証明しましょう。';
+  String get heroTasksWelcomeMessage =>
+      'V EFFECTへようこそ。\nここはあなたにとって最適な環境です。\n\nまずはカメラアイコンをタップして、\n最初のVを証明しましょう。';
 
   @override
   String get notificationsTitle => '通知';
@@ -1375,7 +1385,8 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get onboardingFirstQuestQuestionText => 'あなたが理想とする姿はどんなだろう？\nあなたの習慣化したい習慣は何だろう？';
+  String get onboardingFirstQuestQuestionText =>
+      'あなたが理想とする姿はどんなだろう？\nあなたの習慣化したい習慣は何だろう？';
 
   @override
   String get onboardingFirstQuestTriggerLabel => 'トリガー（任意）';
@@ -1387,7 +1398,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingFirstQuestRewardLabel => 'ご褒美（任意）';
 
   @override
-  String get onboardingFirstQuestPrivacyNote => '※ トリガーとご褒美は自分にのみ表示されます（他のユーザーには公開されません）';
+  String get onboardingFirstQuestPrivacyNote =>
+      '※ トリガーとご褒美は自分にのみ表示されます（他のユーザーには公開されません）';
 
   @override
   String get onboardingFirstQuestCompleteButton => '完了';
@@ -1407,13 +1419,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingFirstQuestHabitStackingTitle => 'ハビット・スタッキング';
 
   @override
-  String get onboardingFirstQuestHabitStackingDesc => 'すでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。';
+  String get onboardingFirstQuestHabitStackingDesc =>
+      'すでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。';
 
   @override
   String get onboardingFirstQuestTemptationBundlingTitle => 'テンプテーション・バンドリング';
 
   @override
-  String get onboardingFirstQuestTemptationBundlingDesc => 'やるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。';
+  String get onboardingFirstQuestTemptationBundlingDesc =>
+      'やるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。';
 
   @override
   String get onboardingProfileWelcome => 'V EFFECT へようこそ';
@@ -1463,7 +1477,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get notificationPromptTitle => '「仲間の努力」を習慣の味方にしますか？';
 
   @override
-  String get notificationPromptDesc => 'V EFFECTで最も強い習慣化の力は「仲間の存在」です。\n\n通知をONにすることで、仲間の達成がリアルタイムにあなたの刺激になり、あなたの努力も仲間に届きます。\nお互いの存在を背中に感じながら、強固な習慣を築きましょう。';
+  String get notificationPromptDesc =>
+      'V EFFECTで最も強い習慣化の力は「仲間の存在」です。\n\n通知をONにすることで、仲間の達成がリアルタイムにあなたの刺激になり、あなたの努力も仲間に届きます。\nお互いの存在を背中に感じながら、強固な習慣を築きましょう。';
 
   @override
   String get notificationPromptNext => '次へ';
@@ -1475,7 +1490,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get friendInviteTitle => 'V (勝利) を仲間と証明しよう！';
 
   @override
-  String get friendInviteDesc => '最初のV Questの設定が完了しました！\n努力と勝利を共有するフレンドを誘いましょう！';
+  String get friendInviteDesc =>
+      '最初のV Questの設定が完了しました！\n努力と勝利を共有するフレンドを誘いましょう！';
 
   @override
   String get friendInviteShareButton => '友達を招待する (LINE等でシェア)';
@@ -1619,7 +1635,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeFriendPostsTitle => '仲間の努力が届いています';
 
   @override
-  String get homeStreakResetMessage => 'ストリークが止まったとしても、\nあなたの歩みさえ止まらなければ\nV EFFECTは何度でも引き起こせる。';
+  String get homeStreakResetMessage =>
+      'ストリークが止まったとしても、\nあなたの歩みさえ止まらなければ\nV EFFECTは何度でも引き起こせる。';
 
   @override
   String get vEffectConceptLine1 => '小さな勝利の積み重ねが理想のあなたに近づける。';
@@ -1830,10 +1847,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get categoryOther => 'その他';
 
   @override
-  String get habitStackingHint => '• ハビット・スタッキング\nすでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。';
+  String get habitStackingHint =>
+      '• ハビット・スタッキング\nすでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。';
 
   @override
-  String get temptationBundlingHint => '• テンプテーション・バンドリング\nやるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。';
+  String get temptationBundlingHint =>
+      '• テンプテーション・バンドリング\nやるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。';
 
   @override
   String get profileNoTaskPlaceholder => '（タスク）';
@@ -1955,7 +1974,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get vPracticeDialogTitle => '全ユーザーへバッジ配布';
 
   @override
-  String get vPracticeDialogDesc => '現在登録されている全てのユーザーに、指定したバッジを強制的に装備させます。通知は飛びません。';
+  String get vPracticeDialogDesc =>
+      '現在登録されている全てのユーザーに、指定したバッジを強制的に装備させます。通知は飛びません。';
 
   @override
   String get vPracticeBadgeIdHint => 'バッジID (例: tester)';
