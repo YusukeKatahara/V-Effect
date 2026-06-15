@@ -67,7 +67,6 @@ class UserService {
         'gender': gender,
         'taskTime': taskTime,
         'occupation': occupation,
-        'showTimestamp': true,
       },
       SetOptions(merge: true),
     );
@@ -172,7 +171,6 @@ class UserService {
     String? taskTime,
     String? photoUrl,
     List<AppTask>? tasks,
-    bool? showTimestamp,
     bool updateEditDate = false,
     String? equippedBadgeUrl,
     String? equippedBadgeAnimation,
@@ -221,7 +219,6 @@ class UserService {
     if (birthDate != null) privateData['birthDate'] = birthDate;
     if (gender != null) privateData['gender'] = gender;
     if (taskTime != null) privateData['taskTime'] = taskTime;
-    if (showTimestamp != null) privateData['showTimestamp'] = showTimestamp;
 
     if (privateData.isNotEmpty) {
       batch.set(

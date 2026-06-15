@@ -631,20 +631,28 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
   // ── フォームパーツ ────────────────────────────────────
 
   Future<void> _pickBadgeImage() async {
+    // 非同期処理を跨いで BuildContext（画面情報）を使用する警告（use_build_context_synchronously）を回避するため、
+    // 最初の非同期処理（画像選択など）が始まる前に多言語化テキストを取得（保存）しておきます。
+    final l10n = AppLocalizations.of(context)!;
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
     if (picked != null) {
+      if (!mounted) return;
       setState(() => _isSaving = true);
       try {
         final url = await DevBlogService.instance.uploadBadgeImage(File(picked.path));
+        if (!mounted) return;
         setState(() {
           _seasonBadgeImageUrlController.text = url;
         });
-        _showError(AppLocalizations.of(context)!.blogPostEditorBadgeUploadSuccess);
+        _showError(l10n.blogPostEditorBadgeUploadSuccess);
       } catch (e) {
-        _showError(AppLocalizations.of(context)!.blogPostEditorBadgeUploadFailed);
+        if (!mounted) return;
+        _showError(l10n.blogPostEditorBadgeUploadFailed);
       } finally {
-        setState(() => _isSaving = false);
+        if (mounted) {
+          setState(() => _isSaving = false);
+        }
       }
     }
   }

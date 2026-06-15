@@ -7,15 +7,50 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-06-11
-- **Activeエージェント:** Antigravity
-- **Current Task:** Implement Streak Milestone Notifications (20, 30, 50, 70, 90, 110, 130)
-- **Action:** Added 20, 70, 90, 110, 130-day milestones and customized notification contents (SF trilogy and Physics trilogy) in Cloud Functions (functions/index.js).
+- **Last Updated:** 2026-06-12
+- **Activeエージェント:** Antigravity (Idle)
+- **Current Task:** Implement auto-shrinking task name, fix caption line-breaking, and adjust top-left UI margins (Completed)
+- **Action:** Applied _AutoSizeText, relocated reaction stack, and reduced top-left UI padding to 24px.
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-06-12 (Antigravity)
+- **Adjust Top-Left UI Padding on HeroTasksScreen (カード左上UIの位置調整):**
+    - [hero_tasks_screen.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/hero_tasks_screen.dart) 内のカード左上のUIブロック（タスク名、起床時間、音楽情報など）の余白を `EdgeInsets.fromLTRB(40, 40, 40, 120)` から **`EdgeInsets.fromLTRB(24, 24, 24, 120)`** に縮小しました。
+    - カードの角丸（24px）の内側に美しく収まるアライメント（位置合わせ）になり、しっかりと左上に寄ったレイアウトに改善しました。
+- **Fix Caption Disappearance and Line-Breaking Bug on HeroTasksScreen (キャプション消失と不自然な改行・折り返しバグの修正):**
+    - [hero_tasks_screen.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/hero_tasks_screen.dart) にて、直前のUI編集で消失してしまった「自分の一言（キャプション）」のUIブロックを復元しました。
+    - 右側に位置する「リアクションアバター群」を横並びのRowから外し、V FIREボタンの真上に独立して配置（`Positioned(bottom: 124)`）することで、キャプションの横幅を最大約294pxまで劇的に拡大し、不自然な改行バグを完全に解決しました。
+- **Redesign Caption UI to IG Reels Style (キャプションUIをIGリール風デザインに変更):**
+    - [hero_tasks_screen.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/hero_tasks_screen.dart) および [home_screen.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/home_screen.dart) の両方において、キャプションの表示スタイルを従来の「Zenly風の吹き出し（グレー背景）」から「IGリール風」のスタイルへ一新しました。
+    - アイコンとユーザー名が横並びになり、その直下に背景なしの透過テキスト（自然なドロップシャドウ付き）が表示されるようになり、標準フォント（SF Pro等）が適用されるため、より洗練されたIGライクな見た目と統一感を実現しました。
+    - [hero_tasks_screen.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/hero_tasks_screen.dart) 内のタスクカード上部タスク名のフォントサイズを自動調整する自作カスタムウィジェット `_AutoSizeText` を導入しました。
+    - 標準の `TextPainter` を用いて描画幅を測定し、1行に収まるまでフォントサイズを最大 `22` から自動で縮小します。
+    - 極端に長いタスク名（目安30文字以上）で文字が潰れてしまわないよう、最小フォントサイズの下限を `14` に設定し、それを下回る場合のみ最大2行の折り返し表示を許可します。
+    - トリガーやご褒美がない場合のタスク名表示および美麗ステップUI内のタスク名表示の双方に適用しました。
+    - `flutter analyze` で静的解析エラー・警告（未使用パラメータ含む）がないことを確認しました。
+- **Mutual Follow Social Proof on UserProfileScreen (他ユーザーのプロフィール画面での共通フォロー表示):**
+    - [app_ja.arb](file:///Users/rennlikeu/development/V-Effect/lib/l10n/app_ja.arb) と [app_en.arb](file:///Users/rennlikeu/development/V-Effect/lib/l10n/app_en.arb) に、共通のフォロー関係を表す翻訳キー（`mutualFollowedBy`, `mutualFollowedByAndOthers`）を追加しました。
+    - `flutter gen-l10n` を実行して localization クラスを更新しました。
+    - [user_profile_screen.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/user_profile_screen.dart) にて、自分と対象ユーザーの共通のフォロー（自分の `following` と相手の `followers` の積集合（共通する要素の集まりのこと））を計算するロジックを実装しました。
+    - 最大3名の共通フォローユーザー情報を `FriendService.instance.getUsersByUids()` で一括ロードするようにしました。
+    - フォローボタンの下部に、アバター画像が重なって並ぶ `Stack`（ウィジェットを重ねて配置するレイアウト）と、動的に言語に応じたテキスト（「○○、□□、他N人がフォローしています」）を生成するUIを追加しました。
+    - `flutter analyze` で静的解析エラーがないことを確認しました。
+- **Post Elapsed Time Display on HomeScreen (ホーム画面の投稿経過時間表示):**
+    - [app_ja.arb](file:///Users/rennlikeu/development/V-Effect/lib/l10n/app_ja.arb) と [app_en.arb](file:///Users/rennlikeu/development/V-Effect/lib/l10n/app_en.arb) に、経過時間を表す翻訳キー（`timeNow`, `timeMinutesAgo`, `timeHoursAgo`, `timeDaysAgo`）を追加しました。
+    - `flutter gen-l10n` で localization クラスを同期しました。
+    - [home_screen.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/home_screen.dart) 内に、投稿日時（`createdAt`）と現在時刻の差分から経過時間テキストを生成する `_formatPostTime` メソッドを実装しました。
+    - タスク名が表示される吹き出しバッジの右隣に、少しスペースを空けて経過時間をプレーンテキストで表示するようにしました（例: `[Quest] 3時間`）。
+    - 背景画像（写真）と同化して文字が見えなくならないよう、テキストに薄いドロップシャドウ（`Shadow`（影））を適用して視認性を高めました。
+- **Own Caption Display on HeroTasksScreen (自分の投稿への一言表示をフレンドカードと完全統一・改行不具合解消):**
+    - [hero_tasks_screen.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/hero_tasks_screen.dart) 内の一言（キャプション）表示のUIを、ホーム画面のフレンド投稿カードと**完全に同一のデザインおよび横幅の自動調整（RowとExpanded）構造**に統合・統一しました。
+    - 既存の個別 `Positioned`（V FIREボタン、アバター、キャプション）をすべて削除し、単一の `Positioned(bottom: 32, left: 20, right: 20)` 内の `Row` と `Expanded` に統合しました。これにより、キャプション吹き出しの最大横幅が右側のボタン幅を避けて自動計算されるようになり、不要な極端な改行（折り返し）が発生するバグを解決しました。
+    - 吹き出し本体（グレー背景、最大幅240px、明朝体の `GoogleFonts.notoSerifJp`）、ちっちゃなドット、自分自身のアバター画像、ユーザー名、装備中のバッジ（`VBadgeWidget`）を縦並びで表示する同一デザインを完全に再現しました。
+    - 自分のアバター情報（画像URL、名前、バッジ画像URL、バッジアニメーション）をロードするため、`_loadData` 内でFirestoreの `users/{uid}` ドキュメントから自分自身の最新プロフィール情報を取得して状態変数に格納するロジックを実装しました。
+    - 以前 `Column`（縦並び配置のレイアウト）の中に残っていた古いキャプション表示ウィジェットを、完了時・未完了時の両ブロックから完全にクリーンアップしました。
 
 ### 2026-06-11 (Antigravity)
 - **Streak Milestone Notifications (20日・30日・50日・70日・90日・110日・130日連続達成時の特別通知実装):**

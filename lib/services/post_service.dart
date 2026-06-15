@@ -299,8 +299,6 @@ class PostService {
     final expiresAt = DateTime(now.year, now.month, now.day + 1); // 翌日0:00
 
     final userData = userSnap.data() as Map<String, dynamic>? ?? {};
-    final userPrivateData = userPrivateSnap.data() as Map<String, dynamic>? ?? {};
-    final showTimestamp = userPrivateData['showTimestamp'] ?? true;
 
     final newPost = Post(
       id: postId,
@@ -311,7 +309,6 @@ class PostService {
       createdAt: now,
       expiresAt: expiresAt,
       reactionCount: 0,
-      showTimestamp: showTimestamp,
       emojiReactedUserIds: const [],
       userReactions: const {},
       bgmUrl: bgmUrl,

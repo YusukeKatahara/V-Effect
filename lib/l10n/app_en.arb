@@ -253,8 +253,6 @@
   "editProfilePickerDone": "Done",
   "editProfileBirthDatePickerTitle": "Date of Birth",
   "editProfileGenderPickerTitle": "Gender",
-  "editProfileTimestampLabel": "Photo Timestamp",
-  "editProfileTimestampDesc": "Show the time on your post photos",
   "editProfileBadgeLabel": "Badge",
   "editProfileBadgeEquipped": "Equipped",
   "editProfileBadgeNone": "None",
@@ -827,5 +825,49 @@
   "vPracticeDialogDesc": "Forcibly equip the specified badge on all currently registered users. No notifications will be sent.",
   "vPracticeBadgeIdHint": "Badge ID (e.g. tester)",
   "vPracticeCancel": "Cancel",
-  "vPracticeDistribute": "Distribute"
+  "vPracticeDistribute": "Distribute",
+  "mutualFollowedBy": "Followed by {userNames}",
+  "@mutualFollowedBy": {
+    "placeholders": {
+      "userNames": {
+        "type": "String"
+      }
+    }
+  },
+  "mutualFollowedByAndOthers": "Followed by {userNames} and {count} others",
+  "@mutualFollowedByAndOthers": {
+    "placeholders": {
+      "userNames": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeNow": "now",
+  "timeMinutesAgo": "{count}m",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "{count}h",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeDaysAgo": "{count}d",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

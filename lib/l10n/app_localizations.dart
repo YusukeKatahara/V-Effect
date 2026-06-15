@@ -1202,18 +1202,6 @@ abstract class AppLocalizations {
   /// **'性別'**
   String get editProfileGenderPickerTitle;
 
-  /// No description provided for @editProfileTimestampLabel.
-  ///
-  /// In ja, this message translates to:
-  /// **'写真のタイムスタンプ'**
-  String get editProfileTimestampLabel;
-
-  /// No description provided for @editProfileTimestampDesc.
-  ///
-  /// In ja, this message translates to:
-  /// **'投稿写真に時刻を表示します'**
-  String get editProfileTimestampDesc;
-
   /// No description provided for @editProfileBadgeLabel.
   ///
   /// In ja, this message translates to:
@@ -3853,6 +3841,42 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'配布する'**
   String get vPracticeDistribute;
+
+  /// No description provided for @mutualFollowedBy.
+  ///
+  /// In ja, this message translates to:
+  /// **'{userNames}がフォローしています'**
+  String mutualFollowedBy(String userNames);
+
+  /// No description provided for @mutualFollowedByAndOthers.
+  ///
+  /// In ja, this message translates to:
+  /// **'{userNames}、他{count}人がフォローしています'**
+  String mutualFollowedByAndOthers(String userNames, int count);
+
+  /// No description provided for @timeNow.
+  ///
+  /// In ja, this message translates to:
+  /// **'今'**
+  String get timeNow;
+
+  /// No description provided for @timeMinutesAgo.
+  ///
+  /// In ja, this message translates to:
+  /// **'{count}分'**
+  String timeMinutesAgo(int count);
+
+  /// No description provided for @timeHoursAgo.
+  ///
+  /// In ja, this message translates to:
+  /// **'{count}時間'**
+  String timeHoursAgo(int count);
+
+  /// No description provided for @timeDaysAgo.
+  ///
+  /// In ja, this message translates to:
+  /// **'{count}日'**
+  String timeDaysAgo(int count);
 }
 
 class _AppLocalizationsDelegate

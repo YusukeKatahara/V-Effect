@@ -36,6 +36,9 @@ class _SharePreviewScreenState extends State<SharePreviewScreen> {
 
   Future<void> _shareImage() async {
     if (_isSharing) return;
+    // 非同期処理を跨いで BuildContext（画面情報）を使用する警告（use_build_context_synchronously）を回避するため、
+    // 最初の非同期処理（レンダリングやファイル書込）が始まる前に多言語化テキストを取得（保存）しておきます。
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isSharing = true);
 
     try {
@@ -51,7 +54,7 @@ class _SharePreviewScreenState extends State<SharePreviewScreen> {
       final file = File(path);
       await file.writeAsBytes(pngBytes);
 
-      final l10n = AppLocalizations.of(context)!;
+      if (!mounted) return;
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(path)],
@@ -62,7 +65,7 @@ class _SharePreviewScreenState extends State<SharePreviewScreen> {
       debugPrint('Share error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.sharePreviewFailed)),
+          SnackBar(content: Text(l10n.sharePreviewFailed)),
         );
       }
     } finally {

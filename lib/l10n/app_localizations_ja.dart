@@ -592,12 +592,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get editProfileGenderPickerTitle => '性別';
 
   @override
-  String get editProfileTimestampLabel => '写真のタイムスタンプ';
-
-  @override
-  String get editProfileTimestampDesc => '投稿写真に時刻を表示します';
-
-  @override
   String get editProfileBadgeLabel => 'バッジ';
 
   @override
@@ -1985,4 +1979,32 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get vPracticeDistribute => '配布する';
+
+  @override
+  String mutualFollowedBy(String userNames) {
+    return '$userNamesがフォローしています';
+  }
+
+  @override
+  String mutualFollowedByAndOthers(String userNames, int count) {
+    return '$userNames、他$count人がフォローしています';
+  }
+
+  @override
+  String get timeNow => '今';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return '$count分';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return '$count時間';
+  }
+
+  @override
+  String timeDaysAgo(int count) {
+    return '$count日';
+  }
 }

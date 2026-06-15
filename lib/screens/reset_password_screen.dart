@@ -83,6 +83,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
   /// oobCode を検証
   Future<void> _verifyCode(String code) async {
     setState(() => _isLoading = true);
+    final l10n = AppLocalizations.of(context)!;
     try {
       final info = await _auth.checkActionCode(code);
       if (mounted) {
@@ -92,15 +93,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         });
       }
     } on FirebaseAuthException catch (e) {
-      String msg = AppLocalizations.of(context)!.resetPasswordLinkInvalid;
+      String msg = l10n.resetPasswordLinkInvalid;
       if (e.code == 'expired-action-code') {
-        msg = AppLocalizations.of(context)!.resetPasswordLinkExpired;
+        msg = l10n.resetPasswordLinkExpired;
       } else if (e.code == 'invalid-action-code') {
-        msg = AppLocalizations.of(context)!.resetPasswordLinkInvalidPaste;
+        msg = l10n.resetPasswordLinkInvalidPaste;
       }
       _showMessage(msg);
     } catch (e) {
-      _showMessage(AppLocalizations.of(context)!.errorGenericRetry);
+      _showMessage(l10n.errorGenericRetry);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -120,13 +121,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
   Future<void> _resetPassword() async {
     final password = _passwordCtrl.text;
     final confirm = _confirmCtrl.text;
+    final l10n = AppLocalizations.of(context)!;
 
     if (password.length < 6) {
-      _showMessage(AppLocalizations.of(context)!.registerWeakPassword);
+      _showMessage(l10n.registerWeakPassword);
       return;
     }
     if (password != confirm) {
-      _showMessage(AppLocalizations.of(context)!.resetPasswordMismatch);
+      _showMessage(l10n.resetPasswordMismatch);
       return;
     }
 
@@ -135,15 +137,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
       await _auth.confirmPasswordReset(code: _oobCode!, newPassword: password);
       if (mounted) setState(() => _resetDone = true);
     } on FirebaseAuthException catch (e) {
-      String msg = AppLocalizations.of(context)!.resetPasswordFailed;
+      String msg = l10n.resetPasswordFailed;
       if (e.code == 'expired-action-code') {
-        msg = AppLocalizations.of(context)!.resetPasswordLinkExpired;
+        msg = l10n.resetPasswordLinkExpired;
       } else if (e.code == 'weak-password') {
-        msg = AppLocalizations.of(context)!.resetPasswordWeakPassword;
+        msg = l10n.resetPasswordWeakPassword;
       }
       _showMessage(msg);
     } catch (e) {
-      _showMessage(AppLocalizations.of(context)!.errorGenericRetry);
+      _showMessage(l10n.errorGenericRetry);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

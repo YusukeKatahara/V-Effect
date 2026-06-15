@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'dart:ui';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/material.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -28,12 +26,16 @@ import '../widgets/home/home_skeleton_body.dart';
 import '../widgets/home/friend_request_banner.dart';
 import '../widgets/home/announcement_area.dart';
 import '../widgets/home/home_empty_state.dart';
-import '../widgets/home/refresh_ring_button.dart';
 import 'weekly_review_screen.dart';
 import '../providers/home_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'main_shell.dart';
-import '../widgets/v_badge_widget.dart';
+import 'home/components/feed_card.dart';
+import 'home/components/guarded_state_layer.dart';
+import 'home/components/floating_flames_layer.dart';
+import 'home/components/dopamine_emoji_explosion_layer.dart';
+import 'home/components/bgm_indicator.dart';
+import '../widgets/frictionless_page_scroll_physics.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final ValueChanged<bool>? onLoadingChanged;
@@ -116,7 +118,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   // ── リアクションアニメーション制御用 ──
-  final GlobalKey<_FloatingFlamesLayerState> _flamesKey = GlobalKey();
+  final GlobalKey<FloatingFlamesLayerState> _flamesKey = GlobalKey();
   double _flameBottomOffset = 120.0; // NavBar高さを考慮した炎アニメーション起点
 
   // ── V-Flash 演出用 ──
@@ -126,7 +128,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _reactionMenuOpen = false;
   late final AnimationController _reactionMenuController;
   static const _reactionEmojis = ['❤️', '🔥', '👍'];
-  final GlobalKey<_DopamineEmojiExplosionLayerState> _explosionKey = GlobalKey();
+  final GlobalKey<DopamineEmojiExplosionLayerState> _explosionKey = GlobalKey();
 
   // ── Shuffle Refresh 用 ──
   late final AnimationController _shuffleController;
@@ -1113,14 +1115,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           // 4. 炎のエフェクトレイヤー (永続)
           Positioned.fill(
             child: IgnorePointer(
-              child: _FloatingFlamesLayer(key: _flamesKey),
+              child: FloatingFlamesLayer(key: _flamesKey),
             ),
           ),
 
           // 5. ドーパミン爆発レイヤー (永続)
           Positioned.fill(
             child: IgnorePointer(
-              child: _DopamineEmojiExplosionLayer(key: _explosionKey),
+              child: DopamineEmojiExplosionLayer(
+                key: _explosionKey,
+                bottomOffset: _flameBottomOffset,
+              ),
             ),
           ),
         ],
@@ -1140,8 +1145,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           AnnouncementArea(onOpenWeeklyReview: _openWeeklyReview),
           Expanded(
             child: !_postedToday
-                ? _GuardedStateLayer(
-                    feedPosts: _feedItems.whereType<Post>().toList(),
+                ? GuardedStateLayer(
+                    backgroundImageUrl: _feedItems.whereType<Post>().isNotEmpty
+                        ? _feedItems.whereType<Post>().first.imageUrl
+                        : null,
                     postedFriends: _postedFriends,
                     onRefresh: () => ref.invalidate(homeDataProvider),
                   )
@@ -1223,7 +1230,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 Positioned.fill(
                   child: PageView.builder(
                     controller: _pageController,
-                    physics: const _FrictionlessPageScrollPhysics(),
+                    physics: const FrictionlessPageScrollPhysics(),
                     onPageChanged: _onPageChanged,
                     itemBuilder: (context, index) {
                       final actualIndex = index % _feedItems.length;
@@ -1286,42 +1293,68 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.grey15.withValues(alpha: 0.95),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: AppColors.white.withValues(alpha: 0.1),
-                                            width: 0.5,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.black.withValues(alpha: 0.3),
-                                              blurRadius: 10,
-                                              offset: const Offset(0, 4),
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.grey15.withValues(alpha: 0.95),
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: AppColors.white.withValues(alpha: 0.1),
+                                                width: 0.5,
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: AppColors.black.withValues(alpha: 0.3),
+                                                  blurRadius: 10,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                        child: Text(
-                                          item.taskName,
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.white,
-                                            letterSpacing: 1,
+                                            child: Text(
+                                              item.taskName,
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.white,
+                                                letterSpacing: 1,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            _formatPostTime(item.createdAt, context),
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.white.withValues(alpha: 0.8),
+                                              shadows: [
+                                                Shadow(
+                                                  color: AppColors.black.withValues(alpha: 0.5),
+                                                  blurRadius: 6,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       if (item.bgmTitle != null) ...[
                                         const SizedBox(height: 8),
-                                        _BgmIndicator(
+                                        BgmIndicator(
                                           title: item.bgmTitle!,
                                           artist: item.bgmArtist,
                                           url: item.bgmUrl,
                                           artworkUrl: item.bgmArtworkUrl,
+                                          isMuted: SoundService.instance.isBgmMuted,
+                                          onMuteToggle: () async {
+                                            await SoundService.instance.toggleBgmMute(item.bgmUrl);
+                                            setState(() {});
+                                          },
                                         ),
                                       ],
                                     ],
@@ -1727,7 +1760,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   final badgeUrl = _userBadgeUrls[post.userId];
                   final badgeAnimation = _userBadgeAnimations[post.userId];
                   final tierColor = _getTierColor(streak);
-                  return _FeedCard(
+                  return FeedCard(
                     post: post,
                     username: username,
                     userPhotoUrl: photoUrl,
@@ -1737,7 +1770,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
                     isTop: index == _focusedIndex,
                     tierColor: tierColor,
-                    userPhotos: _userPhotos,
                     reactionCountNotifier: _flameNotifiers[post.id],
                     onOptionsTap: () => _showPostOptions(post),
                     onProfileTap: () {
@@ -1758,886 +1790,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ),
     );
   }
-}
 
-// ────────────────────────────────────────────
-// Guarded State Layer (Performance optimization)
-// ────────────────────────────────────────────
-class _GuardedStateLayer extends StatefulWidget {
-  final List<Post> feedPosts;
-  final List<Map<String, dynamic>> postedFriends;
-  final VoidCallback? onRefresh;
-
-  const _GuardedStateLayer({
-    required this.feedPosts,
-    required this.postedFriends,
-    this.onRefresh,
-  });
-
-  @override
-  State<_GuardedStateLayer> createState() => _GuardedStateLayerState();
-}
-
-class _GuardedStateLayerState extends State<_GuardedStateLayer> {
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        if (widget.feedPosts.isNotEmpty)
-          Positioned.fill(
-            child: RepaintBoundary(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                child: Opacity(
-                  opacity: 0.4,
-                  child: CachedNetworkImage(
-                    imageUrl: widget.feedPosts.first.imageUrl!,
-                    fit: BoxFit.cover,
-                    memCacheWidth: 400,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              RefreshRingButton(
-                icon: Icons.lock_outline_rounded,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context)!.homePostToSeeFriends),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                  if (widget.onRefresh != null) {
-                    widget.onRefresh!();
-                  }
-                },
-              ),
-
-              const SizedBox(height: 48),
-
-              if (widget.postedFriends.isNotEmpty) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    () {
-                      // 5人以上の場合は、4つのアバターと「+N」サークルを合わせた最大5個の要素を表示します。
-                      // これにより、画面幅がアバターで溢れてデザインが崩れるのを防ぎます。
-                      final showOverflow = widget.postedFriends.length >= 5;
-                      final displayCount = showOverflow ? 5 : widget.postedFriends.length;
-                      return SizedBox(
-                        height: 32,
-                        width: (24.0 * displayCount) + 8,
-                        child: Stack(
-                          children: [
-                            for (int i = 0; i < displayCount; i++)
-                              Positioned(
-                                left: i * 20.0,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.black,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: (showOverflow && i == 4)
-                                      ? CircleAvatar(
-                                          radius: 14,
-                                          backgroundColor: AppColors.grey30, // 溢れ表示用の少し明るいグレー（灰色）の背景
-                                          child: Text(
-                                            '+${widget.postedFriends.length - 4}',
-                                            style: GoogleFonts.outfit(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.white,
-                                            ),
-                                          ),
-                                        )
-                                      : CircleAvatar(
-                                          radius: 14,
-                                          backgroundColor: AppColors.grey20,
-                                          backgroundImage: widget.postedFriends[i]['photoUrl'] != null
-                                              ? CachedNetworkImageProvider(widget.postedFriends[i]['photoUrl'])
-                                              : null,
-                                          child: widget.postedFriends[i]['photoUrl'] == null
-                                              ? Text(
-                                                  (widget.postedFriends[i]['username'] as String).characters.isNotEmpty 
-                                                      ? (widget.postedFriends[i]['username'] as String).characters.first.toUpperCase() 
-                                                      : '?',
-                                                  style: const TextStyle(fontSize: 10),
-                                                )
-                                              : null,
-                                        ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    }(),
-                    const SizedBox(width: 8),
-                    Text(
-                      AppLocalizations.of(context)!.homeFriendPostsTitle,
-                      style: GoogleFonts.notoSansJp(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.grey50,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-              ],
-
-              Text(
-                AppLocalizations.of(context)!.homeProveVictory,
-                style: GoogleFonts.notoSansJp(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.white,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                // 勝利者効果 (Winner Effect: 成功体験がさらなる成功を呼び込む心理的効果) は、
-                // たとえ継続が途切れても、再び歩み始めることで何度でも自分の意志で再現できるという励ましのメッセージです。
-                AppLocalizations.of(context)!.homeStreakResetMessage,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.notoSansJp(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.grey50,
-                  height: 1.6,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ────────────────────────────────────────────
-// Feed Card
-// ────────────────────────────────────────────
-class _FeedCard extends StatelessWidget {
-  const _FeedCard({
-    required this.post,
-    required this.username,
-    this.userPhotoUrl,
-    this.userBadgeUrl,
-    this.userBadgeAnimation,
-    required this.dimAlpha,
-    required this.onReaction,
-    required this.isTop,
-    required this.tierColor,
-    required this.userPhotos,
-    this.onProfileTap,
-    this.onOptionsTap,
-    this.reactionCountNotifier,
-  });
-
-  final Post post;
-  final String username;
-  final String? userPhotoUrl;
-  final String? userBadgeUrl;
-  final String? userBadgeAnimation;
-  final double dimAlpha;
-  final Function({String? emoji}) onReaction;
-  final bool isTop;
-  final Color tierColor;
-  final Map<String, String?> userPhotos;
-  final VoidCallback? onProfileTap;
-  final VoidCallback? onOptionsTap;
-  final ValueNotifier<int>? reactionCountNotifier;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.6),
-            blurRadius: 30,
-            offset: const Offset(0, 15),
-          ),
-          if (isTop)
-            BoxShadow(
-              color: AppColors.accentGold.withValues(alpha: 0.15),
-              blurRadius: 40,
-              spreadRadius: 2,
-            ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // 背景色 (白枠対策で内側に移動)
-            Container(color: AppColors.grey15),
-
-            // 写真 (RepaintBoundary + CachedNetworkImage)
-            RepaintBoundary(
-              child:
-                  post.imageUrl != null
-                      ? SizedBox.expand(
-                          child: CachedNetworkImage(
-                            imageUrl: post.imageUrl!,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                            memCacheWidth: 1600,
-                            placeholder:
-                                (ctx, url) => Container(
-                                  color: AppColors.grey10,
-                                  child: const Center(
-                                    child: CircularProgressIndicator(
-                                      color: AppColors.accentGold,
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                ),
-                            errorWidget:
-                                (ctx, url, error) => const Center(
-                                  child: Icon(
-                                    Icons.broken_image,
-                                    color: AppColors.grey30,
-                                    size: 40,
-                                  ),
-                                ),
-                          ),
-                        )
-                      : Container(
-                          color: AppColors.grey10,
-                          child: const Center(
-                            child: Icon(
-                              Icons.image,
-                              color: AppColors.grey30,
-                              size: 60,
-                            ),
-                          ),
-                        ),
-            ),
-
-            // 三点リーダーボタン
-            Positioned(
-              top: 14,
-              right: 10,
-              child: IconButton(
-                icon: const Icon(Icons.more_horiz_rounded, color: AppColors.white),
-                onPressed: onOptionsTap,
-                style: IconButton.styleFrom(
-                  backgroundColor: AppColors.black.withValues(alpha: 0.2),
-                  padding: const EdgeInsets.all(8),
-                ),
-              ),
-            ),
-
-            // グラデーションオーバーレイ（下部を暗くしてテキストを読みやすく）
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 240,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      AppColors.black.withValues(alpha: 0.9),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // ユーザー情報とタスク情報 (Zenly-style Thought Bubble)
-            Positioned(
-              bottom: 32, // 絶対基準線の起点
-              left: 20,
-              right: 20,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // Zenly-style vertical stack (Bubble -> Dot -> Avatar -> Name)
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (post.caption != null &&
-                            post.caption!.isNotEmpty) ...[
-                          // Main bubble (no tap handler — not a profile link)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            constraints: const BoxConstraints(maxWidth: 240),
-                            decoration: BoxDecoration(
-                              color: AppColors.grey15.withValues(alpha: 0.95),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: AppColors.white.withValues(alpha: 0.1),
-                                width: 0.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.black.withValues(alpha: 0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              post.caption!,
-                              style: GoogleFonts.notoSerifJp(
-                                color: AppColors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                height: 1.2, // 高さを制御
-                              ),
-                            ),
-                          ),
-                          // Tiny thought dot
-                          Padding(
-                            padding: const EdgeInsets.only(left: 18, top: 2),
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: AppColors.grey15.withValues(alpha: 0.95),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.white.withValues(alpha: 0.1),
-                                  width: 0.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                        // Avatar + Username — only these trigger profile tap
-                        GestureDetector(
-                          onTap: onProfileTap,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              CircleAvatar(
-                                radius: 22,
-                                backgroundColor: AppColors.grey20,
-                                backgroundImage: userPhotoUrl != null
-                                    ? ResizeImage(
-                                        CachedNetworkImageProvider(userPhotoUrl!),
-                                        width: 120)
-                                    : null,
-                                child: userPhotoUrl == null
-                                    ? Text(
-                                        username[0].toUpperCase(),
-                                        style: const TextStyle(
-                                          color: AppColors.white,
-                                          fontSize: 14,
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(height: 14), // チェックマーク側(44px)と同期。中心を84pxに維持。
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    username,
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.outfit(
-                                      color: AppColors.white,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                  if (userBadgeUrl != null && userBadgeUrl!.isNotEmpty)
-                                    VBadgeWidget(
-                                      imageUrl: userBadgeUrl,
-                                      animationType: userBadgeAnimation ?? 'none',
-                                      size: 13, // 名前サイズに合わせる
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // リアクションボタン: [アバター] [＋/チェック] [🔥]
-                  if (isTop)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        // [修正] リアクションアバターと拡張メニューを非表示化（PageViewレイヤーかHeroTasksScreenで管理）
-
-                        // V Fire ボタン＋カウント（表示専用）
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap: onReaction,
-                              child: Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  color: AppColors.white.withValues(alpha: 0.1),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.white.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Icon(
-                                  Icons.local_fire_department,
-                                  color: AppColors.accentGold,
-                                  size: 32,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8), // 基準値
-                            SizedBox(
-                              height: 16, // 高さを固定して中心を安定させる
-                              child: ValueListenableBuilder<int>(
-                                valueListenable: reactionCountNotifier ?? ValueNotifier(post.reactionCount),
-                                builder: (context, count, _) {
-                                  return Text(
-                                    '$count',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.white,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-
-            // 暗幕レイヤー（奥にあるカードを暗くする）
-            if (dimAlpha > 0)
-              Positioned.fill(
-                child: ColoredBox(
-                  color: AppColors.black.withValues(alpha: dimAlpha),
-                ),
-              ),
-
-            // 最前面にボーダーを配置してアンチエイリアスの隙間(白枠)を隠す
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: isTop
-                          ? AppColors.accentGold.withValues(alpha: 0.8)
-                          : tierColor.withValues(alpha: 0.1),
-                      width: isTop ? 1.5 : 0.5,
-                      strokeAlign: BorderSide.strokeAlignInside,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ────────────────────────────────────────────
-// リアクション層の分離
-// ────────────────────────────────────────────
-class _FloatingFlamesLayer extends StatefulWidget {
-  const _FloatingFlamesLayer({super.key});
-
-  @override
-  State<_FloatingFlamesLayer> createState() => _FloatingFlamesLayerState();
-}
-
-class _FloatingFlamesLayerState extends State<_FloatingFlamesLayer> {
-  int _counter = 0;
-  final Map<int, Widget> _flames = {};
-
-  void addFlame({
-    Color? color,
-    Color? glowColor,
-    double? size,
-    bool isGold = false,
-    double bottomOffset = 120.0,
-  }) {
-    final id = _counter++;
-    final randomX = (Random().nextDouble() - 0.5) * 60;
-
-    setState(() {
-      _flames[id] = Positioned(
-        key: ValueKey(id),
-        bottom: bottomOffset,
-        right: 40 + randomX,
-        child: _FloatingFlameWidget(
-          key: ValueKey('flame_$id'),
-          isGold: isGold,
-          color: color,
-          glowColor: glowColor,
-          size: size,
-          onComplete: () {
-            if (mounted) {
-              setState(() => _flames.remove(id));
-            }
-          },
-        ),
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(children: _flames.values.toList());
-  }
-}
-
-// ────────────────────────────────────────────
-// 連打で飛んでいく🔥アニメーションヴィジェット
-// ────────────────────────────────────────────
-class _FloatingFlameWidget extends StatefulWidget {
-  final VoidCallback onComplete;
-  final bool isGold;
-  final Color? color;
-  final Color? glowColor;
-  final double? size;
-
-  const _FloatingFlameWidget({
-    super.key,
-    required this.onComplete,
-    this.isGold = false,
-    this.color,
-    this.glowColor,
-    this.size,
-  });
-
-  @override
-  State<_FloatingFlameWidget> createState() => _FloatingFlameWidgetState();
-}
-
-class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _dy;
-  late Animation<double> _opacity;
-  late Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: widget.isGold ? 1500 : 1000),
-    );
-
-    _dy = Tween<double>(
-      begin: 0,
-      end: widget.isGold ? -500 : -300,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
-    _opacity = Tween<double>(
-      begin: 1.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: const Interval(0.5, 1.0)));
-    _scale = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 0.5, end: widget.isGold ? 2.5 : 1.5),
-        weight: 20,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: widget.isGold ? 2.5 : 1.5, end: 1.0),
-        weight: 80,
-      ),
-    ]).animate(_ctrl);
-
-    _ctrl.forward().then((_) => widget.onComplete());
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _dy.value),
-          child: Transform.scale(
-            scale: _scale.value,
-            child: Opacity(opacity: _opacity.value, child: child),
-          ),
-        );
-      },
-      child: Icon(
-        Icons.whatshot,
-        color: widget.color ?? (widget.isGold ? AppColors.accentGoldLight : AppColors.accentGold),
-        size: widget.size ?? (widget.isGold ? 64 : 44),
-        shadows: [
-          Shadow(
-            color: widget.glowColor ?? (widget.isGold ? AppColors.white : AppColors.white.withValues(alpha: 0.24)),
-            blurRadius: widget.isGold ? 24 : 12,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ────────────────────────────────────────────
-// Custom Physics
-// ────────────────────────────────────────────
-class _FrictionlessPageScrollPhysics extends PageScrollPhysics {
-  const _FrictionlessPageScrollPhysics({super.parent});
-
-  @override
-  _FrictionlessPageScrollPhysics applyTo(ScrollPhysics? ancestor) {
-    return _FrictionlessPageScrollPhysics(parent: buildParent(ancestor));
-  }
-
-  @override
-  SpringDescription get spring =>
-  // ζ ≈ 0.9（やや不足減衰）→ 約0.7秒で収束。旧値(damping:0.8)は実質無減衰で数十秒振動していた。
-  const SpringDescription(mass: 4.0, stiffness: 100.0, damping: 36.0);
-
-  @override
-  double applyPhysicsToUserOffset(ScrollMetrics position, double offset) {
-    return offset * 1.2;
-  }
-
-  @override
-  double get minFlingVelocity => 20.0;
-}
-
-// ────────────────────────────────────────────
-// ドーパミン全開！絵文字爆発レイヤー
-// CustomPainter ベース: 56ウィジェット×setState/frame → 1回のキャンバス再描画/frame
-// ────────────────────────────────────────────
-
-/// パーティクル1個の不変パラメータ（ウィジェットツリー不使用）
-class _ParticleData {
-  final double vx0;
-  final double vy0;
-  final double rotation0;
-  final double rotationSpeed;
-  final double startTime;
-  final TextPainter textPainter; // レイアウト済みキャッシュ
-
-  static const double lifetime = 1.2; // 秒
-
-  _ParticleData({
-    required String emoji,
-    required this.vx0,
-    required this.vy0,
-    required this.rotation0,
-    required this.rotationSpeed,
-    required this.startTime,
-    required double size,
-  }) : textPainter = TextPainter(
-         text: TextSpan(text: emoji, style: TextStyle(fontSize: size)),
-         textDirection: TextDirection.ltr,
-       )..layout();
-
-  bool isDone(double elapsed) => elapsed - startTime >= lifetime;
-}
-
-class _DopamineEmojiExplosionLayer extends StatefulWidget {
-  const _DopamineEmojiExplosionLayer({super.key});
-
-  @override
-  State<_DopamineEmojiExplosionLayer> createState() =>
-      _DopamineEmojiExplosionLayerState();
-}
-
-class _DopamineEmojiExplosionLayerState
-    extends State<_DopamineEmojiExplosionLayer>
-    with SingleTickerProviderStateMixin {
-  final List<_ParticleData> _particles = [];
-  late final Ticker _ticker;
-  double _elapsed = 0.0;
-  Duration? _prevTickTime;
-
-  @override
-  void initState() {
-    super.initState();
-    _ticker = createTicker(_onTick);
-  }
-
-  void _onTick(Duration now) {
-    if (_prevTickTime != null) {
-      _elapsed += (now - _prevTickTime!).inMicroseconds / 1e6;
-    }
-    _prevTickTime = now;
-
-    _particles.removeWhere((p) => p.isDone(_elapsed));
-
-    if (!mounted) return;
-    if (_particles.isEmpty) {
-      _ticker.stop();
-      _prevTickTime = null;
-      _elapsed = 0.0;
-    }
-    setState(() {});
-  }
-
-  void explode(String emoji) {
-    final random = Random();
-    final t = _elapsed;
-
-    final newParticles = List.generate(56, (_) {
-      final angle = (pi + 0.3) + (random.nextDouble() * (pi - 0.6));
-      final speed = 700.0 + random.nextDouble() * 1300.0;
-      return _ParticleData(
-        emoji: emoji,
-        vx0: cos(angle) * speed,
-        vy0: sin(angle) * speed,
-        rotation0: random.nextDouble() * 2 * pi,
-        rotationSpeed: (random.nextDouble() - 0.5) * 6.0,
-        startTime: t,
-        size: 20.0 + random.nextDouble() * 52.0,
-      );
-    });
-
-    setState(() {
-      _particles.addAll(newParticles);
-      if (!_ticker.isActive) {
-        _prevTickTime = null;
-        _ticker.start();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_particles.isEmpty) return const SizedBox.expand();
-    return CustomPaint(
-      painter: _EmojiExplosionPainter(particles: _particles, elapsed: _elapsed),
-    );
-  }
-}
-
-/// 全パーティクルをキャンバスに直接描画（ウィジェットリビルドなし）
-class _EmojiExplosionPainter extends CustomPainter {
-  final List<_ParticleData> particles;
-  final double elapsed;
-
-  static const double _gravity = 800.0; // px/秒²
-  static const double _k = 0.7; // 空気抵抗係数
-
-  _EmojiExplosionPainter({required this.particles, required this.elapsed});
-
-  /// Elastic out イージング
-  static double _elasticOut(double t) {
-    if (t <= 0) return 0;
-    if (t >= 1) return 1;
-    return exp(log(2) * (-10 * t)) * sin((t * 10 - 0.75) * (2 * pi / 3)) + 1.0;
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final p in particles) {
-      final t = (elapsed - p.startTime).clamp(0.0, _ParticleData.lifetime);
-      if (t <= 0) continue;
-
-      // 解析的物理演算（フレームレート非依存）
-      final expDecay = exp(-_k * t);
-      final dx = p.vx0 / _k * (1.0 - expDecay);
-      final dy =
-          p.vy0 / _k * (1.0 - expDecay) +
-          _gravity / _k * (t - (1.0 - expDecay) / _k);
-
-      // キャンバス座標（下端120pxから上方向）
-      final x = size.width / 2 + dx;
-      final y = size.height - 120 + dy;
-
-      final progress = t / _ParticleData.lifetime;
-
-      // フェードアウト: 進行度70%以降で消える
-      final opacity =
-          progress < 0.7 ? 1.0 : (1.0 - (progress - 0.7) / 0.3).clamp(0.0, 1.0);
-      if (opacity <= 0) continue;
-
-      // スケール: elastic out で 0→1.5 (最初の30%), 線形で 1.5→1.0 (残り70%)
-      final double scale;
-      if (progress < 0.3) {
-        scale = _elasticOut(progress / 0.3) * 1.5;
-      } else {
-        scale = 1.5 - 0.5 * ((progress - 0.3) / 0.7);
-      }
-
-      final rotation = p.rotation0 + p.rotationSpeed * t;
-      final textSize = p.textPainter.size;
-
-      canvas.save();
-      canvas.translate(x, y);
-      canvas.rotate(rotation);
-      canvas.scale(scale, scale);
-      canvas.translate(-textSize.width / 2, -textSize.height / 2);
-
-      if (opacity < 0.995) {
-        // フェードアウト区間のみ saveLayer でアルファ合成（大半は不要）
-        canvas.saveLayer(
-          Rect.fromLTWH(0, 0, textSize.width, textSize.height),
-          Paint()
-            ..color = Color.fromARGB((opacity * 255).round(), 255, 255, 255),
-        );
-        p.textPainter.paint(canvas, Offset.zero);
-        canvas.restore();
-      } else {
-        p.textPainter.paint(canvas, Offset.zero);
-      }
-
-      canvas.restore();
+  String _formatPostTime(DateTime createdAt, BuildContext context) {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+
+    if (difference.inMinutes < 1) {
+      return AppLocalizations.of(context)!.timeNow;
+    } else if (difference.inHours < 1) {
+      return AppLocalizations.of(context)!.timeMinutesAgo(difference.inMinutes);
+    } else if (difference.inDays < 1) {
+      return AppLocalizations.of(context)!.timeHoursAgo(difference.inHours);
+    } else {
+      return AppLocalizations.of(context)!.timeDaysAgo(difference.inDays);
     }
   }
-
-  @override
-  bool shouldRepaint(_EmojiExplosionPainter old) =>
-      elapsed != old.elapsed || particles.length != old.particles.length;
 }
 
+// ────────────────────────────────────────────
+// Tooltip Tail Painter
+// ────────────────────────────────────────────
 class _TooltipTailPainter extends CustomPainter {
   final Color color;
   _TooltipTailPainter({required this.color});
@@ -2655,104 +1827,4 @@ class _TooltipTailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _BgmIndicator extends StatefulWidget {
-  final String title;
-  final String? artist;
-  final String? url;
-  final String? artworkUrl;
-
-  const _BgmIndicator({required this.title, this.artist, this.url, this.artworkUrl});
-
-  @override
-  State<_BgmIndicator> createState() => _BgmIndicatorState();
-}
-
-class _BgmIndicatorState extends State<_BgmIndicator> {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        GestureDetector(
-          onTap: () async {
-            HapticFeedback.lightImpact();
-            await SoundService.instance.toggleBgmMute(widget.url);
-            setState(() {});
-          },
-          child: widget.artworkUrl != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CachedNetworkImage(
-                          imageUrl: widget.artworkUrl!,
-                          fit: BoxFit.cover,
-                        ),
-                        if (SoundService.instance.isBgmMuted)
-                          Container(
-                            color: AppColors.black.withValues(alpha: 0.5),
-                            child: const Icon(
-                              Icons.music_off_rounded,
-                              color: AppColors.white,
-                              size: 16,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                )
-              : Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppColors.black.withValues(alpha: 0.6),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    SoundService.instance.isBgmMuted
-                        ? Icons.music_off_rounded
-                        : Icons.music_note_rounded,
-                    color: SoundService.instance.isBgmMuted
-                        ? AppColors.grey50
-                        : AppColors.white,
-                    size: 16,
-                  ),
-                ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                widget.title,
-                style: GoogleFonts.notoSansJp(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.white,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (widget.artist != null)
-                Text(
-                  widget.artist!,
-                  style: GoogleFonts.notoSansJp(
-                    fontSize: 10,
-                    color: AppColors.grey50,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 }

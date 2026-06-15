@@ -646,7 +646,20 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return const MusicSearchBottomSheet();
+        return MusicSearchBottomSheet(
+          onPreviewStarted: () {
+            // 他の曲のプレビュー再生が始まったら、現在カメラ画面で流れているBGMを一時停止（pause）します
+            if (_audioPlayer.state == PlayerState.playing) {
+              _audioPlayer.pause();
+            }
+          },
+          onPreviewStopped: () {
+            // プレビュー再生が停止・終了したら、元々選択されていたBGMを再開（resume）します
+            if (_selectedMusic != null && _audioPlayer.state == PlayerState.paused) {
+              _audioPlayer.resume();
+            }
+          },
+        );
       },
     ).then((selected) {
       if (selected is MusicItem) {
@@ -659,6 +672,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           _selectedMusic = null;
         });
         _stopPreviewAudio();
+      } else {
+        // 曲を選択せず、ボトムシートを閉じただけのとき、
+        // もしBGMが一時停止（paused）状態のまま残っていたら、再生を再開します
+        if (_selectedMusic != null && _audioPlayer.state == PlayerState.paused) {
+          _audioPlayer.resume();
+        }
       }
     });
   }
@@ -1214,7 +1233,14 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 }
 
 class MusicSearchBottomSheet extends StatefulWidget {
-  const MusicSearchBottomSheet({super.key});
+  final VoidCallback? onPreviewStarted;
+  final VoidCallback? onPreviewStopped;
+
+  const MusicSearchBottomSheet({
+    super.key,
+    this.onPreviewStarted,
+    this.onPreviewStopped,
+  });
 
   @override
   State<MusicSearchBottomSheet> createState() => _MusicSearchBottomSheetState();
@@ -1282,21 +1308,31 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
   Future<void> _togglePreview(String url) async {
     try {
       if (_playingUrl == url) {
+        // 現在再生中のプレビュー曲をタップした場合は、再生を停止します
         await _previewPlayer.stop();
         setState(() {
           _playingUrl = null;
         });
+        // プレビューが停止したため、カメラ画面側のBGMを再開（resume）するよう通知します
+        widget.onPreviewStopped?.call();
       } else {
+        // 別の曲を再生する場合、まず現在の再生を止めます
         await _previewPlayer.stop();
+        // カメラ画面側で再生中のBGMがプレビュー音と被らないように、一時停止（pause）するよう通知します
+        widget.onPreviewStarted?.call();
+        
         await _previewPlayer.play(UrlSource(url));
         setState(() {
           _playingUrl = url;
         });
+        // 曲が最後まで再生され終わったときの処理を監視します
         _previewPlayer.onPlayerComplete.listen((_) {
           if (mounted) {
             setState(() {
               _playingUrl = null;
             });
+            // プレビュー再生が完了したので、カメラ画面側のBGMを再開するよう通知します
+            widget.onPreviewStopped?.call();
           }
         });
       }

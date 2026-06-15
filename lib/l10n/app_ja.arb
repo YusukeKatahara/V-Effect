@@ -253,8 +253,6 @@
   "editProfilePickerDone": "完了",
   "editProfileBirthDatePickerTitle": "生年月日",
   "editProfileGenderPickerTitle": "性別",
-  "editProfileTimestampLabel": "写真のタイムスタンプ",
-  "editProfileTimestampDesc": "投稿写真に時刻を表示します",
   "editProfileBadgeLabel": "バッジ",
   "editProfileBadgeEquipped": "装着中",
   "editProfileBadgeNone": "未設定",
@@ -827,5 +825,49 @@
   "vPracticeDialogDesc": "現在登録されている全てのユーザーに、指定したバッジを強制的に装備させます。通知は飛びません。",
   "vPracticeBadgeIdHint": "バッジID (例: tester)",
   "vPracticeCancel": "キャンセル",
-  "vPracticeDistribute": "配布する"
+  "vPracticeDistribute": "配布する",
+  "mutualFollowedBy": "{userNames}がフォローしています",
+  "@mutualFollowedBy": {
+    "placeholders": {
+      "userNames": {
+        "type": "String"
+      }
+    }
+  },
+  "mutualFollowedByAndOthers": "{userNames}、他{count}人がフォローしています",
+  "@mutualFollowedByAndOthers": {
+    "placeholders": {
+      "userNames": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeNow": "今",
+  "timeMinutesAgo": "{count}分",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "{count}時間",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeDaysAgo": "{count}日",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

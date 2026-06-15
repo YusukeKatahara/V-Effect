@@ -19,7 +19,6 @@ class Post {
   final DateTime createdAt;
   final DateTime expiresAt;
   final int reactionCount;
-  final bool showTimestamp;
   final List<String> emojiReactedUserIds; // リアクションしたユーザーID
   final Map<String, String> userReactions; // uid -> 絵文字 (個別リアクション記録)
   final String? bgmUrl; // 30秒プレビューURL
@@ -35,7 +34,6 @@ class Post {
   static const String fieldCreatedAt = 'createdAt';
   static const String fieldExpiresAt = 'expiresAt';
   static const String fieldReactionCount = 'reactionCount';
-  static const String fieldShowTimestamp = 'showTimestamp';
   static const String fieldEmojiReactedUserIds = 'emojiReactedUserIds';
   static const String fieldUserReactions = 'userReactions';
   static const String fieldBgmUrl = 'bgmUrl';
@@ -52,7 +50,6 @@ class Post {
     required this.createdAt,
     required this.expiresAt,
     this.reactionCount = 0,
-    this.showTimestamp = true,
     this.emojiReactedUserIds = const [],
     this.userReactions = const {},
     this.bgmUrl,
@@ -115,7 +112,6 @@ class Post {
         return DateTime(now.year, now.month, now.day + 1);
       }(),
       reactionCount: (data[fieldReactionCount] as num?)?.toInt() ?? 0,
-      showTimestamp: data[fieldShowTimestamp] ?? true,
       emojiReactedUserIds: emojiReactedUserIds,
       userReactions: userReactions,
       bgmUrl: data[fieldBgmUrl],
@@ -138,7 +134,6 @@ class Post {
           createdAt == other.createdAt &&
           expiresAt == other.expiresAt &&
           reactionCount == other.reactionCount &&
-          showTimestamp == other.showTimestamp &&
           _listEquals(emojiReactedUserIds, other.emojiReactedUserIds) &&
           _mapEquals(userReactions, other.userReactions) &&
           bgmUrl == other.bgmUrl &&
@@ -156,7 +151,6 @@ class Post {
       createdAt.hashCode ^
       expiresAt.hashCode ^
       reactionCount.hashCode ^
-      showTimestamp.hashCode ^
       emojiReactedUserIds.hashCode ^
       userReactions.hashCode ^
       bgmUrl.hashCode ^
@@ -192,7 +186,6 @@ class Post {
       fieldCreatedAt: Timestamp.fromDate(createdAt),
       fieldExpiresAt: Timestamp.fromDate(expiresAt),
       fieldReactionCount: reactionCount,
-      fieldShowTimestamp: showTimestamp,
       fieldEmojiReactedUserIds: emojiReactedUserIds,
       fieldUserReactions: userReactions,
       fieldBgmUrl: bgmUrl,
@@ -226,7 +219,6 @@ class Post {
     DateTime? createdAt,
     DateTime? expiresAt,
     int? reactionCount,
-    bool? showTimestamp,
     List<String>? emojiReactedUserIds,
     Map<String, String>? userReactions,
     String? bgmUrl,
@@ -243,7 +235,6 @@ class Post {
       createdAt: createdAt ?? this.createdAt,
       expiresAt: expiresAt ?? this.expiresAt,
       reactionCount: reactionCount ?? this.reactionCount,
-      showTimestamp: showTimestamp ?? this.showTimestamp,
       emojiReactedUserIds: emojiReactedUserIds ?? this.emojiReactedUserIds,
       userReactions: userReactions ?? this.userReactions,
       bgmUrl: bgmUrl ?? this.bgmUrl,

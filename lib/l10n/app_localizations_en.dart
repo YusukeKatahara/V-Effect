@@ -614,12 +614,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editProfileGenderPickerTitle => 'Gender';
 
   @override
-  String get editProfileTimestampLabel => 'Photo Timestamp';
-
-  @override
-  String get editProfileTimestampDesc => 'Show the time on your post photos';
-
-  @override
   String get editProfileBadgeLabel => 'Badge';
 
   @override
@@ -2049,4 +2043,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vPracticeDistribute => 'Distribute';
+
+  @override
+  String mutualFollowedBy(String userNames) {
+    return 'Followed by $userNames';
+  }
+
+  @override
+  String mutualFollowedByAndOthers(String userNames, int count) {
+    return 'Followed by $userNames and $count others';
+  }
+
+  @override
+  String get timeNow => 'now';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return '${count}m';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return '${count}h';
+  }
+
+  @override
+  String timeDaysAgo(int count) {
+    return '${count}d';
+  }
 }

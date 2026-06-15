@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,19 +12,20 @@ import '../services/post_service.dart';
 import '../widgets/v_effect_header.dart';
 import '../widgets/season_hint_modal.dart';
 import '../models/season.dart';
-import '../widgets/v_badge_widget.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/push_notification_service.dart';
 import 'qr_display_screen.dart';
 import 'qr_scanner_screen.dart';
 import '../widgets/responsive_container.dart';
-import '../widgets/full_screen_image_viewer.dart';
 import 'past_comparison_screen.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+// ---── コンポーネントのインポート ──
+import 'profile/components/editable_info_row.dart';
+import 'profile/components/profile_header_section.dart';
+import 'profile/components/task_section.dart';
+import 'profile/components/trending_tasks_bottom_sheet.dart';
 
 
 class ProfileScreen extends StatefulWidget {
@@ -260,128 +260,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-    );
-  }
-
-  void _showTrendingTasksBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent, // DraggableScrollableSheet用に透明化
-      isScrollControlled: true,
-      builder: (ctx) {
-        final int totalCount = _trendingTasks.fold(0, (acc, t) => acc + ((t['count'] as num?)?.toInt() ?? 0));
-
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          maxChildSize: 0.9,
-          minChildSize: 0.4,
-          builder: (_, scrollController) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: AppColors.bgElevated,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 20),
-                        decoration: BoxDecoration(
-                          color: AppColors.grey50,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      AppLocalizations.of(context)!.profileScreenTrendTitle,
-                      style: const TextStyle(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_trendingTasks.isEmpty)
-                      Text(AppLocalizations.of(context)!.profileScreenTrendEmpty, style: const TextStyle(color: AppColors.grey70))
-                    else
-                      Expanded(
-                        child: ListView.separated(
-                          controller: scrollController,
-                          itemCount: _trendingTasks.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final trend = _trendingTasks[index];
-                            final name = trend['name'] as String? ?? '';
-                            final count = (trend['count'] as num?)?.toInt() ?? 0;
-                            if (name.isEmpty) return const SizedBox.shrink();
-
-                            final percentage = totalCount > 0 ? (count / totalCount * 100).toStringAsFixed(1) : '0.0';
-
-                            return InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () {
-                                Navigator.of(ctx).pop();
-                                _addTask(initialTitle: name);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: AppColors.bgSurface,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 28,
-                                      child: Text(
-                                        '${index + 1}',
-                                        style: TextStyle(
-                                          color: index < 3 ? AppColors.accentGold : AppColors.textMuted,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        name,
-                                        style: const TextStyle(
-                                          color: AppColors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    Text(
-                                      '$percentage%',
-                                      style: const TextStyle(
-                                        color: AppColors.accentGold,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Icon(Icons.add_circle_outline_rounded, color: AppColors.white.withValues(alpha: 0.5), size: 20),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 
@@ -985,7 +863,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: AppColors.bgSurface,
               child: CustomScrollView(
                 slivers: [
-                  SliverToBoxAdapter(child: _buildProfileHeader()),
+                  // ---── プロフィールヘッダー ──
+                  SliverToBoxAdapter(
+                    child: ProfileHeaderSection(
+                      user: _user!,
+                      uid: _uid,
+                      onQrPressed: _showQrActionDialog,
+                    ),
+                  ),
   
                   // ---── スケジュール設定 ─────────────────────────────
                   SliverPadding(
@@ -1037,9 +922,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
+                  // ---── ヒーロータスクセクション ──
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    sliver: SliverToBoxAdapter(child: _buildTaskSection()),
+                    sliver: SliverToBoxAdapter(
+                      child: TaskSection(
+                        user: _user!,
+                        seasonsMap: _seasonsMap,
+                        seasonPostsCountMap: _seasonPostsCountMap,
+                        onAddTask: _addTask,
+                        onEditTask: _editTask,
+                        onDeleteTask: _deleteTask,
+                        onReorder: (int oldIndex, int newIndex) async {
+                          if (oldIndex < newIndex) {
+                            newIndex -= 1;
+                          }
+                          final updatedTasks = List<AppTask>.from(_user!.tasks);
+                          final task = updatedTasks.removeAt(oldIndex);
+                          updatedTasks.insert(newIndex, task);
+                          
+                          setState(() {
+                            _user!.tasks.clear();
+                            _user!.tasks.addAll(updatedTasks);
+                          });
+                          
+                          await _userService.updateProfile(tasks: updatedTasks);
+                          _loadProfile();
+                        },
+                        onShowTrendingTasks: () {
+                          showTrendingTasksBottomSheet(
+                            context,
+                            trendingTasks: _trendingTasks,
+                            onAddTask: _addTask,
+                          );
+                        },
+                        onSeasonTaskTap: (int index) {
+                          final task = _user!.tasks[index];
+                          final season = _seasonsMap[task.seasonId] ?? _seasonsMap['debug_season'] ?? _seasonsMap['debug_season_test'] ?? Season.createFallback(
+                            task.title,
+                            seasonId: task.seasonId,
+                          );
+                          
+                          SeasonHintModal.show(context, task, season, (newTrigger, newReward) async {
+                            final updatedTasks = List<AppTask>.from(_user!.tasks);
+                            updatedTasks[index] = task.copyWith(
+                              trigger: newTrigger.isEmpty ? null : newTrigger,
+                              clearTrigger: newTrigger.isEmpty,
+                              reward: newReward.isEmpty ? null : newReward,
+                              clearReward: newReward.isEmpty,
+                            );
+                            await _userService.updateProfile(tasks: updatedTasks);
+                            _loadProfile();
+                          });
+                        },
+                      ),
+                    ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
@@ -1128,292 +1065,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-
-  // ---プロフィールヘッダー
-  // ---
-  Widget _buildProfileHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient:
-                      _user!.photoUrl == null
-                          ? AppColors.primaryGradient
-                          : null,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.white.withValues(alpha: 0.1),
-                      blurRadius: 20,
-                    ),
-                  ],
-                ),
-                child:
-                    _user!.photoUrl != null
-                        ? GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                PageRouteBuilder(
-                                  opaque: false,
-                                  barrierColor: Colors.black.withValues(alpha: 0.9),
-                                  pageBuilder: (context, _, __) => FullScreenImageViewer(
-                                    imageUrl: _user!.photoUrl!,
-                                    heroTag: 'profile_image_${_user!.uid}',
-                                  ),
-                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                    return FadeTransition(opacity: animation, child: child);
-                                  },
-                                ),
-                              );
-                            },
-                            child: Hero(
-                              tag: 'profile_image_${_user!.uid}',
-                              child: CircleAvatar(
-                                radius: 40,
-                                backgroundImage: ResizeImage(
-                                  CachedNetworkImageProvider(_user!.photoUrl!),
-                                  width: 240,
-                                ),
-                              ),
-                            ),
-                          )
-                        : const CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.transparent,
-                          child: Icon(
-                            Icons.person_rounded,
-                            size: 40,
-                            color: AppColors.black,
-                          ),
-                        ),
-
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            _user!.username ?? '',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (_user!.equippedBadgeUrl != null && _user!.equippedBadgeUrl!.isNotEmpty) ...[
-                          VBadgeWidget(
-                            imageUrl: _user!.equippedBadgeUrl,
-                            animationType: _user!.equippedBadgeAnimation ?? 'none',
-                            size: 20,
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        if (_user!.instagramId != null && _user!.instagramId!.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () async {
-                              final instagramId = _user!.instagramId!;
-                              final appUri = Uri.parse('instagram://user?username=$instagramId');
-                              final webUri = Uri.parse('https://instagram.com/$instagramId');
-                              try {
-                                if (await canLaunchUrl(appUri)) {
-                                  await launchUrl(appUri);
-                                } else {
-                                  await launchUrl(webUri, mode: LaunchMode.externalApplication);
-                                }
-                              } catch (e) {
-                                debugPrint('Could not launch instagram: $e');
-                              }
-                            },
-                            child: const FaIcon(
-                              FontAwesomeIcons.instagram,
-                              color: AppColors.white,
-                              size: 22,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '@${_user!.userId ?? ''}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.grey15.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.white.withValues(alpha: 0.08),
-                    width: 0.5,
-                  ),
-                ),
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.qr_code,
-                    color: AppColors.textPrimary,
-                    size: 26,
-                  ),
-                  tooltip: AppLocalizations.of(context)!.profileScreenQrTooltip,
-                  onPressed: _showQrActionDialog,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 18,
-                    horizontal: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.grey15.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.white.withValues(alpha: 0.08),
-                      width: 0.5,
-                    ),
-                  ),
-                  child: IntrinsicHeight(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _buildFollowStat(
-                            AppLocalizations.of(context)!.profileScreenFollowing,
-                            _user!.following.length,
-                            onTap:
-                                () => Navigator.pushNamed(
-                                  context,
-                                  '/follow-list',
-                                  arguments: {
-                                    'uid': _uid,
-                                    'isFollowing': true,
-                                    'title': AppLocalizations.of(context)!.profileScreenFollowingTitle,
-                                  },
-                                ),
-                          ),
-                        ),
-                        VerticalDivider(
-                          color: AppColors.white.withValues(alpha: 0.1),
-                          thickness: 1,
-                          width: 1,
-                        ),
-                        Expanded(
-                          child: _buildFollowStat(
-                            AppLocalizations.of(context)!.profileScreenFollowers,
-                            _user!.followers.length,
-                            onTap:
-                                () => Navigator.pushNamed(
-                                  context,
-                                  '/follow-list',
-                                  arguments: {
-                                    'uid': _uid,
-                                    'isFollowing': false,
-                                    'title': AppLocalizations.of(context)!.profileScreenFollowersTitle,
-                                  },
-                                ),
-                          ),
-                        ),
-                        VerticalDivider(
-                          color: AppColors.white.withValues(alpha: 0.1),
-                          thickness: 1,
-                          width: 1,
-                        ),
-                        Expanded(
-                          child: _buildFollowStat(
-                            AppLocalizations.of(context)!.profileScreenStreak,
-                            _user!.streak,
-                            icon: Icons.local_fire_department_rounded,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFollowStat(
-    String label,
-    int count, {
-    IconData? icon,
-    VoidCallback? onTap,
-  }) {
-    final content = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 18, color: AppColors.accentGold),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              '$count',
-              style: GoogleFonts.outfit(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color:
-                    icon != null ? AppColors.accentGold : AppColors.white,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: GoogleFonts.notoSansJp(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-
-    if (onTap != null) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: content,
-        ),
-      );
-    }
-    return content;
-  }
-
   // ---
   // ---スケジュール設定（直接変更可能）
   // ---
@@ -1429,7 +1080,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           child: Column(
             children: [
-              _EditableInfoRow(
+              EditableInfoRow(
                 icon: Icons.schedule_rounded,
                 label: 'V Alert',
                 value: _privateData['taskTime'] ?? '08:00',
@@ -1438,407 +1089,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 isLast: true,
               ),
             ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ---
-  // ---ヒーロータスクセクション（追加・削除可能）
-  // ---
-  Widget _buildTaskSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _SectionTitle(title: AppLocalizations.of(context)!.profileScreenHeroTasks),
-            TextButton(
-              onPressed: _showTrendingTasksBottomSheet,
-              child: Text(
-                AppLocalizations.of(context)!.profileScreenWeeklyTrend,
-                style: const TextStyle(color: AppColors.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (_user!.tasks.isEmpty)
-          _buildEmptyTaskCard()
-        else
-          Column(
-            children: [
-              ReorderableListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                proxyDecorator: (child, index, animation) {
-                  return AnimatedBuilder(
-                    animation: animation,
-                    builder: (BuildContext context, Widget? child) {
-                      final double animValue = Curves.easeInOut.transform(animation.value);
-                      final double elevation = lerpDouble(0, 12, animValue)!;
-                      return Material(
-                        elevation: elevation,
-                        color: Colors.transparent,
-                        shadowColor: AppColors.black,
-                        borderRadius: BorderRadius.circular(16),
-                        child: child,
-                      );
-                    },
-                    child: child,
-                  );
-                },
-                onReorder: (int oldIndex, int newIndex) async {
-                  if (oldIndex < newIndex) {
-                    newIndex -= 1;
-                  }
-                  final updatedTasks = List<AppTask>.from(_user!.tasks);
-                  final task = updatedTasks.removeAt(oldIndex);
-                  updatedTasks.insert(newIndex, task);
-                  
-                  setState(() {
-                    _user!.tasks.clear();
-                    _user!.tasks.addAll(updatedTasks);
-                  });
-                  
-                  await _userService.updateProfile(tasks: updatedTasks);
-                  _loadProfile();
-                },
-                itemCount: _user!.tasks.length,
-                itemBuilder: (context, index) {
-                  return _buildQuestCard(index, key: ObjectKey(_user!.tasks[index]));
-                },
-              ),
-              _buildAddTaskSlot(),
-            ],
-          ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyTaskCard() {
-    return InkWell(
-      onTap: _addTask,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        decoration: BoxDecoration(
-          color: AppColors.bgSurface.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.white.withValues(alpha: 0.05),
-              AppColors.white.withValues(alpha: 0.02),
-            ],
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              Icons.add_circle_outline_rounded,
-              size: 32,
-              color: AppColors.white.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              AppLocalizations.of(context)!.profileScreenAddFirstTask,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAddTaskSlot() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: InkWell(
-        onTap: _addTask,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.white.withValues(alpha: 0.1),
-              width: 1,
-            ),
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.add_rounded,
-              size: 24,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuestCard(int index, {Key? key}) {
-    final task = _user!.tasks[index];
-    final bool isSeason = task.isSeason;
-
-    return Padding(
-      key: key,
-      padding: const EdgeInsets.only(bottom: 8), // よりコンパクトに
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16), // 少し収まりの良い角丸に
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.grey15, AppColors.grey10],
-          ),
-          boxShadow: [
-            if (isSeason)
-              BoxShadow(
-                color: AppColors.accentGold.withValues(alpha: 0.25), // うっすらとしたゴールドの発光
-                blurRadius: 12,
-                spreadRadius: 1,
-              )
-            else
-              BoxShadow(
-                color: AppColors.black.withValues(alpha: 0.4), // 少し影を深めて奥行きを
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-          ],
-          border: Border.all(
-            color: isSeason ? AppColors.accentGold.withValues(alpha: 0.8) : AppColors.white.withValues(alpha: 0.08),
-            width: isSeason ? 1.5 : 0.5,
-          ),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              if (task.isSeason) {
-                final season = _seasonsMap[task.seasonId] ?? _seasonsMap['debug_season'] ?? _seasonsMap['debug_season_test'] ?? Season.createFallback(
-                  task.title,
-                  seasonId: task.seasonId,
-                );
-                
-                SeasonHintModal.show(context, task, season, (newTrigger, newReward) async {
-                  final updatedTasks = List<AppTask>.from(_user!.tasks);
-                  updatedTasks[index] = task.copyWith(
-                    trigger: newTrigger.isEmpty ? null : newTrigger,
-                    clearTrigger: newTrigger.isEmpty,
-                    reward: newReward.isEmpty ? null : newReward,
-                    clearReward: newReward.isEmpty,
-                  );
-                  await _userService.updateProfile(tasks: updatedTasks);
-                  _loadProfile();
-                });
-              } else {
-                _editTask(index);
-              }
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ), // コンパクトなパディング
-              child: Row(
-                children: [
-                  Container(
-                    width: 26, // サイズ縮小
-                    height: 26,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isSeason ? AppColors.accentGold.withValues(alpha: 0.1) : AppColors.white.withValues(alpha: 0.05), // 主張を抑える
-                      border: Border.all(
-                        color: isSeason ? AppColors.accentGold.withValues(alpha: 0.3) : AppColors.white.withValues(alpha: 0.08),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Center(
-                      child: isSeason
-                          ? const Icon(
-                              Icons.star_rounded,
-                              size: 16,
-                              color: AppColors.accentGold,
-                            )
-                          : Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                fontSize: 12, // 文字サイズ調整
-                                fontWeight: FontWeight.w700, // ボールド感は維持
-                                color: AppColors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          task.title,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.white,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        if (task.isSeason) ...[
-                          const SizedBox(height: 2),
-                          (() {
-                            final sId = task.seasonId ?? 'debug_season_test';
-                            final season = _seasonsMap[sId];
-                            final count = _seasonPostsCountMap[sId] ?? 0;
-                            final requiredCount = season?.requiredPostsCount ?? 12;
-                            return Text(
-                              'Season ($count/$requiredCount)',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.grey50, // メタリックシルバー風
-                                letterSpacing: 0.5,
-                              ),
-                            );
-                          })(),
-                        ] else if (task.isOneTime) ...[
-                          const SizedBox(height: 2),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              'One-Time',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.accentGold.withValues(
-                                  alpha: 0.7,
-                                ),
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  if (!task.isSeason || task.seasonId == 'debug_season_test')
-                    IconButton(
-                      onPressed: () => _deleteTask(index),
-                      icon: Icon(
-                        Icons.close_rounded,
-                        size: 20,
-                        color: AppColors.white.withValues(alpha: 0.2),
-                      ),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---────────────────────────────────────────────
-// ---直接編集可能な情報行
-// ---────────────────────────────────────────────
-class _EditableInfoRow extends StatelessWidget {
-  const _EditableInfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.onTap,
-    this.isFirst = false,
-    this.isLast = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final VoidCallback onTap;
-  final bool isFirst;
-  final bool isLast;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.vertical(
-        top: isFirst ? const Radius.circular(16) : Radius.zero,
-        bottom: isLast ? const Radius.circular(16) : Radius.zero,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: AppColors.textMuted),
-            const SizedBox(width: 16),
-            Text(
-              label,
-              style: GoogleFonts.outfit(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              value,
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                color: AppColors.white,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.0,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---────────────────────────────────────────────
-// ---セクションタイトル
-// ---────────────────────────────────────────────
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 3,
-          height: 16,
-          decoration: BoxDecoration(
-            color: AppColors.accentGold,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
           ),
         ),
       ],

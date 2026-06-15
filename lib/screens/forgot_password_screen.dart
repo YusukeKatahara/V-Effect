@@ -49,9 +49,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
   Future<void> _sendResetEmail() async {
     final userId = _userIdCtrl.text.trim();
     final email = _emailCtrl.text.trim();
+    final l10n = AppLocalizations.of(context)!;
 
     if (userId.isEmpty || email.isEmpty) {
-      _showMessage(AppLocalizations.of(context)!.forgotPasswordBothRequired);
+      _showMessage(l10n.forgotPasswordBothRequired);
       return;
     }
 
@@ -68,7 +69,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (mounted) setState(() => _sent = true);
     } catch (e) {
-      _showMessage(AppLocalizations.of(context)!.forgotPasswordInvalid);
+      _showMessage(l10n.forgotPasswordInvalid);
     } finally {
       if (mounted) setState(() => _isSending = false);
     }

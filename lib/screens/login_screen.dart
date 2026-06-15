@@ -82,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (_isLoadingAny) return;
     setState(() => _isEmailLoading = true);
     final scaffold = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context)!;
     try {
       final input = _emailCtrl.text.trim();
       final password = _passCtrl.text.trim();
@@ -112,19 +113,19 @@ class _LoginScreenState extends State<LoginScreen>
       // そのまま表示する。それ以外は一般化したメッセージ。
       final msg = e.code == 'resource-exhausted' && (e.message?.isNotEmpty ?? false)
           ? e.message!
-          : AppLocalizations.of(context)!.loginErrorIdOrPassword;
+          : l10n.loginErrorIdOrPassword;
       scaffold?.showSnackBar(SnackBar(content: Text(msg)));
       if (mounted) setState(() => _isEmailLoading = false);
     } on FirebaseAuthException catch (e) {
-      String msg = AppLocalizations.of(context)!.loginFailed;
-      if (e.code == 'user-not-found') msg = AppLocalizations.of(context)!.loginErrorUserNotFound;
-      if (e.code == 'wrong-password') msg = AppLocalizations.of(context)!.loginErrorWrongPassword;
-      if (e.code == 'invalid-credential') msg = AppLocalizations.of(context)!.loginErrorInvalidCredential;
+      String msg = l10n.loginFailed;
+      if (e.code == 'user-not-found') msg = l10n.loginErrorUserNotFound;
+      if (e.code == 'wrong-password') msg = l10n.loginErrorWrongPassword;
+      if (e.code == 'invalid-credential') msg = l10n.loginErrorInvalidCredential;
       scaffold?.showSnackBar(SnackBar(content: Text(msg)));
       if (mounted) setState(() => _isEmailLoading = false);
     } catch (e) {
       debugPrint('Login error: $e');
-      scaffold?.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.loginFailed)));
+      scaffold?.showSnackBar(SnackBar(content: Text(l10n.loginFailed)));
       if (mounted) setState(() => _isEmailLoading = false);
     }
   }
@@ -133,6 +134,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (_isLoadingAny) return;
     setState(() => _isAppleLoading = true);
     final scaffold = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context)!;
     try {
       final cred = await _authService.signInWithApple();
       if (cred != null) {
@@ -153,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (!isCanceled) {
         scaffold?.showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.loginAppleFailed)),
+          SnackBar(content: Text(l10n.loginAppleFailed)),
         );
       }
       if (mounted) setState(() => _isAppleLoading = false);
@@ -164,6 +166,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (_isLoadingAny) return;
     setState(() => _isGoogleLoading = true);
     final scaffold = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context)!;
     try {
       final cred = await _authService.signInWithGoogle();
       if (cred != null) {
@@ -175,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen>
     } catch (e) {
       debugPrint('Google sign-in error: $e');
       scaffold?.showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.loginGoogleFailed)),
+        SnackBar(content: Text(l10n.loginGoogleFailed)),
       );
       if (mounted) setState(() => _isGoogleLoading = false);
     }

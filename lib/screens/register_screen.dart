@@ -95,6 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     if (_isLoadingAny) return;
     setState(() => _isEmailLoading = true);
     final scaffold = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context)!;
     try {
       final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailCtrl.text.trim(),
@@ -111,14 +112,14 @@ class _RegisterScreenState extends State<RegisterScreen>
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.wrapper, (r) => false);
     } on FirebaseAuthException catch (e) {
-      String msg = AppLocalizations.of(context)!.registerFailed;
-      if (e.code == 'email-already-in-use') msg = AppLocalizations.of(context)!.registerEmailInUse;
-      if (e.code == 'weak-password') msg = AppLocalizations.of(context)!.registerWeakPassword;
+      String msg = l10n.registerFailed;
+      if (e.code == 'email-already-in-use') msg = l10n.registerEmailInUse;
+      if (e.code == 'weak-password') msg = l10n.registerWeakPassword;
       scaffold?.showSnackBar(SnackBar(content: Text(msg)));
       if (mounted) setState(() => _isEmailLoading = false);
     } catch (e) {
       debugPrint('Registration error: $e');
-      scaffold?.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.registerFailedRetry)));
+      scaffold?.showSnackBar(SnackBar(content: Text(l10n.registerFailedRetry)));
       if (mounted) setState(() => _isEmailLoading = false);
     }
   }
@@ -127,6 +128,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     if (_isLoadingAny) return;
     setState(() => _isAppleLoading = true);
     final scaffold = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context)!;
     try {
       final cred = await _authService.signInWithApple();
       if (cred != null) {
@@ -137,7 +139,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       }
     } catch (e) {
       debugPrint('Apple sign-in error: $e');
-      scaffold?.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.registerAppleFailed)));
+      scaffold?.showSnackBar(SnackBar(content: Text(l10n.registerAppleFailed)));
       if (mounted) setState(() => _isAppleLoading = false);
     }
   }
@@ -146,6 +148,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     if (_isLoadingAny) return;
     setState(() => _isGoogleLoading = true);
     final scaffold = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context)!;
     try {
       final cred = await _authService.signInWithGoogle();
       if (cred != null) {
@@ -156,7 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       }
     } catch (e) {
       debugPrint('Google sign-in error: $e');
-      scaffold?.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.registerGoogleFailed)));
+      scaffold?.showSnackBar(SnackBar(content: Text(l10n.registerGoogleFailed)));
       if (mounted) setState(() => _isGoogleLoading = false);
     }
   }

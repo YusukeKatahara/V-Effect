@@ -39,6 +39,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool _isBlocked = false;
   bool _isBlockProcessing = false;
   bool _initialized = false;
+  List<AppUser> _mutualFriends = [];
+  int _mutualCount = 0;
 
   @override
   void didChangeDependencies() {
@@ -68,7 +70,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         _friendService.getUserByUid(_targetUid!),
         _friendService.isFollowing(_targetUid!),
         BlockService.instance.isBlocked(_targetUid!),
+        _friendService.getUserByUid(_myUid), // 自分（ログインユーザー）の情報を取得
       ]);
+
+      final loadedUser = results[0] as AppUser?;
+      final isFollowing = results[1] as bool;
+      final isBlocked = results[2] as bool;
+      final myUser = results[3] as AppUser?;
 
       // friend_requests コレクションへのアクセスが失敗しても他の処理を妨げない
       bool isPending = false;
@@ -76,15 +84,30 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         isPending = await _friendService.hasPendingRequest(_targetUid!);
       } catch (_) {}
 
+      // 共通のフォローを計算
+      List<AppUser> mutualFriends = [];
+      int mutualCount = 0;
+      if (loadedUser != null && myUser != null && _targetUid != _myUid) {
+        final myFollowingSet = myUser.following.toSet();
+        final targetFollowersSet = loadedUser.followers.toSet();
+        final mutualUids = myFollowingSet.intersection(targetFollowersSet).toList();
+        mutualCount = mutualUids.length;
+        if (mutualUids.isNotEmpty) {
+          // 最大3名のアバター画像を表示するため、3人分だけロードする
+          mutualFriends = await _friendService.getUsersByUids(mutualUids.take(3).toList());
+        }
+      }
+
       if (!mounted) return;
-      final loadedUser = results[0] as AppUser?;
       setState(() {
         _user = loadedUser;
-        _isFollowing = results[1] as bool;
+        _isFollowing = isFollowing;
         // _user.following にyusukeのUIDが含まれる = renがyusukeをフォローしている = renはyusukeのフォロワー
         _isMyFollower = loadedUser?.following.contains(_myUid) ?? false;
         _isPending = isPending;
-        _isBlocked = results[2] as bool;
+        _isBlocked = isBlocked;
+        _mutualFriends = mutualFriends;
+        _mutualCount = mutualCount;
         _loading = false;
       });
     } catch (e) {
@@ -432,6 +455,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       if (_targetUid != _myUid) ...[
                         const SizedBox(height: 24),
                         _buildFollowButton(),
+                        if (_mutualCount > 0) ...[
+                          const SizedBox(height: 16),
+                          _buildMutualFollowSection(),
+                        ],
                       ],
                       if (_user!.tasks.isNotEmpty) ...[
                         const SizedBox(height: 32),
@@ -782,6 +809,90 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildMutualFollowSection() {
+    return Row(
+      children: [
+        _buildMutualAvatars(_mutualFriends),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            _getMutualFollowText(_mutualFriends, _mutualCount),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMutualAvatars(List<AppUser> mutualUsers) {
+    final List<Widget> children = [];
+    const double avatarSize = 24.0;
+    const double overlapOffset = 8.0; // 重なり幅（ピクセル数）
+
+    for (int i = 0; i < mutualUsers.length; i++) {
+      final photoUrl = mutualUsers[i].photoUrl;
+      children.add(
+        Positioned(
+          left: i * (avatarSize - overlapOffset),
+          child: Container(
+            width: avatarSize,
+            height: avatarSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.bgBase, width: 1.5),
+            ),
+            child: ClipOval(
+              child: photoUrl != null && photoUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: photoUrl,
+                      placeholder: (context, url) => Container(color: AppColors.grey10),
+                      errorWidget: (context, url, error) => const Icon(Icons.person_rounded, size: 12, color: AppColors.textSecondary),
+                      fit: BoxFit.cover,
+                      memCacheWidth: (avatarSize * 3).toInt(), // キャッシュリサイズでメモリ削減
+                    )
+                  : Container(
+                      color: AppColors.grey10,
+                      child: const Icon(Icons.person_rounded, size: 12, color: AppColors.textSecondary),
+                    ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: avatarSize + (mutualUsers.length - 1) * (avatarSize - overlapOffset),
+      height: avatarSize,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: children,
+      ),
+    );
+  }
+
+  String _getMutualFollowText(List<AppUser> mutualFriends, int totalCount) {
+    if (mutualFriends.isEmpty) return '';
+
+    final names = mutualFriends.map((u) => u.displayName ?? u.username ?? '').toList();
+    final isJa = AppLocalizations.of(context)!.localeName == 'ja';
+
+    if (totalCount == 1) {
+      return AppLocalizations.of(context)!.mutualFollowedBy(names[0]);
+    } else if (totalCount == 2) {
+      final joinedNames = names.join(isJa ? '、' : ' and ');
+      return AppLocalizations.of(context)!.mutualFollowedBy(joinedNames);
+    } else {
+      final displayNames = names.take(2).toList();
+      final textJoined = displayNames.join(isJa ? '、' : ' and ');
+      final otherCount = totalCount - 2;
+      return AppLocalizations.of(context)!.mutualFollowedByAndOthers(textJoined, otherCount);
+    }
   }
 
   Widget _buildTasksSection() {

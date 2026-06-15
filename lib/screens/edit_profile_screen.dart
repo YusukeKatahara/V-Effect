@@ -43,8 +43,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _currentPhotoUrl;
   String? _equippedBadgeUrl;
   String? _equippedBadgeAnimation;
-
-  bool _showTimestamp = true;
   String? _birthDate;
   String? _gender;
   List<String> _genderOptions(BuildContext ctx) {
@@ -75,9 +73,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _currentPhotoUrl = widget.user.photoUrl;
     _equippedBadgeUrl = widget.user.equippedBadgeUrl;
     _equippedBadgeAnimation = widget.user.equippedBadgeAnimation;
-
-
-    _showTimestamp = widget.privateData['showTimestamp'] ?? true;
     _birthDate = widget.privateData['birthDate'] as String?;
     _gender = widget.privateData['gender'] as String?;
 
@@ -113,6 +108,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickImage() async {
+    // 非同期処理を跨いで BuildContext（画面情報）を使用する警告（use_build_context_synchronously）を回避するため、
+    // 最初の非同期処理が始まる前に多言語化テキストを取得（保存）しておきます。
+    final l10n = AppLocalizations.of(context)!;
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
@@ -123,7 +121,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         sourcePath: pickedFile.path,
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: AppLocalizations.of(context)!.editProfileImageAdjust,
+            toolbarTitle: l10n.editProfileImageAdjust,
             toolbarColor: AppColors.bgSurface,
             toolbarWidgetColor: AppColors.textPrimary,
             initAspectRatio: CropAspectRatioPreset.square,
@@ -132,7 +130,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             cropStyle: CropStyle.circle,
           ),
           IOSUiSettings(
-            title: AppLocalizations.of(context)!.editProfileImageAdjust,
+            title: l10n.editProfileImageAdjust,
             aspectRatioLockEnabled: true,
             resetAspectRatioEnabled: false,
             aspectRatioPickerButtonHidden: true,
@@ -142,6 +140,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
 
       if (croppedFile != null) {
+        if (!mounted) return;
         setState(() {
           _newProfileImage = File(croppedFile.path);
         });
@@ -238,7 +237,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         username: newUsername,
         userId: newUserId,
         photoUrl: updatedPhotoUrl,
-        showTimestamp: _showTimestamp,
         birthDate: _birthDate,
         gender: _gender,
         updateEditDate: isRestrictedFieldsChanged,
@@ -335,9 +333,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           const SizedBox(height: 12),
 
                           _buildBadgeRow(),
-                          const SizedBox(height: 16),
-
-                          _buildTimestampToggle(),
                           const SizedBox(height: 32),
 
                           // Save button
@@ -724,50 +719,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
         return null;
       },
-    );
-  }
-
-  Widget _buildTimestampToggle() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.timer_outlined, color: AppColors.textMuted),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.editProfileTimestampLabel,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  AppLocalizations.of(context)!.editProfileTimestampDesc,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: _showTimestamp,
-            onChanged: (v) => setState(() => _showTimestamp = v),
-            activeColor: AppColors.primary,
-          ),
-        ],
-      ),
     );
   }
 
