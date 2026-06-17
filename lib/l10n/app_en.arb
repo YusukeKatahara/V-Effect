@@ -1,6 +1,12 @@
 {
   "@@locale": "en",
   "settingsTitle": "Settings",
+  "settingsDisplay": "Display & Design",
+  "themeSetting": "Theme Settings",
+  "themeDescription": "Switch the appearance of the app.",
+  "themeLight": "Light Mode",
+  "themeDark": "Dark Mode",
+  "themeSystem": "Sync with system settings",
   "languageSetting": "Language",
   "languageJapanese": "日本語",
   "languageEnglish": "ENGLISH",
@@ -272,6 +278,7 @@
   "pastComparisonMode": "Compare Mode",
   "pastComparisonOther": "Other",
   "sharePreviewTitle": "Preview",
+  "previewLabel": "Preview",
   "sharePreviewShareText": "Crushed my Hero Task {count} time(s) this week!\nCurrent streak: {streak} days 🔥\n#VEffect",
   "@sharePreviewShareText": {
     "placeholders": {

@@ -47,10 +47,10 @@ class BgmIndicator extends StatelessWidget {
                         ),
                         if (isMuted)
                           Container(
-                            color: AppColors.black.withValues(alpha: 0.5),
-                            child: const Icon(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            child: Icon(
                               Icons.music_off_rounded,
-                              color: AppColors.white,
+                              color: AppColors.pureWhite,
                               size: 16,
                             ),
                           ),
@@ -61,12 +61,12 @@ class BgmIndicator extends StatelessWidget {
               : Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: AppColors.black.withValues(alpha: 0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     isMuted ? Icons.music_off_rounded : Icons.music_note_rounded,
-                    color: isMuted ? AppColors.grey50 : AppColors.white,
+                    color: isMuted ? AppColors.grey50 : AppColors.pureWhite,
                     size: 16,
                   ),
                 ),
@@ -82,7 +82,7 @@ class BgmIndicator extends StatelessWidget {
                 style: GoogleFonts.notoSansJp(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.white,
+                  color: AppColors.pureWhite,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

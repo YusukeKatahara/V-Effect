@@ -39,13 +39,13 @@ class FullScreenImageViewer extends StatelessWidget {
                     child: CachedNetworkImage(
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => const Center(
+                      placeholder: (context, url) => Center(
                         child: CircularProgressIndicator(
                           color: AppColors.white,
                           strokeWidth: 2,
                         ),
                       ),
-                      errorWidget: (context, url, error) => const Center(
+                      errorWidget: (context, url, error) => Center(
                         child: Icon(
                           Icons.error_outline,
                           color: AppColors.error,

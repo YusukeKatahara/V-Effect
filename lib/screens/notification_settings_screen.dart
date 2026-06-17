@@ -119,8 +119,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
-        title: Text(AppLocalizations.of(context)!.notificationSettingsTitle, style: const TextStyle(color: AppColors.textPrimary)),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        title: Text(AppLocalizations.of(context)!.notificationSettingsTitle, style: TextStyle(color: AppColors.textPrimary)),
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
         elevation: 0,
       ),
       body: _isLoading 
@@ -170,12 +170,12 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 (v) => _updateSetting('streakWarningNotifications', v),
               ),
               if (kDebugMode) ...[
-                const Divider(color: AppColors.grey30, height: 40),
+                Divider(color: AppColors.grey30, height: 40),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
                     AppLocalizations.of(context)!.notificationSettingsDebugTitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.accentGold,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -184,9 +184,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 ),
                 const SizedBox(height: 8),
                 ListTile(
-                  title: Text(AppLocalizations.of(context)!.notificationSettingsDebugResetTitle, style: const TextStyle(color: AppColors.textPrimary)),
-                  subtitle: Text(AppLocalizations.of(context)!.notificationSettingsDebugResetDesc, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                  trailing: const Icon(Icons.refresh, color: AppColors.textPrimary),
+                  title: Text(AppLocalizations.of(context)!.notificationSettingsDebugResetTitle, style: TextStyle(color: AppColors.textPrimary)),
+                  subtitle: Text(AppLocalizations.of(context)!.notificationSettingsDebugResetDesc, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  trailing: Icon(Icons.refresh, color: AppColors.textPrimary),
                   onTap: () async {
                     final prefs = await SharedPreferences.getInstance();
                     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -201,9 +201,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                   },
                 ),
                 ListTile(
-                  title: Text(AppLocalizations.of(context)!.notificationSettingsDebugTestTitle, style: const TextStyle(color: AppColors.textPrimary)),
-                  subtitle: Text(AppLocalizations.of(context)!.notificationSettingsDebugTestDesc, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                  trailing: const Icon(Icons.play_arrow, color: AppColors.textPrimary),
+                  title: Text(AppLocalizations.of(context)!.notificationSettingsDebugTestTitle, style: TextStyle(color: AppColors.textPrimary)),
+                  subtitle: Text(AppLocalizations.of(context)!.notificationSettingsDebugTestDesc, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  trailing: Icon(Icons.play_arrow, color: AppColors.textPrimary),
                   onTap: () {
                     NotificationPromptSheet.show(context);
                   },
@@ -216,8 +216,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   Widget _buildSwitch(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
     return SwitchListTile(
-      title: Text(title, style: const TextStyle(color: AppColors.textPrimary)),
-      subtitle: Text(subtitle, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+      title: Text(title, style: TextStyle(color: AppColors.textPrimary)),
+      subtitle: Text(subtitle, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
       value: value,
       onChanged: onChanged,
       activeColor: AppColors.white,

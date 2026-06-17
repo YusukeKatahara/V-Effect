@@ -1,6 +1,12 @@
 {
   "@@locale": "ja",
   "settingsTitle": "設定",
+  "settingsDisplay": "表示とデザイン",
+  "themeSetting": "テーマ設定",
+  "themeDescription": "アプリの見た目を切り替えます。",
+  "themeLight": "ライトモード",
+  "themeDark": "ダークモード",
+  "themeSystem": "システム設定に同期",
   "languageSetting": "言語設定 / Language",
   "languageJapanese": "日本語",
   "languageEnglish": "ENGLISH",
@@ -272,6 +278,7 @@
   "pastComparisonMode": "比較モード",
   "pastComparisonOther": "その他",
   "sharePreviewTitle": "プレビュー",
+  "previewLabel": "プレビュー",
   "sharePreviewShareText": "今週も{count}回のヒーロータスクを完遂！\n現在のストリーク: {streak}日 🔥\n#VEffect",
   "@sharePreviewShareText": {
     "placeholders": {

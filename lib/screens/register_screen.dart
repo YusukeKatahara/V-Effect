@@ -185,7 +185,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.arrow_back_ios_new_rounded,
                             color: AppColors.textPrimary,
                           ),
@@ -193,7 +193,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                         ),
                         Text(
                           AppLocalizations.of(context)!.loginRegister,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -283,7 +283,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         const SizedBox(height: 14),
         Text(
           AppLocalizations.of(context)!.registerCreateAccount,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -305,7 +305,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         TextFormField(
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.registerEmail,
             prefixIcon: const Icon(Icons.mail_outline_rounded),
@@ -320,7 +320,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         TextFormField(
           controller: _passCtrl,
           obscureText: _obscurePass,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.loginPassword,
             prefixIcon: const Icon(Icons.lock_outline_rounded),
@@ -346,7 +346,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         TextFormField(
           controller: _passConfirmCtrl,
           obscureText: _obscureConf,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.registerPasswordConfirm,
             prefixIcon: const Icon(Icons.lock_person_outlined),
@@ -462,7 +462,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
+                      Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
                       const SizedBox(width: 12),
                       Stack(
                         alignment: Alignment.centerLeft,
@@ -509,7 +509,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(
+                      SizedBox(
                         width: 24,
                         height: 24,
                         child: Center(

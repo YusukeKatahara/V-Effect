@@ -43,7 +43,7 @@ class FeedCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.6),
+            color: Colors.black.withValues(alpha: 0.6),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -74,14 +74,14 @@ class FeedCard extends StatelessWidget {
                         memCacheWidth: 1600,
                         placeholder: (ctx, url) => Container(
                           color: AppColors.grey10,
-                          child: const Center(
+                          child: Center(
                             child: CircularProgressIndicator(
                               color: AppColors.accentGold,
                               strokeWidth: 2,
                             ),
                           ),
                         ),
-                        errorWidget: (ctx, url, error) => const Center(
+                        errorWidget: (ctx, url, error) => Center(
                           child: Icon(
                             Icons.broken_image,
                             color: AppColors.grey30,
@@ -92,7 +92,7 @@ class FeedCard extends StatelessWidget {
                     )
                   : Container(
                       color: AppColors.grey10,
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           Icons.image,
                           color: AppColors.grey30,
@@ -107,10 +107,10 @@ class FeedCard extends StatelessWidget {
               top: 14,
               right: 10,
               child: IconButton(
-                icon: const Icon(Icons.more_horiz_rounded, color: AppColors.white),
+                icon: Icon(Icons.more_horiz_rounded, color: AppColors.pureWhite),
                 onPressed: onOptionsTap,
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.black.withValues(alpha: 0.2),
+                  backgroundColor: Colors.black.withValues(alpha: 0.2),
                   padding: const EdgeInsets.all(8),
                 ),
               ),
@@ -128,7 +128,7 @@ class FeedCard extends StatelessWidget {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      AppColors.black.withValues(alpha: 0.9),
+                      Colors.black.withValues(alpha: 0.9),
                       Colors.transparent,
                     ],
                   ),
@@ -168,8 +168,8 @@ class FeedCard extends StatelessWidget {
                                 child: userPhotoUrl == null
                                     ? Text(
                                         username[0].toUpperCase(),
-                                        style: const TextStyle(
-                                          color: AppColors.white,
+                                        style: TextStyle(
+                                          color: AppColors.pureWhite,
                                           fontSize: 12,
                                         ),
                                       )
@@ -179,10 +179,10 @@ class FeedCard extends StatelessWidget {
                               Text(
                                 username,
                                 textAlign: TextAlign.left,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.white,
+                                  color: AppColors.pureWhite,
                                   letterSpacing: 0.5,
                                   shadows: [
                                     Shadow(
@@ -209,8 +209,8 @@ class FeedCard extends StatelessWidget {
                           // Caption (no tap handler — not a profile link)
                           Text(
                             post.caption!,
-                            style: const TextStyle(
-                              color: AppColors.white,
+                            style: TextStyle(
+                              color: AppColors.pureWhite,
                               fontSize: 15,
                               fontWeight: FontWeight.w400,
                               height: 1.3,
@@ -246,16 +246,16 @@ class FeedCard extends StatelessWidget {
                                 width: 56,
                                 height: 56,
                                 decoration: BoxDecoration(
-                                  color: AppColors.white.withValues(alpha: 0.1),
+                                  color: AppColors.pureWhite.withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: AppColors.white.withValues(
+                                    color: AppColors.pureWhite.withValues(
                                       alpha: 0.1,
                                     ),
                                     width: 1,
                                   ),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.local_fire_department,
                                   color: AppColors.accentGold,
                                   size: 32,
@@ -273,7 +273,7 @@ class FeedCard extends StatelessWidget {
                                     style: GoogleFonts.outfit(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: AppColors.white,
+                                      color: AppColors.pureWhite,
                                     ),
                                   );
                                 },
@@ -291,7 +291,7 @@ class FeedCard extends StatelessWidget {
             if (dimAlpha > 0)
               Positioned.fill(
                 child: ColoredBox(
-                  color: AppColors.black.withValues(alpha: dimAlpha),
+                  color: Colors.black.withValues(alpha: dimAlpha),
                 ),
               ),
 

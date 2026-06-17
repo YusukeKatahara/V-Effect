@@ -102,7 +102,7 @@ class _PulseCameraButtonState extends State<PulseCameraButton>
                         width: 1.5,
                       ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.camera_alt_outlined,
                       color: AppColors.white,
                       size: 28,

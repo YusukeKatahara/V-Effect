@@ -108,9 +108,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         backgroundColor: AppColors.bgBase,
         title: Text(
           AppLocalizations.of(context)!.emailVerificationTitle,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
         ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
       ),
       body: SafeArea(
         child: Padding(
@@ -118,7 +118,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.mark_email_unread_outlined,
                 size: 72,
                 color: AppColors.textPrimary,
@@ -126,7 +126,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               const SizedBox(height: 24),
               Text(
                 AppLocalizations.of(context)!.emailVerificationHeading,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -136,7 +136,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               const SizedBox(height: 12),
               Text(
                 AppLocalizations.of(context)!.emailVerificationSent(email),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   color: AppColors.textSecondary,
                 ),
@@ -152,12 +152,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline, size: 16, color: AppColors.textMuted),
+                    Icon(Icons.info_outline, size: 16, color: AppColors.textMuted),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         AppLocalizations.of(context)!.emailVerificationSpamNote,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                       ),
                     ),
                   ],
@@ -210,7 +210,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                       )
                     : Text(
                         AppLocalizations.of(context)!.emailVerificationResendButton,
-                        style: const TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(color: AppColors.textSecondary),
                       ),
               ),
             ],

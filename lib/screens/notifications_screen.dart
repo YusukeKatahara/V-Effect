@@ -174,7 +174,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       child: Container(
         padding: const EdgeInsets.all(2),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.grey10,
           shape: BoxShape.circle,
         ),
@@ -217,25 +217,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             title: Text(
               AppLocalizations.of(context)!.notificationsDeleteAllTitle,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: AppColors.textPrimary),
             ),
             content: Text(
               AppLocalizations.of(context)!.notificationsDeleteAllMessage,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
                 child: Text(
                   AppLocalizations.of(context)!.notificationsDeleteAllCancel,
-                  style: const TextStyle(color: AppColors.textMuted),
+                  style: TextStyle(color: AppColors.textMuted),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 child: Text(
                   AppLocalizations.of(context)!.notificationsDeleteAllButton,
-                  style: const TextStyle(color: AppColors.error),
+                  style: TextStyle(color: AppColors.error),
                 ),
               ),
             ],
@@ -334,7 +334,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         side:
             isPrimary
                 ? BorderSide.none
-                : const BorderSide(color: AppColors.grey10),
+                : BorderSide(color: AppColors.grey10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       child: Text(
@@ -483,7 +483,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             return Center(
               child: Text(
                 AppLocalizations.of(context)!.notificationsError(snapshot.error ?? ''),
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
             );
           }
@@ -526,7 +526,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.notifications_off_outlined,
                       size: 32,
                       color: AppColors.textMuted,
@@ -535,7 +535,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   const SizedBox(height: 16),
                   Text(
                     AppLocalizations.of(context)!.notificationsEmpty,
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 16),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 16),
                   ),
                 ],
               ),
@@ -557,7 +557,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
                   color: AppColors.error.withValues(alpha: 0.8),
-                  child: const Icon(Icons.delete_outline, color: AppColors.white),
+                  child: Icon(Icons.delete_outline, color: AppColors.white),
                 ),
                 onDismissed: (_) => _deleteNotification(notif.id),
                 child: Material(
@@ -602,7 +602,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   children: [
                                     Text(
                                       DateHelper.timeAgo(notif.createdAt),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
                                         color: AppColors.textMuted,
                                         fontWeight: FontWeight.w500,
@@ -613,7 +613,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       Container(
                                         width: 4,
                                         height: 4,
-                                        decoration: const BoxDecoration(
+                                        decoration: BoxDecoration(
                                           color: AppColors.accentGold,
                                           shape: BoxShape.circle,
                                         ),
@@ -686,7 +686,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
       text: TextSpan(
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           color: AppColors.textSecondary,
           height: 1.4,

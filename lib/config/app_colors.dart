@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 /// V EFFECT カラーシステム — Absolute Monochrome
@@ -6,64 +7,101 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
+  // ── Absolute Monochrome Constants ─────────────────
+  static const Color pureWhite = Color(0xFFFFFFFF);
+  static const Color pureBlack = Color(0xFF000000);
+  static const Color lightGrey95 = Color(0xFFF2F2F2);
+  static const Color lightGrey90 = Color(0xFFE6E6E6);
+  static const Color lightGrey85 = Color(0xFFD9D9D9);
+  static const Color lightGrey70 = Color(0xFFB3B3B3);
+  static const Color lightGrey55 = Color(0xFF666666);
+  static const Color lightGrey50 = Color(0xFF808080);
+  static const Color lightGrey30 = Color(0xFF4D4D4D);
+  static const Color darkGrey15 = Color(0xFF262626);
+  static const Color darkGrey20 = Color(0xFF333333);
+  static const Color darkGrey08 = Color(0xFF141414);
+  static const Color darkGrey10 = Color(0xFF1A1A1A);
+
+  static ThemeMode _themeMode = ThemeMode.dark;
+
+  /// テーマモードを更新します（ThemeProviderなどから呼び出します）
+  static void updateThemeMode(ThemeMode mode) {
+    _themeMode = mode;
+  }
+
+  /// 現在のテーマがダークモードかどうかを判定します
+  static bool get isDark {
+    if (_themeMode == ThemeMode.system) {
+      return PlatformDispatcher.instance.platformBrightness == Brightness.dark;
+    }
+    return _themeMode == ThemeMode.dark;
+  }
+
   // ── Monochrome Scale ─────────────────────
-  static const Color white = Color(0xFFFFFFFF);
-  static const Color grey95 = Color(0xFFF2F2F2);
-  static const Color grey85 = Color(0xFFD9D9D9);
-  static const Color grey70 = Color(0xFFB3B3B3);
-  static const Color grey50 = Color(0xFF808080);
-  static const Color grey30 = Color(0xFF4D4D4D);
-  static const Color grey20 = Color(0xFF333333);
-  static const Color grey15 = Color(0xFF262626);
-  static const Color grey10 = Color(0xFF1A1A1A);
-  static const Color grey08 = Color(0xFF141414);
-  static const Color grey05 = Color(0xFF0D0D0D);
-  static const Color black = Color(0xFF000000);
+  static Color get white => isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
+  static Color get grey95 => isDark ? const Color(0xFFF2F2F2) : const Color(0xFF0D0D0D);
+  static Color get grey85 => isDark ? const Color(0xFFD9D9D9) : const Color(0xFF1A1A1A);
+  static Color get grey70 => isDark ? const Color(0xFFB3B3B3) : const Color(0xFF333333);
+  static Color get grey50 => isDark ? const Color(0xFF808080) : const Color(0xFF808080);
+  static Color get grey30 => isDark ? const Color(0xFF4D4D4D) : const Color(0xFFB3B3B3);
+  static Color get grey20 => isDark ? const Color(0xFF333333) : const Color(0xFFD9D9D9);
+  // ライトモード時のコントラスト階層（明暗差）崩壊を防ぐため、グレー値を調整しています。
+  // ライトモードでは grey15(濃い) > grey10 > grey08 > grey05(薄い) の順に明るくなります。
+  static Color get grey15 => isDark ? const Color(0xFF262626) : const Color(0xFFE5E5E5);
+  static Color get grey10 => isDark ? const Color(0xFF1A1A1A) : const Color(0xFFEBEBEB);
+  // ライトモードでは grey08 を純白にし、bgSurface（カード背景）として使用。
+  // 画面背景（bgBase = black）を薄いグレーにすることで、カードが浮き上がって見えます。
+  static Color get grey08 => isDark ? const Color(0xFF141414) : const Color(0xFFFFFFFF);
+  static Color get grey05 => isDark ? const Color(0xFF0D0D0D) : const Color(0xFFF5F5F5);
+  static Color get black => isDark ? const Color(0xFF000000) : const Color(0xFFF5F5F5);
 
   // ── Semantic aliases ─────────────────────
-  static const Color primary = white;
-  static const Color primaryLight = grey95;
-  static const Color primaryDark = grey85;
+  static Color get primary => white;
+  static Color get primaryLight => grey95;
+  static Color get primaryDark => grey85;
 
-  static const Color bgBase = black;
-  static const Color bgSurface = grey08;
-  static const Color bgElevated = grey15;
-  static const Color border = grey20;
+  static Color get bgBase => black;
+  static Color get bgSurface => grey08;
+  static Color get bgElevated => grey15;
+  static Color get border => grey20;
 
-  static const Color textPrimary = white;
-  static const Color textSecondary = grey50;
-  static const Color textMuted = grey30;
+  static Color get textPrimary => white;
+  static Color get textSecondary => grey50;
+  static Color get textMuted => grey30;
 
-  static const Color success = grey85;
-  static const Color error = Color(0xFFFF5252); // 唯一の例外：エラーは赤を許容
-  static const Color warning = grey70;
+  static Color get success => grey85;
+  static Color get error => const Color(0xFFFF5252); // 唯一の例外：エラーは赤を許容
+  static Color get warning => grey70;
 
   // ── Accent Colors ────────────────────────
-  static const Color accentGold = Color(0xFFD4AF37);
-  static const Color accentGoldLight = Color(0xFFFFD700);
+  static Color get accentGold => const Color(0xFFD4AF37);
+  static Color get accentGoldLight => const Color(0xFFFFD700);
 
   // ── Gradients ────────────────────────────
-  static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [white, grey85],
-  );
+  static LinearGradient get primaryGradient => LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [white, grey85],
+      );
 
-  static const LinearGradient bgGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [grey10, black],
-  );
+  static LinearGradient get bgGradient => LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [grey10, black],
+      );
 
-  static const LinearGradient cardGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [grey15, grey10],
-  );
+  static LinearGradient get cardGradient => LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [grey15, grey10],
+      );
 
-  static const LinearGradient glassGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0x1AFFFFFF), Color(0x08FFFFFF)],
-  );
+  static LinearGradient get glassGradient => LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: isDark
+            ? const [Color(0x1AFFFFFF), Color(0x08FFFFFF)]
+            : const [Color(0x1A000000), Color(0x08000000)],
+      );
 }
+

@@ -39,7 +39,7 @@ class QuestCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16), // 少し収まりの良い角丸に
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [AppColors.grey15, AppColors.grey10],
@@ -89,14 +89,14 @@ class QuestCard extends StatelessWidget {
                     ),
                     child: Center(
                       child: isSeason
-                          ? const Icon(
+                          ? Icon(
                               Icons.star_rounded,
                               size: 16,
                               color: AppColors.accentGold,
                             )
                           : Text(
                               '${index + 1}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12, // 文字サイズ調整
                                 fontWeight: FontWeight.w700, // ボールド感は維持
                                 color: AppColors.white,
@@ -113,7 +113,7 @@ class QuestCard extends StatelessWidget {
                       children: [
                         Text(
                           task.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: AppColors.white,
@@ -171,7 +171,7 @@ class QuestCard extends StatelessWidget {
     final requiredCount = season?.requiredPostsCount ?? 12;
     return Text(
       'Season ($count/$requiredCount)',
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w700,
         color: AppColors.grey50, // メタリックシルバー風

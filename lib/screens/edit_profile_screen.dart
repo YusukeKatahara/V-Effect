@@ -181,18 +181,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               title: Text(
                 AppLocalizations.of(context)!.editProfileConfirmTitle,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: AppColors.textPrimary),
               ),
               content: Text(
                 AppLocalizations.of(context)!.editProfileConfirmMessage,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
                   child: Text(
                     AppLocalizations.of(context)!.editProfileCancel,
-                    style: const TextStyle(color: AppColors.textMuted),
+                    style: TextStyle(color: AppColors.textMuted),
                   ),
                 ),
                 ElevatedButton(
@@ -285,7 +285,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.arrow_back_ios_new_rounded,
                           color: AppColors.textPrimary,
                         ),
@@ -293,7 +293,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       Text(
                         AppLocalizations.of(context)!.editProfileSettingsHeader,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
@@ -389,12 +389,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       TextButton(
-                        child: Text(AppLocalizations.of(context)!.editProfilePickerCancel, style: const TextStyle(color: AppColors.textSecondary)),
+                        child: Text(AppLocalizations.of(context)!.editProfilePickerCancel, style: TextStyle(color: AppColors.textSecondary)),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
-                      Text(AppLocalizations.of(context)!.editProfileBirthDatePickerTitle, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(AppLocalizations.of(context)!.editProfileBirthDatePickerTitle, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
                       TextButton(
-                        child: Text(AppLocalizations.of(context)!.editProfilePickerDone, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        child: Text(AppLocalizations.of(context)!.editProfilePickerDone, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                         onPressed: () {
                           setState(() {
                             _birthDate = '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
@@ -407,7 +407,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 Expanded(
                   child: CupertinoTheme(
-                    data: const CupertinoThemeData(
+                    data: CupertinoThemeData(
                       brightness: Brightness.dark,
                       textTheme: CupertinoTextThemeData(
                         dateTimePickerTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 22),
@@ -454,12 +454,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
-                      child: Text(AppLocalizations.of(context)!.editProfilePickerCancel, style: const TextStyle(color: AppColors.textSecondary)),
+                      child: Text(AppLocalizations.of(context)!.editProfilePickerCancel, style: TextStyle(color: AppColors.textSecondary)),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
-                    Text(AppLocalizations.of(context)!.editProfileGenderPickerTitle, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(AppLocalizations.of(context)!.editProfileGenderPickerTitle, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
                     TextButton(
-                      child: Text(AppLocalizations.of(context)!.editProfilePickerDone, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      child: Text(AppLocalizations.of(context)!.editProfilePickerDone, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                       onPressed: () {
                         setState(() {
                           _gender = genderOpts[selectedIndex];
@@ -473,7 +473,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               SizedBox(
                 height: 216,
                 child: CupertinoTheme(
-                  data: const CupertinoThemeData(
+                  data: CupertinoThemeData(
                     textTheme: CupertinoTextThemeData(
                       pickerTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 20),
                     ),
@@ -488,7 +488,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       return Center(
                         child: Text(
                           value,
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 20),
+                          style: TextStyle(color: AppColors.textPrimary, fontSize: 20),
                         ),
                       );
                     }).toList(),
@@ -521,7 +521,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.cake_outlined, color: AppColors.textMuted),
+                    Icon(Icons.cake_outlined, color: AppColors.textMuted),
                     const SizedBox(width: 12),
                     Text(
                       _birthDate ?? AppLocalizations.of(context)!.editProfileBirthDate,
@@ -532,7 +532,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ],
                 ),
-                const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
               ],
             ),
           ),
@@ -553,7 +553,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.person_outline, color: AppColors.textMuted),
+                    Icon(Icons.person_outline, color: AppColors.textMuted),
                     const SizedBox(width: 12),
                     Text(
                       _gender ?? AppLocalizations.of(context)!.editProfileGender,
@@ -564,7 +564,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ],
                 ),
-                const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
               ],
             ),
           ),
@@ -584,12 +584,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: AppColors.error),
+          Icon(Icons.info_outline, color: AppColors.error),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               AppLocalizations.of(context)!.editProfileRestrictionMessage(_daysRemaining),
-              style: const TextStyle(color: AppColors.error, fontSize: 13),
+              style: TextStyle(color: AppColors.error, fontSize: 13),
             ),
           ),
         ],
@@ -632,7 +632,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             : null),
                 child:
                     (_newProfileImage == null && _currentPhotoUrl == null)
-                        ? const Icon(
+                        ? Icon(
                           Icons.person,
                           size: 50,
                           color: AppColors.textMuted,
@@ -644,11 +644,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 right: 0,
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.primary,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.camera_alt,
                     color: AppColors.black,
                     size: 20,
@@ -669,7 +669,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   ) {
     return TextFormField(
       controller: ctrl,
-      style: const TextStyle(color: AppColors.textPrimary),
+      style: TextStyle(color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: AppColors.textMuted),
@@ -688,7 +688,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       decoration: InputDecoration(
         labelText: AppLocalizations.of(context)!.editProfileUserIdLabel,
-        prefixIcon: const Icon(Icons.alternate_email, color: AppColors.textMuted),
+        prefixIcon: Icon(Icons.alternate_email, color: AppColors.textMuted),
       ),
       validator: (v) {
         if (v == null || v.trim().isEmpty) return AppLocalizations.of(context)!.editProfileUserIdRequired;
@@ -706,8 +706,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildInstagramIdField() {
     return TextFormField(
       controller: _instagramIdCtrl,
-      style: const TextStyle(color: AppColors.textPrimary),
-      decoration: const InputDecoration(
+      style: TextStyle(color: AppColors.textPrimary),
+      decoration: InputDecoration(
         labelText: 'Instagram ID',
         prefixIcon: Icon(FontAwesomeIcons.instagram, color: AppColors.textMuted, size: 20),
       ),
@@ -735,12 +735,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.stars_rounded, color: AppColors.textMuted),
+            Icon(Icons.stars_rounded, color: AppColors.textMuted),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 AppLocalizations.of(context)!.editProfileBadgeLabel,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -760,7 +760,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (_equippedBadgeUrl == 'tester')
-                      const Text(
+                      Text(
                         'T',
                         style: TextStyle(
                           color: AppColors.primary,
@@ -769,11 +769,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       )
                     else
-                      const Icon(Icons.verified, color: AppColors.primary, size: 14),
+                      Icon(Icons.verified, color: AppColors.primary, size: 14),
                     const SizedBox(width: 4),
                     Text(
                       AppLocalizations.of(context)!.editProfileBadgeEquipped,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.primary,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -787,7 +787,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 padding: const EdgeInsets.only(right: 8.0),
                 child: Text(
                   AppLocalizations.of(context)!.editProfileBadgeNone,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 12,
                   ),
@@ -801,7 +801,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               child: Text(
                 AppLocalizations.of(context)!.editProfileBadgeChange,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -836,7 +836,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 Text(
                   AppLocalizations.of(context)!.editProfileBadgeSelectTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -963,18 +963,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ? CachedNetworkImage(
                       imageUrl: badgeUrl,
                       fit: BoxFit.contain,
-                      errorWidget: (c,u,e) => const Icon(Icons.broken_image, color: AppColors.textMuted),
+                      errorWidget: (c,u,e) => Icon(Icons.broken_image, color: AppColors.textMuted),
                     )
                   : Image.asset(
                       badgeUrl == 'assets/icon/gratitude_heart_badge.png' 
                           ? 'assets/icon/gratitude_heart_badge_v3.png'
                           : badgeUrl,
                       fit: BoxFit.contain,
-                      errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: AppColors.textMuted),
+                      errorBuilder: (c,e,s) => Icon(Icons.broken_image, color: AppColors.textMuted),
                     ),
               )
             else
-              const Icon(
+              Icon(
                 Icons.do_disturb_alt_rounded,
                 color: AppColors.textMuted,
                 size: 40,

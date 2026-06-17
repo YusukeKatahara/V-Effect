@@ -101,12 +101,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                          icon: Icon(Icons.arrow_back_ios_new_rounded,
                               color: AppColors.textPrimary),
                           onPressed: () => Navigator.pop(context),
                         ),
                         Text(AppLocalizations.of(context)!.forgotPasswordResetTitle,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
@@ -140,7 +140,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         Text(
           AppLocalizations.of(context)!.loginForgotPassword,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary),
@@ -149,12 +149,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         Text(
           AppLocalizations.of(context)!.forgotPasswordInstruction,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
         TextField(
           controller: _userIdCtrl,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.forgotPasswordUserId,
             prefixIcon: const Icon(Icons.person_outline),
@@ -163,7 +163,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         const SizedBox(height: 16),
         TextField(
           controller: _emailCtrl,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.registerEmail,
             prefixIcon: const Icon(Icons.email_outlined),
@@ -200,14 +200,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
               ),
             ],
           ),
-          child: const Icon(Icons.mark_email_read,
+          child: Icon(Icons.mark_email_read,
               size: 40, color: AppColors.black),
         ),
         const SizedBox(height: 24),
         Text(
           AppLocalizations.of(context)!.forgotPasswordEmailSent,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary),
@@ -216,7 +216,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         Text(
           AppLocalizations.of(context)!.forgotPasswordEmailSentDesc(_emailCtrl.text.trim()),
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
         GradientButton(
@@ -238,7 +238,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           onPressed: () => setState(() => _sent = false),
           child: Text(
             AppLocalizations.of(context)!.forgotPasswordResend,
-            style: const TextStyle(color: AppColors.textMuted),
+            style: TextStyle(color: AppColors.textMuted),
           ),
         ),
       ],

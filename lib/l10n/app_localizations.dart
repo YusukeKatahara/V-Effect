@@ -62,8 +62,7 @@ import 'app_localizations_ja.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -71,8 +70,7 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate =
-      _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -84,18 +82,17 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
-      <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('ja'),
+    Locale('ja')
   ];
 
   /// No description provided for @settingsTitle.
@@ -103,6 +100,42 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'設定'**
   String get settingsTitle;
+
+  /// No description provided for @settingsDisplay.
+  ///
+  /// In ja, this message translates to:
+  /// **'表示とデザイン'**
+  String get settingsDisplay;
+
+  /// No description provided for @themeSetting.
+  ///
+  /// In ja, this message translates to:
+  /// **'テーマ設定'**
+  String get themeSetting;
+
+  /// No description provided for @themeDescription.
+  ///
+  /// In ja, this message translates to:
+  /// **'アプリの見た目を切り替えます。'**
+  String get themeDescription;
+
+  /// No description provided for @themeLight.
+  ///
+  /// In ja, this message translates to:
+  /// **'ライトモード'**
+  String get themeLight;
+
+  /// No description provided for @themeDark.
+  ///
+  /// In ja, this message translates to:
+  /// **'ダークモード'**
+  String get themeDark;
+
+  /// No description provided for @themeSystem.
+  ///
+  /// In ja, this message translates to:
+  /// **'システム設定に同期'**
+  String get themeSystem;
 
   /// No description provided for @languageSetting.
   ///
@@ -1315,6 +1348,12 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'プレビュー'**
   String get sharePreviewTitle;
+
+  /// No description provided for @previewLabel.
+  ///
+  /// In ja, this message translates to:
+  /// **'プレビュー'**
+  String get previewLabel;
 
   /// No description provided for @sharePreviewShareText.
   ///
@@ -3879,8 +3918,7 @@ abstract class AppLocalizations {
   String timeDaysAgo(int count);
 }
 
-class _AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -3889,26 +3927,25 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['en', 'ja'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>['en', 'ja'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en':
-      return AppLocalizationsEn();
-    case 'ja':
-      return AppLocalizationsJa();
+    case 'en': return AppLocalizationsEn();
+    case 'ja': return AppLocalizationsJa();
   }
 
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
+    'that was used.'
   );
 }

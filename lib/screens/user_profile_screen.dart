@@ -208,13 +208,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(
+                leading: Icon(
                   Icons.flag_rounded,
                   color: AppColors.textSecondary,
                 ),
                 title: Text(
                   AppLocalizations.of(context)!.userProfileReport,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -236,18 +236,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           backgroundColor: AppColors.bgSurface,
           title: Text(
             AppLocalizations.of(context)!.userProfileUnblockConfirmTitle,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
           ),
           content: Text(
             AppLocalizations.of(context)!.userProfileUnblockConfirmDesc,
-            style: const TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: Text(
                 AppLocalizations.of(context)!.userProfileUnblockCancel,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
             ),
             TextButton(
@@ -257,7 +257,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               },
               child: Text(
                 AppLocalizations.of(context)!.userProfileUnblockButton,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: AppColors.textPrimary),
               ),
             ),
           ],
@@ -270,18 +270,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           backgroundColor: AppColors.bgSurface,
           title: Text(
             AppLocalizations.of(context)!.userProfileBlockConfirmTitle,
-            style: const TextStyle(color: AppColors.error),
+            style: TextStyle(color: AppColors.error),
           ),
           content: Text(
             AppLocalizations.of(context)!.userProfileBlockConfirmDesc,
-            style: const TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: Text(
                 AppLocalizations.of(context)!.userProfileBlockCancel,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
             ),
             TextButton(
@@ -291,7 +291,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               },
               child: Text(
                 AppLocalizations.of(context)!.userProfileBlockButton,
-                style: const TextStyle(color: AppColors.error),
+                style: TextStyle(color: AppColors.error),
               ),
             ),
           ],
@@ -341,7 +341,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         backgroundColor: AppColors.bgSurface,
         title: Text(
           AppLocalizations.of(context)!.userProfileReportTitle,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
         ),
         contentPadding: const EdgeInsets.symmetric(vertical: 8),
         content: Column(
@@ -358,7 +358,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               AppLocalizations.of(context)!.userProfileReportCancel,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -368,7 +368,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _reportOption(BuildContext ctx, String label, String reason) {
     return ListTile(
-      title: Text(label, style: const TextStyle(color: AppColors.textPrimary)),
+      title: Text(label, style: TextStyle(color: AppColors.textPrimary)),
       onTap: () {
         Navigator.pop(ctx);
         _performReport(reason);
@@ -413,7 +413,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         foregroundColor: AppColors.textPrimary,
         title: Text(
           title,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
         ),
         actions: [
           if (isOtherUser)
@@ -438,7 +438,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ? Center(
                   child: Text(
                     AppLocalizations.of(context)!.userProfileNotFound,
-                    style: const TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
                 )
               : RefreshIndicator(
@@ -492,7 +492,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   : Container(
                       width: 80,
                       height: 80,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.grey10,
                       ),
@@ -504,7 +504,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   _initialUsername != null
                       ? Text(
                           _initialUsername!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -606,7 +606,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
                 )
-              : const CircleAvatar(
+              : CircleAvatar(
                   radius: 40,
                   backgroundColor: Colors.transparent,
                   child: Icon(
@@ -628,7 +628,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   Flexible(
                     child: Text(
                       username,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -664,7 +664,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           debugPrint('Could not launch instagram: $e');
                         }
                       },
-                      child: const FaIcon(
+                      child: FaIcon(
                         FontAwesomeIcons.instagram,
                         color: AppColors.white,
                         size: 22,
@@ -676,7 +676,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               const SizedBox(height: 2),
               Text(
                 _user != null ? '@${_user!.userId}' : '...',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   color: AppColors.textSecondary,
                 ),
@@ -713,22 +713,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  Color _getTierColor(int streak) {
+    if (streak >= 365) return const Color(0xFFE0A33B); // Challenger (Gold/Blue)
+    if (streak >= 270) return const Color(0xFFB53030); // Grandmaster (Red)
+    if (streak >= 180) return const Color(0xFF8D2D9E); // Master (Purple)
+    if (streak >= 100) return const Color(0xFF4A60AB); // Diamond (Vivid Blue)
+    if (streak >= 66) return const Color(0xFF10825B);  // Emerald (Green)
+    if (streak >= 30) return const Color(0xFF327A8A);  // Platinum (Teal)
+    if (streak >= 14) return const Color(0xFFC89C3C);  // Gold (Gold)
+    if (streak >= 7) return const Color(0xFF8091A0);   // Silver (Blue-Gray)
+    if (streak >= 3) return const Color(0xFF8F5338);   // Bronze (Copper)
+    return const Color(0xFF5E4B43);                    // Iron (Dark Brown-Gray)
+  }
+
   Widget _buildStatItem(String label, int count, {IconData? icon, VoidCallback? onTap}) {
+    final themeColor = icon != null ? _getTierColor(count) : AppColors.accentGold;
+
     final content = Column(
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 16, color: AppColors.accentGold),
+              Icon(icon, size: 16, color: themeColor),
               const SizedBox(width: 4),
             ],
             Text(
               '$count',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+                color: icon != null ? themeColor : AppColors.textPrimary,
               ),
             ),
           ],
@@ -736,7 +751,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         if (onTap != null)
           const SizedBox(height: 2),
@@ -772,12 +787,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       label = AppLocalizations.of(context)!.userProfileFollowing;
       bgColor = AppColors.bgSurface;
       fgColor = AppColors.textPrimary;
-      border = const BorderSide(color: AppColors.border);
+      border = BorderSide(color: AppColors.border);
     } else if (_isPending) {
       label = AppLocalizations.of(context)!.userProfilePending;
       bgColor = AppColors.bgSurface;
       fgColor = AppColors.textSecondary;
-      border = const BorderSide(color: AppColors.border);
+      border = BorderSide(color: AppColors.border);
     } else {
       label = AppLocalizations.of(context)!.userProfileFollowRequest;
       bgColor = AppColors.white;
@@ -819,7 +834,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         Expanded(
           child: Text(
             _getMutualFollowText(_mutualFriends, _mutualCount),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w400,
@@ -852,13 +867,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ? CachedNetworkImage(
                       imageUrl: photoUrl,
                       placeholder: (context, url) => Container(color: AppColors.grey10),
-                      errorWidget: (context, url, error) => const Icon(Icons.person_rounded, size: 12, color: AppColors.textSecondary),
+                      errorWidget: (context, url, error) => Icon(Icons.person_rounded, size: 12, color: AppColors.textSecondary),
                       fit: BoxFit.cover,
                       memCacheWidth: (avatarSize * 3).toInt(), // キャッシュリサイズでメモリ削減
                     )
                   : Container(
                       color: AppColors.grey10,
-                      child: const Icon(Icons.person_rounded, size: 12, color: AppColors.textSecondary),
+                      child: Icon(Icons.person_rounded, size: 12, color: AppColors.textSecondary),
                     ),
             ),
           ),
@@ -912,7 +927,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             const SizedBox(width: 8),
             Text(
               AppLocalizations.of(context)!.userProfileHeroTasks,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -942,14 +957,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         Container(
                           width: 24,
                           height: 24,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: AppColors.grey10,
                           ),
                           child: Center(
                             child: Text(
                               '${i + 1}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.white,
@@ -961,7 +976,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         Expanded(
                           child: Text(
                             _user!.tasks[i].title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               color: AppColors.textPrimary,
                             ),

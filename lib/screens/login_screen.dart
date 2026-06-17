@@ -284,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen>
               (bounds) => const LinearGradient(
                 colors: [Color(0xFFFFFFFF), Color(0xFFCCCCCC)],
               ).createShader(bounds),
-          child: const Text(
+          child: Text(
             'V EFFECT',
             style: TextStyle(
               fontSize: 38,
@@ -317,7 +317,7 @@ class _LoginScreenState extends State<LoginScreen>
         TextField(
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.loginEmailOrId,
             prefixIcon: const Icon(Icons.person_outline_rounded),
@@ -329,7 +329,7 @@ class _LoginScreenState extends State<LoginScreen>
         TextField(
           controller: _passCtrl,
           obscureText: _obscurePass,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.loginPassword,
             prefixIcon: const Icon(Icons.lock_outline_rounded),
@@ -430,7 +430,7 @@ class _LoginScreenState extends State<LoginScreen>
         _SocialButton(
           onPressed: _isLoadingAny ? null : _signInWithApple,
           isLoading: _isAppleLoading,
-          icon: const Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
+          icon: Icon(Icons.apple, size: 24, color: AppColors.textPrimary),
           label: AppLocalizations.of(context)!.loginWithApple,
           baseLabel: AppLocalizations.of(context)!.loginWithGoogle,
         ),
@@ -440,7 +440,7 @@ class _LoginScreenState extends State<LoginScreen>
         _SocialButton(
           onPressed: _isLoadingAny ? null : _signInWithGoogle,
           isLoading: _isGoogleLoading,
-          icon: const SizedBox(
+          icon: SizedBox(
             width: 24,
             height: 24,
             child: Center(
@@ -484,7 +484,7 @@ class _LoginScreenState extends State<LoginScreen>
           onPressed: () => _launchURL('https://veffect.web.app/support/'),
           child: Text(
             AppLocalizations.of(context)!.loginContactSupport,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textMuted,
               fontSize: 12,
               decoration: TextDecoration.underline,
@@ -506,7 +506,7 @@ class _LoginScreenState extends State<LoginScreen>
                 onTap: () => Navigator.pushNamed(context, AppRoutes.terms),
                 child: Text(
                   AppLocalizations.of(context)!.settingsTerms,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
                     decoration: TextDecoration.underline,
@@ -521,7 +521,7 @@ class _LoginScreenState extends State<LoginScreen>
                 onTap: () => Navigator.pushNamed(context, AppRoutes.privacyPolicy),
                 child: Text(
                   AppLocalizations.of(context)!.settingsPrivacyPolicy,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
                     decoration: TextDecoration.underline,

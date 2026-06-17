@@ -113,3 +113,4 @@ You are a development assistant for the V EFFECT project. Please follow these ru
 - **Implementation Note:** Keep data access in Firestore consistent. Private user data (email, birthDate, gender, wakeUpTime, taskTime) is stored in `users/{uid}/private/data` subcollection. Public profile data is in the main `users/{uid}` document.
 
 ---
+*Last applied: 2026-06-15*

@@ -57,7 +57,7 @@ class TaskSection extends StatelessWidget {
               onPressed: onShowTrendingTasks,
               child: Text(
                 AppLocalizations.of(context)!.profileScreenWeeklyTrend,
-                style: const TextStyle(color: AppColors.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(color: AppColors.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -146,7 +146,7 @@ class TaskSection extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               AppLocalizations.of(context)!.profileScreenAddFirstTask,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -175,7 +175,7 @@ class TaskSection extends StatelessWidget {
               width: 1,
             ),
           ),
-          child: const Center(
+          child: Center(
             child: Icon(
               Icons.add_rounded,
               size: 24,

@@ -11,8 +11,8 @@ description: V EFFECT プロジェクトの概要・チーム構成・フォル�
 - **Platform:** Android / iOS (Cross-platform development using Flutter)
 - **Development Language:** Dart (Flutter framework)
 - **Development Members:** 2 members
-  - **renn** (Planner): アプリ全体の統一感UIUXetcを意識してください
-  - **yusuke** (Technical Co-developer): Doctoral course (Engineering). Experienced in Python/C/C++/Matlab. Well-versed in machine learning, generative AI, mathematics, and English. Role is to technically realize the app upon consultation from renn.
+  - **renn** (Planner / Beginner): アプリ全体の統一感UIUXetcを意識してください
+  - **yusuke** (Technical Co-developer / Advanced): Doctoral course (Engineering). Experienced in Python/C/C++/Matlab. Well-versed in machine learning, generative AI, mathematics, and English. Role is to technically realize the app upon consultation from renn.
 - **Source Code Management:** GitHub (Repository: YusukeKatahara/V-Effect)
 
 ## Folder Structure (Flutter Project)
@@ -49,15 +49,11 @@ V-Effect/
 
 ## Season Task Announcements (シーズンタスクのお知らせテンプレート)
 
-シーズンタスクを開始する際のお知らせは、ユーザーの納得感とモチベーションを高めるために**「なぜそのタスク（行動）が効果的なのかという科学的・心理的な理由（パターンA）」**を含めて作成します。
-
-### テンプレート (Template)
-
 ※プレビュー画面（アプリ内）で文字の太字や改行を確実に反映させるための「マークダウン最適化版（空行・半角スペース調整済み）」です。
 
 ```markdown
 初のシーズンタスクが始まります！
-今回のテーマは **「感謝」** です。
+今回オテーマは **「感謝」** です。
 
 私たち開発チームも、日頃から支えてくださっている身の回りの方々へ、改めて深く感謝の気持ちを伝えたいと考えています。
 
@@ -100,3 +96,6 @@ V-Effect/
 
 期間中にクリア条件を達成した方全員に、 **限定「[バッジ名]バッジ」** をプレゼント！
 ```
+
+---
+*Last applied: 2026-06-15*

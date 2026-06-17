@@ -99,12 +99,12 @@ class NativeAdCard extends StatelessWidget {
                       ),
                     )
                   else if (isAdLoadFailed)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(vertical: 40),
                       child: Icon(Icons.campaign_rounded, color: AppColors.grey30, size: 64),
                     )
                   else
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(vertical: 40),
                       child: CircularProgressIndicator(color: AppColors.accentGold),
                     ),

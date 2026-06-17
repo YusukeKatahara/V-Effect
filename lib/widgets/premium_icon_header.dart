@@ -41,7 +41,7 @@ class PremiumIconHeader extends StatelessWidget {
           Text(
             subtitle!,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary,
               letterSpacing: 0.5,

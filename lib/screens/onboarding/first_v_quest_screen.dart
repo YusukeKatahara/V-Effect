@@ -607,7 +607,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Icon(
+            Icon(
               Icons.arrow_downward_rounded,
               size: 16,
               color: AppColors.grey50,
@@ -625,7 +625,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
           ),
           if (hasReward) ...[
             const SizedBox(height: 8),
-            const Icon(
+            Icon(
               Icons.arrow_downward_rounded,
               size: 16,
               color: AppColors.grey50,
@@ -659,7 +659,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 14),
+              Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 14),
               const SizedBox(width: 6),
               Text(
                 AppLocalizations.of(context)!.onboardingFirstQuestHabitTipsTitle,

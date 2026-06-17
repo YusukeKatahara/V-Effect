@@ -95,7 +95,7 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
                       color: AppColors.accentGold.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.star_rounded,
                       color: AppColors.accentGold,
                       size: 24,
@@ -121,7 +121,7 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
                         const SizedBox(height: 2),
                         Text(
                           AppLocalizations.of(context)!.weeklyReviewBannerTitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: AppColors.white,
@@ -132,7 +132,7 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
                   ),
                   
                   // 矢印
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_ios_rounded,
                     color: AppColors.textMuted,
                     size: 16,

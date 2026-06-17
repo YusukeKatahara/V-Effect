@@ -6,9 +6,14 @@ import '../config/app_colors.dart';
 /// モノクロの炎アイコンを CustomPaint で描画し、
 /// 揺らめきアニメーションを付けるウィジェット。
 class StreakFlame extends StatefulWidget {
-  const StreakFlame({super.key, this.size = 28});
+  const StreakFlame({
+    super.key,
+    this.size = 28,
+    this.color,
+  });
 
   final double size;
+  final Color? color;
 
   @override
   State<StreakFlame> createState() => _StreakFlameState();
@@ -61,7 +66,10 @@ class _StreakFlameState extends State<StreakFlame>
           builder: (context, _) {
             return CustomPaint(
               size: Size(widget.size, widget.size * 1.3),
-              painter: _FlamePainter(progress: _controller.value),
+              painter: _FlamePainter(
+                progress: _controller.value,
+                color: widget.color ?? AppColors.white,
+              ),
             );
           },
         ),
@@ -71,9 +79,10 @@ class _StreakFlameState extends State<StreakFlame>
 }
 
 class _FlamePainter extends CustomPainter {
-  _FlamePainter({required this.progress});
+  _FlamePainter({required this.progress, required this.color});
 
   final double progress;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -102,7 +111,7 @@ class _FlamePainter extends CustomPainter {
       heightFactor: 1.05,
     );
     final outerGlow = Paint()
-      ..color = AppColors.white.withValues(alpha: 0.08)
+      ..color = color.withValues(alpha: 0.08)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
     canvas.drawPath(outerPath, outerGlow);
 
@@ -120,9 +129,9 @@ class _FlamePainter extends CustomPainter {
         begin: Alignment.bottomCenter,
         end: Alignment.topCenter,
         colors: [
-          AppColors.white.withValues(alpha: 0.7),
-          AppColors.white.withValues(alpha: 0.35),
-          AppColors.white.withValues(alpha: 0.05),
+          color.withValues(alpha: 0.7),
+          color.withValues(alpha: 0.35),
+          color.withValues(alpha: 0.05),
         ],
         stops: const [0.0, 0.5, 1.0],
       ).createShader(Rect.fromLTWH(-w / 2, 0, w, h));
@@ -142,8 +151,8 @@ class _FlamePainter extends CustomPainter {
         begin: Alignment.bottomCenter,
         end: Alignment.topCenter,
         colors: [
-          AppColors.white.withValues(alpha: 0.9),
-          AppColors.white.withValues(alpha: 0.0),
+          color.withValues(alpha: 0.9),
+          color.withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(-w / 2, 0, w, h));
     canvas.drawPath(innerPath, innerPaint);

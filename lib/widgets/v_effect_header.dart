@@ -90,7 +90,7 @@ class UserAvatarHeader extends StatelessWidget {
             backgroundColor: AppColors.grey10,
             backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
             child: photoUrl == null
-                ? const Icon(Icons.person, size: 18, color: AppColors.grey50)
+                ? Icon(Icons.person, size: 18, color: AppColors.grey50)
                 : null,
           ),
         );
@@ -113,7 +113,7 @@ class NotificationBellIcon extends StatelessWidget {
           icon: Badge(
             isLabelVisible: count > 0,
             label: Text('$count'),
-            child: const Icon(
+            child: Icon(
               Icons.notifications_outlined,
               color: AppColors.white,
               size: 22,

@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:v_effect/providers/theme_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider, Provider;
 import 'package:app_links/app_links.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
@@ -73,7 +74,18 @@ void main() {
     }
 
     // Fast Boot: 即座にアプリを起動
-    runApp(const ProviderScope(child: AppInitializer()));
+    runApp(
+      ProviderScope(
+        child: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<ThemeProvider>(
+              create: (_) => ThemeProvider(),
+            ),
+          ],
+          child: const VEffectApp(),
+        ),
+      ),
+    );
   }, (error, stack) {
     if (!kIsWeb) {
       try {
@@ -89,7 +101,8 @@ void main() {
 
 /// アプリの初期化状態を管理するラッパー
 class AppInitializer extends StatefulWidget {
-  const AppInitializer({super.key});
+  final Widget child;
+  const AppInitializer({super.key, required this.child});
 
   @override
   State<AppInitializer> createState() => _AppInitializerState();
@@ -135,13 +148,6 @@ class _AppInitializerState extends State<AppInitializer> {
       SoundService.instance.init().catchError((e) => debugPrint('音声初期化エラー: $e'));
       WidgetService.instance.initialize().then((_) => _syncWidgetData()).catchError((e) => debugPrint('Widget初期化エラー: $e'));
 
-      final prefs = await SharedPreferences.getInstance();
-
-      // テーマ設定
-      final isDarkMode = prefs.getBool('isDarkMode') ?? true;
-      VEffectApp.themeNotifier.value =
-          isDarkMode ? ThemeMode.dark : ThemeMode.light;
-
       if (mounted) {
         setState(() {
           _isInitialized = true;
@@ -174,13 +180,10 @@ class _AppInitializerState extends State<AppInitializer> {
     }
 
     if (!_isInitialized) {
-      return const MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: SplashLoading(),
-      );
+      return const SplashLoading();
     }
 
-    return const VEffectApp();
+    return widget.child;
   }
 }
 
@@ -188,7 +191,6 @@ class VEffectApp extends ConsumerStatefulWidget {
   const VEffectApp({super.key});
 
   static final navigatorKey = GlobalKey<NavigatorState>();
-  static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 
   @override
   ConsumerState<VEffectApp> createState() => _VEffectAppState();
@@ -198,6 +200,23 @@ class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObse
   final _appLinks = AppLinks();
   Timer? _midnightTimer;
   String _lastCheckedDate = '';
+  ThemeProvider? _themeProvider;
+
+  // テーマ変更時に呼び出されるコールバック。
+  // const指定されたウィジェットツリーも含めて、すべてのElementを強制的に再構築(rebuild)します。
+  // これにより、画面遷移の履歴をリセット（再起動）することなく、テーマ切り替え時にconstウィジェットの配色が正しく即座に反映されます。
+  void _onThemeChanged() {
+    if (!mounted) return;
+    void rebuildElement(Element element) {
+      element.markNeedsBuild();
+      element.visitChildren(rebuildElement);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        (context as Element).visitChildren(rebuildElement);
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -210,6 +229,10 @@ class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObse
 
     // メール認証 Deep Link の受信を開始
     _initDeepLinks();
+
+    // テーマプロバイダーのリスナー登録を行い、テーマ変更時に全Elementを強制更新できるようにします。
+    _themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    _themeProvider?.addListener(_onThemeChanged);
 
     // Navigatorの準備が完了したタイミングでDeepLinkServiceに通知し、溜まっていたリンクを処理させる
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -280,6 +303,8 @@ class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObse
   @override
   void dispose() {
     _midnightTimer?.cancel();
+    // 登録したテーマ変更リスナーを解除してメモリリークを防ぎます
+    _themeProvider?.removeListener(_onThemeChanged);
     WidgetsBinding.instance.removeObserver(this);
     DeepLinkService().dispose();
     super.dispose();
@@ -309,32 +334,28 @@ class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObse
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: VEffectApp.themeNotifier,
-      builder: (context, themeMode, _) {
-        final lang = ref.watch(languageProvider);
-        return MaterialApp(
-          navigatorKey: VEffectApp.navigatorKey,
-          title: 'V EFFECT',
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: themeMode,
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale('ja', 'JP'),
-            Locale('en', 'US'),
-          ],
-          locale: Locale(lang),
-          initialRoute: AppRoutes.wrapper,
-          routes: AppRoutes.routes,
-          navigatorObservers: [AnalyticsService.instance.observer],
-        );
-      },
+    final themeMode = context.watch<ThemeProvider>().themeMode;
+    final lang = ref.watch(languageProvider);
+    return MaterialApp(
+      navigatorKey: VEffectApp.navigatorKey,
+      title: 'V EFFECT',
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ja', 'JP'),
+        Locale('en', 'US'),
+      ],
+      locale: Locale(lang),
+      initialRoute: AppRoutes.wrapper,
+      routes: AppRoutes.routes,
+      navigatorObservers: [AnalyticsService.instance.observer],
     );
   }
 }

@@ -156,7 +156,7 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.white),
+        iconTheme: IconThemeData(color: AppColors.white),
         // どのタスクでも違和感なく振り返りができ、より柔らかい表現になるように「積み重ねを振りかえる」に統一しました
         title: Text(
           AppLocalizations.of(context)!.pastComparisonTitle,
@@ -183,7 +183,7 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.accentGold))
+          ? Center(child: CircularProgressIndicator(color: AppColors.accentGold))
           : _validTabs.isEmpty
               ? _buildEmptyState()
               : TabBarView(
@@ -266,13 +266,13 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
                       ),
                       errorWidget: (context, url, error) => Container(
                         color: AppColors.grey20,
-                        child: const Icon(Icons.error, color: AppColors.grey50),
+                        child: Icon(Icons.error, color: AppColors.grey50),
                       ),
                     )
                   else
                     Container(
                       color: AppColors.grey20,
-                      child: const Icon(Icons.image_not_supported, color: AppColors.grey50),
+                      child: Icon(Icons.image_not_supported, color: AppColors.grey50),
                     ),
                   // 右上チェックマーク (比較モード)
                   if (_isCompareMode)
@@ -376,7 +376,7 @@ class _ComparisonViewerScreenState extends State<ComparisonViewerScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.white),
+        iconTheme: IconThemeData(color: AppColors.white),
       ),
       body: SafeArea(
         child: Column(
@@ -495,11 +495,11 @@ class _ComparisonViewerScreenState extends State<ComparisonViewerScreen> {
                               imageUrl: post.imageUrl!,
                               fit: BoxFit.cover,
                               placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                              errorWidget: (context, url, error) => const Icon(Icons.error, color: AppColors.grey50),
+                              errorWidget: (context, url, error) => Icon(Icons.error, color: AppColors.grey50),
                             )
                           : Container(
                               color: AppColors.grey10,
-                              child: const Center(
+                              child: Center(
                                 child: Icon(Icons.image_not_supported, color: AppColors.grey50),
                               ),
                             ),
@@ -548,7 +548,7 @@ class PostDetailViewerScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.white),
+        iconTheme: IconThemeData(color: AppColors.white),
       ),
       body: SafeArea(
         child: Column(
@@ -564,11 +564,11 @@ class PostDetailViewerScreen extends StatelessWidget {
                             imageUrl: post.imageUrl!,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                            errorWidget: (context, url, error) => const Center(child: Icon(Icons.error, color: AppColors.white, size: 48)),
+                            errorWidget: (context, url, error) => Center(child: Icon(Icons.error, color: AppColors.white, size: 48)),
                           ),
                         ),
                       )
-                    : const Center(
+                    : Center(
                         child: Icon(Icons.image_not_supported, color: AppColors.grey50, size: 64),
                       ),
               ),

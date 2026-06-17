@@ -115,19 +115,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         title: TextField(
           controller: _searchController,
           autofocus: true,
-          style: const TextStyle(color: AppColors.white, fontSize: 15),
+          style: TextStyle(color: AppColors.white, fontSize: 15),
           decoration: InputDecoration(
             hintText: AppLocalizations.of(context)!.searchHint,
-            hintStyle: const TextStyle(color: AppColors.grey30, fontSize: 15),
+            hintStyle: TextStyle(color: AppColors.grey30, fontSize: 15),
             border: InputBorder.none,
           ),
           onSubmitted: _performSearch,
           textInputAction: TextInputAction.search,
         ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
         actions: [
           IconButton(
-            icon: const Icon(Icons.qr_code_scanner, color: AppColors.grey50),
+            icon: Icon(Icons.qr_code_scanner, color: AppColors.grey50),
             onPressed: () {
               Navigator.push(
                 context,
@@ -146,7 +146,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     child: Text(
                       AppLocalizations.of(context)!.searchError(_errorMessage ?? ''),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.error, fontSize: 13),
+                      style: TextStyle(color: AppColors.error, fontSize: 13),
                     ),
                   ),
                 )
@@ -154,14 +154,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ? Center(
                       child: Text(
                         AppLocalizations.of(context)!.searchKeywordPrompt,
-                        style: const TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(color: AppColors.textSecondary),
                       ),
                     )
                   : _results.isEmpty
                       ? Center(
                           child: Text(
                             AppLocalizations.of(context)!.searchNoResults,
-                            style: const TextStyle(color: AppColors.textSecondary),
+                            style: TextStyle(color: AppColors.textSecondary),
                           ),
                         )
                       : ListView.builder(
@@ -191,16 +191,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                       : null,
                                 ),
                                 child: user.photoUrl == null
-                                    ? const Icon(Icons.person, color: AppColors.textMuted)
+                                    ? Icon(Icons.person, color: AppColors.textMuted)
                                     : null,
                               ),
                               title: Text(
                                 user.username ?? '',
-                                style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
                               ),
                               subtitle: Text(
                                 '@${user.userId ?? ''}',
-                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                               ),
                               trailing: isMe
                                   ? const SizedBox.shrink() // 自分自身の場合はボタンを非表示

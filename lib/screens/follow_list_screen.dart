@@ -89,7 +89,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
         backgroundColor: AppColors.bgBase,
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
-        title: Text(_title, style: const TextStyle(color: AppColors.textPrimary)),
+        title: Text(_title, style: TextStyle(color: AppColors.textPrimary)),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -101,7 +101,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
                       ? Center(
                           child: Text(
                             AppLocalizations.of(context)!.followListNoUsers,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 color: AppColors.textSecondary),
                           ),
                         )
@@ -123,7 +123,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.bgElevated,
           border: Border(
             bottom: BorderSide(color: AppColors.border),
@@ -131,7 +131,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.person_add_rounded,
               color: AppColors.textPrimary,
               size: 20,
@@ -140,14 +140,14 @@ class _FollowListScreenState extends State<FollowListScreen> {
             Expanded(
               child: Text(
                 AppLocalizations.of(context)!.followListPendingBanner,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               color: AppColors.textMuted,
             ),
@@ -167,18 +167,18 @@ class _FollowListScreenState extends State<FollowListScreen> {
       leading: _buildAvatar(user),
       title: Text(
         user.username ?? '',
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w600,
         ),
       ),
       subtitle: Text(
         '@${user.userId ?? ''}',
-        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
       ),
       trailing: isMe
-          ? Text(AppLocalizations.of(context)!.followListMe, style: const TextStyle(color: AppColors.textMuted, fontSize: 12))
-          : const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+          ? Text(AppLocalizations.of(context)!.followListMe, style: TextStyle(color: AppColors.textMuted, fontSize: 12))
+          : Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
     );
   }
 
@@ -201,7 +201,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
             : null,
       ),
       child: user.photoUrl == null
-          ? const Icon(Icons.person, color: AppColors.textMuted, size: 22)
+          ? Icon(Icons.person, color: AppColors.textMuted, size: 22)
           : null,
     );
   }

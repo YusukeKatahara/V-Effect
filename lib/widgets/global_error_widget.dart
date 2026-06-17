@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../main.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider;
+import 'package:provider/provider.dart';
+import 'package:v_effect/providers/theme_provider.dart';
 
 /// アプリ全体で共有するエラー表示用ウィジェット
 class GlobalErrorWidget extends StatelessWidget {
@@ -23,45 +25,63 @@ class GlobalErrorWidget extends StatelessWidget {
         body: Builder(
           builder: (innerContext) {
             final l10n = AppLocalizations.of(innerContext);
-            return Padding(
-              padding: const EdgeInsets.all(24),
-              child: Center(
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 64),
-                    const SizedBox(height: 16),
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      color: Colors.redAccent,
+                      size: 64,
+                    ),
+                    const SizedBox(height: 24),
                     Text(
-                      l10n?.globalErrorTitle ?? '申し訳ありません',
-                      style: const TextStyle(
+                      l10n?.globalErrorTitle ?? 'エラーが発生しました',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
                         color: AppColors.white,
-                        fontSize: 18,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Text(
-                      l10n?.globalErrorDesc ?? 'アプリの起動中に問題が発生しました。',
+                      l10n?.globalErrorDesc ?? '申し訳ありません。予期しない問題が発生したため、アプリを再起動してください。',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.grey),
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
                     ),
-                    if (kDebugMode && (details != null || error != null)) ...[
-                      const SizedBox(height: 24),
-                      Container(
-                        width: double.infinity,
-                        constraints: const BoxConstraints(maxHeight: 200),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[900],
-                          borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 24),
+                    if (kDebugMode || error != null) ...[
+                      Text(
+                        'エラー詳細:',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
                         ),
-                        child: SingleChildScrollView(
-                          child: Text(
-                            details?.exceptionAsString() ?? error ?? (l10n?.globalErrorUnknown ?? '未知のエラー'),
-                            style: const TextStyle(
-                              color: Colors.redAccent,
-                              fontSize: 12,
-                              fontFamily: 'monospace',
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: SingleChildScrollView(
+                            child: Text(
+                              details?.exceptionAsString() ?? error ?? (l10n?.globalErrorUnknown ?? '未知のエラー'),
+                              style: const TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 12,
+                                fontFamily: 'monospace',
+                              ),
                             ),
                           ),
                         ),
@@ -70,8 +90,19 @@ class GlobalErrorWidget extends StatelessWidget {
                     const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: () {
-                        // アプリの再起動を試みるため、AppInitializerを再度runAppする
-                        runApp(const ProviderScope(child: AppInitializer()));
+                        // アプリの再起動を試みるため、rootAppを再度runAppする
+                        runApp(
+                          ProviderScope(
+                            child: MultiProvider(
+                              providers: [
+                                ChangeNotifierProvider<ThemeProvider>(
+                                  create: (_) => ThemeProvider(),
+                                ),
+                              ],
+                              child: const VEffectApp(),
+                            ),
+                          ),
+                        );
                       },
                       child: Text(l10n?.globalErrorRetry ?? '再試行'),
                     ),

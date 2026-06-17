@@ -59,7 +59,7 @@ class _QrDisplayScreenState extends State<QrDisplayScreen> {
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
         title: Text(AppLocalizations.of(context)!.qrDisplayTitle,
-            style: const TextStyle(color: AppColors.textPrimary)),
+            style: TextStyle(color: AppColors.textPrimary)),
       ),
       body: SafeArea(
         child: Center(
@@ -161,7 +161,7 @@ class _QrDisplayScreenState extends State<QrDisplayScreen> {
                               children: [
                                 Text(
                                   user.username ?? '',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.textPrimary,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
@@ -169,7 +169,7 @@ class _QrDisplayScreenState extends State<QrDisplayScreen> {
                                 ),
                                 Text(
                                   '@${user.userId ?? ''}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.textMuted,
                                     fontSize: 12,
                                   ),

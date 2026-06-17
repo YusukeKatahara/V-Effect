@@ -86,7 +86,7 @@ class _NotificationPromptSheetState extends State<NotificationPromptSheet> {
             const SizedBox(height: 32),
 
             // ── 🔔 アイコン ──
-            const Icon(
+            Icon(
               Icons.notifications_active_rounded,
               color: AppColors.accentGold,
               size: 60,

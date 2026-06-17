@@ -106,7 +106,7 @@ class SingleRequestCard extends StatelessWidget {
                             ? NetworkImage(photoUrl)
                             : null,
                         child: photoUrl == null
-                            ? const Icon(Icons.person, size: 20, color: AppColors.grey50)
+                            ? Icon(Icons.person, size: 20, color: AppColors.grey50)
                             : null,
                       ),
                     ),
@@ -130,7 +130,7 @@ class SingleRequestCard extends StatelessWidget {
                           children: [
                             Text(
                               request.fromUsername,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -140,7 +140,7 @@ class SingleRequestCard extends StatelessWidget {
                             ),
                             Text(
                               '@${request.fromUserId}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.grey50,
                                 fontSize: 11,
                               ),
@@ -216,7 +216,7 @@ class SingleRequestCard extends StatelessWidget {
                                 color: AppColors.white.withValues(alpha: 0.15),
                               ),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.close_rounded,
                               color: AppColors.white,
                               size: 20,
@@ -280,7 +280,7 @@ class MultipleRequestsCard extends StatelessWidget {
                             ? NetworkImage(photoUrl)
                             : null,
                         child: photoUrl == null
-                            ? const Icon(Icons.person, size: 18, color: AppColors.grey50)
+                            ? Icon(Icons.person, size: 18, color: AppColors.grey50)
                             : null,
                       ),
                       const SizedBox(width: 12),
@@ -288,7 +288,7 @@ class MultipleRequestsCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           AppLocalizations.of(context)!.homeFriendRequestMultiple(latestReq.fromUsername, otherCount),
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.white,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -297,7 +297,7 @@ class MultipleRequestsCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Icon(
+                      Icon(
                         Icons.chevron_right_rounded,
                         color: AppColors.grey50,
                       ),

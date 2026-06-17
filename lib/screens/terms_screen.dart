@@ -11,11 +11,11 @@ class TermsScreen extends StatelessWidget {
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
-        title: const Text(
+        title: Text(
           '利用規約',
           style: TextStyle(color: AppColors.textPrimary),
         ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
       ),
       body: const SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(24, 16, 24, 40),
@@ -151,7 +151,7 @@ class TermsContent extends StatelessWidget {
         _buildContactRow('V EFFECT開発チーム', 'V.EFFECT.developer@gmail.com'),
         const SizedBox(height: 32),
 
-        const Divider(color: AppColors.border),
+        Divider(color: AppColors.border),
         const SizedBox(height: 12),
         _buildParagraph('制定日：2026年4月16日'),
         _buildParagraph('改訂日：2026年4月16日'),
@@ -166,7 +166,7 @@ class TermsContent extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         '$article（$title）',
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 16,
           fontWeight: FontWeight.bold,
@@ -182,7 +182,7 @@ class TermsContent extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 14,
           fontWeight: FontWeight.w600,
@@ -198,7 +198,7 @@ class TermsContent extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.textSecondary,
           fontSize: 13,
           height: 1.7,
@@ -216,7 +216,7 @@ class TermsContent extends StatelessWidget {
         children: [
           Text(
             '$number.  ',
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
               height: 1.7,
@@ -225,7 +225,7 @@ class TermsContent extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 13,
                 height: 1.7,
@@ -244,7 +244,7 @@ class TermsContent extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '・',
             style: TextStyle(
               color: AppColors.textSecondary,
@@ -256,7 +256,7 @@ class TermsContent extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 13,
                 height: 1.7,
@@ -277,7 +277,7 @@ class TermsContent extends StatelessWidget {
           children: [
             TextSpan(
               text: '$label：',
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -286,7 +286,7 @@ class TermsContent extends StatelessWidget {
             ),
             TextSpan(
               text: value,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 13,
                 height: 1.7,

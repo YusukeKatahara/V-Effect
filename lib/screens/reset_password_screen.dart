@@ -177,12 +177,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                          icon: Icon(Icons.arrow_back_ios_new_rounded,
                               color: AppColors.textPrimary),
                           onPressed: () => Navigator.pop(context),
                         ),
                         Text(AppLocalizations.of(context)!.resetPasswordTitle,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
@@ -220,7 +220,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         Text(
           AppLocalizations.of(context)!.resetPasswordPasteLinkTitle,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary),
@@ -229,12 +229,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         Text(
           AppLocalizations.of(context)!.resetPasswordPasteLinkDesc,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
         TextField(
           controller: _linkCtrl,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.resetPasswordPasteLinkLabel,
             hintText: 'https://...',
@@ -265,7 +265,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         Text(
           AppLocalizations.of(context)!.resetPasswordNewTitle,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary),
@@ -275,13 +275,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
           Text(
             _email!,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
         ],
         const SizedBox(height: 32),
         TextField(
           controller: _passwordCtrl,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.resetPasswordNew,
             prefixIcon: const Icon(Icons.lock_outline),
@@ -291,7 +291,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         const SizedBox(height: 16),
         TextField(
           controller: _confirmCtrl,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.resetPasswordConfirm,
             prefixIcon: const Icon(Icons.lock_outline),
@@ -329,7 +329,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                 ),
               ],
             ),
-            child: const Icon(Icons.check_circle,
+            child: Icon(Icons.check_circle,
                 size: 40, color: AppColors.black),
           ),
         ),
@@ -337,7 +337,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         Text(
           AppLocalizations.of(context)!.resetPasswordDone,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary),
@@ -346,7 +346,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
         Text(
           AppLocalizations.of(context)!.resetPasswordLoginWithNew,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 32),
         GradientButton(

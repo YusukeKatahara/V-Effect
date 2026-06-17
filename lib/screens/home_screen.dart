@@ -792,16 +792,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             const SizedBox(height: 20),
             ListTile(
-              leading: const Icon(Icons.block_rounded, color: AppColors.textPrimary),
-              title: Text(AppLocalizations.of(context)!.homeBlockUser, style: const TextStyle(color: AppColors.textPrimary)),
+              leading: Icon(Icons.block_rounded, color: AppColors.textPrimary),
+              title: Text(AppLocalizations.of(context)!.homeBlockUser, style: TextStyle(color: AppColors.textPrimary)),
               onTap: () {
                 Navigator.pop(context);
                 _confirmBlock(post.userId);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.report_problem_rounded, color: AppColors.error),
-              title: Text(AppLocalizations.of(context)!.homeReportPost, style: const TextStyle(color: AppColors.error)),
+              leading: Icon(Icons.report_problem_rounded, color: AppColors.error),
+              title: Text(AppLocalizations.of(context)!.homeReportPost, style: TextStyle(color: AppColors.error)),
               onTap: () {
                 Navigator.pop(context);
                 _showReportDialog(post);
@@ -819,12 +819,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgSurface,
-        title: Text(AppLocalizations.of(context)!.homeBlockConfirmTitle, style: const TextStyle(color: AppColors.textPrimary)),
-        content: Text(AppLocalizations.of(context)!.homeBlockConfirmDesc, style: const TextStyle(color: AppColors.textSecondary)),
+        title: Text(AppLocalizations.of(context)!.homeBlockConfirmTitle, style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(AppLocalizations.of(context)!.homeBlockConfirmDesc, style: TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)!.homeBlockConfirmCancel, style: const TextStyle(color: AppColors.textSecondary)),
+            child: Text(AppLocalizations.of(context)!.homeBlockConfirmCancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () async {
@@ -845,7 +845,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 }
               }
             },
-            child: Text(AppLocalizations.of(context)!.homeBlockButton, style: const TextStyle(color: AppColors.error)),
+            child: Text(AppLocalizations.of(context)!.homeBlockButton, style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -857,7 +857,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgSurface,
-        title: Text(AppLocalizations.of(context)!.homeReportTitle, style: const TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.homeReportTitle, style: TextStyle(color: AppColors.textPrimary)),
         contentPadding: const EdgeInsets.symmetric(vertical: 8),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -871,7 +871,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)!.homeReportCancel, style: const TextStyle(color: AppColors.textSecondary)),
+            child: Text(AppLocalizations.of(context)!.homeReportCancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
         ],
       ),
@@ -880,7 +880,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _reportOption(BuildContext ctx, Post post, String label, String reason) {
     return ListTile(
-      title: Text(label, style: const TextStyle(color: AppColors.textPrimary)),
+      title: Text(label, style: TextStyle(color: AppColors.textPrimary)),
       onTap: () async {
         Navigator.pop(ctx);
         try {
@@ -902,11 +902,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Color _getTierColor(int streak) {
-    if (streak >= 100) return const Color(0xFFE5E4E2); // Platinum
-    if (streak >= 30) return AppColors.accentGoldLight;
-    if (streak >= 7) return const Color(0xFFC0C0C0); // Silver
-    if (streak >= 3) return const Color(0xFFCD7F32); // Bronze
-    return AppColors.accentGold;
+    if (streak >= 365) return const Color(0xFFE0A33B); // Challenger (Gold/Blue)
+    if (streak >= 270) return const Color(0xFFB53030); // Grandmaster (Red)
+    if (streak >= 180) return const Color(0xFF8D2D9E); // Master (Purple)
+    if (streak >= 100) return const Color(0xFF4A60AB); // Diamond (Vivid Blue)
+    if (streak >= 66) return const Color(0xFF10825B);  // Emerald (Green)
+    if (streak >= 30) return const Color(0xFF327A8A);  // Platinum (Teal)
+    if (streak >= 14) return const Color(0xFFC89C3C);  // Gold (Gold)
+    if (streak >= 7) return const Color(0xFF8091A0);   // Silver (Blue-Gray)
+    if (streak >= 3) return const Color(0xFF8F5338);   // Bronze (Copper)
+    return const Color(0xFF5E4B43);                    // Iron (Dark Brown-Gray)
   }
 
   @override
@@ -1166,7 +1171,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, color: AppColors.accentGold, size: 48),
+          Icon(Icons.error_outline, color: AppColors.accentGold, size: 48),
           const SizedBox(height: 16),
           Text(AppLocalizations.of(context)!.homeErrorOccurred, style: GoogleFonts.outfit(color: AppColors.white)),
           const SizedBox(height: 8),
@@ -1187,7 +1192,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildTitleBar() => VEffectHeader(
     leading: IconButton(
-      icon: const Icon(Icons.search_rounded, color: AppColors.white, size: 22),
+      icon: Icon(Icons.search_rounded, color: AppColors.white, size: 22),
       onPressed: () => Navigator.pushNamed(context, '/search'),
     ),
     trailing: const NotificationBellIcon(),
@@ -1299,15 +1304,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                             decoration: BoxDecoration(
-                                              color: AppColors.grey15.withValues(alpha: 0.95),
+                                              color: Colors.black.withValues(alpha: 0.7),
                                               borderRadius: BorderRadius.circular(12),
                                               border: Border.all(
-                                                color: AppColors.white.withValues(alpha: 0.1),
+                                                color: Colors.white.withValues(alpha: 0.1),
                                                 width: 0.5,
                                               ),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: AppColors.black.withValues(alpha: 0.3),
+                                                  color: Colors.black.withValues(alpha: 0.3),
                                                   blurRadius: 10,
                                                   offset: const Offset(0, 4),
                                                 ),
@@ -1318,7 +1323,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                               style: GoogleFonts.outfit(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
-                                                color: AppColors.white,
+                                                color: AppColors.pureWhite,
                                                 letterSpacing: 1,
                                               ),
                                               maxLines: 1,
@@ -1331,10 +1336,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                             style: GoogleFonts.outfit(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w600,
-                                              color: AppColors.white.withValues(alpha: 0.8),
+                                              color: AppColors.pureWhite.withValues(alpha: 0.8),
                                               shadows: [
                                                 Shadow(
-                                                  color: AppColors.black.withValues(alpha: 0.5),
+                                                  color: Colors.black.withValues(alpha: 0.5),
                                                   blurRadius: 6,
                                                   offset: const Offset(0, 2),
                                                 ),
@@ -1483,7 +1488,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                         ),
                                         child: Text(
                                           AppLocalizations.of(context)!.homeEmojiReactionHint,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             color: AppColors.black,
                                             fontWeight: FontWeight.w700,
                                             fontSize: 12,

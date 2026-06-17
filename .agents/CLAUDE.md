@@ -82,7 +82,7 @@
 |--------|-------|---------|
 | `feat:` | New feature | `feat: implement push notification foundation` |
 | `fix:` | Bug fix | `fix: resolve compile errors in test` |
-| `docs:` | Documentation | `docs: add screen transition diagram` |
+| `docs:` | Documentations | `docs: add screen transition diagram` |
 | `chore:` | Maintenance / config | `chore: apply setup_guide configurations` |
 
 ### Comments
@@ -125,4 +125,6 @@ You are a Senior Reviewer (Advanced Check Lead) for the V EFFECT project. Please
 ## Basic Approach for Claude
 - **When requesting code generation or modification**: Implement according to the above technical stack and naming conventions
 - **When requesting code review**: Review based on the rules in Project-Specific Instructions
+
 ---
+*Last applied: 2026-06-15*

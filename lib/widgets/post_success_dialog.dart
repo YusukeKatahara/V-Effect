@@ -31,49 +31,115 @@ class _TierStyle {
 }
 
 _TierStyle _getTierStyle(int streak) {
-  if (streak >= 30) {
+  if (streak >= 365) {
     return const _TierStyle(
-      label: 'PLATINUM',
-      primaryColor: Color(0xFF8AC4FF),
-      glowColor: Color(0xFF8AC4FF),
-      flameColor: Color(0xFF8AC4FF),
+      label: 'CHALLENGER',
+      primaryColor: Color(0xFFE0A33B),
+      glowColor: Color(0xFF327A8A), // Challenger cyan-gold glow
+      flameColor: Color(0xFFE0A33B),
       hasParticles: true,
       nextMilestone: 9999,
+      prevMilestone: 365,
+      nextLabel: 'MAX',
+    );
+  } else if (streak >= 270) {
+    return const _TierStyle(
+      label: 'GRANDMASTER',
+      primaryColor: Color(0xFFB53030),
+      glowColor: Color(0xFFB53030),
+      flameColor: Color(0xFFB53030),
+      hasParticles: true,
+      nextMilestone: 365,
+      prevMilestone: 270,
+      nextLabel: 'CHALLENGER',
+    );
+  } else if (streak >= 180) {
+    return const _TierStyle(
+      label: 'MASTER',
+      primaryColor: Color(0xFF8D2D9E),
+      glowColor: Color(0xFF8D2D9E),
+      flameColor: Color(0xFF8D2D9E),
+      hasParticles: true,
+      nextMilestone: 270,
+      prevMilestone: 180,
+      nextLabel: 'GRANDMASTER',
+    );
+  } else if (streak >= 100) {
+    return const _TierStyle(
+      label: 'DIAMOND',
+      primaryColor: Color(0xFF4A60AB),
+      glowColor: Color(0xFF4A60AB),
+      flameColor: Color(0xFF4A60AB),
+      hasParticles: true,
+      nextMilestone: 180,
+      prevMilestone: 100,
+      nextLabel: 'MASTER',
+    );
+  } else if (streak >= 66) {
+    return const _TierStyle(
+      label: 'EMERALD',
+      primaryColor: Color(0xFF10825B),
+      glowColor: Color(0xFF10825B),
+      flameColor: Color(0xFF10825B),
+      hasParticles: true,
+      nextMilestone: 100,
+      prevMilestone: 66,
+      nextLabel: 'DIAMOND',
+    );
+  } else if (streak >= 30) {
+    return const _TierStyle(
+      label: 'PLATINUM',
+      primaryColor: Color(0xFF327A8A),
+      glowColor: Color(0xFF327A8A),
+      flameColor: Color(0xFF327A8A),
+      hasParticles: true,
+      nextMilestone: 66,
       prevMilestone: 30,
-      nextLabel: 'LEGEND',
+      nextLabel: 'EMERALD',
+    );
+  } else if (streak >= 14) {
+    return const _TierStyle(
+      label: 'GOLD',
+      primaryColor: Color(0xFFC89C3C),
+      glowColor: Color(0xFFFFD700),
+      flameColor: Color(0xFFC89C3C),
+      hasParticles: true,
+      nextMilestone: 30,
+      prevMilestone: 14,
+      nextLabel: 'PLATINUM',
     );
   } else if (streak >= 7) {
     return const _TierStyle(
-      label: 'GOLD',
-      primaryColor: AppColors.accentGold,
-      glowColor: Color(0xFFFFD700),
-      flameColor: AppColors.accentGold,
+      label: 'SILVER',
+      primaryColor: Color(0xFF8091A0),
+      glowColor: Color(0xFFFFFFFF),
+      flameColor: Color(0xFF8091A0),
       hasParticles: true,
-      nextMilestone: 30,
+      nextMilestone: 14,
       prevMilestone: 7,
-      nextLabel: 'PLATINUM',
+      nextLabel: 'GOLD',
     );
   } else if (streak >= 3) {
     return const _TierStyle(
-      label: 'SILVER',
-      primaryColor: Color(0xFFD9D9D9),
-      glowColor: Color(0xFFFFFFFF),
-      flameColor: Color(0xFFD9D9D9),
-      hasParticles: true,
+      label: 'BRONZE',
+      primaryColor: Color(0xFF8F5338),
+      glowColor: Color(0xFF8F5338),
+      flameColor: Color(0xFF8F5338),
+      hasParticles: false,
       nextMilestone: 7,
       prevMilestone: 3,
-      nextLabel: 'GOLD',
+      nextLabel: 'SILVER',
     );
   } else {
     return const _TierStyle(
-      label: 'BRONZE',
-      primaryColor: Color(0xFFCD7F32),
-      glowColor: Color(0xFFCD7F32),
-      flameColor: Color(0xFFCD7F32),
+      label: 'IRON',
+      primaryColor: Color(0xFF5E4B43),
+      glowColor: Color(0xFF5E4B43),
+      flameColor: Color(0xFF5E4B43),
       hasParticles: false,
       nextMilestone: 3,
       prevMilestone: 1,
-      nextLabel: 'SILVER',
+      nextLabel: 'BRONZE',
     );
   }
 }
@@ -393,7 +459,7 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
                   top: 12,
                   right: 12,
                   child: IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.grey30, size: 22),
+                    icon: Icon(Icons.close, color: AppColors.grey30, size: 22),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
@@ -552,14 +618,14 @@ class _PostSuccessDialogState extends State<PostSuccessDialog>
   }
 
   Widget _buildProgressBar(_TierStyle tier) {
-    // If platinum (max), show a different message
+    // If max tier, show a different message
     if (tier.nextMilestone >= 9999) {
       return Column(
         children: [
           Transform.translate(
             offset: const Offset(1.0, 0),
             child: Text(
-              'LEGENDARY STREAK',
+              '${tier.label} STREAK',
               style: GoogleFonts.outfit(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,

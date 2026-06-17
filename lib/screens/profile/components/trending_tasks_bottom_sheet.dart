@@ -26,7 +26,7 @@ void showTrendingTasksBottomSheet(
         minChildSize: 0.4,
         builder: (_, scrollController) {
           return Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.bgElevated,
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
@@ -50,7 +50,7 @@ void showTrendingTasksBottomSheet(
                   // ---タイトル
                   Text(
                     AppLocalizations.of(context)!.profileScreenTrendTitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -59,7 +59,7 @@ void showTrendingTasksBottomSheet(
                   const SizedBox(height: 16),
                   // ---トレンドリスト
                   if (trendingTasks.isEmpty)
-                    Text(AppLocalizations.of(context)!.profileScreenTrendEmpty, style: const TextStyle(color: AppColors.grey70))
+                    Text(AppLocalizations.of(context)!.profileScreenTrendEmpty, style: TextStyle(color: AppColors.grey70))
                   else
                     Expanded(
                       child: ListView.separated(
@@ -105,7 +105,7 @@ void showTrendingTasksBottomSheet(
                                   Expanded(
                                     child: Text(
                                       name,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppColors.white,
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
@@ -115,7 +115,7 @@ void showTrendingTasksBottomSheet(
                                   // ---割合（パーセンテージ）
                                   Text(
                                     '$percentage%',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.accentGold,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,

@@ -158,7 +158,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                           child: Center(
                             child: Text(
                               AppLocalizations.of(context)!.taskSetupTimePickerTitle,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,
@@ -188,7 +188,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                       ],
                     ),
                   ),
-                  const Divider(height: 1, color: AppColors.border),
+                  Divider(height: 1, color: AppColors.border),
                   // ── スクロールホイール部分 ──
                   Expanded(
                     child: Row(
@@ -387,7 +387,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                       children: [
                         if (Navigator.of(context).canPop())
                           IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.arrow_back,
                               color: AppColors.textPrimary,
                             ),
@@ -395,7 +395,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                           ),
                         Text(
                           AppLocalizations.of(context)!.taskSetupTitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
@@ -420,7 +420,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                               iconSize: 40,
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'Step 2 / 2',
                               textAlign: TextAlign.center,
                               style: TextStyle(
@@ -432,7 +432,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             Text(
                               AppLocalizations.of(context)!.taskSetupSubtitle,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,
@@ -476,7 +476,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
                                               children: [
-                                                const Icon(
+                                                Icon(
                                                   Icons.camera_alt,
                                                   size: 32,
                                                   color: AppColors.textMuted,
@@ -484,7 +484,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                                 const SizedBox(height: 4),
                                                 Text(
                                                   AppLocalizations.of(context)!.taskSetupSelectPhoto,
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 12,
                                                     color: AppColors.textMuted,
                                                   ),
@@ -510,14 +510,14 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                       width: 28,
                                       height: 28,
                                       margin: const EdgeInsets.only(right: 8),
-                                      decoration: const BoxDecoration(
+                                      decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         gradient: AppColors.primaryGradient,
                                       ),
                                       child: Center(
                                         child: Text(
                                           '${index + 1}',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w700,
                                             color: AppColors.black,
@@ -528,7 +528,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                     Expanded(
                                       child: TextFormField(
                                         controller: _taskCtrls[index],
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: AppColors.textPrimary,
                                         ),
                                         decoration: InputDecoration(
@@ -539,7 +539,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                     ),
                                     if (_taskCtrls.length > 1)
                                       IconButton(
-                                        icon: const Icon(
+                                        icon: Icon(
                                           Icons.remove_circle_outline,
                                           color: AppColors.error,
                                         ),
@@ -569,7 +569,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                             const SizedBox(height: 4),
                             Text(
                               AppLocalizations.of(context)!.taskSetupTimeDesc,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 color: AppColors.textSecondary,
                               ),
@@ -583,7 +583,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                 ),
                                 child: Text(
                                   _formatTime(_taskTime),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 18,
                                     color: AppColors.textPrimary,
                                   ),

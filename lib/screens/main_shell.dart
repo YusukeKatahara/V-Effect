@@ -279,7 +279,7 @@ class _SpatialNavItem extends StatelessWidget {
                     child: Container(
                       width: 8,
                       height: 8,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: AppColors.error,
                         shape: BoxShape.circle,
                       ),
@@ -292,7 +292,7 @@ class _SpatialNavItem extends StatelessWidget {
               duration: const Duration(milliseconds: 300),
               width: isActive ? 3 : 0,
               height: 3,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: AppColors.white,
               ),

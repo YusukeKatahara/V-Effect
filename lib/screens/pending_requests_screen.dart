@@ -23,7 +23,7 @@ class PendingRequestsScreen extends StatelessWidget {
           foregroundColor: AppColors.textPrimary,
           title: Text(
             AppLocalizations.of(context)!.pendingRequestsTitle,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
           ),
         ),
         body: StreamBuilder<List<FriendRequest>>(
@@ -37,14 +37,14 @@ class PendingRequestsScreen extends StatelessWidget {
               return Center(
                 child: Text(
                   AppLocalizations.of(context)!.pendingRequestsEmpty,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
               );
             }
             return ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: requests.length,
-              separatorBuilder: (_, __) => const Divider(
+              separatorBuilder: (_, __) => Divider(
                 color: AppColors.border,
                 height: 1,
                 indent: 72,
@@ -114,14 +114,14 @@ class _RequestTileState extends State<_RequestTile> {
       leading: _Avatar(uid: req.fromUid),
       title: Text(
         req.fromUsername,
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w600,
         ),
       ),
       subtitle: Text(
         '@${req.fromUserId}',
-        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
       ),
       trailing:
           _loading
@@ -172,7 +172,7 @@ class _Avatar extends StatelessWidget {
           ),
           child:
               photoUrl == null
-                  ? const Icon(
+                  ? Icon(
                     Icons.person,
                     color: AppColors.textMuted,
                     size: 22,

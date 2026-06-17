@@ -348,7 +348,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
   Widget _buildHeader(bool isEditing) {
     return VEffectHeader(
       leading: IconButton(
-        icon: const Icon(Icons.close_rounded, color: AppColors.white, size: 22),
+        icon: Icon(Icons.close_rounded, color: AppColors.white, size: 22),
         onPressed: () => Navigator.pop(context),
       ),
       trailing: Row(
@@ -372,7 +372,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             },
           ),
           if (_isSaving)
-            const SizedBox(
+            SizedBox(
               width: 48,
               child: Center(
                 child: SizedBox(
@@ -527,14 +527,14 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
         border: Border.all(color: AppColors.grey20, width: 0.5),
       ),
       codeblockPadding: const EdgeInsets.all(12),
-      blockquoteDecoration: const BoxDecoration(
+      blockquoteDecoration: BoxDecoration(
         border: Border(
           left: BorderSide(color: AppColors.grey30, width: 3),
         ),
       ),
       blockquotePadding:
           const EdgeInsets.only(left: 16, top: 4, bottom: 4),
-      horizontalRuleDecoration: const BoxDecoration(
+      horizontalRuleDecoration: BoxDecoration(
         border: Border(
           top: BorderSide(color: AppColors.grey20, width: 0.5),
         ),
@@ -547,7 +547,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
 
   Widget _buildFormatToolbar() {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.grey10,
         border: Border(
           top: BorderSide(color: AppColors.grey20, width: 0.5),
@@ -681,7 +681,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                 else if (_existingCoverUrl != null)
                   Image.network(_existingCoverUrl!, fit: BoxFit.cover)
                 else
-                  const ColoredBox(color: AppColors.grey10),
+                  ColoredBox(color: AppColors.grey10),
                 Container(
                   decoration: BoxDecoration(
                     color: hasCover
@@ -790,7 +790,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
               ),
             ),
             child: _isPinned
-                ? const Icon(Icons.check_rounded,
+                ? Icon(Icons.check_rounded,
                     size: 14, color: AppColors.black)
                 : null,
           ),
@@ -801,7 +801,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                 fontSize: 14, color: AppColors.grey70),
           ),
           const SizedBox(width: 6),
-          const Icon(Icons.push_pin_rounded,
+          Icon(Icons.push_pin_rounded,
               size: 14, color: AppColors.accentGold),
         ],
       ),
@@ -1009,18 +1009,18 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                   ? CachedNetworkImage(
                       imageUrl: badgeUrl,
                       fit: BoxFit.contain,
-                      errorWidget: (c,u,e) => const Icon(Icons.broken_image, color: AppColors.textMuted),
+                      errorWidget: (c,u,e) => Icon(Icons.broken_image, color: AppColors.textMuted),
                     )
                   : Image.asset(
                       badgeUrl == 'assets/icon/gratitude_heart_badge.png' 
                           ? 'assets/icon/gratitude_heart_badge_v3.png'
                           : badgeUrl,
                       fit: BoxFit.contain,
-                      errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: AppColors.textMuted),
+                      errorBuilder: (c,e,s) => Icon(Icons.broken_image, color: AppColors.textMuted),
                     ),
               )
             else
-              const Icon(
+              Icon(
                 Icons.do_disturb_alt_rounded,
                 color: AppColors.textMuted,
                 size: 40,
@@ -1065,14 +1065,14 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
             Container(
               height: 40,
               alignment: Alignment.center,
-              child: const Icon(
+              child: Icon(
                 Icons.add_photo_alternate,
                 color: AppColors.accentGold,
                 size: 32,
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'アップロード',
               style: TextStyle(
                 color: AppColors.textPrimary,
@@ -1154,7 +1154,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.arrow_forward_ios_rounded,
                   color: AppColors.grey50,
                   size: 16,
@@ -1178,7 +1178,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           return Container(
             margin: EdgeInsets.only(bottom: bottomInset),
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.bgElevated,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
@@ -1305,12 +1305,12 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide:
-            const BorderSide(color: AppColors.grey20, width: 0.5),
+            BorderSide(color: AppColors.grey20, width: 0.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide:
-            const BorderSide(color: AppColors.grey50, width: 0.5),
+            BorderSide(color: AppColors.grey50, width: 0.5),
       ),
     );
   }

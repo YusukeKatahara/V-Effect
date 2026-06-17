@@ -209,7 +209,7 @@ class TaskCardState extends State<TaskCard> {
           ),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.emoji_events_rounded,
                 size: 14,
                 color: AppColors.accentGold,
@@ -493,7 +493,7 @@ class TaskCardState extends State<TaskCard> {
                                       if (SoundService.instance.isBgmMuted)
                                         Container(
                                           color: AppColors.black.withValues(alpha: 0.5),
-                                          child: const Icon(
+                                          child: Icon(
                                             Icons.music_off_rounded,
                                             color: AppColors.white,
                                             size: 16,
@@ -527,7 +527,7 @@ class TaskCardState extends State<TaskCard> {
                           children: [
                             Text(
                               currentPost.bgmTitle!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.white,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -538,7 +538,7 @@ class TaskCardState extends State<TaskCard> {
                             if (currentPost.bgmArtist != null)
                               Text(
                                 currentPost.bgmArtist!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.grey50,
                                   fontSize: 10,
                                 ),
@@ -613,7 +613,7 @@ class TaskCardState extends State<TaskCard> {
                           children: [
                             Text(
                               currentPost!.bgmTitle!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.white,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -624,7 +624,7 @@ class TaskCardState extends State<TaskCard> {
                             if (currentPost.bgmArtist != null)
                               Text(
                                 currentPost.bgmArtist!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.grey50,
                                   fontSize: 10,
                                 ),
@@ -690,7 +690,7 @@ class TaskCardState extends State<TaskCard> {
                     width: 1.5,
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.camera_alt_outlined,
                   color: AppColors.white,
                   size: 28,
@@ -701,7 +701,7 @@ class TaskCardState extends State<TaskCard> {
 
         // depth!=0 の場合の小さいカメラアイコン（中央）
         if (!isCompleted && showCamera && depth != 0)
-          const Positioned.fill(
+          Positioned.fill(
             child: Center(
               child: Icon(
                 Icons.camera_alt_outlined,
@@ -731,7 +731,7 @@ class TaskCardState extends State<TaskCard> {
                         // Caption
                         Text(
                           caption,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.white,
                             fontSize: 15,
                             fontWeight: FontWeight.w400,
@@ -782,7 +782,7 @@ class TaskCardState extends State<TaskCard> {
                               shape: BoxShape.circle,
                               border: Border.all(color: AppColors.white.withValues(alpha: 0.1), width: 1),
                             ),
-                            child: const Icon(Icons.local_fire_department, color: AppColors.accentGold, size: 32),
+                            child: Icon(Icons.local_fire_department, color: AppColors.accentGold, size: 32),
                           ),
                         ],
                       ),

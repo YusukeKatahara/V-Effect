@@ -47,7 +47,7 @@ class DevBlogBanner extends ConsumerWidget {
                         color: AppColors.accentGold.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.campaign_rounded, size: 18, color: AppColors.accentGold),
+                      child: Icon(Icons.campaign_rounded, size: 18, color: AppColors.accentGold),
                     ),
                     const SizedBox(width: 12),
                     // メッセージ
@@ -57,7 +57,7 @@ class DevBlogBanner extends ConsumerWidget {
                         children: [
                           Text(
                             AppLocalizations.of(context)!.homeNewsTitle,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.accentGold,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -66,7 +66,7 @@ class DevBlogBanner extends ConsumerWidget {
                           const SizedBox(height: 2),
                           Text(
                             latestPost.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.white,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -77,7 +77,7 @@ class DevBlogBanner extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
                       color: AppColors.grey50,
                     ),

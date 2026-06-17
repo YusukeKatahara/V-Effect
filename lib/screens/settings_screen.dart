@@ -60,13 +60,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               backgroundColor: AppColors.grey15,
               title: Text(
                 AppLocalizations.of(context)!.languageSetting,
-                style: const TextStyle(color: AppColors.white),
+                style: TextStyle(color: AppColors.white),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   RadioListTile<String>(
-                    title: Text(AppLocalizations.of(context)!.languageJapanese, style: const TextStyle(color: AppColors.white)),
+                    title: Text(AppLocalizations.of(context)!.languageJapanese, style: TextStyle(color: AppColors.white)),
                     value: 'ja',
                     groupValue: currentLang,
                     activeColor: AppColors.accentGold,
@@ -78,7 +78,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     },
                   ),
                   RadioListTile<String>(
-                    title: Text(AppLocalizations.of(context)!.languageEnglish, style: const TextStyle(color: AppColors.white)),
+                    title: Text(AppLocalizations.of(context)!.languageEnglish, style: TextStyle(color: AppColors.white)),
                     value: 'en',
                     groupValue: currentLang,
                     activeColor: AppColors.accentGold,
@@ -103,8 +103,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
-        title: Text(AppLocalizations.of(context)!.settingsTitle, style: const TextStyle(color: AppColors.textPrimary)),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        title: Text(AppLocalizations.of(context)!.settingsTitle, style: TextStyle(color: AppColors.textPrimary)),
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
       ),
       body: ResponsiveContainer(
         child: ListView(
@@ -113,9 +113,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               title: Text(
                 AppLocalizations.of(context)!.settingsNotification,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: AppColors.textPrimary),
               ),
-              trailing: const Icon(
+              trailing: Icon(
                 Icons.chevron_right,
                 color: AppColors.textMuted,
               ),
@@ -124,22 +124,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               title: Text(
                 AppLocalizations.of(context)!.languageSetting,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: AppColors.textPrimary),
               ),
               trailing: Text(
                 ref.watch(languageProvider) == 'en'
                   ? AppLocalizations.of(context)!.languageEnglish
                   : AppLocalizations.of(context)!.languageJapanese,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 14),
               ),
               onTap: () => _showLanguageDialog(context, ref),
             ),
             ListTile(
               title: Text(
-                AppLocalizations.of(context)!.settingsPasswordSecurity,
-                style: const TextStyle(color: AppColors.textPrimary),
+                AppLocalizations.of(context)!.settingsDisplay,
+                style: TextStyle(color: AppColors.textPrimary),
               ),
-              trailing: const Icon(
+              trailing: Icon(
+                Icons.chevron_right,
+                color: AppColors.textMuted,
+              ),
+              onTap: () => Navigator.pushNamed(context, AppRoutes.displaySettings),
+            ),
+            ListTile(
+              title: Text(
+                AppLocalizations.of(context)!.settingsPasswordSecurity,
+                style: TextStyle(color: AppColors.textPrimary),
+              ),
+              trailing: Icon(
                 Icons.chevron_right,
                 color: AppColors.textMuted,
               ),
@@ -150,9 +161,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               title: Text(
                 AppLocalizations.of(context)!.settingsContactBugReport,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: AppColors.textPrimary),
               ),
-              trailing: const Icon(
+              trailing: Icon(
                 Icons.open_in_new,
                 color: AppColors.textMuted,
                 size: 16,
@@ -162,9 +173,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               title: Text(
                 AppLocalizations.of(context)!.settingsTerms,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: AppColors.textPrimary),
               ),
-              trailing: const Icon(
+              trailing: Icon(
                 Icons.chevron_right,
                 color: AppColors.textMuted,
               ),
@@ -173,9 +184,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               title: Text(
                 AppLocalizations.of(context)!.settingsPrivacyPolicy,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: AppColors.textPrimary),
               ),
-              trailing: const Icon(
+              trailing: Icon(
                 Icons.chevron_right,
                 color: AppColors.textMuted,
               ),
@@ -184,11 +195,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               title: Text(
                 AppLocalizations.of(context)!.settingsVersionInfo,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: AppColors.textPrimary),
               ),
               trailing: Text(
                 _appVersion,
-                style: const TextStyle(color: AppColors.textMuted),
+                style: TextStyle(color: AppColors.textMuted),
               ),
             ),
   
@@ -203,7 +214,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           color: AppColors.primary,
           fontSize: 14,
           fontWeight: FontWeight.bold,

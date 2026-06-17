@@ -89,14 +89,14 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
               children: [
                 Text(
                   AppLocalizations.of(context)!.weeklyReviewSelectBackground,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.white),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.white),
                 ),
                 const SizedBox(height: 16),
                 if (_imagePosts.isEmpty)
                   Container(
                     height: 100,
                     alignment: Alignment.center,
-                    child: Text(AppLocalizations.of(context)!.weeklyReviewNoPostsDefault, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+                    child: Text(AppLocalizations.of(context)!.weeklyReviewNoPostsDefault, textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary)),
                   )
                 else
                   SizedBox(
@@ -171,10 +171,10 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     if (!_isDataInitialized) {
       final reviewAsync = ref.watch(weeklyReviewProvider);
       return reviewAsync.when(
-        loading: () => const Scaffold(backgroundColor: AppColors.bgBase, body: Center(child: CircularProgressIndicator())),
+        loading: () => Scaffold(backgroundColor: AppColors.bgBase, body: Center(child: CircularProgressIndicator())),
         error: (err, stack) => Scaffold(
           backgroundColor: AppColors.bgBase,
-          body: Center(child: Text(AppLocalizations.of(context)!.weeklyReviewLoadError(err), style: const TextStyle(color: AppColors.white))),
+          body: Center(child: Text(AppLocalizations.of(context)!.weeklyReviewLoadError(err), style: TextStyle(color: AppColors.white))),
         ),
         data: (data) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -190,7 +190,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
               _precacheImages();
             }
           });
-          return const Scaffold(backgroundColor: AppColors.bgBase, body: Center(child: CircularProgressIndicator()));
+          return Scaffold(backgroundColor: AppColors.bgBase, body: Center(child: CircularProgressIndicator()));
         },
       );
     }
@@ -201,7 +201,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: AppColors.white, size: 28),
+          icon: Icon(Icons.close, color: AppColors.white, size: 28),
           onPressed: () => Navigator.pop(context),
         ),
         title: _buildLogo(),
@@ -239,8 +239,8 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
               color: AppColors.bgBase,
               child: ElevatedButton.icon(
                 onPressed: _showShareImageSelection,
-                icon: const Icon(Icons.share, color: AppColors.bgBase),
-                label: Text(AppLocalizations.of(context)!.weeklyReviewShareToSns, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
+                icon: Icon(Icons.share, color: AppColors.bgBase),
+                label: Text(AppLocalizations.of(context)!.weeklyReviewShareToSns, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accentGold,
                   minimumSize: const Size(double.infinity, 56),
@@ -281,7 +281,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       return Container(
         height: 200,
         alignment: Alignment.center,
-        child: Text(AppLocalizations.of(context)!.weeklyReviewNoPosts, style: const TextStyle(color: AppColors.textSecondary)),
+        child: Text(AppLocalizations.of(context)!.weeklyReviewNoPosts, style: TextStyle(color: AppColors.textSecondary)),
       );
     }
 
@@ -310,7 +310,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                     fit: BoxFit.cover,
                     memCacheWidth: 400,
                     placeholder: (context, url) => Container(color: AppColors.grey10),
-                    errorWidget: (context, url, error) => Container(color: AppColors.grey10, child: const Icon(Icons.broken_image, color: AppColors.white)),
+                    errorWidget: (context, url, error) => Container(color: AppColors.grey10, child: Icon(Icons.broken_image, color: AppColors.white)),
                   ),
                   // 日付ラベル
                   Positioned(
@@ -369,7 +369,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w500,

@@ -99,12 +99,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       TextButton(
-                        child: Text(AppLocalizations.of(context)!.profileSetupPickerCancel, style: const TextStyle(color: AppColors.textSecondary)),
+                        child: Text(AppLocalizations.of(context)!.profileSetupPickerCancel, style: TextStyle(color: AppColors.textSecondary)),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
-                      Text(title, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(title, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
                       TextButton(
-                        child: Text(AppLocalizations.of(context)!.profileSetupPickerDone, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        child: Text(AppLocalizations.of(context)!.profileSetupPickerDone, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                         onPressed: () {
                           onTimeSelected(selectedTime);
                           Navigator.of(context).pop();
@@ -115,7 +115,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                 ),
                 Expanded(
                   child: CupertinoTheme(
-                    data: const CupertinoThemeData(
+                    data: CupertinoThemeData(
                       brightness: Brightness.dark,
                       textTheme: CupertinoTextThemeData(
                         dateTimePickerTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 22),
@@ -161,12 +161,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
-                      child: Text(AppLocalizations.of(context)!.profileSetupPickerCancel, style: const TextStyle(color: AppColors.textSecondary)),
+                      child: Text(AppLocalizations.of(context)!.profileSetupPickerCancel, style: TextStyle(color: AppColors.textSecondary)),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
-                    Text(AppLocalizations.of(context)!.profileSetupOccupationPickerTitle, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(AppLocalizations.of(context)!.profileSetupOccupationPickerTitle, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
                     TextButton(
-                      child: Text(AppLocalizations.of(context)!.profileSetupPickerDone, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      child: Text(AppLocalizations.of(context)!.profileSetupPickerDone, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                       onPressed: () {
                         setState(() {
                           _occupation = occupationOpts[selectedIndex];
@@ -180,7 +180,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
               SizedBox(
                 height: 216,
                 child: CupertinoTheme(
-                  data: const CupertinoThemeData(
+                  data: CupertinoThemeData(
                     textTheme: CupertinoTextThemeData(
                       pickerTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 20),
                     ),
@@ -195,7 +195,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                       return Center(
                         child: Text(
                           value,
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 20),
+                          style: TextStyle(color: AppColors.textPrimary, fontSize: 20),
                         ),
                       );
                     }).toList(),
@@ -288,7 +288,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                       children: [
                         if (Navigator.of(context).canPop())
                           IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.arrow_back_ios_new_rounded,
                               color: AppColors.textPrimary,
                             ),
@@ -296,7 +296,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                           ),
                         Text(
                           AppLocalizations.of(context)!.profileSetupTitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -321,7 +321,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                               iconSize: 40,
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'Step 1 / 2',
                               textAlign: TextAlign.center,
                               style: TextStyle(
@@ -333,7 +333,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             Text(
                               AppLocalizations.of(context)!.profileSetupSubtitle,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,
@@ -344,7 +344,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             // ユーザー名
                             TextFormField(
                               controller: _usernameCtrl,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.textPrimary,
                               ),
                               decoration: InputDecoration(
@@ -363,7 +363,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                             // ユーザーID
                             TextFormField(
                               controller: _userIdCtrl,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.textPrimary,
                               ),
                               decoration: InputDecoration(
@@ -420,7 +420,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                         fontSize: 16,
                                       ),
                                     ),
-                                    const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                                    Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
                                   ],
                                 ),
                               ),
@@ -459,7 +459,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                         fontSize: 16,
                                       ),
                                     ),
-                                    const Icon(Icons.access_time, color: AppColors.textSecondary),
+                                    Icon(Icons.access_time, color: AppColors.textSecondary),
                                   ],
                                 ),
                               ),

@@ -165,7 +165,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
                           onPressed: _isProcessing ? null : _onSkip,
                           child: Text(
                             AppLocalizations.of(context)!.taskTemplateSkip,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.textMuted,
                               fontSize: 14,
                             ),
@@ -240,7 +240,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
               color: AppColors.white.withValues(alpha: 0.1),
             ),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.rocket_launch_rounded,
             size: 32,
             color: AppColors.white,
@@ -400,7 +400,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
                     ),
                   ),
                   child: isSelected
-                      ? const Icon(Icons.check_rounded,
+                      ? Icon(Icons.check_rounded,
                           size: 16, color: AppColors.black)
                       : null,
                 ),
@@ -428,7 +428,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
           labelStyle: TextStyle(color: AppColors.textSecondary),
           hintStyle: TextStyle(color: AppColors.textMuted),
           prefixIcon:
-              const Icon(Icons.edit_note_rounded, color: AppColors.grey50),
+              Icon(Icons.edit_note_rounded, color: AppColors.grey50),
           filled: true,
           fillColor: AppColors.bgSurface,
           enabledBorder: OutlineInputBorder(
@@ -438,7 +438,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.white, width: 1),
+            borderSide: BorderSide(color: AppColors.white, width: 1),
           ),
         ),
         onChanged: (_) => setState(() {}),

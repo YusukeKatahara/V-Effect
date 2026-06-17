@@ -43,7 +43,7 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
           children: [
             VEffectHeader(
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.white, size: 20),
+                icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.white, size: 20),
                 onPressed: () => Navigator.pop(context),
               ),
               trailing: isDev
@@ -51,7 +51,7 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.stars_rounded, color: AppColors.accentGold, size: 22),
+                          icon: Icon(Icons.stars_rounded, color: AppColors.accentGold, size: 22),
                           tooltip: AppLocalizations.of(context)!.vPracticeDistributeBadge,
                           onPressed: () {
                             showDialog(
@@ -61,7 +61,7 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
                           },
                         ),
                         IconButton(
-                          icon: const Icon(Icons.add_rounded, color: AppColors.white, size: 22),
+                          icon: Icon(Icons.add_rounded, color: AppColors.white, size: 22),
                           tooltip: AppLocalizations.of(context)!.vPracticeCreateBlog,
                           onPressed: () =>
                               Navigator.pushNamed(context, AppRoutes.blogPostEditor),
@@ -80,7 +80,7 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
                         itemBuilder: (context, i) =>
                             _BlogCard(post: posts[i]),
                       ),
-                loading: () => const Center(
+                loading: () => Center(
                   child: CircularProgressIndicator(
                     color: AppColors.white,
                     strokeWidth: 1.5,
@@ -89,7 +89,7 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
                 error: (e, _) => Center(
                   child: Text(
                     AppLocalizations.of(context)!.vPracticeError,
-                    style: const TextStyle(color: AppColors.grey50, fontSize: 14),
+                    style: TextStyle(color: AppColors.grey50, fontSize: 14),
                   ),
                 ),
               ),
@@ -157,7 +157,7 @@ class _BlogCard extends ConsumerWidget {
                       _CategoryBadge(category: post.category),
                       if (post.isPinned) ...[
                         const SizedBox(width: 8),
-                        const Icon(
+                        Icon(
                           Icons.push_pin_rounded,
                           size: 13,
                           color: AppColors.accentGold,
@@ -203,7 +203,7 @@ class _CoverPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(gradient: AppColors.bgGradient),
+      decoration: BoxDecoration(gradient: AppColors.bgGradient),
       child: Center(
         child: Icon(
           _iconForCategory(category),
@@ -394,7 +394,7 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
       backgroundColor: AppColors.grey15,
       title: Row(
         children: [
-          const Icon(Icons.stars_rounded, color: AppColors.accentGold),
+          Icon(Icons.stars_rounded, color: AppColors.accentGold),
           const SizedBox(width: 8),
           Expanded(
             child: Text(AppLocalizations.of(context)!.vPracticeDialogTitle,
@@ -419,11 +419,11 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
               fillColor: AppColors.black.withValues(alpha: 0.3),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.grey30, width: 0.5),
+                borderSide: BorderSide(color: AppColors.grey30, width: 0.5),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.accentGold, width: 0.5),
+                borderSide: BorderSide(color: AppColors.accentGold, width: 0.5),
               ),
             ),
           ),
@@ -438,11 +438,11 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
               fillColor: AppColors.black.withValues(alpha: 0.3),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.grey30, width: 0.5),
+                borderSide: BorderSide(color: AppColors.grey30, width: 0.5),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.accentGold, width: 0.5),
+                borderSide: BorderSide(color: AppColors.accentGold, width: 0.5),
               ),
             ),
           ),
@@ -454,7 +454,7 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
           child: Text(AppLocalizations.of(context)!.vPracticeCancel, style: GoogleFonts.notoSansJp(color: AppColors.grey50)),
         ),
         _isSaving
-            ? const SizedBox(
+            ? SizedBox(
                 width: 20, height: 20,
                 child: CircularProgressIndicator(color: AppColors.accentGold, strokeWidth: 2),
               )

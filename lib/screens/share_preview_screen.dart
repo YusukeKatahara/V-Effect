@@ -84,10 +84,10 @@ class _SharePreviewScreenState extends State<SharePreviewScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.white),
+          icon: Icon(Icons.arrow_back, color: AppColors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(AppLocalizations.of(context)!.sharePreviewTitle, style: const TextStyle(color: AppColors.white)),
+        title: Text(AppLocalizations.of(context)!.sharePreviewTitle, style: TextStyle(color: AppColors.white)),
       ),
       body: SafeArea(
         child: Column(
@@ -179,9 +179,9 @@ class _SharePreviewScreenState extends State<SharePreviewScreen> {
               child: ElevatedButton.icon(
                 onPressed: _isSharing ? null : _shareImage,
                 icon: _isSharing
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bgBase))
-                    : const Icon(Icons.share, color: AppColors.bgBase),
-                label: Text(_isSharing ? AppLocalizations.of(context)!.sharePreviewPreparing : AppLocalizations.of(context)!.sharePreviewShareButton, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
+                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bgBase))
+                    : Icon(Icons.share, color: AppColors.bgBase),
+                label: Text(_isSharing ? AppLocalizations.of(context)!.sharePreviewPreparing : AppLocalizations.of(context)!.sharePreviewShareButton, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.bgBase)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accentGold,
                   minimumSize: const Size(double.infinity, 56),

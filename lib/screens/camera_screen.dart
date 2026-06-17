@@ -502,10 +502,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                             const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                         child: TextField(
                           controller: _captionController,
-                          style: const TextStyle(color: AppColors.white),
+                          style: TextStyle(color: AppColors.white),
                           decoration: InputDecoration(
                             hintText: AppLocalizations.of(context)!.cameraScreenCaption,
-                            hintStyle: const TextStyle(color: AppColors.grey50),
+                            hintStyle: TextStyle(color: AppColors.grey50),
                             filled: true,
                             fillColor: AppColors.white.withValues(alpha: 0.1),
                             contentPadding: const EdgeInsets.symmetric(
@@ -538,7 +538,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.close, color: AppColors.white),
+            icon: Icon(Icons.close, color: AppColors.white),
             onPressed: () => Navigator.pop(context),
           ),
           const Spacer(),
@@ -780,7 +780,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(
+          SizedBox(
             width: 32,
             height: 32,
             child: CircularProgressIndicator(
@@ -791,7 +791,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.cameraScreenCameraLoading,
-            style: const TextStyle(color: AppColors.grey30, fontSize: 14),
+            style: TextStyle(color: AppColors.grey30, fontSize: 14),
           ),
         ],
       ),
@@ -821,7 +821,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 ),
                 color: AppColors.grey15,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.photo_library_rounded,
                 color: AppColors.white,
                 size: 22,
@@ -1022,13 +1022,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                                   width: 22,
                                   height: 22,
                                   color: AppColors.black.withValues(alpha: 0.6),
-                                  child: const Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
+                                  child: Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
                                 ),
                                 errorWidget: (context, url, error) => Container(
                                   width: 22,
                                   height: 22,
                                   color: AppColors.black.withValues(alpha: 0.6),
-                                  child: const Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
+                                  child: Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
                                 ),
                               ),
                             )
@@ -1039,7 +1039,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                                 color: AppColors.black.withValues(alpha: 0.6),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
+                              child: Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
                             ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -1048,7 +1048,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                               children: [
                                 Text(
                                   _selectedMusic!.title,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.white,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -1058,7 +1058,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                                 ),
                                 Text(
                                   _selectedMusic!.artist,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.grey50,
                                     fontSize: 10,
                                   ),
@@ -1095,7 +1095,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                           width: 1,
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.local_fire_department,
                         color: AppColors.accentGold,
                         size: 32,
@@ -1134,7 +1134,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                         fontSize: 10,
                         color: AppColors.white.withValues(alpha: 0.6),
                         shadows: [
-                          const Shadow(
+                          Shadow(
                             color: AppColors.black,
                             blurRadius: 4,
                           )
@@ -1182,7 +1182,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 color: AppColors.grey15,
                 border: Border.all(color: AppColors.grey20),
               ),
-              child: const Icon(Icons.refresh_rounded,
+              child: Icon(Icons.refresh_rounded,
                   color: AppColors.grey70, size: 22),
             ),
           ),
@@ -1209,7 +1209,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               ),
               child: Center(
                 child: _isUploading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 22, height: 22,
                         child: CircularProgressIndicator(
                           strokeWidth: 2, color: AppColors.grey50))
@@ -1366,7 +1366,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
               children: [
                 Text(
                   AppLocalizations.of(context)!.cameraMusicAdd,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1376,7 +1376,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
                   onPressed: () {
                     Navigator.pop(context, 'remove');
                   },
-                  child: Text(AppLocalizations.of(context)!.cameraMusicRemoveBgm, style: const TextStyle(color: AppColors.error)),
+                  child: Text(AppLocalizations.of(context)!.cameraMusicRemoveBgm, style: TextStyle(color: AppColors.error)),
                 ),
               ],
             ),
@@ -1387,11 +1387,11 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(color: AppColors.white),
+              style: TextStyle(color: AppColors.white),
               decoration: InputDecoration(
                 hintText: AppLocalizations.of(context)!.cameraMusicSearchHint,
-                hintStyle: const TextStyle(color: AppColors.grey50),
-                prefixIcon: const Icon(Icons.search, color: AppColors.grey50),
+                hintStyle: TextStyle(color: AppColors.grey50),
+                prefixIcon: Icon(Icons.search, color: AppColors.grey50),
                 filled: true,
                 fillColor: AppColors.grey15,
                 border: OutlineInputBorder(
@@ -1409,7 +1409,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
             child: _searchController.text.isEmpty
                 ? _buildInitialView()
                 : _isLoading
-                    ? const Center(child: CircularProgressIndicator(color: AppColors.accentGold))
+                    ? Center(child: CircularProgressIndicator(color: AppColors.accentGold))
                     : ListView.builder(
                         itemCount: _results.length,
                         itemBuilder: (context, index) {
@@ -1424,7 +1424,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
 
   Widget _buildInitialView() {
     if (_isLoadingInitial) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.accentGold));
+      return Center(child: CircularProgressIndicator(color: AppColors.accentGold));
     }
     return ListView(
       padding: const EdgeInsets.only(top: 16, bottom: 40),
@@ -1434,7 +1434,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
               AppLocalizations.of(context)!.cameraMusicRecentSongs,
-              style: const TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
           SizedBox(
@@ -1465,7 +1465,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
                         const SizedBox(height: 4),
                         Text(
                           item.title,
-                          style: const TextStyle(color: AppColors.white, fontSize: 12),
+                          style: TextStyle(color: AppColors.white, fontSize: 12),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1482,7 +1482,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
             AppLocalizations.of(context)!.cameraMusicTrends,
-            style: const TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
         ..._topSongs.map((item) => _buildMusicTile(item)),
@@ -1509,7 +1509,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
                 width: 50,
                 height: 50,
                 color: AppColors.black.withValues(alpha: 0.5),
-                child: const Icon(Icons.pause, color: AppColors.white),
+                child: Icon(Icons.pause, color: AppColors.white),
               )
             else
               GestureDetector(
@@ -1518,7 +1518,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
                   width: 50,
                   height: 50,
                   color: Colors.transparent,
-                  child: const Icon(Icons.play_arrow, color: AppColors.white, size: 28),
+                  child: Icon(Icons.play_arrow, color: AppColors.white, size: 28),
                 ),
               ),
           ],
@@ -1526,13 +1526,13 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
       ),
       title: Text(
         item.title,
-        style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
+        style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
         item.artist,
-        style: const TextStyle(color: AppColors.grey50),
+        style: TextStyle(color: AppColors.grey50),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

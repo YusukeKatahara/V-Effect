@@ -100,7 +100,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
         title: Text(AppLocalizations.of(context)!.qrScannerTitle,
-            style: const TextStyle(color: AppColors.textPrimary)),
+            style: TextStyle(color: AppColors.textPrimary)),
         actions: [
           IconButton(
             icon: const Icon(Icons.flashlight_on_outlined),
@@ -201,7 +201,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                             children: [
                               Text(
                                 AppLocalizations.of(context)!.qrScannerScanLabel,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.textPrimary,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -210,7 +210,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 AppLocalizations.of(context)!.qrScannerInstruction,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.textMuted,
                                   fontSize: 12,
                                 ),

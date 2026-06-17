@@ -178,7 +178,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                 ),
               ),
               child: selected
-                  ? const Icon(Icons.check, size: 14, color: AppColors.black)
+                  ? Icon(Icons.check, size: 14, color: AppColors.black)
                   : null,
             ),
             const SizedBox(width: 12),
@@ -215,13 +215,13 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back,
+                          icon: Icon(Icons.arrow_back,
                               color: AppColors.textPrimary),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                         Text(
                           AppLocalizations.of(context)!.initialFriendTitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -244,7 +244,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                           Text(
                             AppLocalizations.of(context)!.initialFriendSubtitle,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
@@ -288,7 +288,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                                   const EdgeInsets.symmetric(horizontal: 8),
                               child: TextField(
                                 controller: _userIdCtrl,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     color: AppColors.textPrimary),
                                 decoration: InputDecoration(
                                   labelText: AppLocalizations.of(context)!.initialFriendUserIdLabel,
@@ -304,7 +304,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                             const SizedBox(height: 12),
                             Text(
                               _error!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   color: AppColors.error, fontSize: 13),
                             ),
                           ],
@@ -333,7 +333,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                                   },
                             child: Text(
                               AppLocalizations.of(context)!.initialFriendLater,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   color: AppColors.textMuted, fontSize: 15),
                             ),
                           ),

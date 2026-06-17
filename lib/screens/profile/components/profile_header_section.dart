@@ -49,7 +49,7 @@ class ProfileHeaderSection extends StatelessWidget {
                         Flexible(
                           child: Text(
                             user.username ?? '',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
@@ -82,7 +82,7 @@ class ProfileHeaderSection extends StatelessWidget {
                                 debugPrint('Could not launch instagram: $e');
                               }
                             },
-                            child: const FaIcon(
+                            child: FaIcon(
                               FontAwesomeIcons.instagram,
                               color: AppColors.white,
                               size: 22,
@@ -94,7 +94,7 @@ class ProfileHeaderSection extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '@${user.userId ?? ''}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary,
                       ),
@@ -114,7 +114,7 @@ class ProfileHeaderSection extends StatelessWidget {
                   ),
                 ),
                 child: IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.qr_code,
                     color: AppColors.textPrimary,
                     size: 26,
@@ -258,7 +258,7 @@ class ProfileHeaderSection extends StatelessWidget {
                     ),
                   ),
                 )
-              : const CircleAvatar(
+              : CircleAvatar(
                 radius: 40,
                 backgroundColor: Colors.transparent,
                 child: Icon(
@@ -270,6 +270,19 @@ class ProfileHeaderSection extends StatelessWidget {
     );
   }
 
+  Color _getTierColor(int streak) {
+    if (streak >= 365) return const Color(0xFFE0A33B); // Challenger (Gold/Blue)
+    if (streak >= 270) return const Color(0xFFB53030); // Grandmaster (Red)
+    if (streak >= 180) return const Color(0xFF8D2D9E); // Master (Purple)
+    if (streak >= 100) return const Color(0xFF4A60AB); // Diamond (Vivid Blue)
+    if (streak >= 66) return const Color(0xFF10825B);  // Emerald (Green)
+    if (streak >= 30) return const Color(0xFF327A8A);  // Platinum (Teal)
+    if (streak >= 14) return const Color(0xFFC89C3C);  // Gold (Gold)
+    if (streak >= 7) return const Color(0xFF8091A0);   // Silver (Blue-Gray)
+    if (streak >= 3) return const Color(0xFF8F5338);   // Bronze (Copper)
+    return const Color(0xFF5E4B43);                    // Iron (Dark Brown-Gray)
+  }
+
   /// フォロー数・フォロワー数・ストリーク数の統計表示
   Widget _buildFollowStat(
     BuildContext context,
@@ -278,6 +291,8 @@ class ProfileHeaderSection extends StatelessWidget {
     IconData? icon,
     VoidCallback? onTap,
   }) {
+    final themeColor = icon != null ? _getTierColor(count) : AppColors.accentGold;
+
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -285,7 +300,7 @@ class ProfileHeaderSection extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 18, color: AppColors.accentGold),
+              Icon(icon, size: 18, color: themeColor),
               const SizedBox(width: 4),
             ],
             Text(
@@ -294,7 +309,7 @@ class ProfileHeaderSection extends StatelessWidget {
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color:
-                    icon != null ? AppColors.accentGold : AppColors.white,
+                    icon != null ? themeColor : AppColors.white,
                 letterSpacing: 0.5,
               ),
             ),

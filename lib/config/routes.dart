@@ -28,6 +28,8 @@ import '../screens/notification_settings_screen.dart';
 import '../screens/security_settings_screen.dart';
 import '../screens/blog_post_detail_screen.dart';
 import '../screens/blog_post_editor_screen.dart';
+import '../screens/display_settings_screen.dart';
+import 'package:v_effect/main.dart';
 
 /// アプリ全体のルート（画面の住所）定義
 class AppRoutes {
@@ -60,9 +62,11 @@ class AppRoutes {
   static const String onboardingVEffect     = '/onboarding/v-effect';
   static const String onboardingProfile     = '/onboarding/profile';
   static const String onboardingFirstQuest  = '/onboarding/first-quest';
+  static const String displaySettings       = '/display-settings';
 
   static Map<String, WidgetBuilder> get routes => {
-        wrapper: (context) => const AuthWrapper(),
+        wrapper: (context) => const AppInitializer(child: AuthWrapper()),
+        displaySettings: (context) => const DisplaySettingsScreen(),
         login: (context) => const LoginScreen(),
         register: (context) => const RegisterScreen(),
         home: (context) {

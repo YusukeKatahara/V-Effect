@@ -47,17 +47,17 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.black,
       body: _postId.isEmpty 
-          ? const Center(child: Text('Invalid post ID', style: TextStyle(color: AppColors.white)))
+          ? Center(child: Text('Invalid post ID', style: TextStyle(color: AppColors.white)))
           : StreamBuilder<DevBlogPost?>(
         stream: DevBlogService.instance.getPost(_postId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting && _initialPost == null) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.accentGold));
+            return Center(child: CircularProgressIndicator(color: AppColors.accentGold));
           }
           
           final post = snapshot.data ?? _initialPost;
           if (post == null) {
-            return const Center(child: Text('Post not found', style: TextStyle(color: AppColors.white)));
+            return Center(child: Text('Post not found', style: TextStyle(color: AppColors.white)));
           }
 
           return CustomScrollView(
@@ -84,14 +84,14 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
       backgroundColor: AppColors.black,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded,
+        icon: Icon(Icons.arrow_back_ios_new_rounded,
             color: AppColors.white, size: 20),
         onPressed: () => Navigator.pop(context),
       ),
       actions: isDev
           ? [
               IconButton(
-                icon: const Icon(Icons.edit_rounded,
+                icon: Icon(Icons.edit_rounded,
                     color: AppColors.white, size: 20),
                 onPressed: () => Navigator.pushNamed(
                   context,
@@ -100,7 +100,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline_rounded,
+                icon: Icon(Icons.delete_outline_rounded,
                     color: AppColors.grey50, size: 20),
                 onPressed: () => _confirmDelete(context, post),
               ),
@@ -162,7 +162,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
             _CategoryChip(category: post.category),
             if (post.isPinned) ...[
               const SizedBox(width: 8),
-              const Icon(Icons.push_pin_rounded,
+              Icon(Icons.push_pin_rounded,
                   size: 13, color: AppColors.accentGold),
             ],
           ],
@@ -196,7 +196,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
               child: Container(
                   width: 3,
                   height: 3,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.grey30,
                   )),
@@ -259,14 +259,14 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
               border: Border.all(color: AppColors.grey20, width: 0.5),
             ),
             codeblockPadding: const EdgeInsets.all(12),
-            blockquoteDecoration: const BoxDecoration(
+            blockquoteDecoration: BoxDecoration(
               border: Border(
                 left: BorderSide(color: AppColors.grey30, width: 3),
               ),
             ),
             blockquotePadding:
                 const EdgeInsets.only(left: 16, top: 4, bottom: 4),
-            horizontalRuleDecoration: const BoxDecoration(
+            horizontalRuleDecoration: BoxDecoration(
               border: Border(
                 top: BorderSide(color: AppColors.grey20, width: 0.5),
               ),

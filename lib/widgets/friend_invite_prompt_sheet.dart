@@ -47,7 +47,7 @@ class FriendInvitePromptSheet extends StatelessWidget {
         ),
         title: Text(
           AppLocalizations.of(context)!.friendInviteQrTitle,
-          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
         ),
         children: [
           SimpleDialogOption(
@@ -62,16 +62,16 @@ class FriendInvitePromptSheet extends StatelessWidget {
             },
             child: Row(
               children: [
-                const Icon(Icons.qr_code_rounded, color: AppColors.textSecondary),
+                Icon(Icons.qr_code_rounded, color: AppColors.textSecondary),
                 const SizedBox(width: 12),
                 Text(
                   AppLocalizations.of(context)!.friendInviteQrDisplay,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
                 ),
               ],
             ),
           ),
-          const Divider(color: AppColors.border, height: 1),
+          Divider(color: AppColors.border, height: 1),
           SimpleDialogOption(
             onPressed: () {
               Navigator.pop(ctx);
@@ -82,11 +82,11 @@ class FriendInvitePromptSheet extends StatelessWidget {
             },
             child: Row(
               children: [
-                const Icon(Icons.qr_code_scanner_rounded, color: AppColors.textSecondary),
+                Icon(Icons.qr_code_scanner_rounded, color: AppColors.textSecondary),
                 const SizedBox(width: 12),
                 Text(
                   AppLocalizations.of(context)!.friendInviteQrScan,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
                 ),
               ],
             ),
@@ -198,10 +198,10 @@ class FriendInvitePromptSheet extends StatelessWidget {
                       username: user.username ?? AppLocalizations.of(context)!.defaultUsername,
                     );
                   },
-                  icon: const Icon(Icons.share_rounded, color: AppColors.black, size: 20),
+                  icon: Icon(Icons.share_rounded, color: AppColors.black, size: 20),
                   label: Text(
                     AppLocalizations.of(context)!.friendInviteShareButton,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.black,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
@@ -231,17 +231,17 @@ class FriendInvitePromptSheet extends StatelessWidget {
                   // 結果として FriendInviteResult.qrCode を返し、ハーフモーダルを閉じます
                   Navigator.pop(context, FriendInviteResult.qrCode);
                 },
-                icon: const Icon(Icons.qr_code_2_rounded, color: AppColors.accentGold, size: 20),
+                icon: Icon(Icons.qr_code_2_rounded, color: AppColors.accentGold, size: 20),
                 label: Text(
                   AppLocalizations.of(context)!.friendInviteQrButton,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.accentGold,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(
+                  side: BorderSide(
                     color: AppColors.accentGold,
                     width: 1.5,
                   ),

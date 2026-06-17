@@ -403,7 +403,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       builder:
           (ctx) => AlertDialog(
             backgroundColor: AppColors.bgElevated,
-            title: Text(AppLocalizations.of(context)!.heroTasksDeletePostTitle, style: const TextStyle(color: AppColors.white)),
+            title: Text(AppLocalizations.of(context)!.heroTasksDeletePostTitle, style: TextStyle(color: AppColors.white)),
             content: Text(AppLocalizations.of(context)!.heroTasksDeletePostDesc),
             actions: [
               TextButton(
@@ -414,7 +414,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                 onPressed: () => Navigator.pop(ctx, true),
                 child: Text(
                   AppLocalizations.of(context)!.heroTasksDeletePostButton,
-                  style: const TextStyle(color: AppColors.error),
+                  style: TextStyle(color: AppColors.error),
                 ),
               ),
             ],
@@ -559,11 +559,16 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
 
   Color _getTierColor(int streak) {
-    if (streak >= 100) return const Color(0xFFE5E4E2); // Platinum
-    if (streak >= 30) return AppColors.accentGoldLight;
-    if (streak >= 7) return const Color(0xFFC0C0C0); // Silver
-    if (streak >= 3) return const Color(0xFFCD7F32); // Bronze
-    return AppColors.accentGold;
+    if (streak >= 365) return const Color(0xFFE0A33B); // Challenger (Gold/Blue)
+    if (streak >= 270) return const Color(0xFFB53030); // Grandmaster (Red)
+    if (streak >= 180) return const Color(0xFF8D2D9E); // Master (Purple)
+    if (streak >= 100) return const Color(0xFF4A60AB); // Diamond (Vivid Blue)
+    if (streak >= 66) return const Color(0xFF10825B);  // Emerald (Green)
+    if (streak >= 30) return const Color(0xFF327A8A);  // Platinum (Teal)
+    if (streak >= 14) return const Color(0xFFC89C3C);  // Gold (Gold)
+    if (streak >= 7) return const Color(0xFF8091A0);   // Silver (Blue-Gray)
+    if (streak >= 3) return const Color(0xFF8F5338);   // Bronze (Copper)
+    return const Color(0xFF5E4B43);                    // Iron (Dark Brown-Gray)
   }
 
   @override
@@ -696,7 +701,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                       color: _getTierColor(_streak).withValues(alpha: 0.5),
                       blurRadius: 20,
                     ),
-                    const Shadow(
+                    Shadow(
                       color: AppColors.white,
                       blurRadius: 4,
                     ),
@@ -719,7 +724,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               children: [
                 IconButton(
                   // 左上のブックマーク（本）アイコン。ベルマークの色と統一するために白（AppColors.white）に設定
-                  icon: const Icon(Icons.menu_book_rounded, color: AppColors.white, size: 22),
+                  icon: Icon(Icons.menu_book_rounded, color: AppColors.white, size: 22),
                   onPressed: () {
                     SoundService.instance.stopBgm();
                     Navigator.pushNamed(context, AppRoutes.vPractice);
@@ -732,7 +737,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                     child: Container(
                       width: 8,
                       height: 8,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: AppColors.error,
                         shape: BoxShape.circle,
                       ),
@@ -764,19 +769,33 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
               alignment: Alignment.center,
               children: [
                 Tooltip(
-                  message: 'ストリークが途切れるのを1回防ぎます',
-                  triggerMode: TooltipTriggerMode.longPress,
+                  richMessage: TextSpan(
+                    children: [
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Icon(
+                          Icons.shield_rounded,
+                          size: 14,
+                          color: tierColor.withValues(alpha: 0.9),
+                        ),
+                      ),
+                      TextSpan(
+                        text: ' ストリークが途切れるのを1回防ぎます',
+                        style: GoogleFonts.notoSansJp(
+                          color: AppColors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  triggerMode: TooltipTriggerMode.tap,
                   preferBelow: true,
                   verticalOffset: 24,
                   decoration: BoxDecoration(
                     color: AppColors.black.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: tierColor.withValues(alpha: 0.5)),
-                  ),
-                  textStyle: GoogleFonts.notoSansJp(
-                    color: AppColors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Container(
@@ -799,14 +818,14 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const StreakFlame(size: 16),
+                        StreakFlame(size: 16, color: tierColor),
                         const SizedBox(width: 6),
                         Text(
                           '$_streak Day Streak',
                           style: GoogleFonts.outfit(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.white,
+                            color: tierColor,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -815,7 +834,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                           Container(
                             width: 4,
                             height: 4,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: AppColors.grey50,
                               shape: BoxShape.circle,
                             ),
@@ -837,7 +856,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                     child: IconButton(
                       onPressed:
                           () => _deleteHeroPost(focusedTask!.latestPost!.id),
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.delete_outline_rounded,
                         color: AppColors.error,
                         size: 20,
@@ -860,7 +879,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.layers_outlined,
               size: 48,
               color: AppColors.grey20,
@@ -868,7 +887,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             const SizedBox(height: 16),
             Text(
               AppLocalizations.of(context)!.heroTasksNoTasks,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: AppColors.grey50,
@@ -877,7 +896,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             const SizedBox(height: 4),
             Text(
               AppLocalizations.of(context)!.heroTasksNoTasksDesc,
-              style: const TextStyle(fontSize: 12, color: AppColors.grey30),
+              style: TextStyle(fontSize: 12, color: AppColors.grey30),
             ),
           ],
         ),
@@ -1011,7 +1030,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                                               top: 16,
                                               right: rightOffset,
                                               child: IconButton(
-                                                icon: const Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 28),
+                                                icon: Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 28),
                                                 onPressed: () {
                                                   _showSeasonHint(item);
                                                 },

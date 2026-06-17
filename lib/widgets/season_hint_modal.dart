@@ -66,7 +66,7 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
     return Container(
       margin: EdgeInsets.only(bottom: bottomInset),
       padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.bgElevated,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -78,7 +78,7 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
             // ヒントの表示
             Row(
               children: [
-                const Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 28),
+                Icon(Icons.lightbulb_outline, color: AppColors.accentGold, size: 28),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -116,7 +116,7 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
                 label: Text(AppLocalizations.of(context)!.seasonHintReadBlog),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.accentGold,
-                  side: const BorderSide(color: AppColors.accentGold),
+                  side: BorderSide(color: AppColors.accentGold),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -136,10 +136,10 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
             const SizedBox(height: 8),
             TextField(
               controller: _triggerController,
-              style: const TextStyle(color: AppColors.white),
+              style: TextStyle(color: AppColors.white),
               decoration: InputDecoration(
                 hintText: AppLocalizations.of(context)!.seasonHintTriggerHint,
-                hintStyle: const TextStyle(color: AppColors.grey70),
+                hintStyle: TextStyle(color: AppColors.grey70),
                 filled: true,
                 fillColor: AppColors.black.withValues(alpha: 0.3),
                 border: OutlineInputBorder(
@@ -162,10 +162,10 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
             const SizedBox(height: 8),
             TextField(
               controller: _rewardController,
-              style: const TextStyle(color: AppColors.white),
+              style: TextStyle(color: AppColors.white),
               decoration: InputDecoration(
                 hintText: '例: 好きな動画を見る、コーヒーを飲む',
-                hintStyle: const TextStyle(color: AppColors.grey70),
+                hintStyle: TextStyle(color: AppColors.grey70),
                 filled: true,
                 fillColor: AppColors.black.withValues(alpha: 0.3),
                 border: OutlineInputBorder(

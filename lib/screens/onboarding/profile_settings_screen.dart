@@ -193,7 +193,7 @@ class _OnboardingProfileSettingsScreenState
                               ? FileImage(_profileImage!)
                               : null,
                           child: _profileImage == null
-                              ? const Icon(
+                              ? Icon(
                                   Icons.person,
                                   size: 52,
                                   color: AppColors.grey50,
@@ -206,11 +206,11 @@ class _OnboardingProfileSettingsScreenState
                           child: Container(
                             width: 28,
                             height: 28,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: AppColors.white,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.add_a_photo,
                               size: 16,
                               color: AppColors.black,
@@ -259,7 +259,7 @@ class _OnboardingProfileSettingsScreenState
                       color: AppColors.grey30,
                       fontSize: 14,
                     ),
-                    prefixIcon: const Icon(
+                    prefixIcon: Icon(
                       Icons.alternate_email,
                       color: AppColors.grey50,
                     ),

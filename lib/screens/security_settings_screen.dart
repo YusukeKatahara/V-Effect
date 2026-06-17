@@ -48,16 +48,16 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgElevated,
-        title: Text(AppLocalizations.of(context)!.securityChangePasswordDialogTitle, style: const TextStyle(color: AppColors.textPrimary)),
-        content: Text(AppLocalizations.of(context)!.securityChangePasswordDialogDesc(email), style: const TextStyle(color: AppColors.textSecondary)),
+        title: Text(AppLocalizations.of(context)!.securityChangePasswordDialogTitle, style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(AppLocalizations.of(context)!.securityChangePasswordDialogDesc(email), style: TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(AppLocalizations.of(context)!.securityChangePasswordCancel, style: const TextStyle(color: AppColors.grey50)),
+            child: Text(AppLocalizations.of(context)!.securityChangePasswordCancel, style: TextStyle(color: AppColors.grey50)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(AppLocalizations.of(context)!.securityChangePasswordSend, style: const TextStyle(color: AppColors.primary)),
+            child: Text(AppLocalizations.of(context)!.securityChangePasswordSend, style: TextStyle(color: AppColors.primary)),
           ),
         ],
       ),
@@ -83,23 +83,23 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgElevated,
-        title: Text(AppLocalizations.of(context)!.securityChangeEmailDialogTitle, style: const TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.securityChangeEmailDialogTitle, style: TextStyle(color: AppColors.textPrimary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               AppLocalizations.of(context)!.securityChangeEmailDialogDesc,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: emailController,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(context)!.securityNewEmailLabel,
                 hintText: 'example@mail.com',
-                hintStyle: const TextStyle(color: AppColors.textMuted),
+                hintStyle: TextStyle(color: AppColors.textMuted),
               ),
               keyboardType: TextInputType.emailAddress,
             ),
@@ -108,11 +108,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(AppLocalizations.of(context)!.securityChangePasswordCancel, style: const TextStyle(color: AppColors.grey50)),
+            child: Text(AppLocalizations.of(context)!.securityChangePasswordCancel, style: TextStyle(color: AppColors.grey50)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(AppLocalizations.of(context)!.securityChangeEmailSend, style: const TextStyle(color: AppColors.primary)),
+            child: Text(AppLocalizations.of(context)!.securityChangeEmailSend, style: TextStyle(color: AppColors.primary)),
           ),
         ],
       ),
@@ -156,12 +156,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgElevated,
-        title: Text(AppLocalizations.of(context)!.securityLogoutConfirmTitle, style: const TextStyle(color: AppColors.textPrimary)),
-        content: Text(AppLocalizations.of(context)!.securityLogoutConfirmMessage, style: const TextStyle(color: AppColors.textSecondary)),
+        title: Text(AppLocalizations.of(context)!.securityLogoutConfirmTitle, style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(AppLocalizations.of(context)!.securityLogoutConfirmMessage, style: TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)!.securityLogoutConfirmCancel, style: const TextStyle(color: AppColors.grey50)),
+            child: Text(AppLocalizations.of(context)!.securityLogoutConfirmCancel, style: TextStyle(color: AppColors.grey50)),
           ),
           TextButton(
             onPressed: () async {
@@ -174,7 +174,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             },
             child: Text(
               AppLocalizations.of(context)!.securityLogoutConfirmButton,
-              style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+              style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -187,19 +187,19 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgElevated,
-        title: Text(AppLocalizations.of(context)!.securityDeleteConfirmTitle, style: const TextStyle(color: AppColors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.securityDeleteConfirmTitle, style: TextStyle(color: AppColors.textPrimary)),
         content: Text(
           AppLocalizations.of(context)!.securityDeleteConfirmDesc,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(AppLocalizations.of(context)!.securityDeleteConfirmCancel, style: const TextStyle(color: AppColors.grey50)),
+            child: Text(AppLocalizations.of(context)!.securityDeleteConfirmCancel, style: TextStyle(color: AppColors.grey50)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(AppLocalizations.of(context)!.securityDeleteConfirmButton, style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+            child: Text(AppLocalizations.of(context)!.securityDeleteConfirmButton, style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -212,20 +212,20 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         backgroundColor: AppColors.bgElevated,
         title: Text(
           AppLocalizations.of(context)!.securityDeleteFinalTitle,
-          style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
         ),
         content: Text(
           AppLocalizations.of(context)!.securityDeleteFinalDesc,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text(AppLocalizations.of(context)!.securityDeleteFinalCancel, style: const TextStyle(color: AppColors.grey50)),
+            child: Text(AppLocalizations.of(context)!.securityDeleteFinalCancel, style: TextStyle(color: AppColors.grey50)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(AppLocalizations.of(context)!.securityDeleteFinalButton, style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+            child: Text(AppLocalizations.of(context)!.securityDeleteFinalButton, style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -263,8 +263,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: AppColors.bgBase,
-        title: Text(AppLocalizations.of(context)!.securitySettingsTitle, style: const TextStyle(color: AppColors.textPrimary)),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        title: Text(AppLocalizations.of(context)!.securitySettingsTitle, style: TextStyle(color: AppColors.textPrimary)),
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
         elevation: 0,
       ),
       body: ListView(
@@ -305,7 +305,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.primary,
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -314,7 +314,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           const SizedBox(height: 4),
           Text(
             description,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
         ],
       ),
@@ -334,7 +334,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           fontWeight: isDestructive ? FontWeight.bold : FontWeight.normal,
         ),
       ),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+      trailing: Icon(Icons.chevron_right, color: AppColors.textMuted),
       onTap: onTap,
     );
   }
@@ -353,7 +353,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           children: [
             Text(
               AppLocalizations.of(context)!.securityLinkedAccounts,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
@@ -361,7 +361,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             ),
             const SizedBox(height: 12),
             if (_linkedProviders.isEmpty)
-              Text(AppLocalizations.of(context)!.securityNoLinkedAccounts, style: const TextStyle(color: AppColors.textMuted, fontSize: 13))
+              Text(AppLocalizations.of(context)!.securityNoLinkedAccounts, style: TextStyle(color: AppColors.textMuted, fontSize: 13))
             else
               ..._linkedProviders.map((p) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -371,10 +371,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                     const SizedBox(width: 12),
                     Text(
                       _getProviderName(p),
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                     ),
                     const Spacer(),
-                    const Icon(Icons.check_circle, size: 16, color: AppColors.success),
+                    Icon(Icons.check_circle, size: 16, color: AppColors.success),
                   ],
                 ),
               )),

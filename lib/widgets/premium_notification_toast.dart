@@ -158,7 +158,7 @@ class _PremiumNotificationToastState extends State<PremiumNotificationToast>
                               children: [
                                 Text(
                                   widget.title,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.textPrimary,
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -167,7 +167,7 @@ class _PremiumNotificationToastState extends State<PremiumNotificationToast>
                                 const SizedBox(height: 2),
                                 Text(
                                   widget.body,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.textSecondary,
                                     fontSize: 12,
                                   ),
