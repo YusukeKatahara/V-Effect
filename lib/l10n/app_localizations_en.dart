@@ -1645,6 +1645,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vEffectStep2Desc => 'Prove your victory (reading, studying, workout, etc.) with a photo.';
 
   @override
+  String get vEffectConceptFootnotePrefix => '* Recording small wins triggers the ';
+
+  @override
+  String get vEffectConceptFootnoteHighlight => '\"Winner Effect\" (V EFFECT)';
+
+  @override
+  String get vEffectConceptFootnoteSuffix => ' in neuroscience, scientifically supporting your power to keep going.';
+
+  @override
   String get vEffectJoinButton => 'Join V EFFECT →';
 
   @override

@@ -47,11 +47,13 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
   late final List<Animation<double>> _anims;
 
   // アニメーションのフェードイン間隔を定義します。
+  // 注釈（科学的根拠）を追加したため、5つのフェーズに変更しました。
   static const _intervals = [
-    [0.0, 0.2], // タイトル (V EFFECT の使い方)
-    [0.1, 0.4], // 1. 習慣化したいことを決めよう
-    [0.3, 0.6], // 2. 写真付きで証明しよう
-    [0.5, 0.7], // ボタン
+    [0.0, 0.2], // ① タイトル (V EFFECT の使い方)
+    [0.1, 0.4], // ② 1. 習慣化したいことを決めよう
+    [0.3, 0.6], // ③ 2. 写真付きで証明しよう
+    [0.6, 0.9], // 🌟 ④ 【時間差】勝利者効果の脳科学的注釈が浮き出る
+    [0.8, 1.0], // ⑤ ボタン
   ];
 
   @override
@@ -59,7 +61,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1800), // 表示要素が増えたため、デュレーションを1.8秒に調整します
     );
     _anims = _intervals.map((iv) {
       return CurvedAnimation(
@@ -151,10 +153,38 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
               ],
             ),
           ),
+          const SizedBox(height: 36),
+          FadeTransition(
+            opacity: _anims[3],
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: AppLocalizations.of(context)!.vEffectConceptFootnotePrefix,
+                  ),
+                  TextSpan(
+                    text: AppLocalizations.of(context)!.vEffectConceptFootnoteHighlight,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  TextSpan(
+                    text: AppLocalizations.of(context)!.vEffectConceptFootnoteSuffix,
+                  ),
+                ],
+              ),
+              style: GoogleFonts.notoSansJp(
+                fontSize: 11,
+                color: AppColors.grey40, // 視覚的ノイズにならないよう、少し薄いグレーに調整します
+                height: 1.5,
+              ),
+            ),
+          ),
           const Spacer(),
           // 参加するボタン
           FadeTransition(
-            opacity: _anims[3],
+            opacity: _anims[4],
             child: GradientButton(
               onPressed: widget.onPressed,
               child: Text(
@@ -165,7 +195,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
               ),
             ),
           ),
-          const SizedBox(height: 56), // インジケーターが不要になったため、下部余白を少し縮小してバランスを整えます
+          const SizedBox(height: 56), // 下部余白
         ],
       ),
     );

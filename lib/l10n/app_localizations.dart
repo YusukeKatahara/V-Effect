@@ -3251,6 +3251,24 @@ abstract class AppLocalizations {
   /// **'勝利したタスク（読書、勉強、ワークアウトなど）を証明しましょう。'**
   String get vEffectStep2Desc;
 
+  /// No description provided for @vEffectConceptFootnotePrefix.
+  ///
+  /// In ja, this message translates to:
+  /// **'※ 小さな勝利を記録することにより脳科学における'**
+  String get vEffectConceptFootnotePrefix;
+
+  /// No description provided for @vEffectConceptFootnoteHighlight.
+  ///
+  /// In ja, this message translates to:
+  /// **'V EFFECT『勝利者効果』'**
+  String get vEffectConceptFootnoteHighlight;
+
+  /// No description provided for @vEffectConceptFootnoteSuffix.
+  ///
+  /// In ja, this message translates to:
+  /// **'を引き起こし、あなたの継続する力を科学的にサポートします。'**
+  String get vEffectConceptFootnoteSuffix;
+
   /// No description provided for @vEffectJoinButton.
   ///
   /// In ja, this message translates to:
