@@ -164,7 +164,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
                   ),
                   TextSpan(
                     text: AppLocalizations.of(context)!.vEffectConceptFootnoteHighlight,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: AppColors.white,
                     ),
