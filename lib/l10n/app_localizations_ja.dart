@@ -1401,13 +1401,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingFirstQuestTriggerLabel => 'トリガー（任意）';
 
   @override
-  String get onboardingFirstQuestTaskLabel => 'タスク名（行動：必要な習慣）';
+  String get onboardingFirstQuestTaskLabel => 'タスク名';
 
   @override
   String get onboardingFirstQuestRewardLabel => 'ご褒美（任意）';
 
   @override
-  String get onboardingFirstQuestPrivacyNote => '※ トリガーとご褒美は自分にのみ表示されます（他のユーザーには公開されません）';
+  String get onboardingFirstQuestPrivacyNote => '※ トリガーは自分にのみ表示されます（他のユーザーには公開されません）';
 
   @override
   String get onboardingFirstQuestCompleteButton => '完了';
@@ -1419,6 +1419,75 @@ class AppLocalizationsJa extends AppLocalizations {
   String onboardingFirstQuestSaveFailed(Object error) {
     return '保存に失敗しました: $error';
   }
+
+  @override
+  String get timeframeMorning => '☀️ 朝';
+
+  @override
+  String get timeframeAfternoon => '🌆 昼';
+
+  @override
+  String get timeframeNight => '🌙 夜';
+
+  @override
+  String get onboardingFirstQuestSuggestedTriggerTitle => 'おすすめのきっかけ（タップで選択）';
+
+  @override
+  String get onboardingFirstQuestSuggestedTaskTitle => 'おすすめのタスク（タップで選択）';
+
+  @override
+  String get morningTrigger1 => 'カーテンを開けたら';
+
+  @override
+  String get morningTrigger2 => 'ベッドから出たら';
+
+  @override
+  String get morningTrigger3 => '朝食の前に';
+
+  @override
+  String get morningTask1 => '朝日を浴びて深呼吸';
+
+  @override
+  String get morningTask2 => 'コップ1杯の白湯を飲む';
+
+  @override
+  String get morningTask3 => 'ベッドメイキングをする';
+
+  @override
+  String get afternoonTrigger1 => 'お昼ご飯を食べ終えたら';
+
+  @override
+  String get afternoonTrigger2 => 'スマホを開く前に';
+
+  @override
+  String get afternoonTrigger3 => 'PCを閉じるタイミングで';
+
+  @override
+  String get afternoonTask1 => 'スマホを10分置く';
+
+  @override
+  String get afternoonTask2 => '本のページをめくる';
+
+  @override
+  String get afternoonTask3 => 'デスクのゴミを1つ捨てる';
+
+  @override
+  String get nightTrigger1 => 'お風呂から上がったら';
+
+  @override
+  String get nightTrigger2 => '布団に入る前に';
+
+  @override
+  String get nightTrigger3 => '22時になったら';
+
+  @override
+  String get nightTask1 => '寝る前スマホをやめる';
+
+  @override
+  String get nightTask2 => '今日良かったことを3つ書く';
+
+  @override
+  String get nightTask3 => '明日の予定を1つ書く';
 
   @override
   String get onboardingFirstQuestHabitTipsTitle => '習慣化のコツ';
@@ -1779,6 +1848,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get firstQuestRewardHint5 => '漫画を読む';
+
+  @override
+  String get onboardingFirstQuestTriggerHintText => 'トリガーを入力';
+
+  @override
+  String get onboardingFirstQuestTaskHintText => 'タスク名を入力';
+
+  @override
+  String get onboardingFirstQuestTimeframeHeader => '時間帯から選ぶ';
 
   @override
   String get firstQuestTitle => '習慣化したい(やりたい)ことを決めましょう';

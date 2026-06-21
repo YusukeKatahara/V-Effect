@@ -17,8 +17,8 @@ class VEffectScreen extends StatefulWidget {
 class _VEffectScreenState extends State<VEffectScreen> {
   // 次のオンボーディング画面（プロフィール設定）へ進みます。
   void _next() {
-    unawaited(UserService.instance.saveOnboardingStep('profile_settings'));
-    Navigator.pushNamed(context, AppRoutes.onboardingProfile);
+    unawaited(UserService.instance.saveOnboardingStep('first_v_quest'));
+    Navigator.pushNamed(context, AppRoutes.onboardingFirstQuest);
   }
 
   @override

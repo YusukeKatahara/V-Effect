@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
@@ -6,12 +5,9 @@ import '../../config/app_colors.dart';
 import '../../config/routes.dart';
 import '../../services/user_service.dart';
 import '../../widgets/gradient_button.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../models/app_user.dart';
-import '../../widgets/notification_prompt_sheet.dart';
-import '../../widgets/friend_invite_prompt_sheet.dart';
+import '../profile/components/trending_tasks_bottom_sheet.dart';
+
 class FirstVQuestScreen extends StatefulWidget {
   const FirstVQuestScreen({super.key});
 
@@ -23,172 +19,88 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     with TickerProviderStateMixin {
   final _questCtrl = TextEditingController();
   final _triggerCtrl = TextEditingController();
-  final _rewardCtrl = TextEditingController();
   final _userService = UserService.instance;
   bool _isSaving = false;
+  int _selectedTimeframeIndex = 0; // 0: 朝, 1: 昼, 2: 夜
+  List<Map<String, dynamic>> _trendingTasks = [];
 
-  // Phase A: キーワードのフェードイン
-  late final AnimationController _ctrlA;
-  late final List<Animation<double>> _keywordAnims;
-  late final Animation<double> _questionAnim;
-
-  // Phase B: 入力フォームのフェードイン（Phase A 完了後に開始）
+  // 入力フォームのフェードインアニメーション
   late final AnimationController _ctrlB;
   late final Animation<double> _formAnim;
 
-  // プレースホルダーのループ
-  static const _taskPlaceholderCount = 5;
-  static const _triggerPlaceholderCount = 4;
-  static const _rewardPlaceholderCount = 5;
+  List<String> _getSuggestedTriggers(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    switch (_selectedTimeframeIndex) {
+      case 0:
+        return [l.morningTrigger1, l.morningTrigger2, l.morningTrigger3];
+      case 1:
+        return [l.afternoonTrigger1, l.afternoonTrigger2, l.afternoonTrigger3];
+      case 2:
+        return [l.nightTrigger1, l.nightTrigger2, l.nightTrigger3];
+      default:
+        return [];
+    }
+  }
 
-  List<String> _taskPlaceholders(BuildContext ctx) {
-    final l = AppLocalizations.of(ctx)!;
-    return [l.firstQuestTaskHint1, l.firstQuestTaskHint2, l.firstQuestTaskHint3, l.firstQuestTaskHint4, l.firstQuestTaskHint5];
+  List<String> _getSuggestedTasks(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    switch (_selectedTimeframeIndex) {
+      case 0:
+        return [l.morningTask1, l.morningTask2, l.morningTask3];
+      case 1:
+        return [l.afternoonTask1, l.afternoonTask2, l.afternoonTask3];
+      case 2:
+        return [l.nightTask1, l.nightTask2, l.nightTask3];
+      default:
+        return [];
+    }
   }
-  List<String> _triggerPlaceholders(BuildContext ctx) {
-    final l = AppLocalizations.of(ctx)!;
-    return [l.firstQuestTriggerHint1, l.firstQuestTriggerHint2, l.firstQuestTriggerHint3, l.firstQuestTriggerHint4];
-  }
-  List<String> _rewardPlaceholders(BuildContext ctx) {
-    final l = AppLocalizations.of(ctx)!;
-    return [l.firstQuestRewardHint1, l.firstQuestRewardHint2, l.firstQuestRewardHint3, l.firstQuestRewardHint4, l.firstQuestRewardHint5];
-  }
-  int _placeholderIndex = 0;
-  int _triggerPlaceholderIndex = 0;
-  int _rewardPlaceholderIndex = 0;
-  Timer? _placeholderTimer;
-
-  static const _keywordIntervals = [
-    [0.05, 0.10], // 勝利
-    [0.09, 0.14], // 努力
-    [0.07, 0.12], // 達成感
-    [0.11, 0.16], // 目標
-    [0.15, 0.20], // 習慣化
-    [0.13, 0.18], // 継続
-  ];
 
   @override
   void initState() {
     super.initState();
-
-    _ctrlA = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    );
-    _keywordAnims =
-        _keywordIntervals.map((iv) {
-          return CurvedAnimation(
-            parent: _ctrlA,
-            curve: Interval(iv[0], iv[1], curve: Curves.easeOut),
-          );
-        }).toList();
-    _questionAnim = CurvedAnimation(
-      parent: _ctrlA,
-      curve: const Interval(0.68, 0.88, curve: Curves.easeOut),
-    );
 
     _ctrlB = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
     _formAnim = CurvedAnimation(parent: _ctrlB, curve: Curves.easeOut);
-
-    _ctrlA.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _ctrlB.forward();
-        _startPlaceholderTimer();
-      }
-    });
-
-    _ctrlA.forward();
+    _ctrlB.forward();
 
     _questCtrl.addListener(() => setState(() {}));
     _triggerCtrl.addListener(() => setState(() {}));
-    _rewardCtrl.addListener(() => setState(() {}));
+
+    _loadTrendingTasks();
   }
 
-  void _startPlaceholderTimer() {
-    _placeholderTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (mounted) {
+  Future<void> _loadTrendingTasks() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('global_stats')
+          .doc('trends')
+          .get();
+      debugPrint('Firestore trends document exists: ${snap.exists}');
+      if (snap.exists && mounted) {
+        final data = snap.data();
+        debugPrint('Firestore trends data: $data');
+        final rawList = data?['trends'] as List<dynamic>? ?? [];
+        final list = rawList.map((e) => Map<String, dynamic>.from(e as Map)).toList();
         setState(() {
-          _placeholderIndex = (_placeholderIndex + 1) % _taskPlaceholderCount;
-          _triggerPlaceholderIndex = (_triggerPlaceholderIndex + 1) % _triggerPlaceholderCount;
-          _rewardPlaceholderIndex = (_rewardPlaceholderIndex + 1) % _rewardPlaceholderCount;
+          _trendingTasks = list;
         });
       }
-    });
+    } catch (e, stack) {
+      debugPrint('Error loading trends: $e');
+      debugPrint('Stacktrace: $stack');
+    }
   }
 
   @override
   void dispose() {
     _questCtrl.dispose();
     _triggerCtrl.dispose();
-    _rewardCtrl.dispose();
-    _ctrlA.dispose();
     _ctrlB.dispose();
-    _placeholderTimer?.cancel();
     super.dispose();
-  }
-
-  Future<void> _checkAndShowNotificationPrompt() async {
-    final prefs = await SharedPreferences.getInstance();
-    final uid = _userService.currentUid;
-    if (uid == null) return;
-
-    // すでに表示済みの場合は何もしません
-    final hasShown = prefs.getBool('notification_prompt_shown_$uid') ?? false;
-    if (hasShown) return;
-
-    try {
-      // すでに通知許可済みの場合はモーダルを表示する必要がないため、フラグだけ立ててスキップします
-      final settings = await FirebaseMessaging.instance.getNotificationSettings();
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        await prefs.setBool('notification_prompt_shown_$uid', true);
-        return;
-      }
-
-      if (mounted) {
-        // ハーフモーダル (プレ・ダイアログ) を表示し、その中で自動でOS通知パーミッション要求をトリガーします
-        await NotificationPromptSheet.show(context);
-        
-        // 次回以降表示されないようにフラグを保存します
-        await prefs.setBool('notification_prompt_shown_$uid', true);
-      }
-    } catch (e) {
-      debugPrint('通知プロンプト表示エラー: $e');
-    }
-  }
-
-  Future<void> _checkAndShowFriendInvitePrompt() async {
-    final prefs = await SharedPreferences.getInstance();
-    final uid = _userService.currentUid;
-    if (uid == null) return;
-
-    // すでに表示済みの場合は何もしません
-    final hasShown = prefs.getBool('friend_invite_prompt_shown_$uid') ?? false;
-    if (hasShown) return;
-
-    try {
-      // 最新のユーザー情報をFirestoreから取得します
-      final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      if (!snap.exists) return;
-      final user = AppUser.fromFirestore(snap);
-
-      if (mounted) {
-        // ハーフモーダル (下からせり出るシート) を表示し、結果を受け取ります
-        final result = await FriendInvitePromptSheet.show(context, user);
-
-        // 次回以降表示されないようにフラグを保存します
-        await prefs.setBool('friend_invite_prompt_shown_$uid', true);
-
-        // 「QRコードで繋がる」が選択された場合、呼び出し元（この画面）のcontextでダイアログを表示
-        if (result == FriendInviteResult.qrCode && mounted) {
-          FriendInvitePromptSheet.showQrDialog(context, user);
-        }
-      }
-    } catch (e) {
-      debugPrint('フレンド招待プロンプト表示エラー: $e');
-    }
   }
 
   Future<void> _complete({bool skip = false}) async {
@@ -197,40 +109,29 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
       await _userService.saveFirstVQuest(
         questTitle: skip ? null : _questCtrl.text.trim(),
         questTrigger: skip ? null : _triggerCtrl.text.trim(),
-        questReward: skip ? null : _rewardCtrl.text.trim(),
+        questReward: null,
       );
       if (mounted) {
-        // オンボーディング完了後（ホーム画面へ遷移する前）に通知許可プロンプトを表示
-        await _checkAndShowNotificationPrompt();
-        
-        // 通知許可の後にフレンド招待プロンプトを表示
-        if (mounted) {
-          await _checkAndShowFriendInvitePrompt();
-        }
-
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.home,
-            (r) => false,
-            arguments: 1, // HeroTasks タブ
-          );
-        }
+        Navigator.pushNamed(
+          context,
+          AppRoutes.onboardingProfile,
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.onboardingFirstQuestSaveFailed(e))));
+      }
+    } finally {
+      if (mounted) {
         setState(() => _isSaving = false);
       }
     }
   }
 
-  void _skipAnimation() {
-    if (_ctrlA.isAnimating || _ctrlA.status == AnimationStatus.forward) {
-      _ctrlA.value = 1.0;
-    }
+  void _unfocus() {
+    FocusScope.of(context).unfocus();
   }
 
   @override
@@ -239,76 +140,77 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _skipAnimation,
+      onTap: _unfocus,
       child: Scaffold(
         backgroundColor: AppColors.black,
         body: SafeArea(
           child: Column(
             children: [
-              // キーワードエリア
+              // タイムラインエリア (旧キーワードエリア)
               if (isKeyboardOpen)
                 const SizedBox.shrink()
               else
                 Expanded(
-                  flex: 3,
-                  child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return AnimatedBuilder(
-                      animation: _ctrlA,
-                      builder: (context, _) {
-                        return Stack(
-                          children: [
-                            ..._buildKeywords(constraints),
-                            Positioned(
-                              bottom: 16,
-                              left: 32,
-                              right: 32,
-                              child: FadeTransition(
-                                opacity: _questionAnim,
-                                child: Text(
-                                  AppLocalizations.of(context)!.onboardingFirstQuestQuestionText,
-                                  style: GoogleFonts.notoSansJp(
-                                    fontSize: 13,
-                                    color: AppColors.grey50,
-                                    height: 1.6,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 32.0, right: 32.0, top: 24.0, bottom: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppLocalizations.of(context)!.onboardingFirstQuestTimeframeHeader,
+                          style: GoogleFonts.notoSansJp(
+                            fontSize: 14,
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: Center(
+                            child: _buildTimeframeSelector(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
               // 入力エリア
               Expanded(
-                flex: isKeyboardOpen ? 1 : 7,
+                flex: isKeyboardOpen ? 1 : 8,
                 child: FadeTransition(
                   opacity: _formAnim,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32.0),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 8),
-                        // オンボーディング画面の見出しテキストを表示します（例：「習慣化したい(やりたい)ことを決めましょう」）。
-                        // ローカライズキー firstQuestTitle を使用し、文言全体を共通化しています。
-                        Text(
-                          AppLocalizations.of(context)!.firstQuestTitle,
-                          style: GoogleFonts.notoSansJp(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.white,
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 8),
+                                // オンボーディング画面の見出しテキストを表示します（例：「習慣化したい(やりたい)ことを決めましょう」）。
+                                // ローカライズキー firstQuestTitle を使用し、文言全体を共通化しています。
+                                Text(
+                                  AppLocalizations.of(context)!.firstQuestTitle,
+                                  style: GoogleFonts.notoSansJp(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                _buildHabitHints(),
+                                const SizedBox(height: 16),
+                                _buildInputField(),
+                                _buildHabitPreview(),
+                                const SizedBox(height: 16),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        _buildHabitHints(),
-                        const SizedBox(height: 16),
-                        _buildInputField(),
-                        _buildHabitPreview(),
-                        const Spacer(),
+                        const SizedBox(height: 8),
                         GradientButton(
                           onPressed:
                               _isSaving ? null : () => _complete(skip: false),
@@ -348,203 +250,122 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
   }
 
   Widget _buildInputField() {
-    final showPlaceholder = _questCtrl.text.isEmpty;
-    final showTriggerPlaceholder = _triggerCtrl.text.isEmpty;
-    final showRewardPlaceholder = _rewardCtrl.text.isEmpty;
+    final l = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppLocalizations.of(context)!.onboardingFirstQuestTriggerLabel,
-          style: GoogleFonts.notoSansJp(
-            fontSize: 12,
-            color: AppColors.grey50,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Stack(
-          alignment: Alignment.centerLeft,
+        // トリガーラベル（右側にトレンドボタンを配置）
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            TextField(
-              controller: _triggerCtrl,
+            Text(
+              l.onboardingFirstQuestTriggerLabel,
               style: GoogleFonts.notoSansJp(
-                color: AppColors.textPrimary,
-                fontSize: 15,
+                fontSize: 12,
+                color: AppColors.grey50,
               ),
-              decoration: InputDecoration(
-                hintText: '',
-                filled: true,
-                fillColor: AppColors.grey10,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+            ),
+            TextButton(
+              onPressed: () {
+                showTrendingTasksBottomSheet(
+                  context,
+                  trendingTasks: _trendingTasks,
+                  onAddTask: ({String? initialTitle}) {
+                    if (initialTitle != null) {
+                      setState(() {
+                        _questCtrl.text = initialTitle;
+                        _questCtrl.selection = TextSelection.fromPosition(
+                          TextPosition(offset: initialTitle.length),
+                        );
+                      });
+                    }
+                  },
+                );
+              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                l.profileScreenWeeklyTrend,
+                style: GoogleFonts.notoSansJp(
+                  color: AppColors.accentGold,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            if (showTriggerPlaceholder)
-              Positioned(
-                left: 16,
-                right: 16,
-                child: IgnorePointer(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 350),
-                    transitionBuilder:
-                        (child, animation) => FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.4),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
-                          ),
-                        ),
-                    child: Text(
-                      AppLocalizations.of(context)!.hintExampleFormat(_triggerPlaceholders(context)[_triggerPlaceholderIndex]),
-                      key: ValueKey<int>(_triggerPlaceholderIndex),
-                      style: GoogleFonts.notoSansJp(
-                        color: AppColors.grey30,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
           ],
+        ),
+        const SizedBox(height: 8),
+        // トリガー提案チップス
+        _buildSuggestedTriggers(),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _triggerCtrl,
+          style: GoogleFonts.notoSansJp(
+            color: AppColors.textPrimary,
+            fontSize: 15,
+          ),
+          decoration: InputDecoration(
+            hintText: l.onboardingFirstQuestTriggerHintText,
+            hintStyle: GoogleFonts.notoSansJp(
+              color: AppColors.grey30,
+              fontSize: 15,
+            ),
+            filled: true,
+            fillColor: AppColors.grey10,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
         ),
         const SizedBox(height: 16),
+        // タスク名ラベル
         Text(
-          AppLocalizations.of(context)!.onboardingFirstQuestTaskLabel,
+          l.onboardingFirstQuestTaskLabel,
           style: GoogleFonts.notoSansJp(
             fontSize: 12,
             color: AppColors.grey50,
           ),
         ),
         const SizedBox(height: 8),
-        Stack(
-          alignment: Alignment.centerLeft,
-          children: [
-            TextField(
-              controller: _questCtrl,
-              style: GoogleFonts.notoSansJp(
-                color: AppColors.textPrimary,
-                fontSize: 15,
-              ),
-              decoration: InputDecoration(
-                hintText: '',
-                filled: true,
-                fillColor: AppColors.grey10,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            if (showPlaceholder)
-              Positioned(
-                left: 16,
-                right: 16,
-                child: IgnorePointer(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 350),
-                    transitionBuilder:
-                        (child, animation) => FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.4),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
-                          ),
-                        ),
-                    child: Text(
-                      AppLocalizations.of(context)!.hintExampleFormat(_taskPlaceholders(context)[_placeholderIndex]),
-                      key: ValueKey<int>(_placeholderIndex),
-                      style: GoogleFonts.notoSansJp(
-                        color: AppColors.grey30,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Text(
-          AppLocalizations.of(context)!.onboardingFirstQuestRewardLabel,
-          style: GoogleFonts.notoSansJp(
-            fontSize: 12,
-            color: AppColors.grey50,
-          ),
-        ),
+        // タスク提案チップス
+        _buildSuggestedTasks(),
         const SizedBox(height: 8),
-        Stack(
-          alignment: Alignment.centerLeft,
-          children: [
-            TextField(
-              controller: _rewardCtrl,
-              style: GoogleFonts.notoSansJp(
-                color: AppColors.textPrimary,
-                fontSize: 15,
-              ),
-              decoration: InputDecoration(
-                hintText: '',
-                filled: true,
-                fillColor: AppColors.grey10,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
+        TextField(
+          controller: _questCtrl,
+          style: GoogleFonts.notoSansJp(
+            color: AppColors.textPrimary,
+            fontSize: 15,
+          ),
+          decoration: InputDecoration(
+            hintText: l.onboardingFirstQuestTaskHintText,
+            hintStyle: GoogleFonts.notoSansJp(
+              color: AppColors.grey30,
+              fontSize: 15,
             ),
-            if (showRewardPlaceholder)
-              Positioned(
-                left: 16,
-                right: 16,
-                child: IgnorePointer(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 350),
-                    transitionBuilder:
-                        (child, animation) => FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.4),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
-                          ),
-                        ),
-                    child: Text(
-                      AppLocalizations.of(context)!.hintExampleFormat(_rewardPlaceholders(context)[_rewardPlaceholderIndex]),
-                      key: ValueKey<int>(_rewardPlaceholderIndex),
-                      style: GoogleFonts.notoSansJp(
-                        color: AppColors.grey30,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
+            filled: true,
+            fillColor: AppColors.grey10,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         Text(
-          AppLocalizations.of(context)!.onboardingFirstQuestPrivacyNote,
+          l.onboardingFirstQuestPrivacyNote,
           style: GoogleFonts.notoSansJp(
             fontSize: 11,
             color: AppColors.grey50,
@@ -555,12 +376,191 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     );
   }
 
+  Widget _buildSuggestedTriggers() {
+    final triggers = _getSuggestedTriggers(context);
+    final currentText = _triggerCtrl.text;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: triggers.map((trigger) {
+          final isSelected = currentText == trigger;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _triggerCtrl.text = trigger;
+                _triggerCtrl.selection = TextSelection.fromPosition(
+                  TextPosition(offset: trigger.length),
+                );
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.accentGold.withValues(alpha: 0.15) : AppColors.grey10,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.accentGold
+                      : AppColors.grey15,
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                trigger,
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected
+                      ? AppColors.accentGold
+                      : AppColors.textPrimary,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSuggestedTasks() {
+    final tasks = _getSuggestedTasks(context);
+    final currentText = _questCtrl.text;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: tasks.map((task) {
+          final isSelected = currentText == task;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _questCtrl.text = task;
+                _questCtrl.selection = TextSelection.fromPosition(
+                  TextPosition(offset: task.length),
+                );
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary.withValues(alpha: 0.15) : AppColors.grey10,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.grey15,
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                task,
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textPrimary,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildTimeframeSelector() {
+    final l = AppLocalizations.of(context)!;
+    final items = [
+      {
+        'label': l.timeframeMorning,
+        'colors': [Colors.orangeAccent, Colors.redAccent],
+      },
+      {
+        'label': l.timeframeAfternoon,
+        'colors': [Colors.amber, Colors.orange],
+      },
+      {
+        'label': l.timeframeNight,
+        'colors': [Colors.indigo, Colors.purple],
+      },
+    ];
+
+    return Row(
+      children: List.generate(items.length, (index) {
+        final isSelected = _selectedTimeframeIndex == index;
+        final item = items[index];
+        final colors = item['colors'] as List<Color>;
+
+        return Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedTimeframeIndex = index;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              margin: EdgeInsets.only(
+                left: index == 0 ? 0 : 8,
+                right: index == items.length - 1 ? 0 : 8,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: isSelected
+                    ? LinearGradient(
+                        colors: colors,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isSelected ? null : AppColors.grey10,
+                border: Border.all(
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.5)
+                      : AppColors.grey15,
+                  width: 1.5,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: colors[0].withValues(alpha: 0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : [],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item['label'] as String,
+                    style: GoogleFonts.notoSansJp(
+                      fontSize: 14,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      color: isSelected ? AppColors.white : AppColors.grey50,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
   Widget _buildHabitPreview() {
     final hasTrigger = _triggerCtrl.text.isNotEmpty;
     final hasQuest = _questCtrl.text.isNotEmpty;
-    final hasReward = _rewardCtrl.text.isNotEmpty;
 
-    if (!hasTrigger && !hasQuest && !hasReward) {
+    if (!hasTrigger && !hasQuest) {
       return const SizedBox.shrink();
     }
 
@@ -604,27 +604,6 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
             ),
             textAlign: TextAlign.center,
           ),
-          if (hasReward) ...[
-            const SizedBox(height: 8),
-            Text(
-              '+',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.grey50,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _rewardCtrl.text,
-              style: GoogleFonts.notoSansJp(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppColors.accentGold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
         ],
       ),
     );
@@ -656,8 +635,6 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
             ],
           ),
           const SizedBox(height: 6),
-          // 最新の習慣化のコツ（ハビット・スタッキング：既存の習慣の後に新しい習慣を組み合わせる手法）を表示します。
-          // プロフィール画面と統一された最新の共通文言（habitStackingHint）を使用しています。
           Text(
             AppLocalizations.of(context)!.habitStackingHint,
             style: GoogleFonts.notoSansJp(
@@ -667,8 +644,6 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
             ),
           ),
           const SizedBox(height: 4),
-          // 最新の習慣化のコツ（テンプテーション・バンドリング：やるべきタスクとやりたいご褒美をセットにする手法）を表示します。
-          // プロフィール画面と統一された最新の共通文言（temptationBundlingHint）を使用しています。
           Text(
             AppLocalizations.of(context)!.temptationBundlingHint,
             style: GoogleFonts.notoSansJp(
@@ -680,38 +655,5 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
         ],
       ),
     );
-  }
-
-  List<Widget> _buildKeywords(BoxConstraints constraints) {
-    final l = AppLocalizations.of(context)!;
-    final keywords = [l.firstQuestKeyword1, l.firstQuestKeyword2, l.firstQuestKeyword3, l.firstQuestKeyword4, l.firstQuestKeyword5, l.firstQuestKeyword6];
-    // 画面幅に依存しない相対的な配置（左上原点）
-    const positions = [
-      [0.48, 0.08], // 勝利: 右上寄り
-      [0.65, 0.28], // 努力: 右中
-      [0.08, 0.10], // 達成感: 左上
-      [0.12, 0.42], // 目標: 左中
-      [0.42, 0.52], // 習慣化: 中央下
-      [0.70, 0.50], // 継続: 右下
-    ];
-    const sizes = [22.0, 20.0, 18.0, 24.0, 16.0, 20.0];
-
-    return List.generate(keywords.length, (i) {
-      return Positioned(
-        left: constraints.maxWidth * positions[i][0],
-        top: constraints.maxHeight * positions[i][1],
-        child: FadeTransition(
-          opacity: _keywordAnims[i],
-          child: Text(
-            keywords[i],
-            style: GoogleFonts.notoSansJp(
-              fontSize: sizes[i],
-              fontWeight: FontWeight.w500,
-              color: AppColors.white,
-            ),
-          ),
-        ),
-      );
-    });
   }
 }

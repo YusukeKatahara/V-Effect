@@ -1401,13 +1401,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingFirstQuestTriggerLabel => 'Trigger (optional)';
 
   @override
-  String get onboardingFirstQuestTaskLabel => 'Task (your habit)';
+  String get onboardingFirstQuestTaskLabel => 'Task name';
 
   @override
   String get onboardingFirstQuestRewardLabel => 'Reward (optional)';
 
   @override
-  String get onboardingFirstQuestPrivacyNote => '* Trigger and reward are only visible to you.';
+  String get onboardingFirstQuestPrivacyNote => '* Trigger is only visible to you.';
 
   @override
   String get onboardingFirstQuestCompleteButton => 'Let\'s Go';
@@ -1419,6 +1419,75 @@ class AppLocalizationsEn extends AppLocalizations {
   String onboardingFirstQuestSaveFailed(Object error) {
     return 'Failed to save: $error';
   }
+
+  @override
+  String get timeframeMorning => '☀️ Morning';
+
+  @override
+  String get timeframeAfternoon => '🌆 Afternoon';
+
+  @override
+  String get timeframeNight => '🌙 Night';
+
+  @override
+  String get onboardingFirstQuestSuggestedTriggerTitle => 'Suggested Trigger (Tap to select)';
+
+  @override
+  String get onboardingFirstQuestSuggestedTaskTitle => 'Suggested Task (Tap to select)';
+
+  @override
+  String get morningTrigger1 => 'Open the curtains';
+
+  @override
+  String get morningTrigger2 => 'Get out of bed';
+
+  @override
+  String get morningTrigger3 => 'Before breakfast';
+
+  @override
+  String get morningTask1 => 'Stretch in morning sun';
+
+  @override
+  String get morningTask2 => 'Drink a cup of warm water';
+
+  @override
+  String get morningTask3 => 'Make my bed';
+
+  @override
+  String get afternoonTrigger1 => 'After finishing lunch';
+
+  @override
+  String get afternoonTrigger2 => 'Before opening phone';
+
+  @override
+  String get afternoonTrigger3 => 'When closing PC';
+
+  @override
+  String get afternoonTask1 => 'Put down phone for 10m';
+
+  @override
+  String get afternoonTask2 => 'Turn a page of a book';
+
+  @override
+  String get afternoonTask3 => 'Throw away one desk trash';
+
+  @override
+  String get nightTrigger1 => 'After taking a bath';
+
+  @override
+  String get nightTrigger2 => 'Before getting in bed';
+
+  @override
+  String get nightTrigger3 => 'When it becomes 10 PM';
+
+  @override
+  String get nightTask1 => 'No screen before sleep';
+
+  @override
+  String get nightTask2 => 'Write 3 good things today';
+
+  @override
+  String get nightTask3 => 'Write tomorrow\'s plan';
 
   @override
   String get onboardingFirstQuestHabitTipsTitle => 'Habit-Building Tips';
@@ -1779,6 +1848,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get firstQuestRewardHint5 => 'Read a manga';
+
+  @override
+  String get onboardingFirstQuestTriggerHintText => 'Enter trigger';
+
+  @override
+  String get onboardingFirstQuestTaskHintText => 'Enter task name';
+
+  @override
+  String get onboardingFirstQuestTimeframeHeader => 'Select a timeframe';
 
   @override
   String get firstQuestTitle => 'Let\'s decide the habit you want to build';

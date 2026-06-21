@@ -2786,7 +2786,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingFirstQuestTaskLabel.
   ///
   /// In ja, this message translates to:
-  /// **'タスク名（行動：必要な習慣）'**
+  /// **'タスク名'**
   String get onboardingFirstQuestTaskLabel;
 
   /// No description provided for @onboardingFirstQuestRewardLabel.
@@ -2798,7 +2798,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingFirstQuestPrivacyNote.
   ///
   /// In ja, this message translates to:
-  /// **'※ トリガーとご褒美は自分にのみ表示されます（他のユーザーには公開されません）'**
+  /// **'※ トリガーは自分にのみ表示されます（他のユーザーには公開されません）'**
   String get onboardingFirstQuestPrivacyNote;
 
   /// No description provided for @onboardingFirstQuestCompleteButton.
@@ -2818,6 +2818,144 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'保存に失敗しました: {error}'**
   String onboardingFirstQuestSaveFailed(Object error);
+
+  /// No description provided for @timeframeMorning.
+  ///
+  /// In ja, this message translates to:
+  /// **'☀️ 朝'**
+  String get timeframeMorning;
+
+  /// No description provided for @timeframeAfternoon.
+  ///
+  /// In ja, this message translates to:
+  /// **'🌆 昼'**
+  String get timeframeAfternoon;
+
+  /// No description provided for @timeframeNight.
+  ///
+  /// In ja, this message translates to:
+  /// **'🌙 夜'**
+  String get timeframeNight;
+
+  /// No description provided for @onboardingFirstQuestSuggestedTriggerTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'おすすめのきっかけ（タップで選択）'**
+  String get onboardingFirstQuestSuggestedTriggerTitle;
+
+  /// No description provided for @onboardingFirstQuestSuggestedTaskTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'おすすめのタスク（タップで選択）'**
+  String get onboardingFirstQuestSuggestedTaskTitle;
+
+  /// No description provided for @morningTrigger1.
+  ///
+  /// In ja, this message translates to:
+  /// **'カーテンを開けたら'**
+  String get morningTrigger1;
+
+  /// No description provided for @morningTrigger2.
+  ///
+  /// In ja, this message translates to:
+  /// **'ベッドから出たら'**
+  String get morningTrigger2;
+
+  /// No description provided for @morningTrigger3.
+  ///
+  /// In ja, this message translates to:
+  /// **'朝食の前に'**
+  String get morningTrigger3;
+
+  /// No description provided for @morningTask1.
+  ///
+  /// In ja, this message translates to:
+  /// **'朝日を浴びて深呼吸'**
+  String get morningTask1;
+
+  /// No description provided for @morningTask2.
+  ///
+  /// In ja, this message translates to:
+  /// **'コップ1杯の白湯を飲む'**
+  String get morningTask2;
+
+  /// No description provided for @morningTask3.
+  ///
+  /// In ja, this message translates to:
+  /// **'ベッドメイキングをする'**
+  String get morningTask3;
+
+  /// No description provided for @afternoonTrigger1.
+  ///
+  /// In ja, this message translates to:
+  /// **'お昼ご飯を食べ終えたら'**
+  String get afternoonTrigger1;
+
+  /// No description provided for @afternoonTrigger2.
+  ///
+  /// In ja, this message translates to:
+  /// **'スマホを開く前に'**
+  String get afternoonTrigger2;
+
+  /// No description provided for @afternoonTrigger3.
+  ///
+  /// In ja, this message translates to:
+  /// **'PCを閉じるタイミングで'**
+  String get afternoonTrigger3;
+
+  /// No description provided for @afternoonTask1.
+  ///
+  /// In ja, this message translates to:
+  /// **'スマホを10分置く'**
+  String get afternoonTask1;
+
+  /// No description provided for @afternoonTask2.
+  ///
+  /// In ja, this message translates to:
+  /// **'本のページをめくる'**
+  String get afternoonTask2;
+
+  /// No description provided for @afternoonTask3.
+  ///
+  /// In ja, this message translates to:
+  /// **'デスクのゴミを1つ捨てる'**
+  String get afternoonTask3;
+
+  /// No description provided for @nightTrigger1.
+  ///
+  /// In ja, this message translates to:
+  /// **'お風呂から上がったら'**
+  String get nightTrigger1;
+
+  /// No description provided for @nightTrigger2.
+  ///
+  /// In ja, this message translates to:
+  /// **'布団に入る前に'**
+  String get nightTrigger2;
+
+  /// No description provided for @nightTrigger3.
+  ///
+  /// In ja, this message translates to:
+  /// **'22時になったら'**
+  String get nightTrigger3;
+
+  /// No description provided for @nightTask1.
+  ///
+  /// In ja, this message translates to:
+  /// **'寝る前スマホをやめる'**
+  String get nightTask1;
+
+  /// No description provided for @nightTask2.
+  ///
+  /// In ja, this message translates to:
+  /// **'今日良かったことを3つ書く'**
+  String get nightTask2;
+
+  /// No description provided for @nightTask3.
+  ///
+  /// In ja, this message translates to:
+  /// **'明日の予定を1つ書く'**
+  String get nightTask3;
 
   /// No description provided for @onboardingFirstQuestHabitTipsTitle.
   ///
@@ -3490,6 +3628,24 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'漫画を読む'**
   String get firstQuestRewardHint5;
+
+  /// No description provided for @onboardingFirstQuestTriggerHintText.
+  ///
+  /// In ja, this message translates to:
+  /// **'トリガーを入力'**
+  String get onboardingFirstQuestTriggerHintText;
+
+  /// No description provided for @onboardingFirstQuestTaskHintText.
+  ///
+  /// In ja, this message translates to:
+  /// **'タスク名を入力'**
+  String get onboardingFirstQuestTaskHintText;
+
+  /// No description provided for @onboardingFirstQuestTimeframeHeader.
+  ///
+  /// In ja, this message translates to:
+  /// **'時間帯から選ぶ'**
+  String get onboardingFirstQuestTimeframeHeader;
 
   /// No description provided for @firstQuestTitle.
   ///

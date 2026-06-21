@@ -291,8 +291,8 @@ class UserService {
     );
   }
 
-  /// 新オンボーディング用プロフィール保存
-  /// profileCompleted=true, onboardingStep='first_v_quest' を同一バッチで書き込む
+  /// 新オンボーディング用プロフィール保存とオンボーディング完了処理
+  /// profileCompleted=true, onboardingCompleted=true, onboardingStep='completed' を同一バッチで書き込む
   Future<void> saveOnboardingProfile({
     required String username,
     required String userId,
@@ -313,10 +313,11 @@ class UserService {
         'lastPostedDate': null,
         'following': [],
         'followers': [],
-        'tasks': [],
         if (photoUrl != null) 'photoUrl': photoUrl,
         'profileCompleted': true,
-        'onboardingStep': 'first_v_quest',
+        'onboardingCompleted': true,
+        'templateCompleted': true, // 後方互換
+        'onboardingStep': 'completed',
       },
       SetOptions(merge: true),
     );
@@ -327,16 +328,18 @@ class UserService {
       SetOptions(merge: true),
     );
 
+    // 🚀 【爆速化 1】次回起動時のゼロディレイルーティングのためにローカルキャッシュを保存
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboardingCompleted_$uid', true);
+
     await batch.commit();
   }
 
-  /// 最初のV Questを保存しオンボーディングを完了させます
+  /// 最初のV Questを一時保存し、オンボーディングステップを進めます
   Future<void> saveFirstVQuest({String? questTitle, String? questTrigger, String? questReward}) async {
     final uid = _auth.currentUser!.uid;
     final data = <String, dynamic>{
-      'onboardingCompleted': true,
-      'templateCompleted': true, // 後方互換
-      'onboardingStep': 'completed',
+      'onboardingStep': 'profile_settings',
     };
     
     final tasks = <Map<String, dynamic>>[];
@@ -347,10 +350,6 @@ class UserService {
       tasks.add(AppTask(title: questTitle, trigger: questTrigger, reward: questReward).toFirestore());
     }
     data['tasks'] = tasks;
-
-    // 🚀 【爆速化 1】次回起動時のゼロディレイルーティングのためにローカルキャッシュを保存
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboardingCompleted_$uid', true);
 
     await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
   }
