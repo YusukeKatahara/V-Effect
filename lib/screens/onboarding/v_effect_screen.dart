@@ -176,7 +176,7 @@ class _FeaturePageState extends State<_FeaturePage> with SingleTickerProviderSta
               ),
               style: GoogleFonts.notoSansJp(
                 fontSize: 11,
-                color: AppColors.grey40, // 視覚的ノイズにならないよう、少し薄いグレーに調整します
+                color: AppColors.grey50, // 視覚的ノイズにならないよう、少し薄いグレーに調整します
                 height: 1.5,
               ),
             ),
