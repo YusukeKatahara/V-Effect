@@ -7,15 +7,28 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-06-12
-- **Activeエージェント:** Antigravity (Idle)
-- **Current Task:** Implement auto-shrinking task name, fix caption line-breaking, and adjust top-left UI margins (Completed)
-- **Action:** Applied _AutoSizeText, relocated reaction stack, and reduced top-left UI padding to 24px.
+- **Last Updated:** 2026-06-17
+- **Activeエージェント:** Gemini CLI (Idle)
+- **Current Task:** Unify streak text label color with tier color on profile pages (Completed)
+- **Action:** Updated profile_header_section.dart and user_profile_screen.dart to color the "STREAK" label with the tier-based theme color.
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-06-18 (Gemini CLI)
+- **Unify Game Trends to "Ranked Match" (ランク戦への名称統一):**
+    - [functions/index.js](file:///Users/rennlikeu/development/V-Effect/functions/index.js) 内の Gemini API によるタスク名寄せプロンプトを更新し、ゲーム関連の努力を「ランク戦」と命名するように調整しました。
+    - ウィークリートレンドの集計ロジックを修正し、「ゲーム」「Game」などの抽象的な名称を自動的に「ランク戦」にマッピングするように変更しました。
+    - [functions/force_trends.js](file:///Users/rennlikeu/development/V-Effect/functions/force_trends.js) の手動集計スクリプトも同様に「ランク戦」へ統一されるよう修正しました。
+    - これにより、遊びの「ゲーム」ではなく、LoLやValorantなどの本気で取り組む「ランク戦」としての努力が正しくランキングに反映されるようになります。
+
+### 2026-06-17 (Gemini CLI)
+- **Unify Streak Text Color on Profile Pages (プロフィールページのストリーク文字色の統一):**
+    - [profile_header_section.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/profile/components/profile_header_section.dart) および [user_profile_screen.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/user_profile_screen.dart) にて、統計情報の「STREAK（ストリーク）」というラベルテキストの色を、炎アイコンや数値と同じティア色（ランクに応じた色）に変更しました。
+    - これにより、ストリーク項目全体が統一されたテーマカラーで表示されるようになり、視覚的な一貫性が向上しました。
+    - 「Following」や「Followers」のラベル色は従来通り `AppColors.textSecondary` を維持しています。
 
 ### 2026-06-12 (Antigravity)
 - **Adjust Top-Left UI Padding on HeroTasksScreen (カード左上UIの位置調整):**

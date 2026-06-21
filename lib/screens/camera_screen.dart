@@ -457,7 +457,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
-      backgroundColor: AppColors.black,
+      backgroundColor: AppColors.pureBlack,
       resizeToAvoidBottomInset: false, // キーボード出現時にプレビュー画像が圧縮されるのを防ぐ
       body: Stack(
         children: [
@@ -490,7 +490,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               bottom: bottomInset,
               child: Container(
                 // キーボード表示中は背景を少し暗くして入力しやすくする
-                color: AppColors.black.withValues(alpha: bottomInset > 0 ? 0.6 : 0.0),
+                color: AppColors.pureBlack.withValues(alpha: bottomInset > 0 ? 0.6 : 0.0),
                 child: SafeArea(
                   top: false,
                   bottom: bottomInset == 0,
@@ -502,12 +502,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                             const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                         child: TextField(
                           controller: _captionController,
-                          style: TextStyle(color: AppColors.white),
+                          style: TextStyle(color: AppColors.pureWhite),
                           decoration: InputDecoration(
                             hintText: AppLocalizations.of(context)!.cameraScreenCaption,
-                            hintStyle: TextStyle(color: AppColors.grey50),
+                            hintStyle: const TextStyle(color: Colors.white54),
                             filled: true,
-                            fillColor: AppColors.white.withValues(alpha: 0.1),
+                            fillColor: AppColors.pureWhite.withValues(alpha: 0.1),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 12),
                             border: OutlineInputBorder(
@@ -538,7 +538,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.close, color: AppColors.white),
+            icon: Icon(Icons.close, color: AppColors.pureWhite),
             onPressed: () => Navigator.pop(context),
           ),
           const Spacer(),
@@ -553,7 +553,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 style: GoogleFonts.notoSansJp(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.white,
+                  color: AppColors.pureWhite,
                 ),
               ),
             ),
@@ -575,7 +575,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                   _flashIcon,
                   color: _flashMode != FlashMode.off
                       ? AppColors.accentGold
-                      : AppColors.white,
+                      : AppColors.pureWhite,
                   size: 24,
                 ),
               ),
@@ -591,11 +591,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                   shape: BoxShape.circle,
                   color: _selectedMusic != null
                       ? AppColors.accentGold.withValues(alpha: 0.2)
-                      : AppColors.white.withValues(alpha: 0.1),
+                      : AppColors.pureWhite.withValues(alpha: 0.1),
                 ),
                 child: Icon(
                   Icons.music_note_rounded,
-                  color: _selectedMusic != null ? AppColors.accentGold : AppColors.white,
+                  color: _selectedMusic != null ? AppColors.accentGold : AppColors.pureWhite,
                   size: 24,
                 ),
               ),
@@ -952,7 +952,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
-                  color: AppColors.black.withValues(alpha: 0.35),
+                  color: AppColors.pureBlack.withValues(alpha: 0.35),
                 ),
               ),
             ),
@@ -971,12 +971,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                       style: GoogleFonts.notoSerifJp(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.white,
+                        color: AppColors.pureWhite,
                         height: 1.4,
                         letterSpacing: 1.5,
                         shadows: [
                           Shadow(
-                            color: AppColors.black.withValues(alpha: 0.8),
+                            color: AppColors.pureBlack.withValues(alpha: 0.8),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           )
@@ -1021,14 +1021,14 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                                 placeholder: (context, url) => Container(
                                   width: 22,
                                   height: 22,
-                                  color: AppColors.black.withValues(alpha: 0.6),
-                                  child: Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
+                                  color: AppColors.pureBlack.withValues(alpha: 0.6),
+                                  child: Icon(Icons.music_note_rounded, color: AppColors.pureWhite, size: 14),
                                 ),
                                 errorWidget: (context, url, error) => Container(
                                   width: 22,
                                   height: 22,
-                                  color: AppColors.black.withValues(alpha: 0.6),
-                                  child: Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
+                                  color: AppColors.pureBlack.withValues(alpha: 0.6),
+                                  child: Icon(Icons.music_note_rounded, color: AppColors.pureWhite, size: 14),
                                 ),
                               ),
                             )
@@ -1036,10 +1036,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                             Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: AppColors.black.withValues(alpha: 0.6),
+                                color: AppColors.pureBlack.withValues(alpha: 0.6),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Icon(Icons.music_note_rounded, color: AppColors.white, size: 14),
+                              child: Icon(Icons.music_note_rounded, color: AppColors.pureWhite, size: 14),
                             ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -1088,10 +1088,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                       width: 56,
                       height: 56,
                       decoration: BoxDecoration(
-                        color: AppColors.white.withValues(alpha: 0.1),
+                        color: AppColors.pureWhite.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.white.withValues(alpha: 0.1),
+                          color: AppColors.pureWhite.withValues(alpha: 0.1),
                           width: 1,
                         ),
                       ),
@@ -1107,7 +1107,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                       style: GoogleFonts.outfit(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.white,
+                        color: AppColors.pureWhite,
                       ),
                     ),
                   ],
@@ -1124,7 +1124,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                   children: [
                     Icon(
                       Icons.zoom_out_map_rounded,
-                      color: AppColors.white.withValues(alpha: 0.6),
+                      color: AppColors.pureWhite.withValues(alpha: 0.6),
                       size: 14,
                     ),
                     const SizedBox(width: 6),
@@ -1132,10 +1132,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                       AppLocalizations.of(context)!.cameraScreenDragPinch,
                       style: GoogleFonts.notoSansJp(
                         fontSize: 10,
-                        color: AppColors.white.withValues(alpha: 0.6),
+                        color: AppColors.pureWhite.withValues(alpha: 0.6),
                         shadows: [
                           Shadow(
-                            color: AppColors.black,
+                            color: AppColors.pureBlack,
                             blurRadius: 4,
                           )
                         ],
@@ -1164,8 +1164,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            AppColors.black.withValues(alpha: 0.0),
-            AppColors.black.withValues(alpha: 0.8),
+            AppColors.pureBlack.withValues(alpha: 0.0),
+            AppColors.pureBlack.withValues(alpha: 0.8),
           ],
         ),
       ),
@@ -1179,11 +1179,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.grey15,
-                border: Border.all(color: AppColors.grey20),
+                color: Colors.white12,
+                border: Border.all(color: Colors.white24),
               ),
-              child: Icon(Icons.refresh_rounded,
-                  color: AppColors.grey70, size: 22),
+              child: const Icon(Icons.refresh_rounded,
+                  color: Colors.white70, size: 22),
             ),
           ),
           const Spacer(),
@@ -1195,13 +1195,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               height: 52,
               padding: const EdgeInsets.symmetric(horizontal: 32),
               decoration: BoxDecoration(
-                color: _isUploading ? AppColors.grey15 : AppColors.white,
+                color: _isUploading ? Colors.white24 : AppColors.pureWhite,
                 borderRadius: BorderRadius.circular(26),
                 boxShadow: _isUploading
                     ? []
                     : [
                         BoxShadow(
-                          color: AppColors.white.withValues(alpha: 0.15),
+                          color: AppColors.pureWhite.withValues(alpha: 0.15),
                           blurRadius: 24,
                           offset: const Offset(0, 4),
                         ),
@@ -1218,7 +1218,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                         style: GoogleFonts.notoSansJp(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.black,
+                          color: AppColors.pureBlack,
                         ),
                       ),
               ),

@@ -679,6 +679,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sharePreviewShareButton => 'Share to Social';
 
   @override
+  String heroTaskShareText(int streak) {
+    return 'Completed my Hero Task today!\nCurrent streak: $streak days 🔥\n#VEffect';
+  }
+
+  @override
   String get searchHint => 'Search by ID or name';
 
   @override
@@ -1269,7 +1274,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraScreenUploadFailed => 'Post failed. Please try again.';
 
   @override
-  String get cameraScreenCaption => 'Add a caption (optional)';
+  String get cameraScreenCaption => 'Add a comment';
 
   @override
   String get cameraScreenCameraLoading => 'Starting camera...';
@@ -1390,7 +1395,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get onboardingFirstQuestQuestionText => 'What does your ideal self look like?\nWhat habit do you want to build?';
+  String get onboardingFirstQuestQuestionText => 'What does your ideal self look like?';
 
   @override
   String get onboardingFirstQuestTriggerLabel => 'Trigger (optional)';
@@ -1417,18 +1422,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingFirstQuestHabitTipsTitle => 'Habit-Building Tips';
-
-  @override
-  String get onboardingFirstQuestHabitStackingTitle => 'Habit Stacking';
-
-  @override
-  String get onboardingFirstQuestHabitStackingDesc => 'Attach a new habit right after something you already do every day. That\'s your trigger.';
-
-  @override
-  String get onboardingFirstQuestTemptationBundlingTitle => 'Temptation Bundling';
-
-  @override
-  String get onboardingFirstQuestTemptationBundlingDesc => 'Pair something you should do (your task) with something you want to do (your reward) to boost your drive.';
 
   @override
   String get onboardingProfileWelcome => 'Welcome to V EFFECT';
@@ -1637,31 +1630,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeStreakResetMessage => 'Even if your streak breaks,\nas long as you keep moving forward,\nV EFFECT will ignite again.';
 
   @override
-  String get vEffectConceptLine1 => 'Every small victory brings you closer to your ideal self.';
+  String get vEffectCoreTitle => 'How V EFFECT Works';
 
   @override
-  String get vEffectConceptLine2 => 'This platform is here to support your victories and your habits.';
+  String get vEffectStep1Title => '1. Decide your habit';
 
   @override
-  String get vEffectConceptLine3Prefix => 'Now, with your crew, let\'s spark ';
+  String get vEffectStep1Desc => 'Decide what you want to build as a habit or do daily.';
 
   @override
-  String get vEffectConceptLine3Suffix => '.';
+  String get vEffectStep2Title => '2. Prove with a photo';
 
   @override
-  String get vEffectFeatureLine1 => 'Capture today\'s achievement in a photo. That\'s it.';
-
-  @override
-  String get vEffectFeatureLine2 => 'The fact that you did it builds who you are.';
-
-  @override
-  String get vEffectFeatureLine3 => 'Each other\'s effort becomes connection.';
-
-  @override
-  String get vEffectFeatureLine4 => 'See who proved their V today.';
-
-  @override
-  String get vEffectFeatureLine5 => 'Only those who prove their effort can reach — and be reached.';
+  String get vEffectStep2Desc => 'Prove your victory (reading, studying, workout, etc.) with a photo.';
 
   @override
   String get vEffectJoinButton => 'Join V EFFECT →';
@@ -1671,24 +1652,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dateFormatFull => 'MMMM d, yyyy';
-
-  @override
-  String get vEffectConceptTitle => 'What is V EFFECT?';
-
-  @override
-  String get vEffectDefinition => 'The V in V EFFECT stands for Victory.';
-
-  @override
-  String get vEffectTerm => 'V EFFECT (Victory Effect)';
-
-  @override
-  String get vEffectCoreTitle => 'The Core of V EFFECT';
-
-  @override
-  String get vEffectHeroTaskLabel => ' (Hero Task)';
-
-  @override
-  String get vEffectSlogan => 'Prove your V. Raw is fine.';
 
   @override
   String heroTaskSeasonDaysLeft(int days) {
@@ -1809,13 +1772,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get firstQuestRewardHint5 => 'Read a manga';
 
   @override
-  String get firstQuestTitlePrefix => 'Let\'s decide your first ';
-
-  @override
-  String get firstQuestHeroTaskLabel => ' (Hero Task)';
-
-  @override
-  String get firstQuestTitleSuffix => '';
+  String get firstQuestTitle => 'Let\'s decide the habit you want to build';
 
   @override
   String get firstQuestNoTaskPlaceholder => '(Task)';

@@ -31,6 +31,7 @@ import '../providers/dev_blog_provider.dart';
 import '../services/app_review_service.dart';
 import 'hero_tasks/components/hero_task_item.dart';
 import 'hero_tasks/components/task_card.dart';
+import 'hero_task_share_preview_screen.dart';
 
 
 
@@ -853,16 +854,53 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                 if (isCompleted && _expandedIndex == _focusedIndex)
                   Positioned(
                     right: 0,
-                    child: IconButton(
-                      onPressed:
-                          () => _deleteHeroPost(focusedTask!.latestPost!.id),
-                      icon: Icon(
-                        Icons.delete_outline_rounded,
-                        color: AppColors.error,
-                        size: 20,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    top: 0,
+                    bottom: 0,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: IconButton(
+                            onPressed: () {
+                              if (focusedTask?.latestPost != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => HeroTaskSharePreviewScreen(
+                                      imageUrl: focusedTask!.latestPost!.imageUrl,
+                                      currentStreak: _streak,
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            icon: Icon(
+                              Icons.ios_share,
+                              color: AppColors.white,
+                              size: 18,
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: IconButton(
+                            onPressed:
+                                () => _deleteHeroPost(focusedTask!.latestPost!.id),
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              color: AppColors.error,
+                              size: 18,
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],

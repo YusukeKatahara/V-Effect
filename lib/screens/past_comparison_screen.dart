@@ -249,6 +249,17 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
               border: _isCompareMode && isSelected 
                   ? Border.all(color: AppColors.accentGold, width: 2)
                   : Border.all(color: AppColors.border, width: 1),
+              boxShadow: _isCompareMode && isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.isDark
+                            ? Colors.transparent
+                            : AppColors.accentGold.withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(11),

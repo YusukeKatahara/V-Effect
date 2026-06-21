@@ -38,22 +38,22 @@ class AppColors {
   }
 
   // ── Monochrome Scale ─────────────────────
-  static Color get white => isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
+  static Color get white => isDark ? const Color(0xFFFFFFFF) : const Color(0xFF1A1A1A);
   static Color get grey95 => isDark ? const Color(0xFFF2F2F2) : const Color(0xFF0D0D0D);
   static Color get grey85 => isDark ? const Color(0xFFD9D9D9) : const Color(0xFF1A1A1A);
   static Color get grey70 => isDark ? const Color(0xFFB3B3B3) : const Color(0xFF333333);
-  static Color get grey50 => isDark ? const Color(0xFF808080) : const Color(0xFF808080);
+  static Color get grey50 => isDark ? const Color(0xFF808080) : const Color(0xFF737373);
   static Color get grey30 => isDark ? const Color(0xFF4D4D4D) : const Color(0xFFB3B3B3);
-  static Color get grey20 => isDark ? const Color(0xFF333333) : const Color(0xFFD9D9D9);
+  static Color get grey20 => isDark ? const Color(0xFF333333) : const Color(0xFFD4D4D4);
   // ライトモード時のコントラスト階層（明暗差）崩壊を防ぐため、グレー値を調整しています。
-  // ライトモードでは grey15(濃い) > grey10 > grey08 > grey05(薄い) の順に明るくなります。
-  static Color get grey15 => isDark ? const Color(0xFF262626) : const Color(0xFFE5E5E5);
-  static Color get grey10 => isDark ? const Color(0xFF1A1A1A) : const Color(0xFFEBEBEB);
+  // ライトモードでは grey15(F7F7F7・中間) > grey10(EFEFEF) > grey08(FFFFFF・純白) > grey05(FAFAFA・極薄) の順になります。
+  static Color get grey15 => isDark ? const Color(0xFF262626) : const Color(0xFFF7F7F7);
+  static Color get grey10 => isDark ? const Color(0xFF1A1A1A) : const Color(0xFFEFEFEF);
   // ライトモードでは grey08 を純白にし、bgSurface（カード背景）として使用。
-  // 画面背景（bgBase = black）を薄いグレーにすることで、カードが浮き上がって見えます。
+  // 画面背景（bgBase = black）を純白（FFFFFF）にすることで、Instagramのようなクリーンな見た目にします。
   static Color get grey08 => isDark ? const Color(0xFF141414) : const Color(0xFFFFFFFF);
-  static Color get grey05 => isDark ? const Color(0xFF0D0D0D) : const Color(0xFFF5F5F5);
-  static Color get black => isDark ? const Color(0xFF000000) : const Color(0xFFF5F5F5);
+  static Color get grey05 => isDark ? const Color(0xFF0D0D0D) : const Color(0xFFFAFAFA);
+  static Color get black => isDark ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
 
   // ── Semantic aliases ─────────────────────
   static Color get primary => white;

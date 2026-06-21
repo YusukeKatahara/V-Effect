@@ -1379,6 +1379,12 @@ abstract class AppLocalizations {
   /// **'SNSへシェア'**
   String get sharePreviewShareButton;
 
+  /// No description provided for @heroTaskShareText.
+  ///
+  /// In ja, this message translates to:
+  /// **'今日のヒーロータスクを完了しました！\n現在のストリーク: {streak}日 🔥\n#VEffect'**
+  String heroTaskShareText(int streak);
+
   /// No description provided for @searchHint.
   ///
   /// In ja, this message translates to:
@@ -2486,7 +2492,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileScreenTaskTriggerHint.
   ///
   /// In ja, this message translates to:
-  /// **'トリガー（任意）'**
+  /// **'（任意）例）朝起きたら→感謝をする'**
   String get profileScreenTaskTriggerHint;
 
   /// No description provided for @profileScreenTaskNameHint.
@@ -2498,7 +2504,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileScreenTaskRewardHint.
   ///
   /// In ja, this message translates to:
-  /// **'ご褒美（任意）'**
+  /// **'（任意）例）デスク作業＋コーヒー、運動＋音楽'**
   String get profileScreenTaskRewardHint;
 
   /// No description provided for @profileScreenOneTimeTaskTitle.
@@ -2534,7 +2540,7 @@ abstract class AppLocalizations {
   /// No description provided for @cameraScreenCaption.
   ///
   /// In ja, this message translates to:
-  /// **'一言を添える (任意)'**
+  /// **'コメントを追加'**
   String get cameraScreenCaption;
 
   /// No description provided for @cameraScreenCameraLoading.
@@ -2768,7 +2774,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingFirstQuestQuestionText.
   ///
   /// In ja, this message translates to:
-  /// **'あなたが理想とする姿はどんなだろう？\nあなたの習慣化したい習慣は何だろう？'**
+  /// **'あなたが理想とする姿はどんなだろう？'**
   String get onboardingFirstQuestQuestionText;
 
   /// No description provided for @onboardingFirstQuestTriggerLabel.
@@ -2818,30 +2824,6 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'習慣化のコツ'**
   String get onboardingFirstQuestHabitTipsTitle;
-
-  /// No description provided for @onboardingFirstQuestHabitStackingTitle.
-  ///
-  /// In ja, this message translates to:
-  /// **'ハビット・スタッキング'**
-  String get onboardingFirstQuestHabitStackingTitle;
-
-  /// No description provided for @onboardingFirstQuestHabitStackingDesc.
-  ///
-  /// In ja, this message translates to:
-  /// **'すでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。'**
-  String get onboardingFirstQuestHabitStackingDesc;
-
-  /// No description provided for @onboardingFirstQuestTemptationBundlingTitle.
-  ///
-  /// In ja, this message translates to:
-  /// **'テンプテーション・バンドリング'**
-  String get onboardingFirstQuestTemptationBundlingTitle;
-
-  /// No description provided for @onboardingFirstQuestTemptationBundlingDesc.
-  ///
-  /// In ja, this message translates to:
-  /// **'やるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。'**
-  String get onboardingFirstQuestTemptationBundlingDesc;
 
   /// No description provided for @onboardingProfileWelcome.
   ///
@@ -3239,59 +3221,35 @@ abstract class AppLocalizations {
   /// **'ストリークが止まったとしても、\nあなたの歩みさえ止まらなければ\nV EFFECTは何度でも引き起こせる。'**
   String get homeStreakResetMessage;
 
-  /// No description provided for @vEffectConceptLine1.
+  /// No description provided for @vEffectCoreTitle.
   ///
   /// In ja, this message translates to:
-  /// **'小さな勝利の積み重ねが理想のあなたに近づける。'**
-  String get vEffectConceptLine1;
+  /// **'V EFFECT の使い方'**
+  String get vEffectCoreTitle;
 
-  /// No description provided for @vEffectConceptLine2.
+  /// No description provided for @vEffectStep1Title.
   ///
   /// In ja, this message translates to:
-  /// **'このプラットフォームはそんなあなたの勝利と習慣をサポートします。'**
-  String get vEffectConceptLine2;
+  /// **'1. 習慣化したい（やりたい）ことを決めよう'**
+  String get vEffectStep1Title;
 
-  /// No description provided for @vEffectConceptLine3Prefix.
+  /// No description provided for @vEffectStep1Desc.
   ///
   /// In ja, this message translates to:
-  /// **'さあ、仲間と共に'**
-  String get vEffectConceptLine3Prefix;
+  /// **'あなたが習慣化したい（やりたい）ことを決めます。'**
+  String get vEffectStep1Desc;
 
-  /// No description provided for @vEffectConceptLine3Suffix.
+  /// No description provided for @vEffectStep2Title.
   ///
   /// In ja, this message translates to:
-  /// **'を起こそう。'**
-  String get vEffectConceptLine3Suffix;
+  /// **'2. 写真付きで証明しよう'**
+  String get vEffectStep2Title;
 
-  /// No description provided for @vEffectFeatureLine1.
+  /// No description provided for @vEffectStep2Desc.
   ///
   /// In ja, this message translates to:
-  /// **'今日の達成を写真にする、それだけです。'**
-  String get vEffectFeatureLine1;
-
-  /// No description provided for @vEffectFeatureLine2.
-  ///
-  /// In ja, this message translates to:
-  /// **'やり遂げたその事実があなたを作りあげます。'**
-  String get vEffectFeatureLine2;
-
-  /// No description provided for @vEffectFeatureLine3.
-  ///
-  /// In ja, this message translates to:
-  /// **'お互いの努力が繋がりになる。'**
-  String get vEffectFeatureLine3;
-
-  /// No description provided for @vEffectFeatureLine4.
-  ///
-  /// In ja, this message translates to:
-  /// **'今日 V を達成した仲間が見える。'**
-  String get vEffectFeatureLine4;
-
-  /// No description provided for @vEffectFeatureLine5.
-  ///
-  /// In ja, this message translates to:
-  /// **'努力証明した者だけが届き、届けられる。'**
-  String get vEffectFeatureLine5;
+  /// **'勝利したタスク（読書、勉強、ワークアウトなど）を証明しましょう。'**
+  String get vEffectStep2Desc;
 
   /// No description provided for @vEffectJoinButton.
   ///
@@ -3310,42 +3268,6 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'yyyy年M月d日'**
   String get dateFormatFull;
-
-  /// No description provided for @vEffectConceptTitle.
-  ///
-  /// In ja, this message translates to:
-  /// **'V EFFECT とは'**
-  String get vEffectConceptTitle;
-
-  /// No description provided for @vEffectDefinition.
-  ///
-  /// In ja, this message translates to:
-  /// **'V EFFECT の V は Victory（勝利）のVである。'**
-  String get vEffectDefinition;
-
-  /// No description provided for @vEffectTerm.
-  ///
-  /// In ja, this message translates to:
-  /// **'V EFFECT(勝利者効果)'**
-  String get vEffectTerm;
-
-  /// No description provided for @vEffectCoreTitle.
-  ///
-  /// In ja, this message translates to:
-  /// **'V EFFECT のコア機能'**
-  String get vEffectCoreTitle;
-
-  /// No description provided for @vEffectHeroTaskLabel.
-  ///
-  /// In ja, this message translates to:
-  /// **' (ヒーロータスク)'**
-  String get vEffectHeroTaskLabel;
-
-  /// No description provided for @vEffectSlogan.
-  ///
-  /// In ja, this message translates to:
-  /// **'V を証明しよう。きれいじゃなくていい。'**
-  String get vEffectSlogan;
 
   /// No description provided for @heroTaskSeasonDaysLeft.
   ///
@@ -3551,23 +3473,11 @@ abstract class AppLocalizations {
   /// **'漫画を読む'**
   String get firstQuestRewardHint5;
 
-  /// No description provided for @firstQuestTitlePrefix.
+  /// No description provided for @firstQuestTitle.
   ///
   /// In ja, this message translates to:
-  /// **'最初の '**
-  String get firstQuestTitlePrefix;
-
-  /// No description provided for @firstQuestHeroTaskLabel.
-  ///
-  /// In ja, this message translates to:
-  /// **' (ヒーロータスク)'**
-  String get firstQuestHeroTaskLabel;
-
-  /// No description provided for @firstQuestTitleSuffix.
-  ///
-  /// In ja, this message translates to:
-  /// **' を決めましょう'**
-  String get firstQuestTitleSuffix;
+  /// **'習慣化したい(やりたい)ことを決めましょう'**
+  String get firstQuestTitle;
 
   /// No description provided for @firstQuestNoTaskPlaceholder.
   ///
@@ -3626,13 +3536,13 @@ abstract class AppLocalizations {
   /// No description provided for @habitStackingHint.
   ///
   /// In ja, this message translates to:
-  /// **'• ハビット・スタッキング\nすでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。'**
+  /// **'• ハビットスタッキング\n既存の習慣をトリガーにして新しい習慣を取り入れよう。\n例）朝起きたら→感謝をする'**
   String get habitStackingHint;
 
   /// No description provided for @temptationBundlingHint.
   ///
   /// In ja, this message translates to:
-  /// **'• テンプテーション・バンドリング\nやるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。'**
+  /// **'• テンプテーションバンドリング\n「やるべきこと」と「やりたいこと」をセットにしよう。\n例）デスク作業＋コーヒー、運動＋音楽'**
   String get temptationBundlingHint;
 
   /// No description provided for @profileNoTaskPlaceholder.

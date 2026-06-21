@@ -751,7 +751,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: TextStyle(
+            fontSize: 12,
+            color: icon != null ? themeColor : AppColors.textSecondary,
+          ),
         ),
         if (onTap != null)
           const SizedBox(height: 2),

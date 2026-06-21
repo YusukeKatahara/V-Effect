@@ -90,21 +90,21 @@ class _PulseCameraButtonState extends State<PulseCameraButton>
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // 内側サークル＋アイコン (ゴールドの縁取り)
+                  // 内側サークル＋アイコン (白色の縁取り)
                   Container(
                     width: innerSize,
                     height: innerSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.white.withValues(alpha: 0.06),
+                      color: AppColors.pureWhite.withValues(alpha: 0.06),
                       border: Border.all(
-                        color: AppColors.accentGold.withValues(alpha: 0.8),
+                        color: AppColors.pureWhite.withValues(alpha: 0.8),
                         width: 1.5,
                       ),
                     ),
                     child: Icon(
                       Icons.camera_alt_outlined,
-                      color: AppColors.white,
+                      color: AppColors.pureWhite,
                       size: 28,
                     ),
                   ),

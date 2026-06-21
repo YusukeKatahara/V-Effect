@@ -321,7 +321,7 @@ class ProfileHeaderSection extends StatelessWidget {
           style: GoogleFonts.notoSansJp(
             fontSize: 11,
             fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
+            color: icon != null ? themeColor : AppColors.textSecondary,
           ),
         ),
       ],

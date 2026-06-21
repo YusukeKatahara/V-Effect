@@ -293,33 +293,14 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 8),
-                        RichText(
-                          text: TextSpan(
-                            style: GoogleFonts.notoSansJp(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.white,
-                            ),
-                            children: [
-                              TextSpan(text: AppLocalizations.of(context)!.firstQuestTitlePrefix),
-                              TextSpan(
-                                text: 'V Quest',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                              TextSpan(
-                                text: AppLocalizations.of(context)!.firstQuestHeroTaskLabel,
-                                style: GoogleFonts.notoSansJp(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.grey50,
-                                ),
-                              ),
-                              TextSpan(text: AppLocalizations.of(context)!.firstQuestTitleSuffix),
-                            ],
+                        // オンボーディング画面の見出しテキストを表示します（例：「習慣化したい(やりたい)ことを決めましょう」）。
+                        // ローカライズキー firstQuestTitle を使用し、文言全体を共通化しています。
+                        Text(
+                          AppLocalizations.of(context)!.firstQuestTitle,
+                          style: GoogleFonts.notoSansJp(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.white,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -625,10 +606,13 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
           ),
           if (hasReward) ...[
             const SizedBox(height: 8),
-            Icon(
-              Icons.arrow_downward_rounded,
-              size: 16,
-              color: AppColors.grey50,
+            Text(
+              '+',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.grey50,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -672,8 +656,10 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
             ],
           ),
           const SizedBox(height: 6),
+          // 最新の習慣化のコツ（ハビット・スタッキング：既存の習慣の後に新しい習慣を組み合わせる手法）を表示します。
+          // プロフィール画面と統一された最新の共通文言（habitStackingHint）を使用しています。
           Text(
-            '• ${AppLocalizations.of(context)!.onboardingFirstQuestHabitStackingTitle}\n${AppLocalizations.of(context)!.onboardingFirstQuestHabitStackingDesc}',
+            AppLocalizations.of(context)!.habitStackingHint,
             style: GoogleFonts.notoSansJp(
               fontSize: 11,
               color: AppColors.grey50,
@@ -681,8 +667,10 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
             ),
           ),
           const SizedBox(height: 4),
+          // 最新の習慣化のコツ（テンプテーション・バンドリング：やるべきタスクとやりたいご褒美をセットにする手法）を表示します。
+          // プロフィール画面と統一された最新の共通文言（temptationBundlingHint）を使用しています。
           Text(
-            '• ${AppLocalizations.of(context)!.onboardingFirstQuestTemptationBundlingTitle}\n${AppLocalizations.of(context)!.onboardingFirstQuestTemptationBundlingDesc}',
+            AppLocalizations.of(context)!.temptationBundlingHint,
             style: GoogleFonts.notoSansJp(
               fontSize: 11,
               color: AppColors.grey50,

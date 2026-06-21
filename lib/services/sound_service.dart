@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audio_session/audio_session.dart' as asession;
 import 'package:sound_mode_advanced/sound_mode_advanced.dart';
 
@@ -31,21 +30,18 @@ class SoundService {
       // BGMをループ再生に設定
       await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
 
-      // ミュート設定の読み込み
-      final prefs = await SharedPreferences.getInstance();
-      bool userPrefMuted = prefs.getBool('is_bgm_muted') ?? false;
-
-      // 端末のマナーモード状態を確認して初期状態を同期
+      // 端末のマナーモード状態を確認して初期状態を同期します。
+      // デフォルトではミュート解除（音が鳴る状態）としますが、マナーモード中はミュートを優先します。
       try {
         final ringerStatus = await SoundMode.ringerModeStatus;
         if (ringerStatus == RingerModeStatus.silent || ringerStatus == RingerModeStatus.vibrate) {
           _isBgmMuted = true;
         } else {
-          _isBgmMuted = userPrefMuted;
+          _isBgmMuted = false;
         }
       } catch (e) {
         debugPrint('Error getting ringer mode: $e');
-        _isBgmMuted = userPrefMuted;
+        _isBgmMuted = false;
       }
     } catch (e) {
       debugPrint('Error initializing sound service: $e');
@@ -193,8 +189,6 @@ class SoundService {
   /// BGMミュートの切り替え
   Future<void> toggleBgmMute(String? currentPlayingUrl) async {
     _isBgmMuted = !_isBgmMuted;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('is_bgm_muted', _isBgmMuted);
 
     if (_isBgmMuted) {
       await stopBgm();

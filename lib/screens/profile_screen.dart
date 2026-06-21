@@ -792,10 +792,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       if (hasReward) ...[
                         const SizedBox(height: 2),
-                        Icon(
-                          Icons.arrow_downward_rounded,
-                          size: 10,
-                          color: AppColors.grey50,
+                        Text(
+                          '+',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.grey50,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -900,7 +903,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.bgElevated,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.accentGold.withOpacity(0.3), width: 1),
+                            border: Border.all(color: AppColors.accentGold, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.isDark
+                                    ? Colors.transparent
+                                    : AppColors.accentGold.withValues(alpha: 0.08),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -909,7 +921,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Text(
                                 AppLocalizations.of(context)!.profileScreenReviewButton,
                                 style: GoogleFonts.notoSansJp(
-                                  color: AppColors.accentGold,
+                                  color: AppColors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),

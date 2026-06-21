@@ -12,20 +12,20 @@ void main() {
       AppColors.updateThemeMode(ThemeMode.dark);
       expect(AppColors.isDark, isTrue);
 
-      // ライトテーマの背景は薄いグレー（X/IG風のカード浮き出しデザイン）
+      // ライトテーマの背景は純白（Instagram風デザイン）
       final lightThemeUnderDark = AppTheme.light;
-      expect(lightThemeUnderDark.scaffoldBackgroundColor, const Color(0xFFF5F5F5));
+      expect(lightThemeUnderDark.scaffoldBackgroundColor, const Color(0xFFFFFFFF));
       expect(lightThemeUnderDark.colorScheme.surface, const Color(0xFFFFFFFF));
-      expect(lightThemeUnderDark.colorScheme.onSurface, const Color(0xFF000000));
+      expect(lightThemeUnderDark.colorScheme.onSurface, const Color(0xFF1A1A1A));
 
       // 2. Test when AppColors is set to light
       AppColors.updateThemeMode(ThemeMode.light);
       expect(AppColors.isDark, isFalse);
 
       final lightThemeUnderLight = AppTheme.light;
-      expect(lightThemeUnderLight.scaffoldBackgroundColor, const Color(0xFFF5F5F5));
+      expect(lightThemeUnderLight.scaffoldBackgroundColor, const Color(0xFFFFFFFF));
       expect(lightThemeUnderLight.colorScheme.surface, const Color(0xFFFFFFFF));
-      expect(lightThemeUnderLight.colorScheme.onSurface, const Color(0xFF000000));
+      expect(lightThemeUnderLight.colorScheme.onSurface, const Color(0xFF1A1A1A));
     });
 
     testWidgets('Verify Dark Theme is statically Dark regardless of active AppColors mode', (WidgetTester tester) async {

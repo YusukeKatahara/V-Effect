@@ -48,6 +48,7 @@ struct CalendarCellData: Hashable {
 }
 
 struct MonthlyCalendarView: View {
+    @Environment(\.colorScheme) var colorScheme
     let cellRows: [[CalendarCellData]]
     let weekdays = ["日", "月", "火", "水", "木", "金", "土"]
     
@@ -102,11 +103,11 @@ struct MonthlyCalendarView: View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
         
         LazyVGrid(columns: columns, spacing: 4) {
-            // 曜日ヘッダー
+            // 曜日ヘッダー (Apple公式に合わせ太さを調整し、すりガラス用の半透明白/黒にカラー連動)
             ForEach(weekdays, id: \.self) { day in
                 Text(day)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.gray)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(colorScheme == .light ? Color.black.opacity(0.4) : Color.white.opacity(0.5))
                     .frame(maxWidth: .infinity)
             }
             
@@ -124,6 +125,7 @@ struct MonthlyCalendarView: View {
 }
 
 struct CalendarCell: View {
+    @Environment(\.colorScheme) var colorScheme
     let day: Int
     let isDone: Bool
     let isToday: Bool
@@ -138,12 +140,14 @@ struct CalendarCell: View {
                     .stroke(Color(red: 0.83, green: 0.69, blue: 0.22), lineWidth: 1.5)
             } else {
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.gray.opacity(0.15))
+                    // すりガラスの背景に馴染むように半透明白/黒にカラー連動
+                    .fill(colorScheme == .light ? Color.black.opacity(0.06) : Color.white.opacity(0.08))
             }
             
             Text("\(day)")
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(isDone ? .black : (isToday ? Color(red: 0.83, green: 0.69, blue: 0.22) : .white.opacity(0.8)))
+                // Apple純正カレンダーに合わせ、Roundedを外しSF Proの美しいフォント(通常体)で統一
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(isDone ? .black : (isToday ? Color(red: 0.83, green: 0.69, blue: 0.22) : (colorScheme == .light ? Color.black.opacity(0.65) : Color.white.opacity(0.7))))
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(1, contentMode: .fit)
@@ -153,6 +157,7 @@ struct CalendarCell: View {
 struct VEffectWidgetEntryView : View {
     var entry: Provider.Entry
     @Environment(\.widgetFamily) var family
+    @Environment(\.colorScheme) var colorScheme
 
     private var monthName: String {
         let formatter = DateFormatter()
@@ -199,29 +204,36 @@ struct VEffectWidgetEntryView : View {
             .widgetURL(URL(string: "veffect://task"))
         } else {
             ZStack {
-                Color(white: 0.08) // Base background
+                // 不透明背景を削除し、すりガラスのトーンを保護する半透明黒レイヤーを設置
+                // ライトモード時は 0.03 (ドックのような高い透過感)、ダークモード時は 0.20
+                Color.black.opacity(colorScheme == .light ? 0.03 : 0.20)
                 
                 HStack(alignment: .center, spacing: 16) {
                     // 左側: テキスト情報
                     VStack(alignment: .leading, spacing: 20) {
                         VStack(alignment: .leading, spacing: 2) {
+                            // Apple公式ウィジェットに準拠したフォントサイズ・太さ・トラッキング（文字間隔）
                             Text("MONTH")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.gray)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(colorScheme == .light ? Color.black.opacity(0.5) : Color.white.opacity(0.6))
+                                .tracking(1.5)
                             Text(monthName)
-                                .font(.system(size: 24, weight: .black, design: .rounded))
-                                .foregroundColor(.white)
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundColor(colorScheme == .light ? Color.black.opacity(0.85) : Color.white)
                                 .minimumScaleFactor(0.5)
                                 .lineLimit(1)
                         }
                         
                         VStack(alignment: .leading, spacing: 2) {
+                            // Apple公式ウィジェットに準拠したフォントサイズ・太さ・トラッキング（文字間隔）
                             Text("STREAK")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.gray)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(colorScheme == .light ? Color.black.opacity(0.5) : Color.white.opacity(0.6))
+                                .tracking(1.5)
                             Text("\(entry.streakCount) Days")
-                                .font(.system(size: 24, weight: .black, design: .rounded))
-                                .foregroundColor(Color(red: 0.83, green: 0.69, blue: 0.22))
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                // ライトモード時は少し暗めのゴールドにして白背景でも見えるようにする
+                                .foregroundColor(colorScheme == .light ? Color(red: 0.68, green: 0.53, blue: 0.12) : Color(red: 0.83, green: 0.69, blue: 0.22))
                                 .minimumScaleFactor(0.8)
                                 .lineLimit(1)
                         }
@@ -234,6 +246,22 @@ struct VEffectWidgetEntryView : View {
                 }
                 .padding()
             }
+            // ガラスの質感を高める立体グラデーション輪郭線をオーバーレイ（自動クリップされるため外枠にフィットします）
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.white.opacity(colorScheme == .light ? 0.35 : 0.25),
+                                Color.white.opacity(colorScheme == .light ? 0.10 : 0.05),
+                                Color.black.opacity(colorScheme == .light ? 0.05 : 0.20)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.2
+                    )
+            )
             // タップ時にアプリのホームへ
             .widgetURL(URL(string: "veffect://home"))
             .unredacted()
@@ -248,9 +276,12 @@ struct VEffectWidget: Widget {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             if #available(iOS 17.0, *) {
                 VEffectWidgetEntryView(entry: entry)
-                    .containerBackground(.clear, for: .widget)
+                    // iOS 17以降用：Apple公式すりガラス背景
+                    .containerBackground(.ultraThinMaterial, for: .widget)
             } else {
                 VEffectWidgetEntryView(entry: entry)
+                    // iOS 17未満用フォールバック：すりガラス背景
+                    .background(.ultraThinMaterial)
             }
         }
         .configurationDisplayName("V EFFECT")

@@ -124,7 +124,7 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.white,
+                            color: AppColors.pureWhite,
                           ),
                         ),
                       ],
@@ -132,9 +132,9 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
                   ),
                   
                   // 矢印
-                  Icon(
+                  const Icon(
                     Icons.arrow_forward_ios_rounded,
-                    color: AppColors.textMuted,
+                    color: Colors.white54,
                     size: 16,
                   ),
                 ],

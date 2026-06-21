@@ -679,6 +679,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sharePreviewShareButton => 'SNSへシェア';
 
   @override
+  String heroTaskShareText(int streak) {
+    return '今日のヒーロータスクを完了しました！\n現在のストリーク: $streak日 🔥\n#VEffect';
+  }
+
+  @override
   String get searchHint => 'IDまたは名前を検索';
 
   @override
@@ -1245,13 +1250,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenSaveTask => '保存';
 
   @override
-  String get profileScreenTaskTriggerHint => 'トリガー（任意）';
+  String get profileScreenTaskTriggerHint => '（任意）例）朝起きたら→感謝をする';
 
   @override
   String get profileScreenTaskNameHint => 'タスク名 (例: 読書)';
 
   @override
-  String get profileScreenTaskRewardHint => 'ご褒美（任意）';
+  String get profileScreenTaskRewardHint => '（任意）例）デスク作業＋コーヒー、運動＋音楽';
 
   @override
   String get profileScreenOneTimeTaskTitle => '完了から24時間後に自動削除されます';
@@ -1269,7 +1274,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get cameraScreenUploadFailed => '投稿に失敗しました。もう一度お試しください。';
 
   @override
-  String get cameraScreenCaption => '一言を添える (任意)';
+  String get cameraScreenCaption => 'コメントを追加';
 
   @override
   String get cameraScreenCameraLoading => 'カメラを起動中...';
@@ -1390,7 +1395,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get onboardingFirstQuestQuestionText => 'あなたが理想とする姿はどんなだろう？\nあなたの習慣化したい習慣は何だろう？';
+  String get onboardingFirstQuestQuestionText => 'あなたが理想とする姿はどんなだろう？';
 
   @override
   String get onboardingFirstQuestTriggerLabel => 'トリガー（任意）';
@@ -1417,18 +1422,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get onboardingFirstQuestHabitTipsTitle => '習慣化のコツ';
-
-  @override
-  String get onboardingFirstQuestHabitStackingTitle => 'ハビット・スタッキング';
-
-  @override
-  String get onboardingFirstQuestHabitStackingDesc => 'すでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。';
-
-  @override
-  String get onboardingFirstQuestTemptationBundlingTitle => 'テンプテーション・バンドリング';
-
-  @override
-  String get onboardingFirstQuestTemptationBundlingDesc => 'やるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。';
 
   @override
   String get onboardingProfileWelcome => 'V EFFECT へようこそ';
@@ -1637,31 +1630,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeStreakResetMessage => 'ストリークが止まったとしても、\nあなたの歩みさえ止まらなければ\nV EFFECTは何度でも引き起こせる。';
 
   @override
-  String get vEffectConceptLine1 => '小さな勝利の積み重ねが理想のあなたに近づける。';
+  String get vEffectCoreTitle => 'V EFFECT の使い方';
 
   @override
-  String get vEffectConceptLine2 => 'このプラットフォームはそんなあなたの勝利と習慣をサポートします。';
+  String get vEffectStep1Title => '1. 習慣化したい（やりたい）ことを決めよう';
 
   @override
-  String get vEffectConceptLine3Prefix => 'さあ、仲間と共に';
+  String get vEffectStep1Desc => 'あなたが習慣化したい（やりたい）ことを決めます。';
 
   @override
-  String get vEffectConceptLine3Suffix => 'を起こそう。';
+  String get vEffectStep2Title => '2. 写真付きで証明しよう';
 
   @override
-  String get vEffectFeatureLine1 => '今日の達成を写真にする、それだけです。';
-
-  @override
-  String get vEffectFeatureLine2 => 'やり遂げたその事実があなたを作りあげます。';
-
-  @override
-  String get vEffectFeatureLine3 => 'お互いの努力が繋がりになる。';
-
-  @override
-  String get vEffectFeatureLine4 => '今日 V を達成した仲間が見える。';
-
-  @override
-  String get vEffectFeatureLine5 => '努力証明した者だけが届き、届けられる。';
+  String get vEffectStep2Desc => '勝利したタスク（読書、勉強、ワークアウトなど）を証明しましょう。';
 
   @override
   String get vEffectJoinButton => 'V EFFECT に参加する →';
@@ -1671,24 +1652,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get dateFormatFull => 'yyyy年M月d日';
-
-  @override
-  String get vEffectConceptTitle => 'V EFFECT とは';
-
-  @override
-  String get vEffectDefinition => 'V EFFECT の V は Victory（勝利）のVである。';
-
-  @override
-  String get vEffectTerm => 'V EFFECT(勝利者効果)';
-
-  @override
-  String get vEffectCoreTitle => 'V EFFECT のコア機能';
-
-  @override
-  String get vEffectHeroTaskLabel => ' (ヒーロータスク)';
-
-  @override
-  String get vEffectSlogan => 'V を証明しよう。きれいじゃなくていい。';
 
   @override
   String heroTaskSeasonDaysLeft(int days) {
@@ -1809,13 +1772,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get firstQuestRewardHint5 => '漫画を読む';
 
   @override
-  String get firstQuestTitlePrefix => '最初の ';
-
-  @override
-  String get firstQuestHeroTaskLabel => ' (ヒーロータスク)';
-
-  @override
-  String get firstQuestTitleSuffix => ' を決めましょう';
+  String get firstQuestTitle => '習慣化したい(やりたい)ことを決めましょう';
 
   @override
   String get firstQuestNoTaskPlaceholder => '（タスク）';
@@ -1845,10 +1802,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get categoryOther => 'その他';
 
   @override
-  String get habitStackingHint => '• ハビット・スタッキング\nすでに毎日やっている行動（トリガー）の後に新しい習慣をくっつけると効果的です。';
+  String get habitStackingHint => '• ハビットスタッキング\n既存の習慣をトリガーにして新しい習慣を取り入れよう。\n例）朝起きたら→感謝をする';
 
   @override
-  String get temptationBundlingHint => '• テンプテーション・バンドリング\nやるべきこと（タスク）の直後にやりたいこと（ご褒美）をセットにすることで、行動への意欲を高めます。';
+  String get temptationBundlingHint => '• テンプテーションバンドリング\n「やるべきこと」と「やりたいこと」をセットにしよう。\n例）デスク作業＋コーヒー、運動＋音楽';
 
   @override
   String get profileNoTaskPlaceholder => '（タスク）';

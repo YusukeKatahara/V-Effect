@@ -39,12 +39,11 @@ void main() {
       // Verify that the Preview text is rendered
       expect(find.text('プレビュー'), findsOneWidget);
 
-      // Verify the mock card contents
-      expect(find.text('V-Hero (You)'), findsOneWidget);
-      expect(find.text('@v_hero_official'), findsOneWidget);
-      expect(find.text('5 Streak'), findsOneWidget);
-      expect(find.text('Quest: Read 30 Minutes'), findsOneWidget);
-      expect(find.text('+15 XP'), findsOneWidget);
+      // Verify the mock card contents (New profile preview contents)
+      expect(find.text('renn'), findsOneWidget);
+      expect(find.text('@rennlikeu'), findsOneWidget);
+      expect(find.text('40'), findsOneWidget); // Streak count
+      expect(find.text('13'), findsAtLeastNWidgets(2)); // Follow and follower count
 
       // Verify the theme option cards are rendered
       expect(find.text('ライトモード'), findsOneWidget);

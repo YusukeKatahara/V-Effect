@@ -1408,7 +1408,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                         .withValues(alpha: 0.95),
                                     borderRadius: BorderRadius.circular(30),
                                     border: Border.all(
-                                      color: AppColors.white
+                                      color: AppColors.pureWhite
                                           .withValues(alpha: 0.1),
                                       width: 0.5,
                                     ),
@@ -1542,14 +1542,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                           const Duration(milliseconds: 220),
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          color: AppColors.white
+                                          color: AppColors.pureWhite
                                               .withValues(alpha: 0.1),
                                           shape: BoxShape.circle,
                                           border: Border.all(
                                             color: alreadyReacted
-                                                ? AppColors.white
+                                                ? AppColors.pureWhite
                                                     .withValues(alpha: 0.4)
-                                                : AppColors.white
+                                                : AppColors.pureWhite
                                                     .withValues(alpha: 0.15),
                                             width: 1,
                                           ),
@@ -1558,7 +1558,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                           alreadyReacted
                                               ? Icons.check_rounded
                                               : Icons.add_rounded,
-                                          color: AppColors.white,
+                                          color: AppColors.pureWhite,
                                           size: 24,
                                         ),
                                       ),

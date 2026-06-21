@@ -13,8 +13,13 @@ async function main() {
   const counts = {};
   postsSnap.forEach(doc => {
     const data = doc.data();
-    const taskName = data.taskName;
+    let taskName = data.taskName;
     if (taskName) {
+      // 「ゲーム」関連の名称を「ランク戦」に統一（ユーザー要望）
+      if (taskName === "ゲーム" || taskName === "Game" || taskName === "ビデオゲーム") {
+        taskName = "ランク戦";
+      }
+
       // 過去データは AIカテゴリがないので、そのままタスク名を使用する
       // 便宜上、カテゴリは「その他」にしておく
       const cat = "その他";

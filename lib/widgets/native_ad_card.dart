@@ -122,6 +122,15 @@ class NativeAdCard extends StatelessWidget {
                   color: AppColors.accentGold.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.3)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.isDark
+                          ? Colors.transparent
+                          : AppColors.accentGold.withValues(alpha: 0.15),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Text(
                   AppLocalizations.of(context)!.adLabel,

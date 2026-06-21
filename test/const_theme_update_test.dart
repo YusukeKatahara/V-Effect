@@ -136,10 +136,10 @@ void main() {
       nonConstContainer = tester.widget<Container>(find.byKey(const Key('non_const_container')));
 
       // 非 const ウィジェットは当然更新される
-      expect(nonConstContainer.color, const Color(0xFF000000));
+      expect(nonConstContainer.color, const Color(0xFF1A1A1A));
 
       // テーマ変更リスナーと再帰的走査により、const ウィジェットも正しく更新されていることをアサーション
-      expect(constContainer.color, const Color(0xFF000000));
+      expect(constContainer.color, const Color(0xFF1A1A1A));
 
       print('Const container color after theme change: ${constContainer.color}');
       print('Non-const container color after theme change: ${nonConstContainer.color}');

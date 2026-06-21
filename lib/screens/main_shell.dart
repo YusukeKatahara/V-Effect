@@ -166,12 +166,16 @@ class _MainShellState extends State<MainShell> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
-              color: AppColors.white.withValues(alpha: 0.12),
-              width: 0.5,
+              color: AppColors.isDark
+                  ? AppColors.white.withValues(alpha: 0.12)
+                  : AppColors.border,
+              width: AppColors.isDark ? 0.5 : 1.0,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.black.withValues(alpha: 0.5),
+                color: AppColors.pureBlack.withValues(
+                  alpha: AppColors.isDark ? 0.5 : 0.15,
+                ),
                 blurRadius: 24,
                 spreadRadius: -4,
                 offset: const Offset(0, 12),
@@ -185,15 +189,26 @@ class _MainShellState extends State<MainShell> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.white.withValues(alpha: 0.06),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AppColors.white.withValues(alpha: 0.1),
-                      AppColors.white.withValues(alpha: 0.03),
-                    ],
-                  ),
+                  color: AppColors.isDark
+                      ? AppColors.white.withValues(alpha: 0.06)
+                      : AppColors.pureWhite.withValues(alpha: 0.8),
+                  gradient: AppColors.isDark
+                      ? LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            AppColors.white.withValues(alpha: 0.1),
+                            AppColors.white.withValues(alpha: 0.03),
+                          ],
+                        )
+                      : LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            AppColors.pureWhite.withValues(alpha: 0.85),
+                            AppColors.pureWhite.withValues(alpha: 0.75),
+                          ],
+                        ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -270,7 +285,9 @@ class _SpatialNavItem extends StatelessWidget {
                 Icon(
                   icon,
                   size: 22,
-                  color: isActive ? AppColors.white : AppColors.grey30,
+                  color: isActive
+                      ? AppColors.white
+                      : (AppColors.isDark ? AppColors.grey30 : AppColors.grey50),
                 ),
                 if (hasBadge)
                   Positioned(

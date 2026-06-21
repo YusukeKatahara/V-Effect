@@ -89,13 +89,13 @@ class TaskCardState extends State<TaskCard> {
       final textStyle = GoogleFonts.notoSerifJp(
         fontSize: isTop ? 22 : 16,
         fontWeight: FontWeight.w600,
-        color: isTop ? AppColors.white : AppColors.grey50,
+        color: isTop ? AppColors.pureWhite : Colors.white70,
         height: 1.4,
         letterSpacing: 1.5,
         shadows: isTop
             ? [
                 Shadow(
-                  color: AppColors.black.withValues(alpha: 0.8),
+                  color: AppColors.pureBlack.withValues(alpha: 0.8),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 )
@@ -121,7 +121,7 @@ class TaskCardState extends State<TaskCard> {
       final sb = StringBuffer();
       if (hasTrigger) sb.write('${item.trigger} ➜ ');
       sb.write(item.name);
-      if (hasReward) sb.write(' ➜ ${item.reward}');
+      if (hasReward) sb.write(' + ${item.reward}');
       return Text(
         sb.toString(),
         style: GoogleFonts.notoSansJp(
@@ -139,94 +139,44 @@ class TaskCardState extends State<TaskCard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (hasTrigger) ...[
-          Row(
-            children: [
-              Icon(
-                Icons.alarm_rounded,
-                size: 14,
-                color: AppColors.accentGold.withValues(alpha: 0.8),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  item.trigger!,
-                  style: GoogleFonts.notoSansJp(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.grey70,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
+          Text(
+            item.trigger!,
+            style: GoogleFonts.notoSansJp(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.pureWhite,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+        ],
+        AutoSizeText(
+          item.name,
+          style: GoogleFonts.notoSerifJp(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: AppColors.pureWhite,
+            height: 1.3,
+            letterSpacing: 1.5,
+            shadows: [
+              Shadow(
+                color: AppColors.pureBlack.withValues(alpha: 0.8),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              )
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.only(left: 6, top: 2, bottom: 2),
-            child: Container(
-              width: 1.5,
-              height: 10,
-              color: AppColors.border.withValues(alpha: 0.5),
-            ),
-          ),
-        ],
-        Row(
-          children: [
-            Icon(
-              Icons.task_alt_rounded,
-              size: 16,
-              color: isCompleted ? AppColors.accentGold : AppColors.white.withValues(alpha: 0.8),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: AutoSizeText(
-                item.name,
-                style: GoogleFonts.notoSerifJp(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.white,
-                  height: 1.3,
-                  letterSpacing: 1.5,
-                  shadows: [
-                    Shadow(
-                      color: AppColors.black.withValues(alpha: 0.8),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ],
         ),
         if (hasReward) ...[
-          Padding(
-            padding: const EdgeInsets.only(left: 6, top: 2, bottom: 2),
-            child: Container(
-              width: 1.5,
-              height: 10,
-              color: AppColors.border.withValues(alpha: 0.5),
+          const SizedBox(height: 6),
+          Text(
+            '+ ${item.reward!}',
+            style: GoogleFonts.notoSansJp(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.accentGold.withValues(alpha: 0.9),
+              letterSpacing: 0.5,
             ),
-          ),
-          Row(
-            children: [
-              Icon(
-                Icons.emoji_events_rounded,
-                size: 14,
-                color: AppColors.accentGold,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  item.reward!,
-                  style: GoogleFonts.notoSansJp(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.accentGold.withValues(alpha: 0.9),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ],
@@ -243,7 +193,7 @@ class TaskCardState extends State<TaskCard> {
     if (imageUrl == null) return const SizedBox.shrink();
     return ColorFiltered(
       colorFilter: ColorFilter.mode(
-        AppColors.black.withValues(
+        AppColors.pureBlack.withValues(
           alpha: isExpanded ? 0.1 : (isTop ? 0.3 : 0.6),
         ),
         BlendMode.darken,
@@ -297,8 +247,8 @@ class TaskCardState extends State<TaskCard> {
         : (isSeason
             ? (isTop ? AppColors.accentGold.withValues(alpha: 0.6) : AppColors.accentGold.withValues(alpha: 0.2))
             : (isTop
-                ? AppColors.white.withValues(alpha: 0.12)
-                : AppColors.white.withValues(alpha: 0.05)));
+                ? AppColors.pureWhite.withValues(alpha: 0.12)
+                : AppColors.pureWhite.withValues(alpha: 0.05)));
 
     final borderWidth = isCompleted 
         ? (isTop ? (postCount >= 2 ? 2.5 : 1.5) : 0.5) 
@@ -429,7 +379,7 @@ class TaskCardState extends State<TaskCard> {
                                 Container(
                                   height: 2,
                                   decoration: BoxDecoration(
-                                    color: AppColors.white.withValues(alpha: 0.2),
+                                    color: (isCompleted ? AppColors.pureWhite : AppColors.white).withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(1),
                                   ),
                                 ),
@@ -492,10 +442,10 @@ class TaskCardState extends State<TaskCard> {
                                       ),
                                       if (SoundService.instance.isBgmMuted)
                                         Container(
-                                          color: AppColors.black.withValues(alpha: 0.5),
+                                          color: AppColors.pureBlack.withValues(alpha: 0.5),
                                           child: Icon(
                                             Icons.music_off_rounded,
-                                            color: AppColors.white,
+                                            color: AppColors.pureWhite,
                                             size: 16,
                                           ),
                                         ),
@@ -506,7 +456,7 @@ class TaskCardState extends State<TaskCard> {
                             : Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: AppColors.black.withValues(alpha: 0.6),
+                                  color: AppColors.pureBlack.withValues(alpha: 0.6),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -514,8 +464,8 @@ class TaskCardState extends State<TaskCard> {
                                       ? Icons.music_off_rounded
                                       : Icons.music_note_rounded,
                                   color: SoundService.instance.isBgmMuted
-                                      ? AppColors.grey50
-                                      : AppColors.white,
+                                      ? (isCompleted ? Colors.white54 : AppColors.grey50)
+                                      : (isCompleted ? AppColors.pureWhite : AppColors.white),
                                   size: 16,
                                 ),
                               ),
@@ -528,7 +478,7 @@ class TaskCardState extends State<TaskCard> {
                             Text(
                               currentPost.bgmTitle!,
                               style: TextStyle(
-                                color: AppColors.white,
+                                color: isCompleted ? AppColors.pureWhite : AppColors.white,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -539,7 +489,7 @@ class TaskCardState extends State<TaskCard> {
                               Text(
                                 currentPost.bgmArtist!,
                                 style: TextStyle(
-                                  color: AppColors.grey50,
+                                  color: isCompleted ? Colors.white70 : AppColors.grey50,
                                   fontSize: 10,
                                 ),
                                 maxLines: 1,
@@ -592,7 +542,7 @@ class TaskCardState extends State<TaskCard> {
                         child: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: AppColors.black.withValues(alpha: 0.6),
+                            color: AppColors.pureBlack.withValues(alpha: 0.6),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -600,8 +550,8 @@ class TaskCardState extends State<TaskCard> {
                                 ? Icons.music_off_rounded
                                 : Icons.music_note_rounded,
                             color: SoundService.instance.isBgmMuted
-                                ? AppColors.grey50
-                                : AppColors.white,
+                                ? Colors.white54
+                                : AppColors.pureWhite,
                             size: 16,
                           ),
                         ),
@@ -614,7 +564,7 @@ class TaskCardState extends State<TaskCard> {
                             Text(
                               currentPost!.bgmTitle!,
                               style: TextStyle(
-                                color: AppColors.white,
+                                color: AppColors.pureWhite,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -624,8 +574,8 @@ class TaskCardState extends State<TaskCard> {
                             if (currentPost.bgmArtist != null)
                               Text(
                                 currentPost.bgmArtist!,
-                                style: TextStyle(
-                                  color: AppColors.grey50,
+                                style: const TextStyle(
+                                  color: Colors.white70,
                                   fontSize: 10,
                                 ),
                                 maxLines: 1,
@@ -732,11 +682,11 @@ class TaskCardState extends State<TaskCard> {
                         Text(
                           caption,
                           style: TextStyle(
-                            color: AppColors.white,
+                            color: AppColors.pureWhite,
                             fontSize: 15,
                             fontWeight: FontWeight.w400,
                             height: 1.3,
-                            shadows: [
+                            shadows: const [
                               Shadow(
                                 color: Colors.black54,
                                 blurRadius: 4,
@@ -778,9 +728,9 @@ class TaskCardState extends State<TaskCard> {
                             width: 56,
                             height: 56,
                             decoration: BoxDecoration(
-                              color: AppColors.white.withValues(alpha: 0.1),
+                              color: AppColors.pureWhite.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.white.withValues(alpha: 0.1), width: 1),
+                              border: Border.all(color: AppColors.pureWhite.withValues(alpha: 0.1), width: 1),
                             ),
                             child: Icon(Icons.local_fire_department, color: AppColors.accentGold, size: 32),
                           ),
@@ -797,7 +747,7 @@ class TaskCardState extends State<TaskCard> {
                             style: GoogleFonts.outfit(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.white,
+                              color: AppColors.pureWhite,
                             ),
                           ),
                         ),
@@ -826,7 +776,7 @@ class TaskCardState extends State<TaskCard> {
                   width: isActive ? 12 : 6,
                   height: 6,
                   decoration: BoxDecoration(
-                    color: isActive ? AppColors.accentGold : AppColors.white.withValues(alpha: 0.5),
+                    color: isActive ? AppColors.accentGold : AppColors.pureWhite.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 );
