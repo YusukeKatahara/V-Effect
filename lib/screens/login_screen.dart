@@ -198,21 +198,35 @@ class _LoginScreenState extends State<LoginScreen>
             child: FadeTransition(
               opacity: _fadeAnim,
               child: ResponsiveContainer(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 60),
-                      _buildLogo(),
-                      const SizedBox(height: 48),
-                      _buildForm(),
-                      const SizedBox(height: 32),
-                      _buildSocialSection(),
-                      const SizedBox(height: 32),
-                      _buildFooter(),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+                child: CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          const SizedBox(height: 60),
+                          _buildLogo(),
+                          const SizedBox(height: 48),
+                          _buildForm(),
+                          const SizedBox(height: 32),
+                          _buildSocialSection(),
+                          const SizedBox(height: 32),
+                        ]),
+                      ),
+                    ),
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 28, right: 28, bottom: 32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            _buildFooter(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

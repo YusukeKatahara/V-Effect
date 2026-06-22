@@ -233,112 +233,125 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
 
                   // Content
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 28),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const PremiumIconHeader(
-                              icon: Icons.people, size: 72, iconSize: 40),
-                          const SizedBox(height: 16),
-                          Text(
-                            AppLocalizations.of(context)!.initialFriendSubtitle,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-
-                          // ── 誰に誘われましたか？ ──
-                          SectionTitle(title: AppLocalizations.of(context)!.initialFriendWhoInvited),
-                          const SizedBox(height: 12),
-
-                          // Renn
-                          _buildSelectableCard(
-                            selected: _rennSelected,
-                            onTap: () => setState(
-                                () => _rennSelected = !_rennSelected),
-                            label: 'Renn',
-                          ),
-
-                          // Yusuke
-                          _buildSelectableCard(
-                            selected: _yusukeSelected,
-                            onTap: () => setState(
-                                () => _yusukeSelected = !_yusukeSelected),
-                            label: 'Yusuke',
-                          ),
-
-                          // Other user
-                          _buildSelectableCard(
-                            selected: _otherSelected,
-                            onTap: () => setState(
-                                () => _otherSelected = !_otherSelected),
-                            label: AppLocalizations.of(context)!.initialFriendOtherUser,
-                          ),
-
-                          // ユーザーID入力欄（「その他」選択時のみ表示）
-                          if (_otherSelected) ...[
-                            const SizedBox(height: 8),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8),
-                              child: TextField(
-                                controller: _userIdCtrl,
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 28),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate([
+                              const PremiumIconHeader(
+                                  icon: Icons.people, size: 72, iconSize: 40),
+                              const SizedBox(height: 16),
+                              Text(
+                                AppLocalizations.of(context)!.initialFriendSubtitle,
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
-                                    color: AppColors.textPrimary),
-                                decoration: InputDecoration(
-                                  labelText: AppLocalizations.of(context)!.initialFriendUserIdLabel,
-                                  hintText: AppLocalizations.of(context)!.initialFriendExampleIdHint,
-                                  prefixIcon: Icon(Icons.person_search),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
                                 ),
-                                onChanged: (_) => setState(() {}),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 32),
 
-                          if (_error != null) ...[
-                            const SizedBox(height: 12),
-                            Text(
-                              _error!,
-                              style: TextStyle(
-                                  color: AppColors.error, fontSize: 13),
-                            ),
-                          ],
+                              // ── 誰に誘われましたか？ ──
+                              SectionTitle(title: AppLocalizations.of(context)!.initialFriendWhoInvited),
+                              const SizedBox(height: 12),
 
-                          const SizedBox(height: 32),
+                              // Renn
+                              _buildSelectableCard(
+                                selected: _rennSelected,
+                                onTap: () => setState(
+                                    () => _rennSelected = !_rennSelected),
+                                label: 'Renn',
+                              ),
 
-                          // ── 登録ボタン ──
-                          GradientButton(
-                            onPressed: _hasSelection ? _register : null,
-                            isLoading: _isSending,
-                            child: Text(AppLocalizations.of(context)!.initialFriendRegister),
+                              // Yusuke
+                              _buildSelectableCard(
+                                selected: _yusukeSelected,
+                                onTap: () => setState(
+                                    () => _yusukeSelected = !_yusukeSelected),
+                                label: 'Yusuke',
+                              ),
+
+                              // Other user
+                              _buildSelectableCard(
+                                selected: _otherSelected,
+                                onTap: () => setState(
+                                    () => _otherSelected = !_otherSelected),
+                                label: AppLocalizations.of(context)!.initialFriendOtherUser,
+                              ),
+
+                              // ユーザーID入力欄（「その他」選択時のみ表示）
+                              if (_otherSelected) ...[
+                                const SizedBox(height: 8),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                  child: TextField(
+                                    controller: _userIdCtrl,
+                                    style: TextStyle(
+                                        color: AppColors.textPrimary),
+                                    decoration: InputDecoration(
+                                      labelText: AppLocalizations.of(context)!.initialFriendUserIdLabel,
+                                      hintText: AppLocalizations.of(context)!.initialFriendExampleIdHint,
+                                      prefixIcon: Icon(Icons.person_search),
+                                    ),
+                                    onChanged: (_) => setState(() {}),
+                                  ),
+                                ),
+                              ],
+
+                              if (_error != null) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  _error!,
+                                  style: TextStyle(
+                                      color: AppColors.error, fontSize: 13),
+                                ),
+                              ],
+                              const SizedBox(height: 24),
+                            ]),
                           ),
+                        ),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 28, right: 28, bottom: 24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // ── 登録ボタン ──
+                                GradientButton(
+                                  onPressed: _hasSelection ? _register : null,
+                                  isLoading: _isSending,
+                                  child: Text(AppLocalizations.of(context)!.initialFriendRegister),
+                                ),
 
-                          const SizedBox(height: 16),
+                                const SizedBox(height: 16),
 
-                          // ── あとで登録する ──
-                          TextButton(
-                            onPressed: _isSending
-                                ? null
-                                : () {
-                                    // スキップも記録
-                                    AnalyticsService.instance
-                                        .logReferralSource(
-                                            referrers: [], skipped: true);
-                                    Navigator.of(context).pop();
-                                  },
-                            child: Text(
-                              AppLocalizations.of(context)!.initialFriendLater,
-                              style: TextStyle(
-                                  color: AppColors.textMuted, fontSize: 15),
+                                // ── あとで登録する ──
+                                TextButton(
+                                  onPressed: _isSending
+                                      ? null
+                                      : () {
+                                          // スキップも記録
+                                          AnalyticsService.instance
+                                              .logReferralSource(
+                                                  referrers: [], skipped: true);
+                                          Navigator.of(context).pop();
+                                        },
+                                  child: Text(
+                                    AppLocalizations.of(context)!.initialFriendLater,
+                                    style: TextStyle(
+                                        color: AppColors.textMuted, fontSize: 15),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

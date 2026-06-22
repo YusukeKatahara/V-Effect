@@ -177,37 +177,48 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
 
                   // ── Content ──
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 16),
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate([
+                              const SizedBox(height: 16),
 
-                          // ── Intro text ──
-                          _buildIntroSection(),
+                              // ── Intro text ──
+                              _buildIntroSection(),
 
-                          const SizedBox(height: 28),
+                              const SizedBox(height: 28),
 
-                          // ── Template cards ──
-                          ...List.generate(_templateCount, (index) {
-                            return _buildTemplateCard(index);
-                          }),
+                              // ── Template cards ──
+                              ...List.generate(_templateCount, (index) {
+                                return _buildTemplateCard(index);
+                              }),
 
-                          // ── Custom input ──
-                          if (_showCustomInput) ...[
-                            const SizedBox(height: 4),
-                            _buildCustomInput(),
-                          ],
+                              // ── Custom input ──
+                              if (_showCustomInput) ...[
+                                const SizedBox(height: 4),
+                                _buildCustomInput(),
+                              ],
 
-                          const SizedBox(height: 32),
-
-                          // ── Start button ──
-                          _buildStartButton(),
-
-                          const SizedBox(height: 24),
-                        ],
-                      ),
+                              const SizedBox(height: 24),
+                            ]),
+                          ),
+                        ),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildStartButton(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

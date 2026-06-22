@@ -130,14 +130,14 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     }
   }
 
+  bool get _canComplete => _questCtrl.text.trim().isNotEmpty;
+
   void _unfocus() {
     FocusScope.of(context).unfocus();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _unfocus,
@@ -145,100 +145,75 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
         backgroundColor: AppColors.black,
         body: SafeArea(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // タイムラインエリア (旧キーワードエリア)
-              if (isKeyboardOpen)
-                const SizedBox.shrink()
-              else
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 32.0, right: 32.0, top: 24.0, bottom: 8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          AppLocalizations.of(context)!.onboardingFirstQuestTimeframeHeader,
-                          style: GoogleFonts.notoSansJp(
-                            fontSize: 14,
-                            color: AppColors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: Center(
-                            child: _buildTimeframeSelector(),
-                          ),
-                        ),
-                      ],
-                    ),
+              // タイトル（一番上に固定）
+              Padding(
+                padding: const EdgeInsets.only(left: 32.0, right: 32.0, top: 24.0, bottom: 8.0),
+                child: Text(
+                  AppLocalizations.of(context)!.firstQuestTitle,
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.white,
                   ),
                 ),
-              // 入力エリア
+              ),
+              // スクロール可能なコンテンツエリア
               Expanded(
-                flex: isKeyboardOpen ? 1 : 8,
                 child: FadeTransition(
                   opacity: _formAnim,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 8),
-                                // オンボーディング画面の見出しテキストを表示します（例：「習慣化したい(やりたい)ことを決めましょう」）。
-                                // ローカライズキー firstQuestTitle を使用し、文言全体を共通化しています。
-                                Text(
-                                  AppLocalizations.of(context)!.firstQuestTitle,
-                                  style: GoogleFonts.notoSansJp(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                _buildHabitHints(),
-                                const SizedBox(height: 16),
-                                _buildInputField(),
-                                _buildHabitPreview(),
-                                const SizedBox(height: 16),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        GradientButton(
-                          onPressed:
-                              _isSaving ? null : () => _complete(skip: false),
-                          isLoading: _isSaving,
-                          child: Text(
-                            AppLocalizations.of(context)!.onboardingFirstQuestCompleteButton,
-                            style: GoogleFonts.notoSansJp(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: TextButton(
-                            onPressed:
-                                _isSaving ? null : () => _complete(skip: true),
-                            child: Text(
-                              AppLocalizations.of(context)!.onboardingFirstQuestSkipButton,
+                  child: CustomScrollView(
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            const SizedBox(height: 16),
+                            // 時間帯ヘッダー
+                            Text(
+                              AppLocalizations.of(context)!.onboardingFirstQuestTimeframeHeader,
                               style: GoogleFonts.notoSansJp(
-                                fontSize: 13,
-                                color: AppColors.grey50,
+                                fontSize: 14,
+                                color: AppColors.white,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
+                            const SizedBox(height: 12),
+                            _buildTimeframeSelector(),
+                            const SizedBox(height: 24),
+                            _buildHabitHints(),
+                            const SizedBox(height: 24),
+                            _buildInputField(),
+                            _buildHabitPreview(),
+                            const SizedBox(height: 32),
+                          ]),
+                        ),
+                      ),
+                      // 下部固定ボタンエリア（コンテンツが短い場合は画面下部に、長い場合はコンテンツの最後に配置される）
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              GradientButton(
+                                onPressed:
+                                    (_isSaving || !_canComplete) ? null : () => _complete(skip: false),
+                                isLoading: _isSaving,
+                                child: Text(
+                                  AppLocalizations.of(context)!.onboardingFirstQuestCompleteButton,
+                                  style: GoogleFonts.notoSansJp(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 32),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -254,49 +229,40 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // トリガーラベル（右側にトレンドボタンを配置）
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              l.onboardingFirstQuestTriggerLabel,
+        // トレンドボタンを右寄せで配置
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () {
+              showTrendingTasksBottomSheet(
+                context,
+                trendingTasks: _trendingTasks,
+                onAddTask: ({String? initialTitle}) {
+                  if (initialTitle != null) {
+                    setState(() {
+                      _questCtrl.text = initialTitle;
+                      _questCtrl.selection = TextSelection.fromPosition(
+                        TextPosition(offset: initialTitle.length),
+                      );
+                    });
+                  }
+                },
+              );
+            },
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(0, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              l.profileScreenWeeklyTrend,
               style: GoogleFonts.notoSansJp(
+                color: AppColors.accentGold,
                 fontSize: 12,
-                color: AppColors.grey50,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            TextButton(
-              onPressed: () {
-                showTrendingTasksBottomSheet(
-                  context,
-                  trendingTasks: _trendingTasks,
-                  onAddTask: ({String? initialTitle}) {
-                    if (initialTitle != null) {
-                      setState(() {
-                        _questCtrl.text = initialTitle;
-                        _questCtrl.selection = TextSelection.fromPosition(
-                          TextPosition(offset: initialTitle.length),
-                        );
-                      });
-                    }
-                  },
-                );
-              },
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 0),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                l.profileScreenWeeklyTrend,
-                style: GoogleFonts.notoSansJp(
-                  color: AppColors.accentGold,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
         const SizedBox(height: 8),
         // トリガー提案チップス
@@ -327,15 +293,6 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
           ),
         ),
         const SizedBox(height: 16),
-        // タスク名ラベル
-        Text(
-          l.onboardingFirstQuestTaskLabel,
-          style: GoogleFonts.notoSansJp(
-            fontSize: 12,
-            color: AppColors.grey50,
-          ),
-        ),
-        const SizedBox(height: 8),
         // タスク提案チップス
         _buildSuggestedTasks(),
         const SizedBox(height: 8),
@@ -361,15 +318,6 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          l.onboardingFirstQuestPrivacyNote,
-          style: GoogleFonts.notoSansJp(
-            fontSize: 11,
-            color: AppColors.grey50,
-            fontWeight: FontWeight.w400,
           ),
         ),
       ],
@@ -398,11 +346,11 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.accentGold.withValues(alpha: 0.15) : AppColors.grey10,
+                color: isSelected ? AppColors.primary.withValues(alpha: 0.15) : AppColors.grey10,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.accentGold
+                      ? AppColors.primary
                       : AppColors.grey15,
                   width: 1,
                 ),
@@ -413,7 +361,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isSelected
-                      ? AppColors.accentGold
+                      ? AppColors.primary
                       : AppColors.textPrimary,
                 ),
               ),
@@ -446,11 +394,11 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary.withValues(alpha: 0.15) : AppColors.grey10,
+                color: isSelected ? AppColors.accentGold.withValues(alpha: 0.15) : AppColors.grey10,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.primary
+                      ? AppColors.accentGold
                       : AppColors.grey15,
                   width: 1,
                 ),
@@ -461,7 +409,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isSelected
-                      ? AppColors.primary
+                      ? AppColors.accentGold
                       : AppColors.textPrimary,
                 ),
               ),
@@ -583,7 +531,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
               style: GoogleFonts.notoSansJp(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: AppColors.accentGold,
+                color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -600,7 +548,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
             style: GoogleFonts.notoSerifJp(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: hasQuest ? AppColors.white : AppColors.grey50,
+              color: hasQuest ? AppColors.accentGold : AppColors.grey50,
             ),
             textAlign: TextAlign.center,
           ),

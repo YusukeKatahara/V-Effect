@@ -6,6 +6,7 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PastComparisonScreen extends StatefulWidget {
   final List<String> userTaskNames;
@@ -46,50 +47,68 @@ class _PastComparisonScreenState extends State<PastComparisonScreen> with Single
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    try {
-      final posts = await _postService.getAllMyPastPosts();
-      
-      // タスクごとにグループ化
-      final Map<String, List<Post>> grouped = {
-        for (var t in _validTabs) t: []
-      };
-      
-      bool hasOther = false;
-      for (var p in posts) {
-        if (grouped.containsKey(p.taskName)) {
-          grouped[p.taskName]!.add(p);
-        } else {
-          hasOther = true;
-          if (grouped['その他'] == null) grouped['その他'] = [];
-          grouped['その他']!.add(p);
-        }
+  void _updateStateWithPosts(List<Post> posts) {
+    // タスクごとにグループ化
+    final Map<String, List<Post>> grouped = {
+      for (var t in _validTabs) t: []
+    };
+    
+    bool hasOther = false;
+    for (var p in posts) {
+      if (grouped.containsKey(p.taskName)) {
+        grouped[p.taskName]!.add(p);
+      } else {
+        hasOther = true;
+        if (grouped['その他'] == null) grouped['その他'] = [];
+        grouped['その他']!.add(p);
       }
-      
-      if (hasOther && !_validTabs.contains('その他')) {
-        _validTabs.add('その他');
-        // タブを作り直す
-        _tabController.dispose();
-        _tabController = TabController(length: _validTabs.length, vsync: this);
-      }
-      
-      // 初回ソート
-      for (var key in grouped.keys) {
-        grouped[key]!.sort((a, b) {
-          return _isDescending 
-              ? b.createdAt.compareTo(a.createdAt) 
-              : a.createdAt.compareTo(b.createdAt);
-        });
-      }
+    }
+    
+    if (hasOther && !_validTabs.contains('その他')) {
+      _validTabs.add('その他');
+      // タブを作り直す
+      _tabController.dispose();
+      _tabController = TabController(length: _validTabs.length, vsync: this);
+    }
+    
+    // 初回ソート
+    for (var key in grouped.keys) {
+      grouped[key]!.sort((a, b) {
+        return _isDescending 
+            ? b.createdAt.compareTo(a.createdAt) 
+            : a.createdAt.compareTo(b.createdAt);
+      });
+    }
 
+    if (mounted) {
       setState(() {
         _allPosts = posts;
         _postsByTask = grouped;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadData() async {
+    // 1. キャッシュから取得して即時描画
+    try {
+      final cachedPosts = await _postService.getAllMyPastPosts(source: Source.cache);
+      if (cachedPosts.isNotEmpty) {
+        _updateStateWithPosts(cachedPosts);
+      }
+    } catch (_) {
+      // キャッシュがないかエラーの場合は無視して最新を待つ
+    }
+
+    // 2. サーバーから最新を取得
+    try {
+      final latestPosts = await _postService.getAllMyPastPosts(source: Source.serverAndCache);
+      _updateStateWithPosts(latestPosts);
     } catch (e) {
       debugPrint('Error loading past posts: $e');
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

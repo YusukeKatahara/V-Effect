@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
+import '../config/routes.dart';
 import '../models/app_user.dart';
 import '../models/app_notification.dart';
 import '../services/notification_service.dart';
 import '../services/friend_service.dart';
 import '../services/user_service.dart';
-import '../utils/date_helper.dart';
 import '../utils/date_helper.dart';
 import '../widgets/swipe_back_gate.dart';
 
@@ -296,23 +296,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  Future<void> _handleSeasonTaskParticipation(AppNotification notif, bool participate) async {
+  Future<void> _handleSeasonTaskDetails(AppNotification notif) async {
     if (notif.relatedId == null) return;
     
     setState(() => _isProcessing = true);
     try {
+      // 🚀 【動的マージ対応】シーズンタスクを処理済み（非表示）にマークします
       await UserService.instance.markSeasonTaskAsProcessed(notif.relatedId!);
-      // ローカルのストリームからも消すため、画面を再描画（Streamが再評価されるか、または状態を管理）
+      
       if (mounted) {
         setState(() {});
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(participate ? AppLocalizations.of(context)!.notificationsSeasonTaskJoined : AppLocalizations.of(context)!.notificationsSeasonTaskSkipped),
-          ),
+        // 🚀 開発ブログ詳細画面（お知らせページ）へ遷移します
+        Navigator.pushNamed(
+          context,
+          AppRoutes.blogPostDetail,
+          arguments: notif.relatedId,
         );
       }
     } catch (e) {
-      debugPrint('Season Task Process Error: $e');
+      debugPrint('Season Task Details Process Error: $e');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -422,37 +424,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (notif.isProcessed) {
       return const SizedBox.shrink();
     } else {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ElevatedButton(
-            onPressed: () => _handleSeasonTaskParticipation(notif, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.white,
-              foregroundColor: AppColors.black,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              minimumSize: const Size(80, 0),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(AppLocalizations.of(context)!.notificationsApprove, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(height: 8),
-          ElevatedButton(
-            onPressed: () => _handleSeasonTaskParticipation(notif, false),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              foregroundColor: AppColors.textSecondary,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              minimumSize: const Size(80, 0),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(AppLocalizations.of(context)!.notificationsDelete, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-          ),
-        ],
+      final locale = Localizations.localeOf(context).languageCode;
+      final btnText = locale == 'ja' ? '詳細を見る' : 'View Details';
+
+      return ElevatedButton(
+        onPressed: () => _handleSeasonTaskDetails(notif),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.white,
+          foregroundColor: AppColors.black,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: const Size(80, 36),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: Text(
+          btnText,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
       );
     }
   }

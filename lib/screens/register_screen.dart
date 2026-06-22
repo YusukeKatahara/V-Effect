@@ -205,21 +205,35 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                   Expanded(
                     child: ResponsiveContainer(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 28),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            children: [
-                              const SizedBox(height: 24),
-                              _buildLogo(),
-                              const SizedBox(height: 36),
-                              _buildForm(),
-                              const SizedBox(height: 28),
-                              _buildSocialSection(),
-                              const SizedBox(height: 32),
-                            ],
-                          ),
+                      child: Form(
+                        key: _formKey,
+                        child: CustomScrollView(
+                          slivers: [
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 28),
+                              sliver: SliverList(
+                                delegate: SliverChildListDelegate([
+                                  const SizedBox(height: 24),
+                                  _buildLogo(),
+                                  const SizedBox(height: 36),
+                                  _buildForm(),
+                                  const SizedBox(height: 28),
+                                ]),
+                              ),
+                            ),
+                            SliverFillRemaining(
+                              hasScrollBody: false,
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 28, right: 28, bottom: 32),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    _buildSocialSection(),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

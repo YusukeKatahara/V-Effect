@@ -191,14 +191,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                     ),
                   ),
                   Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: _resetDone
-                          ? _buildDoneView()
-                          : _oobCode != null
-                              ? _buildNewPasswordView()
-                              : _buildLinkInputView(),
-                    ),
+                    child: _resetDone
+                        ? _buildDoneView()
+                        : _oobCode != null
+                            ? _buildNewPasswordView()
+                            : _buildLinkInputView(),
                   ),
                 ],
               ),
@@ -211,43 +208,60 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
 
   /// Step 1: リンクを貼り付ける画面
   Widget _buildLinkInputView() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const PremiumIconHeader(icon: Icons.link, size: 72, iconSize: 40),
-        const SizedBox(height: 24),
-        Text(
-          AppLocalizations.of(context)!.resetPasswordPasteLinkTitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          AppLocalizations.of(context)!.resetPasswordPasteLinkDesc,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 32),
-        TextField(
-          controller: _linkCtrl,
-          style: TextStyle(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.resetPasswordPasteLinkLabel,
-            hintText: 'https://...',
-            prefixIcon: const Icon(Icons.content_paste),
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              const PremiumIconHeader(icon: Icons.link, size: 72, iconSize: 40),
+              const SizedBox(height: 24),
+              Text(
+                AppLocalizations.of(context)!.resetPasswordPasteLinkTitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                AppLocalizations.of(context)!.resetPasswordPasteLinkDesc,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 32),
+              TextField(
+                controller: _linkCtrl,
+                style: TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.resetPasswordPasteLinkLabel,
+                  hintText: 'https://...',
+                  prefixIcon: const Icon(Icons.content_paste),
+                ),
+                maxLines: 2,
+                keyboardType: TextInputType.url,
+              ),
+              const SizedBox(height: 24),
+            ]),
           ),
-          maxLines: 2,
-          keyboardType: TextInputType.url,
         ),
-        const SizedBox(height: 24),
-        GradientButton(
-          onPressed: _submitLink,
-          isLoading: _isLoading,
-          child: Text(AppLocalizations.of(context)!.resetPasswordNext),
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                GradientButton(
+                  onPressed: _submitLink,
+                  isLoading: _isLoading,
+                  child: Text(AppLocalizations.of(context)!.resetPasswordNext),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -255,54 +269,71 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
 
   /// Step 2: 新しいパスワードを入力する画面
   Widget _buildNewPasswordView() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const PremiumIconHeader(
-            icon: Icons.lock_open, size: 72, iconSize: 40),
-        const SizedBox(height: 24),
-        Text(
-          AppLocalizations.of(context)!.resetPasswordNewTitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary),
-        ),
-        if (_email != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            _email!,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              const PremiumIconHeader(
+                  icon: Icons.lock_open, size: 72, iconSize: 40),
+              const SizedBox(height: 24),
+              Text(
+                AppLocalizations.of(context)!.resetPasswordNewTitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary),
+              ),
+              if (_email != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _email!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                ),
+              ],
+              const SizedBox(height: 32),
+              TextField(
+                controller: _passwordCtrl,
+                style: TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.resetPasswordNew,
+                  prefixIcon: const Icon(Icons.lock_outline),
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _confirmCtrl,
+                style: TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.resetPasswordConfirm,
+                  prefixIcon: const Icon(Icons.lock_outline),
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 24),
+            ]),
           ),
-        ],
-        const SizedBox(height: 32),
-        TextField(
-          controller: _passwordCtrl,
-          style: TextStyle(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.resetPasswordNew,
-            prefixIcon: const Icon(Icons.lock_outline),
-          ),
-          obscureText: true,
         ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _confirmCtrl,
-          style: TextStyle(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.resetPasswordConfirm,
-            prefixIcon: const Icon(Icons.lock_outline),
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                GradientButton(
+                  onPressed: _resetPassword,
+                  isLoading: _isLoading,
+                  child: Text(AppLocalizations.of(context)!.resetPasswordButton),
+                ),
+              ],
+            ),
           ),
-          obscureText: true,
-        ),
-        const SizedBox(height: 24),
-        GradientButton(
-          onPressed: _resetPassword,
-          isLoading: _isLoading,
-          child: Text(AppLocalizations.of(context)!.resetPasswordButton),
         ),
       ],
     );
@@ -310,54 +341,71 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
 
   /// Step 3: 完了画面
   Widget _buildDoneView() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Center(
-          child: Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.success,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.success.withValues(alpha: 0.4),
-                  blurRadius: 32,
-                  spreadRadius: 4,
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              Center(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.success,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.success.withValues(alpha: 0.4),
+                        blurRadius: 32,
+                        spreadRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Icon(Icons.check_circle,
+                      size: 40, color: AppColors.black),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                AppLocalizations.of(context)!.resetPasswordDone,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                AppLocalizations.of(context)!.resetPasswordLoginWithNew,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 24),
+            ]),
+          ),
+        ),
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                GradientButton(
+                  onPressed: () {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      AppRoutes.login,
+                      (route) => false,
+                    );
+                  },
+                  child: Text(AppLocalizations.of(context)!.resetPasswordGoToLogin),
                 ),
               ],
             ),
-            child: Icon(Icons.check_circle,
-                size: 40, color: AppColors.black),
           ),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          AppLocalizations.of(context)!.resetPasswordDone,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          AppLocalizations.of(context)!.resetPasswordLoginWithNew,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 32),
-        GradientButton(
-          onPressed: () {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.login,
-              (route) => false,
-            );
-          },
-          child: Text(AppLocalizations.of(context)!.resetPasswordGoToLogin),
         ),
       ],
     );

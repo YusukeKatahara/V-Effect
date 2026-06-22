@@ -2852,7 +2852,7 @@ abstract class AppLocalizations {
   /// No description provided for @morningTrigger1.
   ///
   /// In ja, this message translates to:
-  /// **'カーテンを開けたら'**
+  /// **'朝起きたら'**
   String get morningTrigger1;
 
   /// No description provided for @morningTrigger2.
@@ -2870,19 +2870,19 @@ abstract class AppLocalizations {
   /// No description provided for @morningTask1.
   ///
   /// In ja, this message translates to:
-  /// **'朝日を浴びて深呼吸'**
+  /// **'水を飲む'**
   String get morningTask1;
 
   /// No description provided for @morningTask2.
   ///
   /// In ja, this message translates to:
-  /// **'コップ1杯の白湯を飲む'**
+  /// **'ToDoを書く'**
   String get morningTask2;
 
   /// No description provided for @morningTask3.
   ///
   /// In ja, this message translates to:
-  /// **'ベッドメイキングをする'**
+  /// **'ワークアウト'**
   String get morningTask3;
 
   /// No description provided for @afternoonTrigger1.
@@ -3632,7 +3632,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingFirstQuestTriggerHintText.
   ///
   /// In ja, this message translates to:
-  /// **'トリガーを入力'**
+  /// **'トリガーを入力（任意）'**
   String get onboardingFirstQuestTriggerHintText;
 
   /// No description provided for @onboardingFirstQuestTaskHintText.

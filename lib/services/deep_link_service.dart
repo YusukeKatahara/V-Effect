@@ -152,8 +152,8 @@ class DeepLinkService {
 
   Future<void> _handleVerifyEmail(String oobCode) async {
     try {
-      await FirebaseAuth.instance.confirmPasswordReset(code: oobCode, newPassword: ''); // これはパスワードリセット用
       // メール認証の場合は applyActionCode を使う
+      // (注意: 以前誤って呼び出されていた confirmPasswordReset は、パスワードリセット用のため invalid-action-code エラーの原因となっており削除しました)
       await FirebaseAuth.instance.applyActionCode(oobCode);
       
       debugPrint('Email verified successfully via deep link');

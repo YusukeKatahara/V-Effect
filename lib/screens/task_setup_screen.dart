@@ -404,203 +404,210 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                       ],
                     ),
                   ),
-                  // ── Content ──
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 28),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const SizedBox(height: 8),
-                            const PremiumIconHeader(
-                              icon: Icons.task_alt,
-                              size: 72,
-                              iconSize: 40,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Step 2 / 2',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              AppLocalizations.of(context)!.taskSetupSubtitle,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 32),
-
-                            // ── プロフィール写真 ──
-                            SectionTitle(title: AppLocalizations.of(context)!.taskSetupProfilePhoto),
-                            const SizedBox(height: 12),
-                            Center(
-                              child: GestureDetector(
-                                onTap: _pickProfileImage,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.6),
-                                      width: 3,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppColors.primary
-                                            .withValues(alpha: 0.2),
-                                        blurRadius: 16,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: CircleAvatar(
-                                    radius: 56,
-                                    backgroundColor: AppColors.bgElevated,
-                                    backgroundImage:
-                                        _profileImage != null
-                                            ? FileImage(_profileImage!)
-                                            : null,
-                                    child:
-                                        _profileImage == null
-                                            ? Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Icon(
-                                                  Icons.camera_alt,
-                                                  size: 32,
-                                                  color: AppColors.textMuted,
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  AppLocalizations.of(context)!.taskSetupSelectPhoto,
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: AppColors.textMuted,
-                                                  ),
-                                                ),
-                                              ],
-                                            )
-                                            : null,
+                    child: Form(
+                      key: _formKey,
+                      child: CustomScrollView(
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 28),
+                            sliver: SliverList(
+                              delegate: SliverChildListDelegate([
+                                const SizedBox(height: 8),
+                                const PremiumIconHeader(
+                                  icon: Icons.task_alt,
+                                  size: 72,
+                                  iconSize: 40,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Step 2 / 2',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.textSecondary,
                                   ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // ── ヒーロータスク入力欄 ──
-                            SectionTitle(title: AppLocalizations.of(context)!.taskSetupHeroTasks),
-                            const SizedBox(height: 8),
-                            ...List.generate(_taskCtrls.length, (index) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 28,
-                                      height: 28,
-                                      margin: const EdgeInsets.only(right: 8),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: AppColors.primaryGradient,
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '${index + 1}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppColors.black,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: _taskCtrls[index],
-                                        style: TextStyle(
-                                          color: AppColors.textPrimary,
-                                        ),
-                                        decoration: InputDecoration(
-                                          labelText: AppLocalizations.of(context)!.taskSetupHeroTaskLabel(index + 1),
-                                          hintText: AppLocalizations.of(context)!.hintTaskExample,
-                                        ),
-                                      ),
-                                    ),
-                                    if (_taskCtrls.length > 1)
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.remove_circle_outline,
-                                          color: AppColors.error,
-                                        ),
-                                        onPressed: () =>
-                                            _removeTaskField(index),
-                                      ),
-                                  ],
-                                ),
-                              );
-                            }),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: TextButton.icon(
-                                  icon: const Icon(Icons.add),
-                                  label: Text(AppLocalizations.of(context)!.taskSetupAddTask),
-                                  onPressed: _addTaskField,
-                                ),
-                              ),
-                            const SizedBox(height: 24),
-
-                            const SizedBox(height: 24),
-
-                            // ── ヒーロータスク実行時間 ──
-
-                            // ── ヒーロータスク実行時間 ──
-                            SectionTitle(title: AppLocalizations.of(context)!.taskSetupTimeSection),
-                            const SizedBox(height: 4),
-                            Text(
-                              AppLocalizations.of(context)!.taskSetupTimeDesc,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              onTap: () => _pickTime(),
-                              child: InputDecorator(
-                                decoration: const InputDecoration(
-                                  prefixIcon: Icon(Icons.schedule),
-                                ),
-                                child: Text(
-                                  _formatTime(_taskTime),
+                                const SizedBox(height: 4),
+                                Text(
+                                  AppLocalizations.of(context)!.taskSetupSubtitle,
+                                  textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 18,
+                                    fontWeight: FontWeight.bold,
                                     color: AppColors.textPrimary,
                                   ),
                                 ),
+                                const SizedBox(height: 32),
+
+                                // ── プロフィール写真 ──
+                                SectionTitle(title: AppLocalizations.of(context)!.taskSetupProfilePhoto),
+                                const SizedBox(height: 12),
+                                Center(
+                                  child: GestureDetector(
+                                    onTap: _pickProfileImage,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: AppColors.primary
+                                              .withValues(alpha: 0.6),
+                                          width: 3,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppColors.primary
+                                                .withValues(alpha: 0.2),
+                                            blurRadius: 16,
+                                            spreadRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                      child: CircleAvatar(
+                                        radius: 56,
+                                        backgroundColor: AppColors.bgElevated,
+                                        backgroundImage:
+                                            _profileImage != null
+                                                ? FileImage(_profileImage!)
+                                                : null,
+                                        child:
+                                            _profileImage == null
+                                                ? Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.camera_alt,
+                                                      size: 32,
+                                                      color: AppColors.textMuted,
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      AppLocalizations.of(context)!.taskSetupSelectPhoto,
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: AppColors.textMuted,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                )
+                                                : null,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+
+                                // ── ヒーロータスク入力欄 ──
+                                SectionTitle(title: AppLocalizations.of(context)!.taskSetupHeroTasks),
+                                const SizedBox(height: 8),
+                                ...List.generate(_taskCtrls.length, (index) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 28,
+                                          height: 28,
+                                          margin: const EdgeInsets.only(right: 8),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            gradient: AppColors.primaryGradient,
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              '${index + 1}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                color: AppColors.black,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: TextFormField(
+                                            controller: _taskCtrls[index],
+                                            style: TextStyle(
+                                              color: AppColors.textPrimary,
+                                            ),
+                                            decoration: InputDecoration(
+                                              labelText: AppLocalizations.of(context)!.taskSetupHeroTaskLabel(index + 1),
+                                              hintText: AppLocalizations.of(context)!.hintTaskExample,
+                                            ),
+                                          ),
+                                        ),
+                                        if (_taskCtrls.length > 1)
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.remove_circle_outline,
+                                              color: AppColors.error,
+                                            ),
+                                            onPressed: () =>
+                                                _removeTaskField(index),
+                                          ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: TextButton.icon(
+                                    icon: const Icon(Icons.add),
+                                    label: Text(AppLocalizations.of(context)!.taskSetupAddTask),
+                                    onPressed: _addTaskField,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+
+                                // ── ヒーロータスク実行時間 ──
+                                SectionTitle(title: AppLocalizations.of(context)!.taskSetupTimeSection),
+                                const SizedBox(height: 4),
+                                Text(
+                                  AppLocalizations.of(context)!.taskSetupTimeDesc,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                InkWell(
+                                  onTap: () => _pickTime(),
+                                  child: InputDecorator(
+                                    decoration: const InputDecoration(
+                                      prefixIcon: Icon(Icons.schedule),
+                                    ),
+                                    child: Text(
+                                      _formatTime(_taskTime),
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                              ]),
+                            ),
+                          ),
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 28, right: 28, bottom: 24),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  GradientButton(
+                                    onPressed: _saveAndFinish,
+                                    isLoading: _isSaving,
+                                    child: Text(AppLocalizations.of(context)!.taskSetupCompleteButton),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 32),
-
-                            // ── 完了ボタン ──
-                            GradientButton(
-                              onPressed: _saveAndFinish,
-                              isLoading: _isSaving,
-                              child: Text(AppLocalizations.of(context)!.taskSetupCompleteButton),
-                            ),
-                            const SizedBox(height: 24),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

@@ -307,174 +307,182 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                   ),
 
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 28),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const SizedBox(height: 8),
-                            const PremiumIconHeader(
-                              icon: Icons.person_outline,
-                              size: 72,
-                              iconSize: 40,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Step 1 / 2',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              AppLocalizations.of(context)!.profileSetupSubtitle,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 32),
+                    child: Form(
+                      key: _formKey,
+                      child: CustomScrollView(
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 28),
+                            sliver: SliverList(
+                              delegate: SliverChildListDelegate([
+                                const SizedBox(height: 8),
+                                const PremiumIconHeader(
+                                  icon: Icons.person_outline,
+                                  size: 72,
+                                  iconSize: 40,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Step 1 / 2',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  AppLocalizations.of(context)!.profileSetupSubtitle,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
 
-                            // ユーザー名
-                            TextFormField(
-                              controller: _usernameCtrl,
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                              ),
-                              decoration: InputDecoration(
-                                labelText: AppLocalizations.of(context)!.profileSetupUsernameLabel,
-                                hintText: AppLocalizations.of(context)!.hintNameExample,
-                                prefixIcon: const Icon(Icons.badge),
-                              ),
-                              validator:
-                                  (v) =>
-                                      (v == null || v.trim().isEmpty)
-                                          ? AppLocalizations.of(context)!.profileSetupUsernameRequired
-                                          : null,
-                            ),
-                            const SizedBox(height: 16),
+                                // ユーザー名
+                                TextFormField(
+                                  controller: _usernameCtrl,
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: AppLocalizations.of(context)!.profileSetupUsernameLabel,
+                                    hintText: AppLocalizations.of(context)!.hintNameExample,
+                                    prefixIcon: const Icon(Icons.badge),
+                                  ),
+                                  validator:
+                                      (v) =>
+                                          (v == null || v.trim().isEmpty)
+                                              ? AppLocalizations.of(context)!.profileSetupUsernameRequired
+                                              : null,
+                                ),
+                                const SizedBox(height: 16),
 
-                            // ユーザーID
-                            TextFormField(
-                              controller: _userIdCtrl,
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                              ),
-                              decoration: InputDecoration(
-                                labelText: AppLocalizations.of(context)!.profileSetupUserIdLabel,
-                                hintText: AppLocalizations.of(context)!.onboardingProfileExampleIdHint,
-                                prefixIcon: const Icon(Icons.alternate_email),
-                              ),
-                              validator: (v) {
-                                if (v == null || v.trim().isEmpty) {
-                                  return AppLocalizations.of(context)!.profileSetupUserIdRequired;
-                                }
-                                final adminEmails = [
-                                  'ren0930ren0930@gmail.com',
-                                  'yusuke@example.com',
-                                  'yusukekatahara@gmail.com',
-                                  'y.katahara.academia@gmail.com'
-                                ];
-                                final isSpecialAdmin = adminEmails.contains(FirebaseAuth.instance.currentUser?.email);
-                                if (!isSpecialAdmin) {
-                                  if (v.trim().length < 5) {
-                                    return AppLocalizations.of(context)!.profileSetupUserIdMinLength;
-                                  }
-                                  if (!RegExp(
-                                    r'^[a-zA-Z0-9_]+$',
-                                  ).hasMatch(v.trim())) {
-                                    return AppLocalizations.of(context)!.profileSetupUserIdAlphanumeric;
-                                  }
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 24),
+                                // ユーザーID
+                                TextFormField(
+                                  controller: _userIdCtrl,
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: AppLocalizations.of(context)!.profileSetupUserIdLabel,
+                                    hintText: AppLocalizations.of(context)!.onboardingProfileExampleIdHint,
+                                    prefixIcon: const Icon(Icons.alternate_email),
+                                  ),
+                                  validator: (v) {
+                                    if (v == null || v.trim().isEmpty) {
+                                      return AppLocalizations.of(context)!.profileSetupUserIdRequired;
+                                    }
+                                    final adminEmails = [
+                                      'ren0930ren0930@gmail.com',
+                                      'yusuke@example.com',
+                                      'yusukekatahara@gmail.com',
+                                      'y.katahara.academia@gmail.com'
+                                    ];
+                                    final isSpecialAdmin = adminEmails.contains(FirebaseAuth.instance.currentUser?.email);
+                                    if (!isSpecialAdmin) {
+                                      if (v.trim().length < 5) {
+                                        return AppLocalizations.of(context)!.profileSetupUserIdMinLength;
+                                      }
+                                      if (!RegExp(
+                                        r'^[a-zA-Z0-9_]+$',
+                                      ).hasMatch(v.trim())) {
+                                        return AppLocalizations.of(context)!.profileSetupUserIdAlphanumeric;
+                                      }
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 24),
 
-                            // 職業
-                            SectionTitle(title: AppLocalizations.of(context)!.profileSetupOccupationSection),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              onTap: () => _showOccupationPickerBottomSheet(context),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.bgElevated,
-                                  border: Border.all(color: AppColors.border),
+                                // 職業
+                                SectionTitle(title: AppLocalizations.of(context)!.profileSetupOccupationSection),
+                                const SizedBox(height: 8),
+                                InkWell(
+                                  onTap: () => _showOccupationPickerBottomSheet(context),
                                   borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      _occupation ?? AppLocalizations.of(context)!.profileSetupSelectPlaceholder,
-                                      style: TextStyle(
-                                        color: _occupation == null ? AppColors.textSecondary : AppColors.textPrimary,
-                                        fontSize: 16,
-                                      ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.bgElevated,
+                                      border: Border.all(color: AppColors.border),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
-                                  ],
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          _occupation ?? AppLocalizations.of(context)!.profileSetupSelectPlaceholder,
+                                          style: TextStyle(
+                                            color: _occupation == null ? AppColors.textSecondary : AppColors.textPrimary,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
+                                const SizedBox(height: 24),
 
-                            const SizedBox(height: 24),
-
-                            // ヒーロータスク時間
-
-                            // ヒーロータスク時間
-                            SectionTitle(title: AppLocalizations.of(context)!.profileSetupTaskTimeSection),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              onTap: () => _showTimePickerBottomSheet(
-                                context,
-                                AppLocalizations.of(context)!.profileSetupTaskTimePickerTitle,
-                                _taskTime,
-                                (t) => setState(() => _taskTime = t),
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.bgElevated,
-                                  border: Border.all(color: AppColors.border),
+                                // ヒーロータスク時間
+                                SectionTitle(title: AppLocalizations.of(context)!.profileSetupTaskTimeSection),
+                                const SizedBox(height: 8),
+                                InkWell(
+                                  onTap: () => _showTimePickerBottomSheet(
+                                    context,
+                                    AppLocalizations.of(context)!.profileSetupTaskTimePickerTitle,
+                                    _taskTime,
+                                    (t) => setState(() => _taskTime = t),
+                                  ),
                                   borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      _formatTime(_taskTime),
-                                      style: TextStyle(
-                                        color: _taskTime == null ? AppColors.textSecondary : AppColors.textPrimary,
-                                        fontSize: 16,
-                                      ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.bgElevated,
+                                      border: Border.all(color: AppColors.border),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    Icon(Icons.access_time, color: AppColors.textSecondary),
-                                  ],
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          _formatTime(_taskTime),
+                                          style: TextStyle(
+                                            color: _taskTime == null ? AppColors.textSecondary : AppColors.textPrimary,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        Icon(Icons.access_time, color: AppColors.textSecondary),
+                                      ],
+                                    ),
+                                  ),
                                 ),
+                                const SizedBox(height: 24),
+                              ]),
+                            ),
+                          ),
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 28, right: 28, bottom: 24),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  GradientButton(
+                                    onPressed: _saveAndNext,
+                                    isLoading: _isSaving,
+                                    child: Text(AppLocalizations.of(context)!.profileSetupNextButton),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 32),
-
-                            // 次へボタン
-                            GradientButton(
-                              onPressed: _saveAndNext,
-                              isLoading: _isSaving,
-                              child: Text(AppLocalizations.of(context)!.profileSetupNextButton),
-                            ),
-                            const SizedBox(height: 24),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

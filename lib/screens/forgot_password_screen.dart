@@ -115,10 +115,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                     ),
                   ),
                   Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: _sent ? _buildSentView() : _buildFormView(),
-                    ),
+                    child: _sent ? _buildSentView() : _buildFormView(),
                   ),
                 ],
               ),
@@ -130,115 +127,151 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
   }
 
   Widget _buildFormView() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const PremiumIconHeader(
-            icon: Icons.lock_reset, size: 72, iconSize: 40),
-        const SizedBox(height: 24),
-        Text(
-          AppLocalizations.of(context)!.loginForgotPassword,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          AppLocalizations.of(context)!.forgotPasswordInstruction,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 32),
-        TextField(
-          controller: _userIdCtrl,
-          style: TextStyle(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.forgotPasswordUserId,
-            prefixIcon: const Icon(Icons.person_outline),
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              const PremiumIconHeader(
+                  icon: Icons.lock_reset, size: 72, iconSize: 40),
+              const SizedBox(height: 24),
+              Text(
+                AppLocalizations.of(context)!.loginForgotPassword,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                AppLocalizations.of(context)!.forgotPasswordInstruction,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 32),
+              TextField(
+                controller: _userIdCtrl,
+                style: TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.forgotPasswordUserId,
+                  prefixIcon: const Icon(Icons.person_outline),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _emailCtrl,
+                style: TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.registerEmail,
+                  prefixIcon: const Icon(Icons.email_outlined),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 24),
+            ]),
           ),
         ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _emailCtrl,
-          style: TextStyle(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.registerEmail,
-            prefixIcon: const Icon(Icons.email_outlined),
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                GradientButton(
+                  onPressed: _sendResetEmail,
+                  isLoading: _isSending,
+                  child: Text(AppLocalizations.of(context)!.forgotPasswordSendReset),
+                ),
+              ],
+            ),
           ),
-          keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: 24),
-        GradientButton(
-          onPressed: _sendResetEmail,
-          isLoading: _isSending,
-          child: Text(AppLocalizations.of(context)!.forgotPasswordSendReset),
         ),
       ],
     );
   }
 
   Widget _buildSentView() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          width: 72,
-          height: 72,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.success,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.success.withValues(alpha: 0.4),
-                blurRadius: 32,
-                spreadRadius: 4,
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              Center(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.success,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.success.withValues(alpha: 0.4),
+                        blurRadius: 32,
+                        spreadRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Icon(Icons.mark_email_read,
+                      size: 40, color: AppColors.black),
+                ),
               ),
-            ],
+              const SizedBox(height: 24),
+              Text(
+                AppLocalizations.of(context)!.forgotPasswordEmailSent,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                AppLocalizations.of(context)!.forgotPasswordEmailSentDesc(_emailCtrl.text.trim()),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 24),
+            ]),
           ),
-          child: Icon(Icons.mark_email_read,
-              size: 40, color: AppColors.black),
         ),
-        const SizedBox(height: 24),
-        Text(
-          AppLocalizations.of(context)!.forgotPasswordEmailSent,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          AppLocalizations.of(context)!.forgotPasswordEmailSentDesc(_emailCtrl.text.trim()),
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 32),
-        GradientButton(
-          onPressed: () {
-            Navigator.pushNamed(context, AppRoutes.resetPassword);
-          },
-          child: Text(AppLocalizations.of(context)!.forgotPasswordResetViaLink),
-        ),
-        const SizedBox(height: 16),
-        OutlinedButton(
-          onPressed: () => Navigator.pop(context),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-          child: Text(AppLocalizations.of(context)!.forgotPasswordBackToLogin),
-        ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: () => setState(() => _sent = false),
-          child: Text(
-            AppLocalizations.of(context)!.forgotPasswordResend,
-            style: TextStyle(color: AppColors.textMuted),
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                GradientButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, AppRoutes.resetPassword);
+                  },
+                  child: Text(AppLocalizations.of(context)!.forgotPasswordResetViaLink),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text(AppLocalizations.of(context)!.forgotPasswordBackToLogin),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => setState(() => _sent = false),
+                  child: Text(
+                    AppLocalizations.of(context)!.forgotPasswordResend,
+                    style: TextStyle(color: AppColors.textMuted),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],

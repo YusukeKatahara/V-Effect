@@ -1436,7 +1436,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingFirstQuestSuggestedTaskTitle => 'おすすめのタスク（タップで選択）';
 
   @override
-  String get morningTrigger1 => 'カーテンを開けたら';
+  String get morningTrigger1 => '朝起きたら';
 
   @override
   String get morningTrigger2 => 'ベッドから出たら';
@@ -1445,13 +1445,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get morningTrigger3 => '朝食の前に';
 
   @override
-  String get morningTask1 => '朝日を浴びて深呼吸';
+  String get morningTask1 => '水を飲む';
 
   @override
-  String get morningTask2 => 'コップ1杯の白湯を飲む';
+  String get morningTask2 => 'ToDoを書く';
 
   @override
-  String get morningTask3 => 'ベッドメイキングをする';
+  String get morningTask3 => 'ワークアウト';
 
   @override
   String get afternoonTrigger1 => 'お昼ご飯を食べ終えたら';
@@ -1850,7 +1850,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get firstQuestRewardHint5 => '漫画を読む';
 
   @override
-  String get onboardingFirstQuestTriggerHintText => 'トリガーを入力';
+  String get onboardingFirstQuestTriggerHintText => 'トリガーを入力（任意）';
 
   @override
   String get onboardingFirstQuestTaskHintText => 'タスク名を入力';

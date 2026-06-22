@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post.dart';
 import '../models/app_task.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/block_service.dart';
 import '../services/post_service.dart';
 
@@ -89,19 +92,118 @@ class HomeData {
     }
     return true;
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'streak': streak,
+      'postedToday': postedToday,
+      'isAllTasksCompleted': isAllTasksCompleted,
+      'username': username,
+      'tasks': tasks.map((t) => {
+        'title': t.title,
+        'trigger': t.trigger,
+        'reward': t.reward,
+        'isOneTime': t.isOneTime,
+        'isSeason': t.isSeason,
+        'seasonId': t.seasonId,
+        'completedAt': t.completedAt?.toIso8601String(),
+      }).toList(),
+      'followingUids': followingUids,
+      'feedPosts': feedPosts.map((p) => {
+         'id': p.id,
+         'userId': p.userId,
+         'imageUrl': p.imageUrl,
+         'taskName': p.taskName,
+         'caption': p.caption,
+         'createdAt': p.createdAt.toIso8601String(),
+         'expiresAt': p.expiresAt.toIso8601String(),
+         'reactionCount': p.reactionCount,
+         'emojiReactedUserIds': p.emojiReactedUserIds,
+         'userReactions': p.userReactions,
+         'bgmUrl': p.bgmUrl,
+         'bgmTitle': p.bgmTitle,
+         'bgmArtist': p.bgmArtist,
+         'bgmArtworkUrl': p.bgmArtworkUrl,
+      }).toList(),
+      'postedFriends': postedFriends,
+      'userNames': userNames,
+      'userPhotos': userPhotos,
+      'userStreaks': userStreaks,
+      'userBadgeUrls': userBadgeUrls,
+      'userBadgeAnimations': userBadgeAnimations,
+    };
+  }
+
+  factory HomeData.fromJson(Map<String, dynamic> json) {
+    return HomeData(
+      streak: json['streak'] as int? ?? 0,
+      postedToday: json['postedToday'] as bool? ?? false,
+      isAllTasksCompleted: json['isAllTasksCompleted'] as bool? ?? false,
+      username: json['username'] as String? ?? '',
+      tasks: (json['tasks'] as List<dynamic>? ?? []).map((t) => AppTask(
+        title: t['title'] as String? ?? '',
+        trigger: t['trigger'] as String?,
+        reward: t['reward'] as String?,
+        isOneTime: t['isOneTime'] as bool? ?? false,
+        isSeason: t['isSeason'] as bool? ?? false,
+        seasonId: t['seasonId'] as String?,
+        completedAt: t['completedAt'] != null ? DateTime.tryParse(t['completedAt']) : null,
+      )).toList(),
+      followingUids: (json['followingUids'] as List<dynamic>? ?? []).cast<String>(),
+      feedPosts: (json['feedPosts'] as List<dynamic>? ?? []).map((p) => Post(
+         id: p['id'] as String? ?? '',
+         userId: p['userId'] as String? ?? '',
+         imageUrl: p['imageUrl'] as String?,
+         taskName: p['taskName'] as String? ?? '',
+         caption: p['caption'] as String?,
+         createdAt: p['createdAt'] != null ? DateTime.tryParse(p['createdAt']) ?? DateTime.now() : DateTime.now(),
+         expiresAt: p['expiresAt'] != null ? DateTime.tryParse(p['expiresAt']) ?? DateTime.now() : DateTime.now(),
+         reactionCount: p['reactionCount'] as int? ?? 0,
+         emojiReactedUserIds: (p['emojiReactedUserIds'] as List<dynamic>? ?? []).cast<String>(),
+         userReactions: Map<String, String>.from(p['userReactions'] ?? {}),
+         bgmUrl: p['bgmUrl'] as String?,
+         bgmTitle: p['bgmTitle'] as String?,
+         bgmArtist: p['bgmArtist'] as String?,
+         bgmArtworkUrl: p['bgmArtworkUrl'] as String?,
+      )).toList(),
+      postedFriends: (json['postedFriends'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>(),
+      userNames: Map<String, String>.from(json['userNames'] ?? {}),
+      userPhotos: Map<String, String?>.from(json['userPhotos'] ?? {}),
+      userStreaks: Map<String, int>.from(json['userStreaks'] ?? {}),
+      userBadgeUrls: Map<String, String?>.from(json['userBadgeUrls'] ?? {}),
+      userBadgeAnimations: Map<String, String?>.from(json['userBadgeAnimations'] ?? {}),
+    );
+  }
 }
 
 final postUpdateProvider = StreamProvider.autoDispose<void>((ref) {
   return PostService.instance.updateStream;
 });
 
-final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
+final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
   // PostService からの更新信号を監視。信号が届くたびにこの Provider は再実行される。
   ref.watch(postUpdateProvider);
   
   final postService = PostService.instance;
   final myUid = FirebaseAuth.instance.currentUser?.uid;
+  if (myUid == null) return;
+
+  final prefs = await SharedPreferences.getInstance();
+  final cacheKey = 'homeData_$myUid';
+
+  // 1. まずローカルキャッシュから即座に表示（ゼロ・ディレイ起動）
+  final cachedStr = prefs.getString(cacheKey);
+  if (cachedStr != null) {
+    try {
+      final cachedJson = jsonDecode(cachedStr) as Map<String, dynamic>;
+      final cachedData = HomeData.fromJson(cachedJson);
+      yield cachedData;
+    } catch (e) {
+      debugPrint('HomeData cache decode error: $e');
+    }
+  }
   
+  // 2. 裏でFirestoreから最新データを取得
   final Map<String, dynamic> homeDataMap;
   final List<String> blockedUids;
   
@@ -125,7 +227,7 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
 
   // 自分のステータスも含めてフレンド情報を取得
   final uidsToFetch = List<String>.from(friendUids);
-  if (myUid != null && !uidsToFetch.contains(myUid)) {
+  if (!uidsToFetch.contains(myUid)) {
     uidsToFetch.add(myUid);
   }
 
@@ -173,7 +275,7 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
     }
   }
 
-  return HomeData(
+  final latestData = HomeData(
     streak: homeDataMap['streak'] as int,
     postedToday: homeDataMap['postedToday'] as bool,
     isAllTasksCompleted: homeDataMap['isAllTasksCompleted'] as bool,
@@ -188,4 +290,8 @@ final homeDataProvider = FutureProvider.autoDispose<HomeData>((ref) async {
     userBadgeUrls: badgeUrls,
     userBadgeAnimations: badgeAnimations,
   );
+
+  // 3. 取得した最新データをキャッシュに保存し、UIへ反映
+  prefs.setString(cacheKey, jsonEncode(latestData.toJson()));
+  yield latestData;
 });

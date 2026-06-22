@@ -65,17 +65,21 @@ class PostService {
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
 
-    // ユーザー情報と投稿を並列で取得（投稿は過去24時間以内の期限切れでないものに限定して高速化）
+    // 🚀 【動的マージ対応】ユーザー情報、今日の投稿、そして現在進行中のシーズンタスクを並列（同時）で取得して高速化
     final results = await Future.wait([
       _db.collection('users').doc(uid).get(),
       _postsRef
           .where(Post.fieldUserId, isEqualTo: uid)
           .where('expiresAt', isGreaterThan: now)
           .get(),
+      _db.collection('seasons')
+          .where('startDate', isLessThanOrEqualTo: now)
+          .get(),
     ]);
 
     final snap = results[0] as DocumentSnapshot;
     final postsSnap = results[1] as QuerySnapshot<Post>;
+    final seasonsSnap = results[2] as QuerySnapshot;
 
     if (!snap.exists) {
       return {
@@ -93,9 +97,29 @@ class PostService {
     final data = snap.data() as Map<String, dynamic>;
 
     final lastPostedDate = data['lastPostedDate'] as String?;
-    final tasks = (data['tasks'] as List? ?? [])
+    
+    // Firestore（ファイアストア：データベース）からユーザー自身のタスクをロード
+    final userTasks = (data['tasks'] as List? ?? [])
         .map((item) => AppTask.fromFirestore(item))
         .toList();
+
+    // 開催期間内のシーズンタスクをメモリ上で抽出（endDateがない、または現在時刻より後）
+    final activeSeasons = seasonsSnap.docs.map((doc) => Season.fromFirestore(doc)).where((s) {
+      return s.endDate == null || now.isBefore(s.endDate);
+    }).toList();
+
+    // シーズンタスクを AppTask オブジェクトに変換
+    final seasonTasks = activeSeasons.map((s) => AppTask(
+      title: s.taskName,
+      isOneTime: false,
+      isSeason: true,
+      seasonId: s.id,
+    )).toList();
+
+    // 🚀 シーズンタスクをタスク一覧の最上部（最初）に自動でマージ（合体）
+    final mergedTasks = <AppTask>[];
+    mergedTasks.addAll(seasonTasks);
+    mergedTasks.addAll(userTasks);
 
     // 今日の分だけをフィルタリング
     final postedPostsToday =
@@ -118,10 +142,10 @@ class PostService {
       'streakProtections': effectiveStreakData['streakProtections'],
       'postedToday': postedPostsToday.isNotEmpty,
       'isAllTasksCompleted':
-          tasks.isNotEmpty &&
-          tasks.every((t) => postedPostsToday.any((p) => p.taskName == t.title)),
+          mergedTasks.isNotEmpty &&
+          mergedTasks.every((t) => postedPostsToday.any((p) => p.taskName == t.title)),
       'username': data['username'] as String? ?? '',
-      'tasks': tasks,
+      'tasks': mergedTasks, // マージされたタスク一覧を返す
       'friends': (() {
         final dynamic f = data['following'] ?? data['friends'];
         if (f is List) return f.map((e) => e.toString()).toList();
@@ -780,13 +804,13 @@ class PostService {
   }
 
   /// 自分の過去のすべての投稿を取得します（過去の自分と比較する機能用）
-  Future<List<Post>> getAllMyPastPosts() async {
+  Future<List<Post>> getAllMyPastPosts({Source? source}) async {
     final uid = _auth.currentUser!.uid;
     
     try {
       final snap = await _postsRef
           .where(Post.fieldUserId, isEqualTo: uid)
-          .get();
+          .get(source != null ? GetOptions(source: source) : null);
 
       return snap.docs
           .map((doc) => doc.data())

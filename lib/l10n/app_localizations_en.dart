@@ -1436,7 +1436,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingFirstQuestSuggestedTaskTitle => 'Suggested Task (Tap to select)';
 
   @override
-  String get morningTrigger1 => 'Open the curtains';
+  String get morningTrigger1 => 'When I wake up';
 
   @override
   String get morningTrigger2 => 'Get out of bed';
@@ -1445,13 +1445,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get morningTrigger3 => 'Before breakfast';
 
   @override
-  String get morningTask1 => 'Stretch in morning sun';
+  String get morningTask1 => 'Drink water';
 
   @override
-  String get morningTask2 => 'Drink a cup of warm water';
+  String get morningTask2 => 'Write a ToDo list';
 
   @override
-  String get morningTask3 => 'Make my bed';
+  String get morningTask3 => 'Workout';
 
   @override
   String get afternoonTrigger1 => 'After finishing lunch';
@@ -1850,7 +1850,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get firstQuestRewardHint5 => 'Read a manga';
 
   @override
-  String get onboardingFirstQuestTriggerHintText => 'Enter trigger';
+  String get onboardingFirstQuestTriggerHintText => 'Enter trigger (Optional)';
 
   @override
   String get onboardingFirstQuestTaskHintText => 'Enter task name';

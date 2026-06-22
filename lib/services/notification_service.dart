@@ -57,8 +57,21 @@ class NotificationService {
         .snapshots()
         .asyncMap((snap) async {
       final list = snap.docs
-          .map((doc) => AppNotification.fromFirestore(doc))
-          .where((n) => n.createdAt.isAfter(threeDaysAgo)) // 3日以内のみ
+          .map((doc) {
+            // 🚀 【動的マージ対応】Firestore上の生データ（Map）を取得してtypeを確認
+            final data = doc.data();
+            final typeStr = data['type'] as String?;
+            return MapEntry(typeStr, AppNotification.fromFirestore(doc));
+          })
+          .where((entry) {
+            final typeStr = entry.key;
+            final n = entry.value;
+            // 🚀 【動的マージ対応】FCMプッシュ通知の配信用として作成された実体レコードは
+            // 通知画面の二重表示を防ぐために一覧から除外します（お知らせは動的マージで表示されます）
+            final isSeasonPushOnly = typeStr == 'seasonTaskReceived' || typeStr == 'seasonTaskPushOnly';
+            return n.createdAt.isAfter(threeDaysAgo) && !isSeasonPushOnly;
+          })
+          .map((entry) => entry.value)
           .toList();
 
       // --- ここからシーズンタスク動的マージ処理 ---

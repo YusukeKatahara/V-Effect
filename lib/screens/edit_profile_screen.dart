@@ -303,47 +303,60 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (_isRestricted) _buildRestrictionWarning(),
+                  child: Form(
+                    key: _formKey,
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate([
+                              if (_isRestricted) _buildRestrictionWarning(),
 
-                          // Photo upload
-                          _buildPhotoPicker(),
+                              // Photo upload
+                              _buildPhotoPicker(),
 
-                          const SizedBox(height: 32),
+                              const SizedBox(height: 32),
 
-                          // Section: Account
-                          SectionTitle(title: AppLocalizations.of(context)!.editProfileAccount),
-                          const SizedBox(height: 12),
-                          _buildTextField(_usernameCtrl, AppLocalizations.of(context)!.editProfileNameLabel, Icons.badge),
-                          const SizedBox(height: 16),
-                          _buildUserIdField(),
-                          _buildPersonalInfoFields(),
-                          const SizedBox(height: 16),
-                          _buildInstagramIdField(),
-                          const SizedBox(height: 32),
+                              // Section: Account
+                              SectionTitle(title: AppLocalizations.of(context)!.editProfileAccount),
+                              const SizedBox(height: 12),
+                              _buildTextField(_usernameCtrl, AppLocalizations.of(context)!.editProfileNameLabel, Icons.badge),
+                              const SizedBox(height: 16),
+                              _buildUserIdField(),
+                              _buildPersonalInfoFields(),
+                              const SizedBox(height: 16),
+                              _buildInstagramIdField(),
+                              const SizedBox(height: 32),
 
-                          // Section: Preferences
-                          SectionTitle(title: AppLocalizations.of(context)!.editProfileStatus),
-                          const SizedBox(height: 12),
+                              // Section: Preferences
+                              SectionTitle(title: AppLocalizations.of(context)!.editProfileStatus),
+                              const SizedBox(height: 12),
 
-                          _buildBadgeRow(),
-                          const SizedBox(height: 32),
-
-                          // Save button
-                          GradientButton(
-                            onPressed: _saveProfile,
-                            isLoading: _isSaving,
-                            child: Text(AppLocalizations.of(context)!.editProfileSave),
+                              _buildBadgeRow(),
+                              const SizedBox(height: 24),
+                            ]),
                           ),
-                          const SizedBox(height: 40),
-                        ],
-                      ),
+                        ),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Save button
+                                GradientButton(
+                                  onPressed: _saveProfile,
+                                  isLoading: _isSaving,
+                                  child: Text(AppLocalizations.of(context)!.editProfileSave),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

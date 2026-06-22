@@ -535,30 +535,16 @@ exports.onSeasonCreated = onDocumentCreated(
     const db = getFirestore();
     const usersSnap = await db.collection("users").get();
     
-    // 全ユーザーに通知とタスク追加をバッチで処理（最大500件の操作制限を考慮）
+    // 全ユーザーに通知（プッシュ用ドキュメント）をバッチで処理（最大500件の操作制限を考慮）
     let batch = db.batch();
     let count = 0;
     
-    const newTask = {
-      title: taskName,
-      isOneTime: false,
-      isSeason: true,
-      seasonId: seasonId,
-    };
-
     for (const doc of usersSnap.docs) {
-      const userRef = doc.ref;
-      
-      // タスク追加
-      batch.update(userRef, {
-        tasks: FieldValue.arrayUnion(newTask)
-      });
-      
-      // 通知追加
+      // プッシュ配信用一時通知ドキュメントの追加（アプリ側では非表示にフィルタリングされます）
       const notificationRef = db.collection("notifications").doc();
       batch.set(notificationRef, {
         toUid: doc.id,
-        type: "seasonTaskReceived",
+        type: "seasonTaskPushOnly",
         title: "おや、シーズンタスクが届いたようです...！",
         body: `期間限定タスク「${taskName}」が追加されました。`,
         isRead: false,
@@ -566,7 +552,7 @@ exports.onSeasonCreated = onDocumentCreated(
         createdAt: FieldValue.serverTimestamp(),
       });
       
-      count += 2; // 1ユーザーにつき update と set の2操作
+      count += 1; // 1ユーザーにつき1操作 (set)
       
       if (count >= 490) {
         await batch.commit();
@@ -579,7 +565,7 @@ exports.onSeasonCreated = onDocumentCreated(
       await batch.commit();
     }
     
-    console.log(`Distributed season task "${taskName}" to ${usersSnap.size} users.`);
+    console.log(`Distributed season task push notification for "${taskName}" to ${usersSnap.size} users.`);
   }
 );
 
@@ -968,20 +954,67 @@ exports.processPostNotifications = onTaskDispatched(
       body = tmpl.body.replace('{username}', username);
     }
 
-    // 5. 通知をバッチ作成
+    // JSTの今日の日付文字列を取得（例: "2026-06-22"）
+    const todayString = `${jstNow.getFullYear()}-${String(jstNow.getMonth() + 1).padStart(2, '0')}-${String(jstNow.getDate()).padStart(2, '0')}`;
+
+    // 5. フレンドの状態を一括取得してトップランナー判定を行う
+    const friendRefs = friends.map(fUid => db.collection("users").doc(fUid));
+    const friendSnaps = friendRefs.length > 0 ? await db.getAll(...friendRefs) : [];
+
+    const unpostedFriends = [];
+    const topRunnerPromises = [];
+
+    friendSnaps.forEach(snap => {
+      if (!snap.exists) return;
+      const data = snap.data();
+      // フォロワー自身が今日まだ投稿していないかチェック
+      if (data.lastPostedDate !== todayString) {
+        unpostedFriends.push(snap.id);
+        // 今日すでにトップランナー通知を受け取っているかチェック
+        topRunnerPromises.push(
+          db.collection("notifications")
+            .where("toUid", "==", snap.id)
+            .where("isTopRunner", "==", true)
+            .where("createdAt", ">=", startOfTodayUTC)
+            .limit(1)
+            .get()
+        );
+      }
+    });
+
+    const topRunnerResults = await Promise.all(topRunnerPromises);
+    const topRunnerMap = {}; // toUid -> boolean (true: 既に受け取り済み = 今回はトップランナーではない)
+    unpostedFriends.forEach((fUid, index) => {
+      topRunnerMap[fUid] = !topRunnerResults[index].empty;
+    });
+
+    // 6. 通知をバッチ作成
     const batch = db.batch();
     friends.forEach((friendUid) => {
       const notifId = `post_${postId}_to_${friendUid}`;
       const notifRef = db.collection("notifications").doc(notifId);
+
+      let finalTitle = title;
+      let finalBody = body;
+      let isTopRunner = false;
+
+      // この投稿がフォロワーにとってのトップランナーか判定
+      if (unpostedFriends.includes(friendUid) && !topRunnerMap[friendUid]) {
+        finalTitle = `🥇 ${username}さんが勝利`;
+        finalBody = `${username}さんがトップを独走！あなたもこの流れに乗りましょう！`;
+        isTopRunner = true;
+      }
+
       batch.set(notifRef, {
         toUid: friendUid,
         fromUid: uid,
         type: "friendTaskCompleted",
         relatedId: postId,
-        title: title,
-        body: body,
+        title: finalTitle,
+        body: finalBody,
         sendPush: true,
         isRead: false,
+        isTopRunner: isTopRunner,
         createdAt: FieldValue.serverTimestamp(),
       });
     });

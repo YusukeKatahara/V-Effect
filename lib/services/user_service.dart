@@ -104,9 +104,12 @@ class UserService {
     final uid = _auth.currentUser!.uid;
     final batch = _db.batch();
 
+    // 🚀 【動的マージ対応】シーズンタスクは保存しないように除外します（メモリ上でのみマージするため）
+    final nonSeasonTasks = tasks.where((t) => !t.isSeason).toList();
+
     // 公開情報
     final publicData = <String, dynamic>{
-      'tasks': tasks.map((t) => t.toFirestore()).toList(),
+      'tasks': nonSeasonTasks.map((t) => t.toFirestore()).toList(),
       'onboardingCompleted': true,
     };
     if (photoUrl != null) {
@@ -191,7 +194,9 @@ class UserService {
     }
     if (photoUrl != null) publicData['photoUrl'] = photoUrl;
     if (tasks != null) {
-      publicData['tasks'] = tasks.map((t) => t.toFirestore()).toList();
+      // 🚀 【動的マージ対応】シーズンタスクは保存しないように除外します（メモリ上でのみマージするため）
+      final nonSeasonTasks = tasks.where((t) => !t.isSeason).toList();
+      publicData['tasks'] = nonSeasonTasks.map((t) => t.toFirestore()).toList();
     }
     if (updateEditDate) {
       publicData['lastProfileEditDate'] = DateTime.now().millisecondsSinceEpoch;
