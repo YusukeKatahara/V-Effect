@@ -479,12 +479,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get notificationSettingsReactionDesc => '投稿にリアクションが届いたとき';
 
   @override
-  String get notificationSettingsVAlert => 'V Alert 通知を許可';
-
-  @override
-  String get notificationSettingsVAlertDesc => '設定した時間のタスクリマインダー';
-
-  @override
   String get notificationSettingsVFire => 'V FIRE通知を許可';
 
   @override
@@ -1151,12 +1145,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileSetupOccupationPickerTitle => '職業を選択';
 
   @override
-  String get profileSetupTaskTimeSection => 'ヒーロータスク実行時間';
-
-  @override
-  String get profileSetupTaskTimePickerTitle => 'ヒーロータスク実行時間を設定';
-
-  @override
   String get profileSetupNextButton => '次へ';
 
   @override
@@ -1164,9 +1152,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileSetupOccupationRequired => '職業を選択してください';
-
-  @override
-  String get profileSetupTaskTimeRequired => 'ヒーロータスク時間を設定してください';
 
   @override
   String get profileSetupSaveFailed => '保存に失敗しました。もう一度お試しください。';
@@ -1184,7 +1169,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenHeroTasks => 'ヒーロータスク';
 
   @override
-  String get profileScreenWeeklyTrend => '🔥 ウィークリートレンド習慣';
+  String get profileScreenWeeklyTrend => '📈 ウィークリートレンド習慣';
 
   @override
   String get profileScreenAddFirstTask => '最初のタスクを追加';
@@ -1211,13 +1196,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenStreak => 'ストリーク';
 
   @override
+  String get profileScreenTotalV => 'トータルV';
+
+  @override
   String get profileScreenFollowingTitle => 'フォロー中';
 
   @override
   String get profileScreenFollowersTitle => 'フォロワー';
 
   @override
-  String get profileScreenTrendTitle => '🔥 ウィークリートレンド習慣';
+  String get profileScreenTrendTitle => '📈 ウィークリートレンド習慣';
 
   @override
   String get profileScreenTrendEmpty => 'トレンドデータがまだありません。';
@@ -1250,13 +1238,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenSaveTask => '保存';
 
   @override
-  String get profileScreenTaskTriggerHint => '（任意）例）朝起きたら→感謝をする';
+  String get profileScreenTaskTriggerHint => 'トリガー（任意）';
 
   @override
-  String get profileScreenTaskNameHint => 'タスク名 (例: 読書)';
-
-  @override
-  String get profileScreenTaskRewardHint => '（任意）例）デスク作業＋コーヒー、運動＋音楽';
+  String get profileScreenTaskNameHint => 'タスク名';
 
   @override
   String get profileScreenOneTimeTaskTitle => '完了から24時間後に自動削除されます';
@@ -1280,7 +1265,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get cameraScreenCameraLoading => 'カメラを起動中...';
 
   @override
-  String get cameraScreenPost => '投稿する';
+  String get cameraScreenPost => '証明する';
 
   @override
   String get cameraScreenDragPinch => 'ドラッグ・ピンチで位置調整';
@@ -1402,9 +1387,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get onboardingFirstQuestTaskLabel => 'タスク名';
-
-  @override
-  String get onboardingFirstQuestRewardLabel => 'ご褒美（任意）';
 
   @override
   String get onboardingFirstQuestPrivacyNote => '※ トリガーは自分にのみ表示されます（他のユーザーには公開されません）';
@@ -1835,21 +1817,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get firstQuestTriggerHint4 => '机に座ったら';
 
   @override
-  String get firstQuestRewardHint1 => '美味しいコーヒーを飲む';
-
-  @override
-  String get firstQuestRewardHint2 => 'SNSを5分見る';
-
-  @override
-  String get firstQuestRewardHint3 => '動画を1本見る';
-
-  @override
-  String get firstQuestRewardHint4 => 'お気に入りのゲームをする';
-
-  @override
-  String get firstQuestRewardHint5 => '漫画を読む';
-
-  @override
   String get onboardingFirstQuestTriggerHintText => 'トリガーを入力（任意）';
 
   @override
@@ -1889,10 +1856,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get categoryOther => 'その他';
 
   @override
-  String get habitStackingHint => '• ハビットスタッキング\n既存の習慣をトリガーにして新しい習慣を取り入れよう。\n例）朝起きたら→感謝をする';
+  String get habitStackingHint => '• ハビットスタッキング\n既存の習慣をトリガーにして新しい習慣を取り入れよう。\n例）カーテンを開けたら→ToDoリストを書く';
 
   @override
-  String get temptationBundlingHint => '• テンプテーションバンドリング\n「やるべきこと」と「やりたいこと」をセットにしよう。\n例）デスク作業＋コーヒー、運動＋音楽';
+  String get temptationBundlingHint => '• テンプテーションバンドリング\n「やるべきこと」と「やりたいこと」をセットにしよう。\n例）デスクワークの時だけ、お気に入りのコーヒー（またはお菓子）を飲む。';
 
   @override
   String get profileNoTaskPlaceholder => '（タスク）';

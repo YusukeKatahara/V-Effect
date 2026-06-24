@@ -995,18 +995,6 @@ abstract class AppLocalizations {
   /// **'投稿にリアクションが届いたとき'**
   String get notificationSettingsReactionDesc;
 
-  /// No description provided for @notificationSettingsVAlert.
-  ///
-  /// In ja, this message translates to:
-  /// **'V Alert 通知を許可'**
-  String get notificationSettingsVAlert;
-
-  /// No description provided for @notificationSettingsVAlertDesc.
-  ///
-  /// In ja, this message translates to:
-  /// **'設定した時間のタスクリマインダー'**
-  String get notificationSettingsVAlertDesc;
-
   /// No description provided for @notificationSettingsVFire.
   ///
   /// In ja, this message translates to:
@@ -2291,18 +2279,6 @@ abstract class AppLocalizations {
   /// **'職業を選択'**
   String get profileSetupOccupationPickerTitle;
 
-  /// No description provided for @profileSetupTaskTimeSection.
-  ///
-  /// In ja, this message translates to:
-  /// **'ヒーロータスク実行時間'**
-  String get profileSetupTaskTimeSection;
-
-  /// No description provided for @profileSetupTaskTimePickerTitle.
-  ///
-  /// In ja, this message translates to:
-  /// **'ヒーロータスク実行時間を設定'**
-  String get profileSetupTaskTimePickerTitle;
-
   /// No description provided for @profileSetupNextButton.
   ///
   /// In ja, this message translates to:
@@ -2320,12 +2296,6 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'職業を選択してください'**
   String get profileSetupOccupationRequired;
-
-  /// No description provided for @profileSetupTaskTimeRequired.
-  ///
-  /// In ja, this message translates to:
-  /// **'ヒーロータスク時間を設定してください'**
-  String get profileSetupTaskTimeRequired;
 
   /// No description provided for @profileSetupSaveFailed.
   ///
@@ -2360,7 +2330,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileScreenWeeklyTrend.
   ///
   /// In ja, this message translates to:
-  /// **'🔥 ウィークリートレンド習慣'**
+  /// **'📈 ウィークリートレンド習慣'**
   String get profileScreenWeeklyTrend;
 
   /// No description provided for @profileScreenAddFirstTask.
@@ -2411,6 +2381,12 @@ abstract class AppLocalizations {
   /// **'ストリーク'**
   String get profileScreenStreak;
 
+  /// No description provided for @profileScreenTotalV.
+  ///
+  /// In ja, this message translates to:
+  /// **'トータルV'**
+  String get profileScreenTotalV;
+
   /// No description provided for @profileScreenFollowingTitle.
   ///
   /// In ja, this message translates to:
@@ -2426,7 +2402,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileScreenTrendTitle.
   ///
   /// In ja, this message translates to:
-  /// **'🔥 ウィークリートレンド習慣'**
+  /// **'📈 ウィークリートレンド習慣'**
   String get profileScreenTrendTitle;
 
   /// No description provided for @profileScreenTrendEmpty.
@@ -2492,20 +2468,14 @@ abstract class AppLocalizations {
   /// No description provided for @profileScreenTaskTriggerHint.
   ///
   /// In ja, this message translates to:
-  /// **'（任意）例）朝起きたら→感謝をする'**
+  /// **'トリガー（任意）'**
   String get profileScreenTaskTriggerHint;
 
   /// No description provided for @profileScreenTaskNameHint.
   ///
   /// In ja, this message translates to:
-  /// **'タスク名 (例: 読書)'**
+  /// **'タスク名'**
   String get profileScreenTaskNameHint;
-
-  /// No description provided for @profileScreenTaskRewardHint.
-  ///
-  /// In ja, this message translates to:
-  /// **'（任意）例）デスク作業＋コーヒー、運動＋音楽'**
-  String get profileScreenTaskRewardHint;
 
   /// No description provided for @profileScreenOneTimeTaskTitle.
   ///
@@ -2552,7 +2522,7 @@ abstract class AppLocalizations {
   /// No description provided for @cameraScreenPost.
   ///
   /// In ja, this message translates to:
-  /// **'投稿する'**
+  /// **'証明する'**
   String get cameraScreenPost;
 
   /// No description provided for @cameraScreenDragPinch.
@@ -2788,12 +2758,6 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'タスク名'**
   String get onboardingFirstQuestTaskLabel;
-
-  /// No description provided for @onboardingFirstQuestRewardLabel.
-  ///
-  /// In ja, this message translates to:
-  /// **'ご褒美（任意）'**
-  String get onboardingFirstQuestRewardLabel;
 
   /// No description provided for @onboardingFirstQuestPrivacyNote.
   ///
@@ -3599,36 +3563,6 @@ abstract class AppLocalizations {
   /// **'机に座ったら'**
   String get firstQuestTriggerHint4;
 
-  /// No description provided for @firstQuestRewardHint1.
-  ///
-  /// In ja, this message translates to:
-  /// **'美味しいコーヒーを飲む'**
-  String get firstQuestRewardHint1;
-
-  /// No description provided for @firstQuestRewardHint2.
-  ///
-  /// In ja, this message translates to:
-  /// **'SNSを5分見る'**
-  String get firstQuestRewardHint2;
-
-  /// No description provided for @firstQuestRewardHint3.
-  ///
-  /// In ja, this message translates to:
-  /// **'動画を1本見る'**
-  String get firstQuestRewardHint3;
-
-  /// No description provided for @firstQuestRewardHint4.
-  ///
-  /// In ja, this message translates to:
-  /// **'お気に入りのゲームをする'**
-  String get firstQuestRewardHint4;
-
-  /// No description provided for @firstQuestRewardHint5.
-  ///
-  /// In ja, this message translates to:
-  /// **'漫画を読む'**
-  String get firstQuestRewardHint5;
-
   /// No description provided for @onboardingFirstQuestTriggerHintText.
   ///
   /// In ja, this message translates to:
@@ -3710,13 +3644,13 @@ abstract class AppLocalizations {
   /// No description provided for @habitStackingHint.
   ///
   /// In ja, this message translates to:
-  /// **'• ハビットスタッキング\n既存の習慣をトリガーにして新しい習慣を取り入れよう。\n例）朝起きたら→感謝をする'**
+  /// **'• ハビットスタッキング\n既存の習慣をトリガーにして新しい習慣を取り入れよう。\n例）カーテンを開けたら→ToDoリストを書く'**
   String get habitStackingHint;
 
   /// No description provided for @temptationBundlingHint.
   ///
   /// In ja, this message translates to:
-  /// **'• テンプテーションバンドリング\n「やるべきこと」と「やりたいこと」をセットにしよう。\n例）デスク作業＋コーヒー、運動＋音楽'**
+  /// **'• テンプテーションバンドリング\n「やるべきこと」と「やりたいこと」をセットにしよう。\n例）デスクワークの時だけ、お気に入りのコーヒー（またはお菓子）を飲む。'**
   String get temptationBundlingHint;
 
   /// No description provided for @profileNoTaskPlaceholder.

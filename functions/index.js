@@ -798,9 +798,25 @@ exports.onPostCreated = onDocumentCreated(
         });
         
         const aiResult = JSON.parse(response.text);
+        let normalizedName = aiResult.normalized_name || taskName;
+
+        // 「ゲーム」や「ポケモン」関連の名称を「ランクマッチ」に統一（ユーザー要望）
+        const lowerName = normalizedName.toLowerCase().trim();
+        if (
+          lowerName === "ゲーム" ||
+          lowerName === "game" ||
+          lowerName === "ビデオゲーム" ||
+          lowerName === "ポケモン" ||
+          lowerName === "pokemon" ||
+          lowerName === "ランク戦" ||
+          lowerName === "ランクマッチ"
+        ) {
+          normalizedName = "ランクマッチ";
+        }
+
         await event.data.ref.update({
           aiCategory: aiResult.category,
-          normalizedName: aiResult.normalized_name,
+          normalizedName: normalizedName,
         });
         console.log(`Categorized task ${taskName}:`, aiResult);
       } catch (error) {

@@ -9,9 +9,11 @@ import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/block_service.dart';
 import '../services/friend_service.dart';
+import '../services/user_service.dart';
 import '../widgets/swipe_back_gate.dart';
 import '../widgets/full_screen_image_viewer.dart';
 import '../widgets/v_badge_widget.dart';
+import '../widgets/shimmer_container.dart';
 /// 他ユーザーのプロフィール閲覧画面
 ///
 /// 引数（ModalRoute.settings.arguments）: String uid
@@ -77,6 +79,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final isFollowing = results[1] as bool;
       final isBlocked = results[2] as bool;
       final myUser = results[3] as AppUser?;
+
+      // 過去の投稿数(totalPosts)が未設定・未計算(-1)、またはマイグレーション未完了フラグの場合は遅延初期化を実行
+      if (loadedUser != null && (!loadedUser.totalPostsMigrated || loadedUser.totalPosts == -1)) {
+        UserService.instance.migrateTotalPosts(loadedUser.uid);
+      }
 
       // friend_requests コレクションへのアクセスが失敗しても他の処理を妨げない
       bool isPending = false;
@@ -480,7 +487,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         children: [
           Row(
             children: [
-              // アバターのプレースホルダ（渡されている場合は画像を表示）
+              // アバターのプレースホルダ（渡されている場合は画像を表示、ない場合は丸型のシマーを表示）
               _initialPhotoUrl != null
                   ? CircleAvatar(
                       radius: 40,
@@ -489,14 +496,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         width: 240,
                       ),
                     )
-                  : Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.grey10,
-                      ),
-                    ),
+                  : const ShimmerContainer.circular(size: 80),
               const SizedBox(width: 20),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,50 +510,56 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             color: AppColors.textPrimary,
                           ),
                         )
-                      : Container(
-                          width: 120,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: AppColors.grey10,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
+                      : const ShimmerContainer(width: 120, height: 24, borderRadius: 4),
                   const SizedBox(height: 8),
-                  Container(
-                    width: 80,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: AppColors.grey10,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
+                  const ShimmerContainer(width: 80, height: 14, borderRadius: 4),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 40),
+          // 統計（投稿数、フォロワー数、フォロー数など）のシマー
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(
               3,
-              (i) => Column(
+              (i) => const Column(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: AppColors.grey10,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 60,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: AppColors.grey10,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+                  ShimmerContainer(width: 40, height: 20, borderRadius: 4),
+                  SizedBox(height: 8),
+                  ShimmerContainer(width: 60, height: 12, borderRadius: 4),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
+          // フォローボタンのシマー（他ユーザーの場合）
+          if (_targetUid != _myUid) ...[
+            const ShimmerContainer(
+              width: double.infinity,
+              height: 44,
+              borderRadius: 22,
+            ),
+            const SizedBox(height: 40),
+          ],
+          // タスク一覧用の骨組みシマー（2件のリストアイテム風）
+          const ShimmerContainer(width: 120, height: 18, borderRadius: 4),
+          const SizedBox(height: 16),
+          ...List.generate(
+            2,
+            (index) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                children: [
+                  const ShimmerContainer.circular(size: 24),
+                  const SizedBox(width: 12),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ShimmerContainer(width: 160, height: 14, borderRadius: 4),
+                      SizedBox(height: 6),
+                      ShimmerContainer(width: 100, height: 10, borderRadius: 4),
+                    ],
                   ),
                 ],
               ),
@@ -705,9 +711,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           onTap: canViewList ? () => _openFollowList(isFollowing: false) : null,
         ),
         _buildStatItem(
-          AppLocalizations.of(context)!.userProfileStreak,
-          _user!.streak,
-          icon: Icons.local_fire_department_rounded,
+          AppLocalizations.of(context)!.profileScreenTotalV,
+          _user!.totalPosts >= 0 ? _user!.totalPosts : 0,
         ),
       ],
     );

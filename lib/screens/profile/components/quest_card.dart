@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../config/app_colors.dart';
 import '../../../models/app_task.dart';
 import '../../../models/season.dart';
+import '../../../models/post.dart'; // Post モデルのインポート
 
 // ---────────────────────────────────────────────
 // ---クエストカード（各タスクの表示カード）
@@ -13,6 +14,7 @@ class QuestCard extends StatelessWidget {
     required this.task,
     required this.seasonsMap,
     required this.seasonPostsCountMap,
+    required this.todayPosts, // 今日の投稿一覧を受け取る
     required this.onTap,
     required this.onDelete,
   });
@@ -25,14 +27,37 @@ class QuestCard extends StatelessWidget {
   final Map<String, Season> seasonsMap;
   /// シーズンごとの投稿数マップ
   final Map<String, int> seasonPostsCountMap;
+  /// 今日の投稿一覧
+  final List<Post> todayPosts;
   /// タスクカードがタップされたときのコールバック
   final VoidCallback onTap;
   /// タスクの削除ボタンが押されたときのコールバック
   final VoidCallback onDelete;
 
+  /// タスクが達成（完了）されたかどうかを判定します
+  /// 
+  /// 1. ワンタイムタスク：`completedAt` が null でないこと
+  /// 2. シーズンタスク：現在の投稿数 `count` が目標数 `requiredCount` 以上であること
+  /// 3. 通常タスク（デイリー）：今日の投稿 `todayPosts` の中に該当タスク名の投稿が存在すること
+  bool get _isCompleted {
+    if (task.isOneTime) {
+      return task.completedAt != null;
+    }
+    if (task.isSeason) {
+      final sId = task.seasonId ?? 'debug_season_test';
+      final season = seasonsMap[sId];
+      final count = seasonPostsCountMap[sId] ?? 0;
+      final requiredCount = season?.requiredPostsCount ?? 12;
+      return count >= requiredCount;
+    }
+    // 通常タスクは、今日そのタスク名で投稿が完了しているか
+    return todayPosts.any((p) => p.taskName == task.title);
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isSeason = task.isSeason;
+    final bool isCompleted = _isCompleted;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8), // よりコンパクトに
@@ -59,8 +84,12 @@ class QuestCard extends StatelessWidget {
               ),
           ],
           border: Border.all(
-            color: isSeason ? AppColors.accentGold.withValues(alpha: 0.8) : AppColors.white.withValues(alpha: 0.08),
-            width: isSeason ? 1.5 : 0.5,
+            color: isCompleted
+                ? AppColors.accentGold // 達成時ははっきりとしたゴールド枠
+                : (isSeason
+                    ? AppColors.accentGold.withValues(alpha: 0.6) // 未達成のシーズンタスクは少し抑えたゴールド
+                    : AppColors.white.withValues(alpha: 0.08)), // 通常の未達成タスクは控えめなグレー
+            width: (isCompleted || isSeason) ? 1.5 : 0.5,
           ),
         ),
         child: Material(
@@ -75,33 +104,47 @@ class QuestCard extends StatelessWidget {
               ), // コンパクトなパディング
               child: Row(
                 children: [
-                  // ---タスク番号またはシーズンアイコン
+                  // ---タスク番号またはシーズンアイコン（達成時はゴールドのチェックマーク）
                   Container(
                     width: 26, // サイズ縮小
                     height: 26,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isSeason ? AppColors.accentGold.withValues(alpha: 0.1) : AppColors.white.withValues(alpha: 0.05), // 主張を抑える
+                      color: isCompleted
+                          ? AppColors.accentGold.withValues(alpha: 0.2) // 達成時はゴールド背景
+                          : (isSeason
+                              ? AppColors.accentGold.withValues(alpha: 0.1)
+                              : AppColors.white.withValues(alpha: 0.05)), // 主張を抑える
                       border: Border.all(
-                        color: isSeason ? AppColors.accentGold.withValues(alpha: 0.3) : AppColors.white.withValues(alpha: 0.08),
+                        color: isCompleted
+                            ? AppColors.accentGold // 達成時はゴールド枠
+                            : (isSeason
+                                ? AppColors.accentGold.withValues(alpha: 0.3)
+                                : AppColors.white.withValues(alpha: 0.08)),
                         width: 0.5,
                       ),
                     ),
                     child: Center(
-                      child: isSeason
+                      child: isCompleted
                           ? Icon(
-                              Icons.star_rounded,
+                              Icons.check_rounded,
                               size: 16,
-                              color: AppColors.accentGold,
+                              color: AppColors.accentGold, // 達成時はチェックマーク
                             )
-                          : Text(
-                              '${index + 1}',
-                              style: TextStyle(
-                                fontSize: 12, // 文字サイズ調整
-                                fontWeight: FontWeight.w700, // ボールド感は維持
-                                color: AppColors.white,
-                              ),
-                            ),
+                          : (isSeason
+                              ? Icon(
+                                  Icons.star_rounded,
+                                  size: 16,
+                                  color: AppColors.accentGold,
+                                )
+                              : Text(
+                                  '${index + 1}',
+                                  style: TextStyle(
+                                    fontSize: 12, // 文字サイズ調整
+                                    fontWeight: FontWeight.w700, // ボールド感は維持
+                                    color: AppColors.white,
+                                  ),
+                                )),
                     ),
                   ),
                   const SizedBox(width: 14),

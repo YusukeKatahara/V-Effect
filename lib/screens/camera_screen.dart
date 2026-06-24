@@ -10,6 +10,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
+import '../widgets/post_success_dialog.dart';
+import '../widgets/swipe_to_post_button.dart';
 import '../services/post_service.dart';
 
 import '../services/music_api_service.dart';
@@ -19,6 +21,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../providers/home_provider.dart';
+import '../providers/upload_provider.dart';
 import '../widgets/black_hole_loading_overlay.dart';
 
 /// Hero Task 撮影画面
@@ -410,34 +413,27 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
       final finalBytes = compressedBytes.isNotEmpty ? compressedBytes : rawBytes;
 
-      Map<String, dynamic>? uploadResult;
+      // バックグラウンドで非同期にアップロードを開始
+      ref.read(uploadProvider.notifier).startUpload(
+        imageBytes: finalBytes,
+        taskName: taskName,
+        caption: captionText.isNotEmpty ? captionText : null,
+        bgmUrl: _selectedMusic?.previewUrl,
+        bgmTitle: _selectedMusic?.title,
+        bgmArtist: _selectedMusic?.artist,
+        bgmArtworkUrl: _selectedMusic?.artworkUrl,
+      );
 
-      // Wrap the actual upload network call in a Future
-      final uploadFuture = () async {
-        uploadResult = await _postService.createPost(
-          imageBytes: finalBytes,
-          taskName: taskName,
-          caption: captionText.isNotEmpty ? captionText : null,
-          bgmUrl: _selectedMusic?.previewUrl,
-          bgmTitle: _selectedMusic?.title,
-          bgmArtist: _selectedMusic?.artist,
-          bgmArtworkUrl: _selectedMusic?.artworkUrl,
-        );
-        // Provider を明示的に更新（データの整合性を保証するためのガードレール）
-        ref.invalidate(homeDataProvider);
-      }();
+      // 現在の streak を取得して楽観的（+1）な結果を返して即座に画面を閉じる
+      final homeData = ref.read(homeDataProvider).value;
+      final currentStreak = homeData?.streak ?? 0;
 
-      if (!mounted) return;
-      // Show the black hole loading overlay while uploading
-      await BlackHoleLoadingOverlay.show(context, uploadTask: uploadFuture);
-
-      if (mounted && uploadResult != null) {
-        // 投稿成功データを返して前画面（HeroTasksScreen）で演出を制御させる
+      if (mounted) {
         Navigator.pop(context, {
           'posted': true,
           'imagePath': _image!.path,
-          'newStreak': uploadResult!['newStreak'] as int,
-          'isRecordUpdating': uploadResult!['isRecordUpdating'] as bool,
+          'newStreak': currentStreak + 1,
+          'isRecordUpdating': false,
         });
       }
     } catch (e, st) {
@@ -528,7 +524,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     );
   }
 
-  /// ── ヘッダー ──
   Widget _buildHeader(String? taskName) {
     // 写真撮影済みの場合はフラッシュボタンを非表示にする
     final showFlash = _image == null;
@@ -537,10 +532,27 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: [
-          IconButton(
-            icon: Icon(Icons.close, color: AppColors.pureWhite),
-            onPressed: () => Navigator.pop(context),
-          ),
+          if (_image == null)
+            IconButton(
+              icon: Icon(Icons.close, color: AppColors.pureWhite),
+              onPressed: () => Navigator.pop(context),
+            )
+          else
+            GestureDetector(
+              onTap: _isUploading ? null : _retake,
+              child: Container(
+                width: 44,
+                height: 44,
+                margin: const EdgeInsets.only(left: 8),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white12,
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: const Icon(Icons.refresh_rounded,
+                    color: Colors.white70, size: 22),
+              ),
+            ),
           const Spacer(),
           if (taskName != null)
             Expanded(
@@ -1169,64 +1181,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           ],
         ),
       ),
-      child: Row(
-        children: [
-          // 撮り直しボタン
-          GestureDetector(
-            onTap: _isUploading ? null : _retake,
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white12,
-                border: Border.all(color: Colors.white24),
-              ),
-              child: const Icon(Icons.refresh_rounded,
-                  color: Colors.white70, size: 22),
-            ),
-          ),
-          const Spacer(),
-
-          // 投稿ボタン
-          GestureDetector(
-            onTap: _isUploading ? null : _uploadPost,
-            child: Container(
-              height: 52,
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              decoration: BoxDecoration(
-                color: _isUploading ? Colors.white24 : AppColors.pureWhite,
-                borderRadius: BorderRadius.circular(26),
-                boxShadow: _isUploading
-                    ? []
-                    : [
-                        BoxShadow(
-                          color: AppColors.pureWhite.withValues(alpha: 0.15),
-                          blurRadius: 24,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-              ),
-              child: Center(
-                child: _isUploading
-                    ? SizedBox(
-                        width: 22, height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.grey50))
-                    : Text(
-                        AppLocalizations.of(context)!.cameraScreenPost,
-                        style: GoogleFonts.notoSansJp(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.pureBlack,
-                        ),
-                      ),
-              ),
-            ),
-          ),
-          const Spacer(),
-          const SizedBox(width: 48), // バランス用（撮り直しボタンと対称）
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: SwipeToPostButton(
+          isUploading: _isUploading,
+          onComplete: _uploadPost,
+          text: AppLocalizations.of(context)!.cameraScreenPost,
+        ),
       ),
     );
   }

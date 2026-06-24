@@ -117,9 +117,20 @@ class PostService {
     )).toList();
 
     // 🚀 シーズンタスクをタスク一覧の最上部（最初）に自動でマージ（合体）
+    // ユーザー自身が設定したトリガー（きっかけ）やご褒美のカスタム情報を維持するため、
+    // 既存のタスクリスト内に同名のシーズンタスクがあれば、その設定（トリガーなど）を優先してマージします。
     final mergedTasks = <AppTask>[];
-    mergedTasks.addAll(seasonTasks);
-    mergedTasks.addAll(userTasks);
+    for (final sTask in seasonTasks) {
+      final existing = userTasks.firstWhere(
+        (uTask) => uTask.title == sTask.title && uTask.isSeason,
+        orElse: () => sTask,
+      );
+      mergedTasks.add(existing);
+    }
+    // 重複を防ぐため、ユーザー固有のタスクからはシーズンタスクを除外して追加します。
+    final normalTasks = userTasks.where((t) => !t.isSeason).toList();
+    mergedTasks.addAll(normalTasks);
+
 
     // 今日の分だけをフィルタリング
     final postedPostsToday =
@@ -366,6 +377,7 @@ class PostService {
 
     // 🚀 【爆速化 3】タスク更新とストリーク更新のクエリを1つのドキュメント更新にマージ
     final combinedUserUpdates = Map<String, dynamic>.from(streakUpdates);
+    combinedUserUpdates['totalPosts'] = FieldValue.increment(1);
     if (taskUpdated) {
       combinedUserUpdates['tasks'] = updatedTasks.map((t) => t.toFirestore()).toList();
     }
@@ -471,10 +483,8 @@ class PostService {
       _analytics.logStreakMilestone(streak: newStreak);
     }
 
-
-
     // 保護スケジュールを再計算
-    PushNotificationService().restoreVAlertSchedule().catchError((_) {});
+    PushNotificationService().restoreProtectionAlertSchedule().catchError((_) {});
 
     // データの変更をアプリ全体に通知
     _updateController.add(null);
@@ -886,6 +896,9 @@ class PostService {
 
     // 1. Firestore から投稿を削除
     await postSnap.reference.delete();
+    await _db.collection('users').doc(uid).update({
+      'totalPosts': FieldValue.increment(-1),
+    });
 
     // 2. Storage から画像を削除
     if (imageUrl != null) {
@@ -991,7 +1004,7 @@ class PostService {
     _updateController.add(null);
 
     // 保護スケジュールを再計算
-    PushNotificationService().restoreVAlertSchedule().catchError((_) {});
+    PushNotificationService().restoreProtectionAlertSchedule().catchError((_) {});
   }
 
   /// タスク名が変更された際に、該当ユーザーの既存の投稿のタスク名も一括更新します

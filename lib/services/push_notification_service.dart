@@ -9,7 +9,6 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'analytics_service.dart';
 import '../models/app_notification.dart';
-import '../models/notification_messages.dart';
 import '../main.dart';
 import '../widgets/premium_notification_toast.dart';
 import 'friend_service.dart';
@@ -28,7 +27,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// - FCM トークンの取得・Firestore への保存
 /// - フォアグラウンド通知の表示（flutter_local_notifications）
 /// - バックグラウンド/終了状態の通知はシステムが自動処理
-/// - V Alert（タスクリマインダー）: 毎日設定時刻にローカル通知をスケジュール
+/// - ストリーク保護アラート: ストリーク切れを防ぐローカル通知をスケジュール
 class PushNotificationService {
   static final PushNotificationService _instance =
       PushNotificationService._internal();
@@ -43,8 +42,6 @@ class PushNotificationService {
 
   bool _initialized = false;
 
-  // V Alert 通知ID
-  static const int _vAlertNotificationId = 1001;
   static const int _protectionAlertNotificationId1 = 1002;
   static const int _protectionAlertNotificationId2 = 1003;
 
@@ -53,14 +50,6 @@ class PushNotificationService {
     'veffect_notifications',
     'V EFFECT 通知',
     description: 'V EFFECT アプリからの通知',
-    importance: Importance.high,
-  );
-
-  static const AndroidNotificationChannel _alertChannel =
-      AndroidNotificationChannel(
-    'veffect_alert',
-    'V Alert',
-    description: 'V EFFECT の毎日リマインダー通知',
     importance: Importance.high,
   );
 
@@ -109,8 +98,8 @@ class PushNotificationService {
     // 起動時にバッジをリセット
     await resetBadge();
 
-    // V Alert のスケジュールを復元（既ログインユーザー向け）
-    await restoreVAlertSchedule();
+    // 保護アラートのスケジュールを復元（既ログインユーザー向け）
+    await restoreProtectionAlertSchedule();
 
     _initialized = true;
   }
@@ -173,7 +162,7 @@ class PushNotificationService {
     if (settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional) {
       await saveFcmToken();
-      await restoreVAlertSchedule();
+      await restoreProtectionAlertSchedule();
     }
   }
 
@@ -186,12 +175,6 @@ class PushNotificationService {
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
-      notificationCategories: [
-        DarwinNotificationCategory(
-          'valert',
-          actions: [],
-        ),
-      ],
     );
     final settings = InitializationSettings(
       android: androidSettings,
@@ -207,7 +190,6 @@ class PushNotificationService {
               AndroidFlutterLocalNotificationsPlugin
             >();
     await androidPlugin?.createNotificationChannel(_channel);
-    await androidPlugin?.createNotificationChannel(_alertChannel);
   }
 
   /// フォアグラウンドで通知を受信した場合の処理
@@ -394,89 +376,8 @@ class PushNotificationService {
   // ─────────────────────────────────────────────────────────────────
 
   /// V Alert（Focus Time リマインダー）を毎日指定時刻にスケジュールする
-  ///
-  /// [taskTimeStr] は "HH:MM" 形式の文字列。null の場合はキャンセルのみ行う。
-  /// - アプリが閉じていても OS が通知を表示する
-  /// - 既存スケジュールはキャンセルして再登録する（時刻変更対応）
-  Future<void> scheduleVAlert(String? taskTimeStr) async {
-    if (kIsWeb) return;
-
-    // 既存の特定ID（V Alert）をキャンセル
-    try {
-      await _localNotifications.cancel(_vAlertNotificationId);
-    } catch (e) {
-      debugPrint('V Alert キャンセルエラー: $e');
-    }
-
-    if (taskTimeStr == null || taskTimeStr.isEmpty) {
-      debugPrint('V Alert: taskTime が未設定のためキャンセルのみ実行');
-      return;
-    }
-
-    final parts = taskTimeStr.split(':');
-    if (parts.length != 2) return;
-    final hour = int.tryParse(parts[0]);
-    final minute = int.tryParse(parts[1]);
-    if (hour == null || minute == null) return;
-
-    final now = tz.TZDateTime.now(tz.local);
-
-    // 初回の通知日時を計算
-    var scheduledDate = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      hour,
-      minute,
-    );
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
-    }
-
-    final content = NotificationMessages.build(NotificationType.taskReminder);
-
-    try {
-      // matchDateTimeComponents: DateTimeComponents.time を使うことで、
-      // 1回の登録で毎日同じ時刻に通知を繰り返す（リピート設定）
-      await _localNotifications.zonedSchedule(
-        _vAlertNotificationId,
-        content.title,
-        content.body,
-        scheduledDate,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            _alertChannel.id,
-            _alertChannel.name,
-            channelDescription: _alertChannel.description,
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
-            styleInformation: const BigTextStyleInformation(''),
-          ),
-          iOS: const DarwinNotificationDetails(
-            categoryIdentifier: 'valert',
-            presentAlert: true,
-            presentSound: true,
-            presentBadge: true,
-            sound: 'default',
-          ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time, // 毎日リピート！
-      );
-      debugPrint(
-        'V Alert スケジュール登録（毎日リピート設定）: $scheduledDate - ${content.body.replaceAll('\n', ' ')}',
-      );
-    } catch (e) {
-      debugPrint('V Alert スケジュール登録エラー: $e');
-    }
-  }
-
   /// ストリーク保護プロトコルの作動通知をスケジュールする
-  Future<void> scheduleProtectionAlert(String? taskTimeStr, int streakProtections, String? lastPostedDateStr) async {
+  Future<void> scheduleProtectionAlert(int streakProtections, String? lastPostedDateStr) async {
     if (kIsWeb) return;
 
     // 既存のスケジュールをキャンセル
@@ -537,9 +438,9 @@ class PushNotificationService {
       scheduledDate,
       NotificationDetails(
         android: AndroidNotificationDetails(
-          _alertChannel.id,
-          _alertChannel.name,
-          channelDescription: _alertChannel.description,
+          _channel.id,
+          _channel.name,
+          channelDescription: _channel.description,
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
@@ -557,26 +458,11 @@ class PushNotificationService {
     );
   }
 
-  /// スケジュールされたリマインダーを更新する
-  Future<void> updateScheduledReminders({
-    String? wakeUpTime,
-    String? taskTime,
-    bool focusTimeEnabled = true,
-  }) async {
-    if (kIsWeb) return;
 
-    if (focusTimeEnabled) {
-      await scheduleVAlert(taskTime);
-    } else {
-      for (int i = 0; i < 7; i++) {
-        await _localNotifications.cancel(_vAlertNotificationId + i);
-      }
-    }
-  }
 
-  /// Firestore から taskTime を取得して V Alert をスケジュールする
+  /// Firestore から必要なデータを取得して保護アラートをスケジュールする
   /// アプリ起動時やログイン後に呼び出す
-  Future<void> restoreVAlertSchedule() async {
+  Future<void> restoreProtectionAlertSchedule() async {
     if (kIsWeb) return;
     final user = _auth.currentUser;
     if (user == null) return;
@@ -589,44 +475,28 @@ class PushNotificationService {
         final settings = await FirebaseMessaging.instance.getNotificationSettings();
         if (settings.authorizationStatus != AuthorizationStatus.authorized &&
             settings.authorizationStatus != AuthorizationStatus.provisional) {
-          debugPrint('V Alertスケジュールスキップ: iOSで通知許可が得られていません');
+          debugPrint('保護アラートスケジュールスキップ: iOSで通知許可が得られていません');
           return;
         }
       }
 
-      final privateSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('private')
-          .doc('data')
-          .get();
-      if (!privateSnap.exists) return;
-
-      final taskTime = privateSnap.data()?['taskTime'] as String? ?? '08:00';
       final publicSnap = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (publicSnap.exists) {
         final data = publicSnap.data()!;
-        
-        final focusTimeEnabled = data['focusTimeNotifications'] ?? true;
-        if (focusTimeEnabled) {
-          await scheduleVAlert(taskTime);
-        } else {
-          await scheduleVAlert(null);
-        }
 
         final protections = (data['streakProtections'] as num?)?.toInt() ?? 0;
         final lastPostedDate = data['lastPostedDate'] as String?;
         final allowProtection = data['protectionNotifications'] ?? true;
 
         if (allowProtection) {
-          await scheduleProtectionAlert(taskTime, protections, lastPostedDate);
+          await scheduleProtectionAlert(protections, lastPostedDate);
         } else {
           // キャンセル
-          await scheduleProtectionAlert(null, 0, null);
+          await scheduleProtectionAlert(0, null);
         }
       }
     } catch (e) {
-      debugPrint('V Alert スケジュール復元エラー: $e');
+      debugPrint('保護アラートスケジュール復元エラー: $e');
     }
   }
 }

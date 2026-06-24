@@ -67,11 +67,12 @@ class _LoginScreenState extends State<LoginScreen>
       await docRef.set({
         'profileCompleted': false,
         'onboardingCompleted': false,
+        'totalPosts': 0,
       });
     }
     PushNotificationService().saveFcmToken().catchError((e) => debugPrint('FCM token save error: $e'));
-    // V Alert スケジュールをアプリ再インストール後も復元
-    PushNotificationService().restoreVAlertSchedule().catchError((e) => debugPrint('V Alert restore error: $e'));
+    // 保護アラートのスケジュールを復元
+    PushNotificationService().restoreProtectionAlertSchedule().catchError((e) => debugPrint('Protection Alert restore error: $e'));
 
     if (!mounted) return;
     // ルーティングは auth_wrapper に一元化する

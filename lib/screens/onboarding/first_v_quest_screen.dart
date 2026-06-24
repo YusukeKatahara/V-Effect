@@ -109,7 +109,6 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
       await _userService.saveFirstVQuest(
         questTitle: skip ? null : _questCtrl.text.trim(),
         questTrigger: skip ? null : _triggerCtrl.text.trim(),
-        questReward: null,
       );
       if (mounted) {
         Navigator.pushNamed(

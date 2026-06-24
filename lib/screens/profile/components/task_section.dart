@@ -2,9 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../../../config/app_colors.dart';
-import '../../../models/app_task.dart';
 import '../../../models/app_user.dart';
 import '../../../models/season.dart';
+import '../../../models/post.dart'; // Post モデルのインポート
 import 'section_title.dart';
 import 'quest_card.dart';
 
@@ -17,6 +17,7 @@ class TaskSection extends StatelessWidget {
     required this.user,
     required this.seasonsMap,
     required this.seasonPostsCountMap,
+    required this.todayPosts, // 今日の投稿一覧を受け取る
     required this.onAddTask,
     required this.onEditTask,
     required this.onDeleteTask,
@@ -31,6 +32,8 @@ class TaskSection extends StatelessWidget {
   final Map<String, Season> seasonsMap;
   /// シーズンごとの投稿数マップ
   final Map<String, int> seasonPostsCountMap;
+  /// 今日の投稿一覧
+  final List<Post> todayPosts;
   /// タスク追加コールバック
   final VoidCallback onAddTask;
   /// タスク編集コールバック（インデックスを引数に取る）
@@ -98,6 +101,7 @@ class TaskSection extends StatelessWidget {
                     task: task,
                     seasonsMap: seasonsMap,
                     seasonPostsCountMap: seasonPostsCountMap,
+                    todayPosts: todayPosts, // QuestCard へ今日の投稿を伝搬
                     onTap: () {
                       if (task.isSeason) {
                         onSeasonTaskTap(index);
@@ -160,27 +164,24 @@ class TaskSection extends StatelessWidget {
 
   /// タスク追加スロット（＋ボタン）
   Widget _buildAddTaskSlot(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: InkWell(
-        onTap: onAddTask,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.white.withValues(alpha: 0.1),
-              width: 1,
-            ),
+    return InkWell(
+      onTap: onAddTask,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.white.withValues(alpha: 0.1),
+            width: 1,
           ),
-          child: Center(
-            child: Icon(
-              Icons.add_rounded,
-              size: 24,
-              color: AppColors.textSecondary,
-            ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.add_rounded,
+            size: 24,
+            color: AppColors.textSecondary,
           ),
         ),
       ),

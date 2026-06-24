@@ -15,7 +15,6 @@ import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/premium_icon_header.dart';
 import '../widgets/section_title.dart';
-import '../services/push_notification_service.dart';
 
 /// 新規登録後のヒーロータスク設定画面
 /// プロフィール写真、ヒーロータスク、ヒーロータスク実行時間、起床時間を入力します
@@ -43,9 +42,6 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
 
   // ヒーロータスク入力欄（最初は1つ）
   final List<TextEditingController> _taskCtrls = [TextEditingController()];
-
-  // ヒーロータスク実行時間と起床時間
-  TimeOfDay _taskTime = const TimeOfDay(hour: 9, minute: 0);
 
   @override
   void initState() {
@@ -115,184 +111,10 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
     });
   }
 
-  /// 【rennさんへ】
-  /// iPhoneの設定画面みたいに、スクロールで時間を選べるピッカーを表示します。
-  /// 画面の下からスルッと出てきて、上下にクルクル回して選ぶやつです。
-  Future<void> _pickTime() async {
-    final initial = _taskTime;
-    // 一時的に選択中の時・分を保持する変数
-    int selectedHour = initial.hour;
-    int selectedMinute = initial.minute;
 
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.bgSurface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SizedBox(
-              height: 320,
-              child: Column(
-                children: [
-                  // ── ヘッダー部分：タイトルと「完了」ボタン ──
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (Navigator.of(context).canPop())
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.primary,
-                            ),
-                            child: Text(AppLocalizations.of(context)!.taskSetupTimePickerCancel),
-                          ),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              AppLocalizations.of(context)!.taskSetupTimePickerTitle,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            // 「完了」を押したら、選んだ時間を確定して閉じる
-                            setState(() {
-                              _taskTime = TimeOfDay(
-                                hour: selectedHour,
-                                minute: selectedMinute,
-                              );
-                            });
-                            Navigator.pop(context);
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                          ),
-                          child: Text(
-                            AppLocalizations.of(context)!.taskSetupTimePickerDone,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Divider(height: 1, color: AppColors.border),
-                  // ── スクロールホイール部分 ──
-                  Expanded(
-                    child: Row(
-                      children: [
-                        // 「時」のホイール（0〜23時）
-                        Expanded(
-                          child: ListWheelScrollView.useDelegate(
-                            itemExtent: 48,
-                            diameterRatio: 1.5,
-                            physics: const FixedExtentScrollPhysics(),
-                            controller: FixedExtentScrollController(
-                              initialItem: selectedHour,
-                            ),
-                            onSelectedItemChanged: (index) {
-                              setModalState(() => selectedHour = index);
-                            },
-                            childDelegate: ListWheelChildBuilderDelegate(
-                              childCount: 24,
-                              builder: (context, index) {
-                                final isSelected = index == selectedHour;
-                                return Center(
-                                  child: Text(
-                                    AppLocalizations.of(context)!.timeHour(index),
-                                    style: TextStyle(
-                                      fontSize: isSelected ? 22 : 16,
-                                      fontWeight:
-                                          isSelected
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                      color:
-                                          isSelected
-                                              ? AppColors.primary
-                                              : AppColors.textMuted,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                        // 「分」のホイール（0〜59分、5分刻み）
-                        Expanded(
-                          child: ListWheelScrollView.useDelegate(
-                            itemExtent: 48,
-                            diameterRatio: 1.5,
-                            physics: const FixedExtentScrollPhysics(),
-                            controller: FixedExtentScrollController(
-                              initialItem: selectedMinute ~/ 5,
-                            ),
-                            onSelectedItemChanged: (index) {
-                              setModalState(() => selectedMinute = index * 5);
-                            },
-                            childDelegate: ListWheelChildBuilderDelegate(
-                              childCount: 12, // 0, 5, 10, ... 55
-                              builder: (context, index) {
-                                final minute = index * 5;
-                                final isSelected = minute == selectedMinute;
-                                return Center(
-                                  child: Text(
-                                    AppLocalizations.of(context)!.timeMinute(minute.toString().padLeft(2, '0')),
-                                    style: TextStyle(
-                                      fontSize: isSelected ? 22 : 16,
-                                      fontWeight:
-                                          isSelected
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                      color:
-                                          isSelected
-                                              ? AppColors.primary
-                                              : AppColors.textMuted,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   /// 時間を「午前 7:00」「午後 9:00」のような日本語形式で画面に表示します
-  String _formatTime(TimeOfDay time) {
-    final l = AppLocalizations.of(context)!;
-    final period = time.hour < 12 ? l.timePeriodAm : l.timePeriodPm;
-    final h = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
-    final m = time.minute.toString().padLeft(2, '0');
-    return '$period $h:$m';
-  }
 
-  /// Firestoreに保存する用の24時間形式（例: "07:00"）
-  String _formatTimeForSave(TimeOfDay time) {
-    final h = time.hour.toString().padLeft(2, '0');
-    final m = time.minute.toString().padLeft(2, '0');
-    return '$h:$m';
-  }
 
   /// プロフィール画像を Firebase Storage にアップロードして URL を返す
   Future<String?> _uploadProfileImage() async {
@@ -326,20 +148,13 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
       }
 
       debugPrint('ヒーロータスク保存開始: tasks=$tasks');
-      debugPrint('taskTime=${_formatTimeForSave(_taskTime)}');
 
       await _userService.saveTaskSettings(
         tasks: tasks,
-        taskTime: _formatTimeForSave(_taskTime),
         photoUrl: photoUrl,
       );
 
       debugPrint('ヒーロータスク保存成功！');
-
-      // V Alert を初回登録直後からスケジュール
-      final taskTimeStr = _formatTimeForSave(_taskTime);
-      PushNotificationService().scheduleVAlert(taskTimeStr)
-          .catchError((e) => debugPrint('V Alert schedule error: $e'));
 
       final analytics = AnalyticsService.instance;
       await analytics.logTaskSetupComplete(taskCount: tasks.length);
@@ -560,33 +375,6 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
                                 ),
                                 const SizedBox(height: 24),
 
-                                // ── ヒーロータスク実行時間 ──
-                                SectionTitle(title: AppLocalizations.of(context)!.taskSetupTimeSection),
-                                const SizedBox(height: 4),
-                                Text(
-                                  AppLocalizations.of(context)!.taskSetupTimeDesc,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                InkWell(
-                                  onTap: () => _pickTime(),
-                                  child: InputDecorator(
-                                    decoration: const InputDecoration(
-                                      prefixIcon: Icon(Icons.schedule),
-                                    ),
-                                    child: Text(
-                                      _formatTime(_taskTime),
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
                               ]),
                             ),
                           ),

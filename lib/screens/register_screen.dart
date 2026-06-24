@@ -73,6 +73,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         'onboardingCompleted': false,
         'termsAgreed': true,
         'termsAgreedAt': FieldValue.serverTimestamp(),
+        'totalPosts': 0,
       });
     }
     PushNotificationService().saveFcmToken().catchError((e) => debugPrint('FCM token save error: $e'));

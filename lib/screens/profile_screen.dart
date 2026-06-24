@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
+import 'dart:ui' as ui;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
@@ -15,14 +15,13 @@ import '../models/season.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/push_notification_service.dart';
 import 'qr_display_screen.dart';
 import 'qr_scanner_screen.dart';
 import '../widgets/responsive_container.dart';
 import 'past_comparison_screen.dart';
+import '../widgets/shimmer_container.dart';
 
 // ---── コンポーネントのインポート ──
-import 'profile/components/editable_info_row.dart';
 import 'profile/components/profile_header_section.dart';
 import 'profile/components/task_section.dart';
 import 'profile/components/trending_tasks_bottom_sheet.dart';
@@ -48,6 +47,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, int> _seasonPostsCountMap = {};
   Stream<DocumentSnapshot>? _userStream;
   List<Map<String, dynamic>> _trendingTasks = [];
+  /// 現在開催中のシーズンタスクリスト（動的マージ用）
+  List<AppTask> _activeSeasonTasks = [];
 
   @override
   void initState() {
@@ -102,15 +103,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // 非公開情報の再ロード
       await _loadPrivateData();
 
+      // 🚀 現在開催中のシーズンタスクを Firestore から取得
+      final now = DateTime.now();
+      final seasonsSnap = await _db.collection('seasons')
+          .where('startDate', isLessThanOrEqualTo: now)
+          .get();
+
+      final activeSeasons = seasonsSnap.docs
+          .map((doc) => Season.fromFirestore(doc))
+          .where((s) => now.isBefore(s.endDate))
+          .toList();
+
+      final seasonTasks = activeSeasons.map((s) => AppTask(
+        title: s.taskName,
+        isOneTime: false,
+        isSeason: true,
+        seasonId: s.id,
+      )).toList();
+
       final doc =
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (doc.exists && mounted) {
-        final user = AppUser.fromFirestore(doc);
+        final rawUser = AppUser.fromFirestore(doc);
         // ワンタイムタスクの期限切れチェックと削除
-        await _checkAndCleanupOneTimeTasks(user);
+        await _checkAndCleanupOneTimeTasks(rawUser);
 
         // シーズン情報とカウントの取得
-        final seasonTasks = user.tasks.where((t) => t.isSeason).toList();
         final progressData = await _postService.getSeasonProgressMap(uid, seasonTasks);
         final Map<String, Season> newSeasonsMap = Map<String, Season>.from(progressData['seasonsMap'] ?? {});
         final Map<String, int> newSeasonPostsCountMap = Map<String, int>.from(progressData['seasonPostsCountMap'] ?? {});
@@ -123,7 +141,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             await FirebaseFirestore.instance.collection('users').doc(uid).get();
         if (mounted) {
           setState(() {
-            _user = AppUser.fromFirestore(freshDoc);
+            _activeSeasonTasks = seasonTasks;
+
+            final freshRawUser = AppUser.fromFirestore(freshDoc);
+            final mergedTasks = <AppTask>[];
+            for (final sTask in seasonTasks) {
+              final existing = freshRawUser.tasks.firstWhere(
+                (uTask) => uTask.title == sTask.title && uTask.isSeason,
+                orElse: () => sTask,
+              );
+              mergedTasks.add(existing);
+            }
+            final normalTasks = freshRawUser.tasks.where((t) => !t.isSeason).toList();
+            mergedTasks.addAll(normalTasks);
+
+            _user = freshRawUser.copyWith(tasks: mergedTasks);
             _todayPosts = todayPosts;
             _seasonsMap = newSeasonsMap;
             _seasonPostsCountMap = newSeasonPostsCountMap;
@@ -142,132 +174,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await _userService.cleanupExpiredTasks(user);
   }
 
-  // ---── 時刻設定の変更 ──
-  Future<void> _selectTime(BuildContext context) async {
-    final initialTimeStr = _privateData['taskTime'] ?? '08:00';
-    final parts = initialTimeStr.split(':');
-    final now = DateTime.now();
-    DateTime tempDateTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      int.parse(parts[0]),
-      int.parse(parts[1]),
-    );
 
-    await showCupertinoModalPopup(
-      context: context,
-      builder:
-          (modalContext) => Container(
-            height: 300,
-            padding: const EdgeInsets.only(top: 6.0),
-            margin: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            color: AppColors.bgElevated,
-            child: SafeArea(
-              top: false,
-              child: Column(
-                children: [
-                  // ---ツールバー（完了ボタン）
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: AppColors.white.withValues(alpha: 0.1),
-                          width: 0.5,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CupertinoButton(
-                          child: Text(
-                            AppLocalizations.of(context)!.profileSetupPickerCancel,
-                            style: TextStyle(color: AppColors.grey50),
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        CupertinoButton(
-                          child: Text(
-                            AppLocalizations.of(context)!.profileSetupPickerDone,
-                            style: TextStyle(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          onPressed: () async {
-                            final timeStr =
-                                '${tempDateTime.hour.toString().padLeft(2, '0')}:${tempDateTime.minute.toString().padLeft(2, '0')}';
-
-                            // 先にモーダルを閉じて blackout を防ぐ
-                            Navigator.pop(context);
-
-                            try {
-                              await _userService.updateProfile(
-                                taskTime: timeStr,
-                              );
-
-                              // taskTime が変更された場合、V Alert を即座に再スケジュール
-                              PushNotificationService()
-                                  .scheduleVAlert(timeStr)
-                                  .catchError(
-                                    (e) => debugPrint(
-                                      'V Alert schedule error: $e',
-                                    ),
-                                  );
-
-                              if (mounted) {
-                                _loadProfile();
-                              }
-                            } catch (e) {
-                              debugPrint('Error updating taskTime: $e');
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(AppLocalizations.of(context)!.profileScreenTimeUpdateFailed)),
-                                );
-                              }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  // ---ピッカー本体
-                  Expanded(
-                    child: CupertinoTheme(
-                      data: CupertinoThemeData(
-                        brightness: Brightness.dark,
-                        textTheme: CupertinoTextThemeData(
-                          dateTimePickerTextStyle: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 22,
-                          ),
-                        ),
-                      ),
-                      child: CupertinoDatePicker(
-                        mode: CupertinoDatePickerMode.time,
-                        use24hFormat: true,
-                        initialDateTime: tempDateTime,
-                        onDateTimeChanged: (DateTime newDate) {
-                          tempDateTime = newDate;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-    );
-  }
 
   // ---── ヒーロータスクの追加 ──
   Future<void> _addTask({String? initialTitle}) async {
     final controller = TextEditingController(text: initialTitle);
     final triggerController = TextEditingController();
-    final rewardController = TextEditingController();
+
     bool isOneTime = false;
 
     // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
@@ -345,20 +258,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        // --- ご褒美入力欄（任意） ---
-                        TextField(
-                          controller: rewardController,
-                          style: TextStyle(color: AppColors.white, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: AppLocalizations.of(context)!.profileScreenTaskRewardHint,
-                            hintStyle: TextStyle(color: AppColors.grey30, fontSize: 14),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        // --- リアルタイム組み立てプレビュー ---
-                        _buildHabitPreviewForDialog(triggerController, controller, rewardController),
+                        _buildHabitPreviewForDialog(triggerController, controller),
                         const SizedBox(height: 8),
                         // --- 単発タスク切り替えスイッチ ---
                         SwitchListTile(
@@ -401,7 +301,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               onPressed: () => Navigator.pop(ctx, {
                                 'title': controller.text,
                                 'trigger': triggerController.text,
-                                'reward': rewardController.text,
                                 'isOneTime': isOneTime,
                               }),
                               child: Text(
@@ -427,7 +326,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final newTask = AppTask(
         title: title.isEmpty ? 'Test Season Task' : title,
         trigger: result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim(),
-        reward: result['reward']?.toString().trim().isEmpty == true ? null : result['reward']?.toString().trim(),
+
         isOneTime: result['isOneTime'] as bool,
         isSeason: isDebugSeason,
         seasonId: isDebugSeason ? 'debug_season_test' : null,
@@ -450,7 +349,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final task = _user!.tasks[index];
     final controller = TextEditingController(text: task.title);
     final triggerController = TextEditingController(text: task.trigger);
-    final rewardController = TextEditingController(text: task.reward);
+
     bool isOneTime = task.isOneTime;
 
     // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
@@ -528,20 +427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        // --- ご褒美入力欄（任意） ---
-                        TextField(
-                          controller: rewardController,
-                          style: TextStyle(color: AppColors.white, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: AppLocalizations.of(context)!.profileScreenTaskRewardHint,
-                            hintStyle: TextStyle(color: AppColors.grey30, fontSize: 14),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        // --- リアルタイム組み立てプレビュー ---
-                        _buildHabitPreviewForDialog(triggerController, controller, rewardController),
+                        _buildHabitPreviewForDialog(triggerController, controller),
                         const SizedBox(height: 8),
                         // --- 単発タスク切り替えスイッチ ---
                         SwitchListTile(
@@ -584,7 +470,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               onPressed: () => Navigator.pop(ctx, {
                                 'title': controller.text,
                                 'trigger': triggerController.text,
-                                'reward': rewardController.text,
                                 'isOneTime': isOneTime,
                               }),
                               child: Text(
@@ -607,13 +492,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       final updatedTasks = List<AppTask>.from(_user!.tasks);
       final newTrigger = result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim();
-      final newReward = result['reward']?.toString().trim().isEmpty == true ? null : result['reward']?.toString().trim();
+
       updatedTasks[index] = task.copyWith(
         title: newTitle,
         trigger: newTrigger,
         clearTrigger: newTrigger == null,
-        reward: newReward,
-        clearReward: newReward == null,
         isOneTime: result['isOneTime'] as bool,
       );
       await _userService.updateProfile(tasks: updatedTasks);
@@ -730,7 +613,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildHabitPreviewForDialog(
     TextEditingController triggerCtrl,
     TextEditingController taskCtrl,
-    TextEditingController rewardCtrl,
   ) {
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: taskCtrl,
@@ -738,14 +620,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return ValueListenableBuilder<TextEditingValue>(
           valueListenable: triggerCtrl,
           builder: (context, triggerVal, _) {
-            return ValueListenableBuilder<TextEditingValue>(
-              valueListenable: rewardCtrl,
-              builder: (context, rewardVal, _) {
-                final hasTrigger = triggerVal.text.trim().isNotEmpty;
-                final hasQuest = taskVal.text.trim().isNotEmpty;
-                final hasReward = rewardVal.text.trim().isNotEmpty;
+            final hasTrigger = triggerVal.text.trim().isNotEmpty;
+            final hasQuest = taskVal.text.trim().isNotEmpty;
 
-                if (!hasTrigger && !hasQuest && !hasReward) {
+            if (!hasTrigger && !hasQuest) {
                   return const SizedBox.shrink();
                 }
 
@@ -769,7 +647,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: GoogleFonts.notoSansJp(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.accentGold,
+                            color: AppColors.textSecondary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -786,39 +664,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: GoogleFonts.notoSerifJp(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: hasQuest ? AppColors.white : AppColors.grey50,
+                          color: hasQuest ? AppColors.accentGold : AppColors.grey50,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      if (hasReward) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          '+',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.grey50,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          rewardVal.text.trim(),
-                          style: GoogleFonts.notoSansJp(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.accentGold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
                     ],
                   ),
                 );
-              },
-            );
           },
         );
       },
+    );
+  }
+
+  Widget _buildSkeleton() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ヘッダー部分のシマー
+            Row(
+              children: [
+                const ShimmerContainer.circular(size: 80),
+                const SizedBox(width: 20),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ShimmerContainer(width: 140, height: 24, borderRadius: 4),
+                    SizedBox(height: 8),
+                    ShimmerContainer(width: 90, height: 14, borderRadius: 4),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 40),
+            // スタッツ部分のシマー
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(
+                3,
+                (i) => const Column(
+                  children: [
+                    ShimmerContainer(width: 40, height: 20, borderRadius: 4),
+                    SizedBox(height: 8),
+                    ShimmerContainer(width: 60, height: 12, borderRadius: 4),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+            // 進捗（ストリークプログレス）セクションを模した大きなシマー
+            const ShimmerContainer(
+              width: double.infinity,
+              height: 120,
+              borderRadius: 16,
+            ),
+            const SizedBox(height: 40),
+            // タスク一覧用の骨組みシマー
+            const ShimmerContainer(width: 120, height: 18, borderRadius: 4),
+            const SizedBox(height: 16),
+            ...List.generate(
+              2,
+              (index) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
+                  children: [
+                    const ShimmerContainer.circular(size: 24),
+                    const SizedBox(width: 12),
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ShimmerContainer(width: 180, height: 14, borderRadius: 4),
+                        SizedBox(height: 6),
+                        ShimmerContainer(width: 120, height: 10, borderRadius: 4),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -827,14 +756,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       body:
-          _loading
-              ? const Center(child: CircularProgressIndicator())
+          _user == null && _loading
+              ? _buildSkeleton()
               : SafeArea(
                 child: StreamBuilder<DocumentSnapshot>(
                   stream: _userStream,
                   builder: (context, snapshot) {
                     if (snapshot.hasData && snapshot.data!.exists) {
-                      _user = AppUser.fromFirestore(snapshot.data!);
+                      final rawUser = AppUser.fromFirestore(snapshot.data!);
+
+                      // 過去の投稿数(totalPosts)が未設定・未計算(-1)、またはマイグレーション未完了フラグの場合は遅延初期化を実行
+                      if (!rawUser.totalPostsMigrated || rawUser.totalPosts == -1) {
+                        _userService.migrateTotalPosts(rawUser.uid);
+                      }
+
+                      final mergedTasks = <AppTask>[];
+                      for (final sTask in _activeSeasonTasks) {
+                        final existing = rawUser.tasks.firstWhere(
+                          (uTask) => uTask.title == sTask.title && uTask.isSeason,
+                          orElse: () => sTask,
+                        );
+                        mergedTasks.add(existing);
+                      }
+                      final normalTasks = rawUser.tasks.where((t) => !t.isSeason).toList();
+                      mergedTasks.addAll(normalTasks);
+
+                      _user = rawUser.copyWith(tasks: mergedTasks);
                     }
                     if (_user == null) return _buildEmptyState();
                     return _buildContent();
@@ -875,12 +822,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
   
-                  // ---── スケジュール設定 ─────────────────────────────
+                  // ---── ストリークプログレス（進捗状況） ──
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    sliver: SliverToBoxAdapter(child: _buildScheduleSection()),
+                    sliver: SliverToBoxAdapter(child: _buildStreakProgressCard()),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
   
                   // ---── 過去の軌跡を振り返るボタン ──────────────────────────
                   SliverPadding(
@@ -932,7 +879,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
                   // ---── ヒーロータスクセクション ──
                   SliverPadding(
@@ -942,7 +889,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         user: _user!,
                         seasonsMap: _seasonsMap,
                         seasonPostsCountMap: _seasonPostsCountMap,
+                        todayPosts: _todayPosts,
                         onAddTask: _addTask,
+
                         onEditTask: _editTask,
                         onDeleteTask: _deleteTask,
                         onReorder: (int oldIndex, int newIndex) async {
@@ -975,13 +924,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             seasonId: task.seasonId,
                           );
                           
-                          SeasonHintModal.show(context, task, season, (newTrigger, newReward) async {
+                          SeasonHintModal.show(context, task, season, (newTrigger) async {
                             final updatedTasks = List<AppTask>.from(_user!.tasks);
                             updatedTasks[index] = task.copyWith(
                               trigger: newTrigger.isEmpty ? null : newTrigger,
                               clearTrigger: newTrigger.isEmpty,
-                              reward: newReward.isEmpty ? null : newReward,
-                              clearReward: newReward.isEmpty,
                             );
                             await _userService.updateProfile(tasks: updatedTasks);
                             _loadProfile();
@@ -1080,30 +1027,253 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ---
   // ---スケジュール設定（直接変更可能）
   // ---
-  Widget _buildScheduleSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.bgSurface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+  Widget _buildStreakProgressCard() {
+    if (_user == null) return const SizedBox.shrink();
+
+    final streak = _user!.streak;
+    
+    // 閾値、ティア名、カラーの定義
+    final thresholds = [0, 3, 7, 14, 30, 66, 100, 180, 270, 365];
+    final names = [
+      'アイアン', 'ブロンズ', 'シルバー', 'ゴールド', 'プラチナ', 
+      'エメラルド', 'ダイヤモンド', 'マスター', 'グランドマスター', 'チャレンジャー'
+    ];
+    final colors = [
+      const Color(0xFF5E4B43),
+      const Color(0xFF8F5338),
+      const Color(0xFF8091A0),
+      const Color(0xFFC89C3C),
+      const Color(0xFF327A8A),
+      const Color(0xFF10825B),
+      const Color(0xFF4A60AB),
+      const Color(0xFF8D2D9E),
+      const Color(0xFFB53030),
+      const Color(0xFFE0A33B),
+    ];
+
+    String currentTier = 'アイアン';
+    String nextTier = 'チャレンジャー';
+    int currentThreshold = 0;
+    int nextThreshold = 365;
+    double percent = 1.0;
+    Color currentTierColor = colors.first;
+    Color nextTierColor = colors.last;
+
+    if (streak < 365) {
+      int index = 0;
+      for (int i = 0; i < thresholds.length - 1; i++) {
+        if (streak >= thresholds[i] && streak < thresholds[i + 1]) {
+          index = i;
+          break;
+        }
+      }
+      currentTier = names[index];
+      nextTier = names[index + 1];
+      currentThreshold = thresholds[index];
+      nextThreshold = thresholds[index + 1];
+    } else {
+      currentTier = 'チャレンジャー';
+      nextTier = 'チャレンジャー';
+      currentThreshold = 365;
+      nextThreshold = 365;
+    }
+
+    // セグメント数と進捗パーセントの動的計算 (1日 = 1メモリ、Challengerは60固定)
+    int segmentCount;
+    if (streak < 365) {
+      segmentCount = nextThreshold >= 12 ? nextThreshold : 12;
+      percent = (streak / nextThreshold).clamp(0.0, 1.0);
+      currentTierColor = colors[thresholds.indexOf(currentThreshold)];
+      nextTierColor = colors[thresholds.indexOf(nextThreshold)];
+    } else {
+      segmentCount = 60;
+      percent = 1.0;
+      currentTierColor = colors.last;
+      nextTierColor = colors.last;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.bgSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          // 左側: セグメント分割型円形メーター
+          SizedBox(
+            width: 90,
+            height: 90,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  size: const Size(90, 90),
+                  painter: SegmentedCircularProgressPainter(
+                    percent: percent,
+                    activeColor: currentTierColor,
+                    inactiveColor: Colors.white.withValues(alpha: 0.08),
+                    segmentCount: segmentCount,
+                    strokeWidth: 12, // 太くして存在感を出す
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$streak',
+                      style: GoogleFonts.outfit(
+                        color: currentTierColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'ストリーク',
+                      style: TextStyle(
+                        color: currentTierColor,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          child: Column(
-            children: [
-              EditableInfoRow(
-                icon: Icons.schedule_rounded,
-                label: 'V Alert',
-                value: _privateData['taskTime'] ?? '08:00',
-                onTap: () => _selectTime(context),
-                isFirst: true,
-                isLast: true,
+          const SizedBox(width: 20),
+          // 右側: 詳細テキスト項目
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildDetailRow('現在のランク', currentTier, valueColor: currentTierColor),
+                const SizedBox(height: 6),
+                _buildDetailRow('ストリーク', '$streak日連続'),
+                const SizedBox(height: 6),
+                _buildDetailRow(
+                  '進捗状況',
+                  '$streak / $nextThreshold 日',
+                ),
+                const SizedBox(height: 6),
+                _buildDetailRow(
+                  '次のランク',
+                  streak < 365 ? nextTier : '最大',
+                  valueColor: streak < 365 ? nextTierColor : const Color(0xFFE0A33B),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {Color? valueColor, String suffix = ''}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: RichText(
+            overflow: TextOverflow.ellipsis,
+            text: TextSpan(
+              style: TextStyle(
+                color: valueColor ?? AppColors.textPrimary,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
               ),
-            ],
+              children: [
+                TextSpan(text: value),
+                if (suffix.isNotEmpty)
+                  TextSpan(
+                    text: suffix,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ],
     );
+  }
+}
+
+class SegmentedCircularProgressPainter extends CustomPainter {
+  final double percent;
+  final Color activeColor;
+  final Color inactiveColor;
+  final int segmentCount;
+  final double strokeWidth;
+
+  SegmentedCircularProgressPainter({
+    required this.percent,
+    required this.activeColor,
+    required this.inactiveColor,
+    required this.segmentCount,
+    this.strokeWidth = 12.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+    
+    final activeSegmentCount = (percent * segmentCount).round();
+    final segmentAngle = 360.0 / segmentCount;
+    
+    // 総セグメント数に応じてスリット（隙間）の角度を動的に計算 (合計で72度程度が隙間になるように)
+    final gapDegree = 72.0 / segmentCount;
+    final gapAngleRad = gapDegree * (3.141592653589793 / 180.0);
+    final drawAngleRad = (segmentAngle - gapDegree) * (3.141592653589793 / 180.0);
+
+    double startAngleRad = -3.141592653589793 / 2; // 12時の位置から開始
+
+    for (int i = 0; i < segmentCount; i++) {
+      final isActive = i < activeSegmentCount;
+      
+      final paint = Paint()
+        ..color = isActive ? activeColor : inactiveColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt;
+
+      if (isActive) {
+        // 単色ネオン感を引き立てる発光シャドウ
+        paint.imageFilter = ui.ImageFilter.blur(sigmaX: 0.25, sigmaY: 0.25);
+      }
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngleRad + (gapAngleRad / 2),
+        drawAngleRad,
+        false,
+        paint,
+      );
+
+      startAngleRad += segmentAngle * (3.141592653589793 / 180.0);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant SegmentedCircularProgressPainter oldDelegate) {
+    return oldDelegate.percent != percent ||
+        oldDelegate.activeColor != activeColor ||
+        oldDelegate.inactiveColor != inactiveColor ||
+        oldDelegate.segmentCount != segmentCount;
   }
 }

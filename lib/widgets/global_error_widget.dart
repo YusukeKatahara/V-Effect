@@ -6,6 +6,7 @@ import '../main.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider;
 import 'package:provider/provider.dart';
 import 'package:v_effect/providers/theme_provider.dart';
+import '../config/routes.dart';
 
 /// アプリ全体で共有するエラー表示用ウィジェット
 class GlobalErrorWidget extends StatelessWidget {
@@ -99,7 +100,7 @@ class GlobalErrorWidget extends StatelessWidget {
                                   create: (_) => ThemeProvider(),
                                 ),
                               ],
-                              child: const VEffectApp(),
+                              child: const VEffectApp(initialRoute: AppRoutes.wrapper),
                             ),
                           ),
                         );

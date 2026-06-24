@@ -28,6 +28,8 @@ import '../widgets/home/announcement_area.dart';
 import '../widgets/home/home_empty_state.dart';
 import 'weekly_review_screen.dart';
 import '../providers/home_provider.dart';
+import '../providers/upload_provider.dart';
+import '../widgets/upload_progress_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'main_shell.dart';
 import 'home/components/feed_card.dart';
@@ -917,6 +919,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final homeAsync = ref.watch(homeDataProvider);
+    final uploadState = ref.watch(uploadProvider);
 
     // ── UIスレッドでの実行を保証し、ローカル状態を同期 (データがある場合のみ) ──
     homeAsync.whenData((homeData) {
@@ -1097,11 +1100,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             homeAsync.when(
               loading: () => HomeSkeletonBody(titleBar: _buildTitleBar()),
               error: (err, stack) => _buildErrorBody(err),
-              data: (_) => _buildMainContent(),
+              data: (_) => _buildMainContent(uploadState),
             ),
           ] else ...[
             // データ受信済み: 常にコンテンツを表示（リフレッシュ中もちらつかない）
-            _buildMainContent(),
+            _buildMainContent(uploadState),
           ],
 
           // 3. V-Flash 演出レイヤー (永続)
@@ -1141,15 +1144,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   /// ローカル状態変数を使ってメインコンテンツを構築する。
   /// プロバイダーの AsyncValue に依存しないため、リフレッシュ中もちらつかない。
-  Widget _buildMainContent() {
+  Widget _buildMainContent(UploadState uploadState) {
+    // 楽観的UIの適用: アップロード中(uploading)またはアップロード成功(success)状態であれば、
+    // まだサーバー上でpostedTodayが完了していなくても投稿済みとみなしてフィードを開示する。
+    final isPostedToday = _postedToday ||
+        uploadState.status == UploadStatus.uploading ||
+        uploadState.status == UploadStatus.success;
+
     return SafeArea(
       child: Column(
         children: [
+          const UploadProgressBar(), // 最上部にアップロード進捗バーを表示
           _buildTitleBar(),
           const FriendRequestBanner(),
           AnnouncementArea(onOpenWeeklyReview: _openWeeklyReview),
           Expanded(
-            child: !_postedToday
+            child: !isPostedToday
                 ? GuardedStateLayer(
                     backgroundImageUrl: _feedItems.whereType<Post>().isNotEmpty
                         ? _feedItems.whereType<Post>().first.imageUrl

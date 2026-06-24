@@ -26,6 +26,7 @@ import 'widgets/splash_loading.dart';
 import 'dart:async';
 import 'package:audio_session/audio_session.dart';
 import 'services/widget_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
@@ -73,6 +74,23 @@ void main() {
       FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
     }
 
+    // Fast Boot: キャッシュ状況から最適な初期ルートを動的に決定します
+    String initialRoute = AppRoutes.login;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final isCompleted = prefs.getBool('onboardingCompleted_${user.uid}') ?? false;
+        if (isCompleted) {
+          initialRoute = AppRoutes.home;
+        } else {
+          initialRoute = AppRoutes.wrapper;
+        }
+      }
+    } catch (e) {
+      debugPrint('初期ルート判定エラー: $e');
+    }
+
     // Fast Boot: 即座にアプリを起動
     runApp(
       ProviderScope(
@@ -82,7 +100,7 @@ void main() {
               create: (_) => ThemeProvider(),
             ),
           ],
-          child: const VEffectApp(),
+          child: VEffectApp(initialRoute: initialRoute),
         ),
       ),
     );
@@ -190,7 +208,8 @@ class _AppInitializerState extends State<AppInitializer> {
 }
 
 class VEffectApp extends ConsumerStatefulWidget {
-  const VEffectApp({super.key});
+  final String initialRoute;
+  const VEffectApp({super.key, required this.initialRoute});
 
   static final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -355,9 +374,14 @@ class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObse
         Locale('en', 'US'),
       ],
       locale: Locale(lang),
-      initialRoute: AppRoutes.wrapper,
+      initialRoute: widget.initialRoute,
       routes: AppRoutes.routes,
       navigatorObservers: [AnalyticsService.instance.observer],
+      builder: (context, child) {
+        return AppInitializer(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

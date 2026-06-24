@@ -21,6 +21,9 @@ class UserService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  /// マイグレーション処理の多重実行を防ぐためのメモリ内ロック
+  final Set<String> _migratingUids = {};
+
   /// 現在ログイン中のユーザーUID（未ログイン時はnull）
   String? get currentUid => _auth.currentUser?.uid;
 
@@ -31,7 +34,6 @@ class UserService {
     required String userId,
     String? birthDate,
     String? gender,
-    required String taskTime,
     required String occupation,
   }) async {
     final uid = _auth.currentUser!.uid;
@@ -65,7 +67,6 @@ class UserService {
         'email': email,
         'birthDate': birthDate,
         'gender': gender,
-        'taskTime': taskTime,
         'occupation': occupation,
       },
       SetOptions(merge: true),
@@ -73,8 +74,8 @@ class UserService {
 
     await batch.commit();
 
-    // ローカル通知スケジュールを更新
-    await PushNotificationService().restoreVAlertSchedule();
+    // 保護スケジュールを更新
+    await PushNotificationService().restoreProtectionAlertSchedule();
   }
 
   /// テンプレートヒーロータスク選択を保存します（新規登録フロー: テンプレート選択ステップ）
@@ -98,7 +99,6 @@ class UserService {
   /// tasks は公開、wakeUpTime/taskTime は非公開
   Future<void> saveTaskSettings({
     required List<AppTask> tasks,
-    required String taskTime,
     String? photoUrl,
   }) async {
     final uid = _auth.currentUser!.uid;
@@ -124,19 +124,10 @@ class UserService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboardingCompleted_$uid', true);
 
-    // 非公開情報
-    batch.set(
-      _db.collection('users').doc(uid).collection('private').doc('data'),
-      {
-        'taskTime': taskTime,
-      },
-      SetOptions(merge: true),
-    );
-
     await batch.commit();
 
-    // ローカル通知スケジュールを更新
-    await PushNotificationService().restoreVAlertSchedule();
+    // 保護スケジュールを更新
+    await PushNotificationService().restoreProtectionAlertSchedule();
   }
 
   /// ユーザーIDが既に使われていないかチェックします
@@ -171,7 +162,6 @@ class UserService {
     String? userId,
     String? birthDate,
     String? gender,
-    String? taskTime,
     String? photoUrl,
     List<AppTask>? tasks,
     bool updateEditDate = false,
@@ -223,7 +213,6 @@ class UserService {
     final privateData = <String, dynamic>{};
     if (birthDate != null) privateData['birthDate'] = birthDate;
     if (gender != null) privateData['gender'] = gender;
-    if (taskTime != null) privateData['taskTime'] = taskTime;
 
     if (privateData.isNotEmpty) {
       batch.set(
@@ -235,8 +224,8 @@ class UserService {
 
     await batch.commit();
 
-    // ローカル通知スケジュールを更新
-    await PushNotificationService().restoreVAlertSchedule();
+    // 保護スケジュールを更新
+    await PushNotificationService().restoreProtectionAlertSchedule();
 
     // タスクが変更された場合、HeroTasksScreen など購読者に通知
     if (tasks != null) {
@@ -247,7 +236,6 @@ class UserService {
   /// アプリの設定（通知・プライバシー）を更新します
   Future<void> updateSettings({
     bool? pushNotifications,
-    bool? focusTimeNotifications,
     bool? reactionNotifications,
     bool? protectionNotifications,
     bool? vFireNotifications,
@@ -260,7 +248,6 @@ class UserService {
 
     final data = <String, dynamic>{};
     if (pushNotifications != null) data['pushNotifications'] = pushNotifications;
-    if (focusTimeNotifications != null) data['focusTimeNotifications'] = focusTimeNotifications;
     if (reactionNotifications != null) data['reactionNotifications'] = reactionNotifications;
     if (protectionNotifications != null) data['protectionNotifications'] = protectionNotifications;
     if (vFireNotifications != null) data['vFireNotifications'] = vFireNotifications;
@@ -270,19 +257,6 @@ class UserService {
 
     if (data.isNotEmpty) {
       await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
-      // 通知スケジュールを更新
-      // ローカル通知の失敗は設定保存成功とは独立して扱う
-      if (focusTimeNotifications != null || protectionNotifications != null) {
-        try {
-          if (focusTimeNotifications == false) {
-            await PushNotificationService().scheduleVAlert(null);
-          } else {
-            await PushNotificationService().restoreVAlertSchedule();
-          }
-        } catch (e) {
-          debugPrint('V Alert スケジュール更新エラー: $e');
-        }
-      }
     }
   }
 
@@ -341,7 +315,7 @@ class UserService {
   }
 
   /// 最初のV Questを一時保存し、オンボーディングステップを進めます
-  Future<void> saveFirstVQuest({String? questTitle, String? questTrigger, String? questReward}) async {
+  Future<void> saveFirstVQuest({String? questTitle, String? questTrigger}) async {
     final uid = _auth.currentUser!.uid;
     final data = <String, dynamic>{
       'onboardingStep': 'profile_settings',
@@ -352,7 +326,7 @@ class UserService {
     tasks.add(AppTask(title: 'Welcome to V EFFECT', isOneTime: true).toFirestore());
     
     if (questTitle != null && questTitle.isNotEmpty) {
-      tasks.add(AppTask(title: questTitle, trigger: questTrigger, reward: questReward).toFirestore());
+      tasks.add(AppTask(title: questTitle, trigger: questTrigger).toFirestore());
     }
     data['tasks'] = tasks;
 
@@ -388,5 +362,36 @@ class UserService {
     await _db.collection('users').doc(uid).set({
       'processedSeasonTaskIds': FieldValue.arrayUnion([seasonId])
     }, SetOptions(merge: true));
+  }
+
+  /// 過去の投稿数を集計し、totalPosts を更新するマイグレーション関数（遅延初期化用）
+  Future<void> migrateTotalPosts(String uid) async {
+    // 2026ベストプラクティス：多重実行を防ぐメモリロック
+    if (_migratingUids.contains(uid)) {
+      return;
+    }
+    _migratingUids.add(uid);
+
+    try {
+      // 2026ベストプラクティス：通信不安定時のハングアップを防ぐタイムアウト（6秒）を設定
+      final snap = await _db
+          .collection('posts')
+          .where('userId', isEqualTo: uid)
+          .count()
+          .get()
+          .timeout(const Duration(seconds: 6));
+      
+      final count = snap.count ?? 0;
+      await _db.collection('users').doc(uid).update({
+        'totalPosts': count,
+        'totalPostsMigrated': true,
+      });
+      debugPrint('マイグレーション完了: UID $uid の過去投稿数を $count 件で更新しました');
+    } catch (e) {
+      debugPrint('totalPostsのマイグレーションエラー: $e');
+    } finally {
+      // ロックの確実な解放
+      _migratingUids.remove(uid);
+    }
   }
 }

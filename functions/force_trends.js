@@ -15,9 +15,18 @@ async function main() {
     const data = doc.data();
     let taskName = data.taskName;
     if (taskName) {
-      // 「ゲーム」関連の名称を「ランク戦」に統一（ユーザー要望）
-      if (taskName === "ゲーム" || taskName === "Game" || taskName === "ビデオゲーム") {
-        taskName = "ランク戦";
+      // 「ゲーム」や「ポケモン」関連の名称を「ランクマッチ」に統一（ユーザー要望）
+      const lowerName = taskName.toLowerCase().trim();
+      if (
+        lowerName === "ゲーム" ||
+        lowerName === "game" ||
+        lowerName === "ビデオゲーム" ||
+        lowerName === "ポケモン" ||
+        lowerName === "pokemon" ||
+        lowerName === "ランク戦" ||
+        lowerName === "ランクマッチ"
+      ) {
+        taskName = "ランクマッチ";
       }
 
       // 過去データは AIカテゴリがないので、そのままタスク名を使用する

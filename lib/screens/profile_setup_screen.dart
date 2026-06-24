@@ -28,11 +28,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   final _userService = UserService.instance;
   bool _isSaving = false;
 
-  // 追加項目
-  TimeOfDay? _taskTime;
-  
   String? _occupation;
-  static const _occupationCount = 11;
 
   List<String> _occupationOptions(BuildContext ctx) {
     final l = AppLocalizations.of(ctx)!;
@@ -64,79 +60,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     _userIdCtrl.dispose();
     _fadeCtrl.dispose();
     super.dispose();
-  }
-
-  String _formatTime(TimeOfDay? time) {
-    if (time == null) return AppLocalizations.of(context)!.profileSetupSelectPlaceholder;
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
-
-  void _showTimePickerBottomSheet(
-    BuildContext context,
-    String title,
-    TimeOfDay? initialTime,
-    ValueChanged<TimeOfDay> onTimeSelected,
-  ) {
-    TimeOfDay selectedTime = initialTime ?? const TimeOfDay(hour: 7, minute: 0);
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.bgElevated,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (BuildContext builder) {
-        return Container(
-          height: 300,
-          padding: const EdgeInsets.only(top: 6.0),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        child: Text(AppLocalizations.of(context)!.profileSetupPickerCancel, style: TextStyle(color: AppColors.textSecondary)),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      Text(title, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-                      TextButton(
-                        child: Text(AppLocalizations.of(context)!.profileSetupPickerDone, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          onTimeSelected(selectedTime);
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: CupertinoTheme(
-                    data: CupertinoThemeData(
-                      brightness: Brightness.dark,
-                      textTheme: CupertinoTextThemeData(
-                        dateTimePickerTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 22),
-                      ),
-                    ),
-                    child: CupertinoDatePicker(
-                      mode: CupertinoDatePickerMode.time,
-                      initialDateTime: DateTime(2024, 1, 1, selectedTime.hour, selectedTime.minute),
-                      use24hFormat: true,
-                      onDateTimeChanged: (DateTime newDateTime) {
-                        selectedTime = TimeOfDay.fromDateTime(newDateTime);
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   void _showOccupationPickerBottomSheet(BuildContext context) {
@@ -219,12 +142,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       );
       return;
     }
-    if (_taskTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.profileSetupTaskTimeRequired)),
-      );
-      return;
-    }
+
 
     setState(() => _isSaving = true);
     try {
@@ -244,7 +162,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       await _userService.saveProfile(
         username: _usernameCtrl.text.trim(),
         userId: _userIdCtrl.text.trim(),
-        taskTime: '${_taskTime!.hour.toString().padLeft(2, '0')}:${_taskTime!.minute.toString().padLeft(2, '0')}',
         occupation: _occupation!,
       );
 
@@ -422,41 +339,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                                           ),
                                         ),
                                         Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-
-                                // ヒーロータスク時間
-                                SectionTitle(title: AppLocalizations.of(context)!.profileSetupTaskTimeSection),
-                                const SizedBox(height: 8),
-                                InkWell(
-                                  onTap: () => _showTimePickerBottomSheet(
-                                    context,
-                                    AppLocalizations.of(context)!.profileSetupTaskTimePickerTitle,
-                                    _taskTime,
-                                    (t) => setState(() => _taskTime = t),
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.bgElevated,
-                                      border: Border.all(color: AppColors.border),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          _formatTime(_taskTime),
-                                          style: TextStyle(
-                                            color: _taskTime == null ? AppColors.textSecondary : AppColors.textPrimary,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        Icon(Icons.access_time, color: AppColors.textSecondary),
                                       ],
                                     ),
                                   ),

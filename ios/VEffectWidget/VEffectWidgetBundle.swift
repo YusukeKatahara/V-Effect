@@ -12,5 +12,6 @@ import SwiftUI
 struct VEffectWidgetBundle: WidgetBundle {
     var body: some Widget {
         VEffectWidget()
+        VEffectUploadLiveActivity()
     }
 }

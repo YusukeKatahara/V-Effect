@@ -29,7 +29,7 @@ import '../screens/security_settings_screen.dart';
 import '../screens/blog_post_detail_screen.dart';
 import '../screens/blog_post_editor_screen.dart';
 import '../screens/display_settings_screen.dart';
-import 'package:v_effect/main.dart';
+
 
 /// アプリ全体のルート（画面の住所）定義
 class AppRoutes {
@@ -65,7 +65,7 @@ class AppRoutes {
   static const String displaySettings       = '/display-settings';
 
   static Map<String, WidgetBuilder> get routes => {
-        wrapper: (context) => const AppInitializer(child: AuthWrapper()),
+        wrapper: (context) => const AuthWrapper(),
         displaySettings: (context) => const DisplaySettingsScreen(),
         login: (context) => const LoginScreen(),
         register: (context) => const RegisterScreen(),

@@ -16,7 +16,7 @@ import '../models/season.dart';
 import '../services/analytics_service.dart';
 import '../services/post_service.dart';
 import '../services/user_service.dart';
-import '../widgets/splash_loading.dart';
+import '../widgets/shimmer_container.dart';
 import '../widgets/streak_flame.dart';
 import '../widgets/v_effect_header.dart';
 import '../widgets/frictionless_page_scroll_physics.dart';
@@ -289,7 +289,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         items.add(HeroTaskItem(
           name: task.title, 
           trigger: task.trigger,
-          reward: task.reward,
+
           completedPosts: taskPosts,
           isOneTime: task.isOneTime,
           isSeason: task.isSeason,
@@ -454,12 +454,12 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       AppTask(
         title: item.name,
         trigger: item.trigger,
-        reward: item.reward,
+
         isSeason: item.isSeason,
         seasonId: item.seasonId,
       ),
       fallbackSeason,
-      (newTrigger, newReward) async {
+      (newTrigger) async {
         final uid = _userService.currentUid;
         if (uid == null) return;
         final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
@@ -472,8 +472,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             return t.copyWith(
               trigger: newTrigger.isEmpty ? null : newTrigger,
               clearTrigger: newTrigger.isEmpty,
-              reward: newReward.isEmpty ? null : newReward,
-              clearReward: newReward.isEmpty,
+
             );
           }
           return t;
@@ -515,7 +514,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         _taskItems[index] = HeroTaskItem(
           name: originalItem.name,
           trigger: originalItem.trigger,
-          reward: originalItem.reward,
+
           completedPosts: newTempPosts,
           isOneTime: originalItem.isOneTime,
         );
@@ -572,9 +571,52 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     return const Color(0xFF5E4B43);                    // Iron (Dark Brown-Gray)
   }
 
+  Widget _buildSkeleton() {
+    return Scaffold(
+      backgroundColor: AppColors.black,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildTitleBar(),
+            const SizedBox(
+              height: 76,
+              child: Center(
+                child: ShimmerContainer(
+                  width: 140,
+                  height: 36,
+                  borderRadius: 18,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cardWidth = constraints.maxWidth * 0.85;
+                    final cardHeight = cardWidth * (16 / 9);
+                    final maxCardHeight = (constraints.maxHeight - 40).clamp(
+                      0.0,
+                      cardHeight,
+                    );
+                    return ShimmerContainer(
+                      width: cardWidth,
+                      height: maxCardHeight,
+                      borderRadius: 24,
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const SplashLoading();
+    if (_taskItems.isEmpty && _loading) return _buildSkeleton();
 
     return VisibilityDetector(
       key: const Key('hero_tasks_screen_visibility'),

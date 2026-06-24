@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/routes.dart';
 import '../services/analytics_service.dart';
+import '../services/user_service.dart';
 import '../widgets/splash_loading.dart';
 import '../widgets/global_error_widget.dart';
 import 'login_screen.dart';
@@ -137,6 +138,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
             }
 
             final data = actualDoc.data() as Map<String, dynamic>?;
+
+            // 過去の投稿数(totalPosts)が未設定・未計算(-1)、またはマイグレーション未完了フラグの場合は遅延初期化を実行
+            final totalPosts = data?['totalPosts'];
+            final totalPostsMigrated = data?['totalPostsMigrated'] == true;
+            if (!totalPostsMigrated || totalPosts == null || totalPosts == -1) {
+              UserService.instance.migrateTotalPosts(user.uid);
+            }
 
             final isOnboardingCompleted = data?['onboardingCompleted'] == true;
 

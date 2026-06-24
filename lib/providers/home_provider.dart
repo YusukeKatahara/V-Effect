@@ -102,7 +102,7 @@ class HomeData {
       'tasks': tasks.map((t) => {
         'title': t.title,
         'trigger': t.trigger,
-        'reward': t.reward,
+
         'isOneTime': t.isOneTime,
         'isSeason': t.isSeason,
         'seasonId': t.seasonId,
@@ -143,7 +143,7 @@ class HomeData {
       tasks: (json['tasks'] as List<dynamic>? ?? []).map((t) => AppTask(
         title: t['title'] as String? ?? '',
         trigger: t['trigger'] as String?,
-        reward: t['reward'] as String?,
+
         isOneTime: t['isOneTime'] as bool? ?? false,
         isSeason: t['isSeason'] as bool? ?? false,
         seasonId: t['seasonId'] as String?,

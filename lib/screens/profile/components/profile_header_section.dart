@@ -31,7 +31,12 @@ class ProfileHeaderSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      padding: const EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: 16,
+      ),
       child: Column(
         children: [
           Row(
@@ -193,9 +198,8 @@ class ProfileHeaderSection extends StatelessWidget {
                         Expanded(
                           child: _buildFollowStat(
                             context,
-                            AppLocalizations.of(context)!.profileScreenStreak,
-                            user.streak,
-                            icon: Icons.local_fire_department_rounded,
+                            AppLocalizations.of(context)!.profileScreenTotalV,
+                            user.totalPosts >= 0 ? user.totalPosts : 0,
                           ),
                         ),
                       ],

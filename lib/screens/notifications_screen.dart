@@ -10,6 +10,7 @@ import '../services/friend_service.dart';
 import '../services/user_service.dart';
 import '../utils/date_helper.dart';
 import '../widgets/swipe_back_gate.dart';
+import '../widgets/shimmer_container.dart';
 
 /// 通知画面
 class NotificationsScreen extends StatefulWidget {
@@ -447,6 +448,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
 
+  Widget _buildNotificationSkeleton() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: 6, // 骨組みアイテムを6個表示
+      physics: const NeverScrollableScrollPhysics(),
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              // アバター用の丸型シマー
+              const ShimmerContainer.circular(size: 40),
+              const SizedBox(width: 16),
+              // メッセージ等の内容を模したシマー
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const ShimmerContainer(
+                      width: double.infinity,
+                      height: 14,
+                      borderRadius: 4,
+                    ),
+                    const SizedBox(height: 8),
+                    ShimmerContainer(
+                      width: MediaQuery.sizeOf(context).width * 0.25,
+                      height: 10,
+                      borderRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SwipeBackGate(
@@ -477,7 +517,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             );
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return _buildNotificationSkeleton();
           }
 
           final notifications = snapshot.data ?? [];

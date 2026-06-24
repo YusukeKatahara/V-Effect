@@ -479,12 +479,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationSettingsReactionDesc => 'When someone reacts to your posts';
 
   @override
-  String get notificationSettingsVAlert => 'Enable V Alert Notifications';
-
-  @override
-  String get notificationSettingsVAlertDesc => 'Task reminder at your scheduled time';
-
-  @override
   String get notificationSettingsVFire => 'Enable V FIRE Notifications';
 
   @override
@@ -1151,12 +1145,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileSetupOccupationPickerTitle => 'Select Occupation';
 
   @override
-  String get profileSetupTaskTimeSection => 'Hero Task Schedule';
-
-  @override
-  String get profileSetupTaskTimePickerTitle => 'Set Hero Task Time';
-
-  @override
   String get profileSetupNextButton => 'Next';
 
   @override
@@ -1164,9 +1152,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileSetupOccupationRequired => 'Please select an occupation';
-
-  @override
-  String get profileSetupTaskTimeRequired => 'Please set a Hero Task time';
 
   @override
   String get profileSetupSaveFailed => 'Failed to save. Please try again.';
@@ -1184,7 +1169,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenHeroTasks => 'Hero Tasks';
 
   @override
-  String get profileScreenWeeklyTrend => '🔥 Weekly Trend Habits';
+  String get profileScreenWeeklyTrend => '📈 Weekly Trend Habits';
 
   @override
   String get profileScreenAddFirstTask => 'Add your first task';
@@ -1211,13 +1196,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenStreak => 'Streak';
 
   @override
+  String get profileScreenTotalV => 'Total V';
+
+  @override
   String get profileScreenFollowingTitle => 'Following';
 
   @override
   String get profileScreenFollowersTitle => 'Followers';
 
   @override
-  String get profileScreenTrendTitle => '🔥 Weekly Trend Habits';
+  String get profileScreenTrendTitle => '📈 Weekly Trend Habits';
 
   @override
   String get profileScreenTrendEmpty => 'No trend data yet.';
@@ -1256,9 +1244,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenTaskNameHint => 'Task name (e.g. Reading)';
 
   @override
-  String get profileScreenTaskRewardHint => 'Reward (optional)';
-
-  @override
   String get profileScreenOneTimeTaskTitle => 'Auto-deleted 24 hours after completion';
 
   @override
@@ -1280,7 +1265,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraScreenCameraLoading => 'Starting camera...';
 
   @override
-  String get cameraScreenPost => 'Post';
+  String get cameraScreenPost => 'Prove';
 
   @override
   String get cameraScreenDragPinch => 'Drag or pinch to reposition';
@@ -1402,9 +1387,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingFirstQuestTaskLabel => 'Task name';
-
-  @override
-  String get onboardingFirstQuestRewardLabel => 'Reward (optional)';
 
   @override
   String get onboardingFirstQuestPrivacyNote => '* Trigger is only visible to you.';
@@ -1833,21 +1815,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get firstQuestTriggerHint4 => 'When sitting at my desk';
-
-  @override
-  String get firstQuestRewardHint1 => 'A good cup of coffee';
-
-  @override
-  String get firstQuestRewardHint2 => '5 min of social media';
-
-  @override
-  String get firstQuestRewardHint3 => 'Watch a video';
-
-  @override
-  String get firstQuestRewardHint4 => 'Play a favorite game';
-
-  @override
-  String get firstQuestRewardHint5 => 'Read a manga';
 
   @override
   String get onboardingFirstQuestTriggerHintText => 'Enter trigger (Optional)';

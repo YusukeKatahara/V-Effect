@@ -5,7 +5,7 @@ import '../../../models/season.dart';
 class HeroTaskItem {
   final String name;
   final String? trigger;
-  final String? reward; // ご褒美（したい習慣）
+
   final List<Post> completedPosts;
   final bool isOneTime;
   final bool isSeason;
@@ -24,7 +24,7 @@ class HeroTaskItem {
   HeroTaskItem({
     required this.name,
     this.trigger,
-    this.reward,
+
     this.completedPosts = const [],
     this.isOneTime = false,
     this.isSeason = false,

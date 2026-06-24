@@ -18,7 +18,6 @@ class NotificationSettingsScreen extends StatefulWidget {
 class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
   bool _pushNotifications = true;
   bool _reactionNotifications = true;
-  bool _focusTimeNotifications = true;
   bool _vFireNotifications = true;
   bool _protectionNotifications = true;
   bool _streakCelebrationNotifications = true;
@@ -42,7 +41,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             setState(() {
               _pushNotifications = data['pushNotifications'] ?? true;
               _reactionNotifications = data['reactionNotifications'] ?? true;
-              _focusTimeNotifications = data['focusTimeNotifications'] ?? true;
               _vFireNotifications = data['vFireNotifications'] ?? true;
               _protectionNotifications = data['protectionNotifications'] ?? true;
               _streakCelebrationNotifications = data['streakCelebrationNotifications'] ?? true;
@@ -67,14 +65,12 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         case 'pushNotifications':
           _pushNotifications = value;
           _reactionNotifications = value;
-          _focusTimeNotifications = value;
           _vFireNotifications = value;
           _protectionNotifications = value;
           _streakCelebrationNotifications = value;
           _streakWarningNotifications = value;
           break;
         case 'reactionNotifications': _reactionNotifications = value; break;
-        case 'focusTimeNotifications': _focusTimeNotifications = value; break;
         case 'vFireNotifications': _vFireNotifications = value; break;
         case 'protectionNotifications': _protectionNotifications = value; break;
         case 'streakCelebrationNotifications': _streakCelebrationNotifications = value; break;
@@ -88,7 +84,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         await UserService.instance.updateSettings(
           pushNotifications: value,
           reactionNotifications: value,
-          focusTimeNotifications: value,
           vFireNotifications: value,
           protectionNotifications: value,
           streakCelebrationNotifications: value,
@@ -98,7 +93,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         // 個別スイッチ：その項目のみ更新
         await UserService.instance.updateSettings(
           reactionNotifications: key == 'reactionNotifications' ? value : null,
-          focusTimeNotifications: key == 'focusTimeNotifications' ? value : null,
           vFireNotifications: key == 'vFireNotifications' ? value : null,
           protectionNotifications: key == 'protectionNotifications' ? value : null,
           streakCelebrationNotifications: key == 'streakCelebrationNotifications' ? value : null,
@@ -138,12 +132,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 AppLocalizations.of(context)!.notificationSettingsReactionDesc,
                 _reactionNotifications,
                 (v) => _updateSetting('reactionNotifications', v),
-              ),
-              _buildSwitch(
-                AppLocalizations.of(context)!.notificationSettingsVAlert,
-                AppLocalizations.of(context)!.notificationSettingsVAlertDesc,
-                _focusTimeNotifications,
-                (v) => _updateSetting('focusTimeNotifications', v),
               ),
               _buildSwitch(
                 AppLocalizations.of(context)!.notificationSettingsVFire,

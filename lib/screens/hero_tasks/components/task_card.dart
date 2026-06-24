@@ -81,11 +81,10 @@ class TaskCardState extends State<TaskCard> {
     required int depth,
   }) {
     final hasTrigger = item.trigger != null && item.trigger!.isNotEmpty;
-    final hasReward = item.reward != null && item.reward!.isNotEmpty;
     final isTop = depth == 0;
 
-    // トリガーもご褒美もない場合は、単にタスク名を表示する
-    if (!hasTrigger && !hasReward) {
+    // トリガーがない場合は、単にタスク名を表示する
+    if (!hasTrigger) {
       final textStyle = GoogleFonts.notoSerifJp(
         fontSize: isTop ? 22 : 16,
         fontWeight: FontWeight.w600,
@@ -121,7 +120,6 @@ class TaskCardState extends State<TaskCard> {
       final sb = StringBuffer();
       if (hasTrigger) sb.write('${item.trigger} ➜ ');
       sb.write(item.name);
-      if (hasReward) sb.write(' + ${item.reward}');
       return Text(
         sb.toString(),
         style: GoogleFonts.notoSansJp(
@@ -167,18 +165,6 @@ class TaskCardState extends State<TaskCard> {
             ],
           ),
         ),
-        if (hasReward) ...[
-          const SizedBox(height: 6),
-          Text(
-            '+ ${item.reward!}',
-            style: GoogleFonts.notoSansJp(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.accentGold.withValues(alpha: 0.9),
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -515,7 +501,7 @@ class TaskCardState extends State<TaskCard> {
                       const SizedBox(width: 8),
                       Text(
                         item.isSeason
-                            ? AppLocalizations.of(context)!.heroTaskSeasonDaysLeft(item.season != null ? item.season!.endDate.difference(DateTime.now()).inDays.clamp(0, 999) : 0)
+                            ? '${AppLocalizations.of(context)!.heroTaskSeasonDaysLeft(item.season != null ? item.season!.endDate.difference(DateTime.now()).inDays.clamp(0, 999) : 0)} (${item.currentSeasonCount}/${item.season?.requiredPostsCount ?? 12})'
                             : item.isOneTime
                                 ? 'ONE-TIME'
                                 : 'READY',
