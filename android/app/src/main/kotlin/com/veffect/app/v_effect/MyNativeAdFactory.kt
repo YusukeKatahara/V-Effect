@@ -49,6 +49,7 @@ class MyNativeAdFactory(private val layoutInflater: LayoutInflater) : GoogleMobi
         } else {
             (adView.iconView as ImageView).setImageDrawable(nativeAd.icon?.drawable)
             adView.iconView?.visibility = View.VISIBLE
+            adView.iconView?.clipToOutline = true
         }
 
         // 3. 動画コントローラのミュート（消音）制御

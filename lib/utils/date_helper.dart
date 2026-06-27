@@ -24,4 +24,11 @@ class DateHelper {
       return 'たった今';
     }
   }
+
+  /// その週の月曜日の日付文字列 (YYYY-MM-DD) を取得します。
+  /// 週の開始は月曜日とします。
+  static String getMondayOfWeekString(DateTime date) {
+    final monday = date.subtract(Duration(days: date.weekday - 1));
+    return toDateString(monday);
+  }
 }

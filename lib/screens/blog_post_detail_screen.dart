@@ -265,14 +265,21 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
                 left: BorderSide(color: AppColors.grey30, width: 3),
               ),
             ),
-            blockquotePadding:
-                const EdgeInsets.only(left: 16, top: 4, bottom: 4),
             horizontalRuleDecoration: BoxDecoration(
               border: Border(
                 top: BorderSide(color: AppColors.grey20, width: 0.5),
               ),
             ),
-            blockSpacing: 16,
+            blockSpacing: 8,
+            // 見出しの上下余白を要素ごとに調整
+            h1Padding: const EdgeInsets.only(top: 8, bottom: 6),
+            h2Padding: const EdgeInsets.only(top: 16, bottom: 6),
+            h3Padding: const EdgeInsets.only(top: 12, bottom: 2),
+            // 段落・引用・リストの余白調整
+            pPadding: const EdgeInsets.only(bottom: 4),
+            blockquotePadding:
+                const EdgeInsets.only(left: 16, top: 6, bottom: 6),
+            listIndent: 20,
           ),
         ),
       ],

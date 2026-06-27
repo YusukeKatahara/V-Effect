@@ -21,6 +21,10 @@ import 'qr_scanner_screen.dart';
 import '../widgets/responsive_container.dart';
 import 'past_comparison_screen.dart';
 import '../widgets/shimmer_container.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/weekly_review_provider.dart';
+import 'weekly_review_screen.dart';
+
 
 // ---── コンポーネントのインポート ──
 import 'profile/components/profile_header_section.dart';
@@ -914,7 +918,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
+                  
+                  // ---── 既読時の今週の振り返りバナー（週末のみ表示） ──
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final isWeeklyReviewReadAsync = ref.watch(isWeeklyReviewReadProvider);
+                      final isWeeklyReviewRead = isWeeklyReviewReadAsync.value ?? false;
+                      final isWeekend = DateTime.now().weekday == DateTime.saturday || DateTime.now().weekday == DateTime.sunday;
+
+                      if (isWeekend && isWeeklyReviewRead) {
+                        return SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          sliver: SliverToBoxAdapter(
+                            child: _buildProfileWeeklyReviewBanner(context, ref),
+                          ),
+                        );
+                      }
+                      return const SliverToBoxAdapter(child: SizedBox.shrink());
+                    },
+                  ),
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
 
                   // ---── ヒーロータスクセクション ──
                   SliverPadding(
@@ -1295,7 +1319,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ],
     );
   }
+
+  Widget _buildProfileWeeklyReviewBanner(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () async {
+        try {
+          final posts = await _postService.getWeeklyReviewPosts();
+          final streak = await _postService.getStreak();
+          if (!context.mounted) return;
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => WeeklyReviewScreen(posts: posts, currentStreak: streak),
+            ),
+          );
+        } catch (e) {
+          debugPrint('WeeklyReview Load Error (Profile): $e');
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.bgElevated,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.accentGold.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.accentGold.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.star_rounded,
+                color: AppColors.accentGold,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'WEEKLY REVIEW 🎉',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.accentGold.withValues(alpha: 0.8),
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '今週の振り返りをもう一度見る',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.pureWhite,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white30,
+              size: 14,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+
 
 class SegmentedCircularProgressPainter extends CustomPainter {
   final double percent;

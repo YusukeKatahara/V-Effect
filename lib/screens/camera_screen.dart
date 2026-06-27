@@ -426,15 +426,18 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         bgmArtworkUrl: _selectedMusic?.artworkUrl,
       );
 
-      // 現在の streak を取得して楽観的（+1）な結果を返して即座に画面を閉じる
+      // 現在の streak と今日投稿済みフラグを取得して、適切な楽観的結果を返して即座に画面を閉じる
       final homeData = ref.read(homeDataProvider).value;
       final currentStreak = homeData?.streak ?? 0;
+      final postedToday = homeData?.postedToday ?? false;
+      // 今日すでに投稿済みの場合はストリークは増えない
+      final calculatedStreak = postedToday ? currentStreak : currentStreak + 1;
 
       if (mounted) {
         Navigator.pop(context, {
           'posted': true,
           'imagePath': _image!.path,
-          'newStreak': currentStreak + 1,
+          'newStreak': calculatedStreak,
           'isRecordUpdating': false,
         });
       }

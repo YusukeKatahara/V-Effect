@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/dev_blog_provider.dart';
+import '../../providers/weekly_review_provider.dart';
 import '../../widgets/weekly_review_banner.dart';
+
 import 'dev_blog_banner.dart';
 
 class AnnouncementArea extends ConsumerWidget {
@@ -14,8 +16,11 @@ class AnnouncementArea extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isWeeklyReviewReadAsync = ref.watch(isWeeklyReviewReadProvider);
+    final isWeeklyReviewRead = isWeeklyReviewReadAsync.value ?? false;
     final hasUnreadBlog = ref.watch(hasUnreadBlogProvider);
     final isWeekend = DateTime.now().weekday == DateTime.saturday || DateTime.now().weekday == DateTime.sunday;
+
 
     final List<Widget> banners = [];
     
@@ -23,7 +28,7 @@ class AnnouncementArea extends ConsumerWidget {
       banners.add(const DevBlogBanner());
     }
     
-    if (isWeekend) {
+    if (isWeekend && !isWeeklyReviewRead) {
       banners.add(
         SizedBox(
           height: 76,
@@ -33,6 +38,7 @@ class AnnouncementArea extends ConsumerWidget {
         ),
       );
     }
+
 
     if (banners.isEmpty) {
       return const SizedBox(height: 76);

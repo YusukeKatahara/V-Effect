@@ -12,7 +12,7 @@ class DevBlogBanner extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final postsAsync = ref.watch(blogPostsProvider);
+    final postsAsync = ref.watch(publishedBlogPostsProvider);
     final posts = postsAsync.valueOrNull;
     if (posts == null || posts.isEmpty) return const SizedBox.shrink();
 

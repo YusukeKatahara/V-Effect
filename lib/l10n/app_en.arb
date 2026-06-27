@@ -937,5 +937,11 @@
         "type": "int"
       }
     }
-  }
+  },
+  "blogPostEditorSaveDraft": "Save as Draft",
+  "blogPostEditorStatusDraft": "Draft",
+  "blogPostEditorPublish": "Publish",
+  "blogPostEditorSaveAndPublish": "Publish & Save",
+  "blogPostEditorUpdateAndPublish": "Publish & Update",
+  "blogPostEditorRevertToDraft": "Revert to Draft"
 }

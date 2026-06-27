@@ -38,6 +38,7 @@ class DevBlogPost {
     required this.updatedAt,
     this.titleEn,
     this.bodyEn,
+    this.isDraft = false,
   });
 
   final String id;
@@ -52,6 +53,7 @@ class DevBlogPost {
   final DateTime updatedAt;
   final String? titleEn;
   final String? bodyEn;
+  final bool isDraft;
 
   // ── フィールド名定数 ──
   static const String fieldTitle = 'title';
@@ -65,6 +67,7 @@ class DevBlogPost {
   static const String fieldUpdatedAt = 'updatedAt';
   static const String fieldTitleEn = 'titleEn';
   static const String fieldBodyEn = 'bodyEn';
+  static const String fieldIsDraft = 'isDraft';
 
   static DevBlogPost fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>?;
@@ -89,6 +92,7 @@ class DevBlogPost {
         updatedAt: (data[fieldUpdatedAt] as Timestamp?)?.toDate() ?? DateTime.now(),
         titleEn: data[fieldTitleEn]?.toString(),
         bodyEn: data[fieldBodyEn]?.toString(),
+        isDraft: data[fieldIsDraft] == true,
       );
     } catch (e) {
       debugPrint('Error parsing DevBlogPost $id: $e');
@@ -102,6 +106,7 @@ class DevBlogPost {
         isPinned: false,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        isDraft: false,
       );
     }
   }
@@ -118,6 +123,7 @@ class DevBlogPost {
         fieldUpdatedAt: Timestamp.fromDate(updatedAt),
         fieldTitleEn: titleEn,
         fieldBodyEn: bodyEn,
+        fieldIsDraft: isDraft,
       };
 
   DevBlogPost copyWith({
@@ -129,6 +135,7 @@ class DevBlogPost {
     DateTime? updatedAt,
     String? titleEn,
     String? bodyEn,
+    bool? isDraft,
   }) {
     return DevBlogPost(
       id: id,
@@ -143,6 +150,7 @@ class DevBlogPost {
       updatedAt: updatedAt ?? this.updatedAt,
       titleEn: titleEn ?? this.titleEn,
       bodyEn: bodyEn ?? this.bodyEn,
+      isDraft: isDraft ?? this.isDraft,
     );
   }
 }

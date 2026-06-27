@@ -2093,4 +2093,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String timeDaysAgo(int count) {
     return '$count日';
   }
+
+  @override
+  String get blogPostEditorSaveDraft => '下書きとして保存';
+
+  @override
+  String get blogPostEditorStatusDraft => '下書き';
+
+  @override
+  String get blogPostEditorPublish => '公開する';
+
+  @override
+  String get blogPostEditorSaveAndPublish => '公開して保存';
+
+  @override
+  String get blogPostEditorUpdateAndPublish => '公開して更新';
+
+  @override
+  String get blogPostEditorRevertToDraft => '下書きに戻す';
 }

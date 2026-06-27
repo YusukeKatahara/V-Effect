@@ -2093,4 +2093,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String timeDaysAgo(int count) {
     return '${count}d';
   }
+
+  @override
+  String get blogPostEditorSaveDraft => 'Save as Draft';
+
+  @override
+  String get blogPostEditorStatusDraft => 'Draft';
+
+  @override
+  String get blogPostEditorPublish => 'Publish';
+
+  @override
+  String get blogPostEditorSaveAndPublish => 'Publish & Save';
+
+  @override
+  String get blogPostEditorUpdateAndPublish => 'Publish & Update';
+
+  @override
+  String get blogPostEditorRevertToDraft => 'Revert to Draft';
 }

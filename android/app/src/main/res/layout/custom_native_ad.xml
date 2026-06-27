@@ -38,46 +38,31 @@
             android:focusable="true"/>
 
         <!-- 4. Text and Interactive Elements Area at the bottom -->
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
-            android:padding="16dp">
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="32dp"
+            android:orientation="horizontal"
+            android:gravity="bottom">
 
             <!-- App/Advertiser Icon -->
             <ImageView
                 android:id="@+id/ad_app_icon"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_alignParentStart="true"
-                android:layout_alignParentTop="true"
-                android:layout_marginEnd="12dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/ad_circle_bg"
                 android:scaleType="centerCrop"
                 tools:src="@android:drawable/sym_def_app_icon" />
 
-            <!-- CTA Button (Download / Open) -->
-            <Button
-                android:id="@+id/ad_call_to_action"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/ad_cta_button_bg"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                tools:text="INSTALL" />
-
             <!-- Headline and Body layout -->
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_toEndOf="@id/ad_app_icon"
-                android:layout_toStartOf="@id/ad_call_to_action"
+                android:layout_weight="1"
                 android:orientation="vertical">
 
                 <!-- Headline -->
@@ -88,8 +73,12 @@
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textColor="#FFFFFF"
-                    android:textSize="15sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
+                    android:shadowColor="#99000000"
+                    android:shadowDx="0"
+                    android:shadowDy="2"
+                    android:shadowRadius="4"
                     tools:text="App Name" />
 
                 <!-- Body -->
@@ -100,13 +89,31 @@
                     android:layout_marginTop="2dp"
                     android:ellipsize="end"
                     android:maxLines="2"
-                    android:textColor="#CCCCCC"
-                    android:textSize="11sp"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
+                    android:shadowColor="#99000000"
+                    android:shadowDx="0"
+                    android:shadowDy="2"
+                    android:shadowRadius="4"
                     tools:text="This is the description of the advertiser app." />
 
             </LinearLayout>
 
-        </RelativeLayout>
+            <!-- CTA Button (Download / Open) -->
+            <Button
+                android:id="@+id/ad_call_to_action"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/ad_cta_button_bg"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                tools:text="INSTALL" />
+
+        </LinearLayout>
 
     </FrameLayout>
 </com.google.android.gms.ads.nativead.NativeAdView>

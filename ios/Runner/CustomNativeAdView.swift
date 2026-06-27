@@ -47,11 +47,28 @@ class CustomNativeAdView: NativeAdView {
 
         // データの割り当て
         customMediaView.mediaContent = nativeAd.mediaContent
-        customHeadlineLabel.text = nativeAd.headline
         
+        // 見出しのフォントとシャドウ設定 (通常投稿の名前と同じ14sp, Bold)
+        customHeadlineLabel.text = nativeAd.headline
+        customHeadlineLabel.font = UIFont.systemFont(ofSize: 14, weight: .bold)
+        customHeadlineLabel.textColor = .white
+        customHeadlineLabel.layer.shadowColor = UIColor.black.cgColor
+        customHeadlineLabel.layer.shadowRadius = 4.0
+        customHeadlineLabel.layer.shadowOpacity = 0.6
+        customHeadlineLabel.layer.shadowOffset = CGSize(width: 0, height: 1)
+        customHeadlineLabel.layer.masksToBounds = false
+        
+        // 説明文のフォントとシャドウ設定 (通常投稿のキャプションと同じ15sp, Regular)
         if let body = nativeAd.body {
             customBodyLabel.text = body
             customBodyLabel.isHidden = false
+            customBodyLabel.font = UIFont.systemFont(ofSize: 15, weight: .regular)
+            customBodyLabel.textColor = .white
+            customBodyLabel.layer.shadowColor = UIColor.black.cgColor
+            customBodyLabel.layer.shadowRadius = 4.0
+            customBodyLabel.layer.shadowOpacity = 0.6
+            customBodyLabel.layer.shadowOffset = CGSize(width: 0, height: 1)
+            customBodyLabel.layer.masksToBounds = false
         } else {
             customBodyLabel.isHidden = true
         }
@@ -69,13 +86,29 @@ class CustomNativeAdView: NativeAdView {
             customCallToActionButton.isHidden = true
         }
 
+        // 動的なアバター制約調整と円形化
+        let widthConstraint = customIconImageView.constraints.first(where: { $0.firstAttribute == .width })
+        let heightConstraint = customIconImageView.constraints.first(where: { $0.firstAttribute == .height })
+        let textStack = customHeadlineLabel.superview
+        let spacingConstraint = customIconImageView.superview?.constraints.first(where: {
+            ($0.firstItem as? UIView == textStack && $0.secondItem as? UIView == customIconImageView) ||
+            ($0.secondItem as? UIView == textStack && $0.firstItem as? UIView == customIconImageView)
+        })
+
         if let icon = nativeAd.icon {
             customIconImageView.image = icon.image
             customIconImageView.isHidden = false
-            customIconImageView.layer.cornerRadius = 20
+            customIconImageView.layer.cornerRadius = 16 // 32x32の円
             customIconImageView.clipsToBounds = true
+            
+            widthConstraint?.constant = 32
+            heightConstraint?.constant = 32
+            spacingConstraint?.constant = 8
         } else {
             customIconImageView.isHidden = true
+            widthConstraint?.constant = 0
+            heightConstraint?.constant = 0
+            spacingConstraint?.constant = 0
         }
 
         // ビデオの初期ミュート制御

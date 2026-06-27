@@ -937,5 +937,11 @@
         "type": "int"
       }
     }
-  }
+  },
+  "blogPostEditorSaveDraft": "下書きとして保存",
+  "blogPostEditorStatusDraft": "下書き",
+  "blogPostEditorPublish": "公開する",
+  "blogPostEditorSaveAndPublish": "公開して保存",
+  "blogPostEditorUpdateAndPublish": "公開して更新",
+  "blogPostEditorRevertToDraft": "下書きに戻す"
 }

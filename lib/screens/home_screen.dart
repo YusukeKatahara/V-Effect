@@ -28,7 +28,9 @@ import '../widgets/home/friend_request_banner.dart';
 import '../widgets/home/announcement_area.dart';
 import '../widgets/home/home_empty_state.dart';
 import 'weekly_review_screen.dart';
+import '../providers/weekly_review_provider.dart';
 import '../services/migration_service.dart';
+
 import '../providers/home_provider.dart';
 import '../providers/upload_provider.dart';
 import '../widgets/upload_progress_bar.dart';
@@ -725,7 +727,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final streak = await _postService.getStreak();
       if (!mounted) return;
 
+      // 今週の振り返りを既読（一度開いた）状態にする
+      await markWeeklyReviewAsRead(ref);
+
       Navigator.push(
+
         context,
         MaterialPageRoute(
           builder:

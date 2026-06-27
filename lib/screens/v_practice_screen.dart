@@ -72,14 +72,17 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
             ),
             Expanded(
               child: postsAsync.when(
-                data: (posts) => posts.isEmpty
-                    ? const _EmptyState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                        itemCount: posts.length,
-                        itemBuilder: (context, i) =>
-                            _BlogCard(post: posts[i]),
-                      ),
+                data: (allPosts) {
+                  final posts = isDev ? allPosts : allPosts.where((p) => !p.isDraft).toList();
+                  return posts.isEmpty
+                      ? const _EmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                          itemCount: posts.length,
+                          itemBuilder: (context, i) =>
+                              _BlogCard(post: posts[i]),
+                        );
+                },
                 loading: () => Center(
                   child: CircularProgressIndicator(
                     color: AppColors.white,
@@ -120,9 +123,11 @@ class _BlogCard extends ConsumerWidget {
         AppRoutes.blogPostDetail,
         arguments: post,
       ),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
+      child: Opacity(
+        opacity: post.isDraft ? 0.7 : 1.0,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
           color: AppColors.grey10,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.grey20, width: 0.5),
@@ -155,6 +160,26 @@ class _BlogCard extends ConsumerWidget {
                   Row(
                     children: [
                       _CategoryBadge(category: post.category),
+                      if (post.isDraft) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppColors.error, width: 0.5),
+                          ),
+                          child: Text(
+                            AppLocalizations.of(context)!.blogPostEditorStatusDraft,
+                            style: GoogleFonts.outfit(
+                              fontSize: 11,
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ),
+                      ],
                       if (post.isPinned) ...[
                         const SizedBox(width: 8),
                         Icon(
@@ -191,6 +216,7 @@ class _BlogCard extends ConsumerWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

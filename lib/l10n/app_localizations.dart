@@ -4066,6 +4066,42 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'{count}日'**
   String timeDaysAgo(int count);
+
+  /// No description provided for @blogPostEditorSaveDraft.
+  ///
+  /// In ja, this message translates to:
+  /// **'下書きとして保存'**
+  String get blogPostEditorSaveDraft;
+
+  /// No description provided for @blogPostEditorStatusDraft.
+  ///
+  /// In ja, this message translates to:
+  /// **'下書き'**
+  String get blogPostEditorStatusDraft;
+
+  /// No description provided for @blogPostEditorPublish.
+  ///
+  /// In ja, this message translates to:
+  /// **'公開する'**
+  String get blogPostEditorPublish;
+
+  /// No description provided for @blogPostEditorSaveAndPublish.
+  ///
+  /// In ja, this message translates to:
+  /// **'公開して保存'**
+  String get blogPostEditorSaveAndPublish;
+
+  /// No description provided for @blogPostEditorUpdateAndPublish.
+  ///
+  /// In ja, this message translates to:
+  /// **'公開して更新'**
+  String get blogPostEditorUpdateAndPublish;
+
+  /// No description provided for @blogPostEditorRevertToDraft.
+  ///
+  /// In ja, this message translates to:
+  /// **'下書きに戻す'**
+  String get blogPostEditorRevertToDraft;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

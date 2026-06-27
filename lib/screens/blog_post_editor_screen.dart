@@ -37,6 +37,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
   String? _existingCoverUrl;
   bool _isSaving = false;
   bool _previewMode = false;
+  bool _isDraft = false;
 
   bool _isSeasonTask = false;
   final _seasonTaskNameController = TextEditingController();
@@ -60,6 +61,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
       _category = arg.category;
       _isPinned = arg.isPinned;
       _existingCoverUrl = arg.coverImageUrl;
+      _isDraft = arg.isDraft;
     }
   }
 
@@ -196,7 +198,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
     }
   }
 
-  Future<void> _save() async {
+  Future<void> _save({bool asDraft = false}) async {
     final title = _titleController.text.trim();
     final titleEn = _titleEnController.text.trim();
     final body = _bodyController.text.trim();
@@ -231,6 +233,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
           updatedAt: now,
           titleEn: titleEn.isNotEmpty ? titleEn : null,
           bodyEn: bodyEn.isNotEmpty ? bodyEn : null,
+          isDraft: asDraft,
         );
         await ref.read(devBlogServiceProvider).createPost(post);
 
@@ -272,6 +275,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
           updatedAt: now,
           titleEn: titleEn.isNotEmpty ? titleEn : null,
           bodyEn: bodyEn.isNotEmpty ? bodyEn : null,
+          isDraft: asDraft,
         );
         await ref.read(devBlogServiceProvider).updatePost(updated);
 
@@ -387,7 +391,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
             )
           else
             TextButton(
-              onPressed: _isSaving ? null : _save,
+              onPressed: _isSaving ? null : () => _save(asDraft: _isDraft),
               child: Text(
                 isEditing ? AppLocalizations.of(context)!.blogPostEditorUpdateButton : AppLocalizations.of(context)!.blogPostEditorPostButton,
                 style: GoogleFonts.outfit(
@@ -424,11 +428,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
           const SizedBox(height: 24),
           _buildSeasonTaskToggle(),
           const SizedBox(height: 32),
-          GradientButton(
-            isLoading: _isSaving,
-            onPressed: _isSaving ? null : _save,
-            child: Text(isEditing ? AppLocalizations.of(context)!.blogPostEditorArticleUpdate : AppLocalizations.of(context)!.blogPostEditorArticlePost),
-          ),
+          _buildActionButtons(isEditing),
         ],
       ),
     );
@@ -1294,6 +1294,79 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
         },
       ),
     );
+  }
+
+  Widget _buildActionButtons(bool isEditing) {
+    final l = AppLocalizations.of(context)!;
+    if (_isSaving) {
+      return Center(
+        child: CircularProgressIndicator(color: AppColors.white, strokeWidth: 1.5),
+      );
+    }
+
+    if (!isEditing || _isDraft) {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => _save(asDraft: true),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.white,
+                side: BorderSide(color: AppColors.grey30, width: 0.5),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                l.blogPostEditorSaveDraft,
+                style: GoogleFonts.notoSansJp(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: GradientButton(
+              isLoading: false,
+              onPressed: () => _save(asDraft: false),
+              child: Text(
+                isEditing ? l.blogPostEditorPublish : l.blogPostEditorSaveAndPublish,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => _save(asDraft: true),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.error,
+                side: BorderSide(color: AppColors.error.withValues(alpha: 0.3), width: 0.5),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                l.blogPostEditorRevertToDraft,
+                style: GoogleFonts.notoSansJp(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: GradientButton(
+              isLoading: false,
+              onPressed: () => _save(asDraft: false),
+              child: Text(
+                l.blogPostEditorUpdateAndPublish,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
   }
 
   InputDecoration _inputDecoration(String hint) {

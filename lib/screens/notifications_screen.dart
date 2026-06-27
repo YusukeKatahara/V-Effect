@@ -13,6 +13,9 @@ import '../widgets/swipe_back_gate.dart';
 import '../widgets/shimmer_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/service_providers.dart';
+import '../providers/dev_blog_provider.dart';
+import '../providers/language_provider.dart';
+import '../models/dev_blog_post.dart';
 
 /// 通知画面
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -513,170 +516,177 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ),
         ],
       ),
-      body: StreamBuilder<List<AppNotification>>(
-        stream: _notificationsStream,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                AppLocalizations.of(context)!.notificationsError(snapshot.error ?? ''),
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-            );
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return _buildNotificationSkeleton();
-          }
-
-          final notifications = snapshot.data ?? [];
-
-          // データ受信時に一度だけ既読処理を行う（初期の未読状態をキャッシュ）
-          if (!_hasMarkedRead && notifications.isNotEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!_hasMarkedRead) {
-                _hasMarkedRead = true;
-                for (final n in notifications) {
-                  if (!n.isRead) _initialUnreadIds.add(n.id);
+      body: Column(
+        children: [
+          _buildAnnouncementBanner(),
+          Expanded(
+            child: StreamBuilder<List<AppNotification>>(
+              stream: _notificationsStream,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      AppLocalizations.of(context)!.notificationsError(snapshot.error ?? ''),
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  );
                 }
-                _notificationService.markAllAsRead().catchError((_) {});
-                if (mounted) setState(() {});
-              }
-            });
-          }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildNotificationSkeleton();
+                }
 
-          if (notifications.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.bgSurface,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.white.withValues(alpha: 0.08),
-                          blurRadius: 24,
-                          spreadRadius: 2,
+                final notifications = snapshot.data ?? [];
+
+                // データ受信時に一度だけ既読処理を行う（初期の未読状態をキャッシュ）
+                if (!_hasMarkedRead && notifications.isNotEmpty) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!_hasMarkedRead) {
+                      _hasMarkedRead = true;
+                      for (final n in notifications) {
+                        if (!n.isRead) _initialUnreadIds.add(n.id);
+                      }
+                      _notificationService.markAllAsRead().catchError((_) {});
+                      if (mounted) setState(() {});
+                    }
+                  });
+                }
+
+                if (notifications.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.bgSurface,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.white.withValues(alpha: 0.08),
+                                blurRadius: 24,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.notifications_off_outlined,
+                            size: 32,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          AppLocalizations.of(context)!.notificationsEmpty,
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 16),
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.notifications_off_outlined,
-                      size: 32,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    AppLocalizations.of(context)!.notificationsEmpty,
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 16),
-                  ),
-                ],
-              ),
-            );
-          }
+                  );
+                }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: notifications.length,
-            itemBuilder: (context, index) {
-              final notif = notifications[index];
-              final isUnread =
-                  _initialUnreadIds.contains(notif.id) || !notif.isRead;
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: notifications.length,
+                  itemBuilder: (context, index) {
+                    final notif = notifications[index];
+                    final isUnread =
+                        _initialUnreadIds.contains(notif.id) || !notif.isRead;
 
-              return Dismissible(
-                key: Key(notif.id),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  color: AppColors.error.withValues(alpha: 0.8),
-                  child: Icon(Icons.delete_outline, color: AppColors.white),
-                ),
-                onDismissed: (_) => _deleteNotification(notif.id),
-                child: Material(
-                  color:
-                      isUnread
-                          ? AppColors.accentGold.withValues(alpha: 0.05)
-                          : Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      if (notif.fromUid != null) {
-                        Navigator.pushNamed(
-                          context,
-                          '/user-profile',
-                          arguments: notif.fromUid,
-                        );
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
+                    return Dismissible(
+                      key: Key(notif.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        color: AppColors.error.withValues(alpha: 0.8),
+                        child: Icon(Icons.delete_outline, color: AppColors.white),
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // アバター
-                          SizedBox(
-                            width: 44,
-                            height: 44,
-                            child: _buildAvatar(notif),
-                          ),
-                          const SizedBox(width: 14),
-
-                          // コンテンツ
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      onDismissed: (_) => _deleteNotification(notif.id),
+                      child: Material(
+                        color:
+                            isUnread
+                                ? AppColors.accentGold.withValues(alpha: 0.05)
+                                : Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            if (notif.fromUid != null) {
+                              Navigator.pushNamed(
+                                context,
+                                '/user-profile',
+                                arguments: notif.fromUid,
+                              );
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                _buildNotificationBody(notif, isUnread),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    Text(
-                                      DateHelper.timeAgo(notif.createdAt),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: AppColors.textMuted,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    if (isUnread) ...[
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        width: 4,
-                                        height: 4,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.accentGold,
-                                          shape: BoxShape.circle,
-                                        ),
+                                // アバター
+                                SizedBox(
+                                  width: 44,
+                                  height: 44,
+                                  child: _buildAvatar(notif),
+                                ),
+                                const SizedBox(width: 14),
+
+                                // コンテンツ
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _buildNotificationBody(notif, isUnread),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            DateHelper.timeAgo(notif.createdAt),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textMuted,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          if (isUnread) ...[
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              width: 4,
+                                              height: 4,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.accentGold,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ],
-                                  ],
+                                  ),
                                 ),
+                                if (notif.type == NotificationType.friendRequestReceived || notif.type == NotificationType.seasonTaskDistributed) ...[
+                                  const SizedBox(width: 12),
+                                  if (notif.type == NotificationType.friendRequestReceived)
+                                    _buildFriendRequestTrailing(notif)
+                                  else
+                                    _buildSeasonTaskTrailing(notif),
+                                ],
                               ],
                             ),
                           ),
-                          if (notif.type == NotificationType.friendRequestReceived || notif.type == NotificationType.seasonTaskDistributed) ...[
-                            const SizedBox(width: 12),
-                            if (notif.type == NotificationType.friendRequestReceived)
-                              _buildFriendRequestTrailing(notif)
-                            else
-                              _buildSeasonTaskTrailing(notif),
-                          ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     ),
     );
@@ -731,6 +741,152 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
         children: spans,
       ),
+    );
+  }
+
+  /// 最新のお知らせバナーを構築する
+  Widget _buildAnnouncementBanner() {
+    final blogPostsAsync = ref.watch(publishedBlogPostsProvider);
+    return blogPostsAsync.when(
+      data: (posts) {
+        if (posts.isEmpty) return const SizedBox.shrink();
+
+        // ピン留めされているものを最優先、なければ最新の1件を取得
+        final post = posts.firstWhere(
+          (p) => p.isPinned,
+          orElse: () => posts.first,
+        );
+
+        final lang = ref.watch(languageProvider);
+        final isEnglish = lang == 'en';
+        final title = isEnglish && post.titleEn != null && post.titleEn!.isNotEmpty
+            ? post.titleEn!
+            : post.title;
+
+        // この特定のポストが未読かどうか判定する
+        final lastViewedAsync = ref.watch(lastViewedDevBlogAtProvider);
+        final isUnread = lastViewedAsync.when(
+          data: (lastViewed) {
+            if (lastViewed == null) return true;
+            return post.createdAt.isAfter(lastViewed);
+          },
+          loading: () => false,
+          error: (_, __) => false,
+        );
+
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          decoration: BoxDecoration(
+            color: AppColors.grey10,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.grey20, width: 0.5),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                // 既読にする
+                markDevBlogAsRead(ref);
+                // 詳細画面へ遷移
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.blogPostDetail,
+                  arguments: post,
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    // メガホンアイコンと未読ドット
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(
+                          Icons.campaign_rounded,
+                          color: isUnread ? AppColors.accentGold : AppColors.grey50,
+                          size: 24,
+                        ),
+                        if (isUnread)
+                          Positioned(
+                            right: -2,
+                            top: -2,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: AppColors.accentGold,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+                    // カテゴリバッジとタイトル
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.grey15,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: AppColors.grey20, width: 0.5),
+                                ),
+                                child: Text(
+                                  post.category.label,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.grey70,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              if (post.isPinned) ...[
+                                const SizedBox(width: 6),
+                                Icon(
+                                  Icons.push_pin_rounded,
+                                  size: 10,
+                                  color: AppColors.accentGold,
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.grey50,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }

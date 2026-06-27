@@ -7,6 +7,16 @@ final blogPostsProvider = StreamProvider<List<DevBlogPost>>((ref) {
   return DevBlogService.instance.getPosts();
 });
 
+/// 公開済みのお知らせのみをフィルタリングして提供するプロバイダー
+final publishedBlogPostsProvider = Provider<AsyncValue<List<DevBlogPost>>>((ref) {
+  final postsAsync = ref.watch(blogPostsProvider);
+  return postsAsync.when(
+    data: (posts) => AsyncValue.data(posts.where((p) => !p.isDraft).toList()),
+    loading: () => const AsyncValue.loading(),
+    error: (err, stack) => AsyncValue.error(err, stack),
+  );
+});
+
 final isDeveloperProvider = FutureProvider<bool>((ref) {
   return DevBlogService.instance.isDeveloper();
 });
@@ -21,7 +31,7 @@ final lastViewedDevBlogAtProvider = FutureProvider<DateTime?>((ref) async {
 });
 
 final hasUnreadBlogProvider = Provider<bool>((ref) {
-  final postsAsync = ref.watch(blogPostsProvider);
+  final postsAsync = ref.watch(publishedBlogPostsProvider);
   final lastViewedAsync = ref.watch(lastViewedDevBlogAtProvider);
 
   if (!postsAsync.hasValue || !lastViewedAsync.hasValue) {
