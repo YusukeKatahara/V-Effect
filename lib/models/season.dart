@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Season {
@@ -11,6 +12,17 @@ class Season {
   final String? relatedBlogId;
   final String? badgeImageUrl;
   final String? badgeAnimation;
+
+  // ── フィールド名定数 ──
+  static const String fieldTaskName = 'taskName';
+  static const String fieldStartDate = 'startDate';
+  static const String fieldEndDate = 'endDate';
+  static const String fieldRequiredPostsCount = 'requiredPostsCount';
+  static const String fieldHintTitle = 'hintTitle';
+  static const String fieldHintBody = 'hintBody';
+  static const String fieldRelatedBlogId = 'relatedBlogId';
+  static const String fieldBadgeImageUrl = 'badgeImageUrl';
+  static const String fieldBadgeAnimation = 'badgeAnimation';
 
   const Season({
     required this.id,
@@ -27,32 +39,46 @@ class Season {
 
   Map<String, dynamic> toFirestore() {
     return {
-      'taskName': taskName,
-      'startDate': Timestamp.fromDate(startDate),
-      'endDate': Timestamp.fromDate(endDate),
-      'requiredPostsCount': requiredPostsCount,
-      if (hintTitle != null) 'hintTitle': hintTitle,
-      if (hintBody != null) 'hintBody': hintBody,
-      if (relatedBlogId != null) 'relatedBlogId': relatedBlogId,
-      if (badgeImageUrl != null) 'badgeImageUrl': badgeImageUrl,
-      if (badgeAnimation != null) 'badgeAnimation': badgeAnimation,
+      fieldTaskName: taskName,
+      fieldStartDate: Timestamp.fromDate(startDate),
+      fieldEndDate: Timestamp.fromDate(endDate),
+      fieldRequiredPostsCount: requiredPostsCount,
+      if (hintTitle != null) fieldHintTitle: hintTitle,
+      if (hintBody != null) fieldHintBody: hintBody,
+      if (relatedBlogId != null) fieldRelatedBlogId: relatedBlogId,
+      if (badgeImageUrl != null) fieldBadgeImageUrl: badgeImageUrl,
+      if (badgeAnimation != null) fieldBadgeAnimation: badgeAnimation,
     };
   }
 
   factory Season.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
-    return Season(
-      id: doc.id,
-      taskName: data['taskName'] as String? ?? '',
-      startDate: (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      endDate: (data['endDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      requiredPostsCount: data['requiredPostsCount'] as int? ?? 12,
-      hintTitle: data['hintTitle'] as String?,
-      hintBody: data['hintBody'] as String?,
-      relatedBlogId: data['relatedBlogId'] as String?,
-      badgeImageUrl: data['badgeImageUrl'] as String?,
-      badgeAnimation: data['badgeAnimation'] as String? ?? 'none',
-    );
+    return Season.fromMap(doc.id, data);
+  }
+
+  factory Season.fromMap(String id, Map<String, dynamic> data) {
+    try {
+      return Season(
+        id: id,
+        taskName: data[fieldTaskName]?.toString() ?? '',
+        startDate: (data[fieldStartDate] as Timestamp?)?.toDate() ?? DateTime.now(),
+        endDate: (data[fieldEndDate] as Timestamp?)?.toDate() ?? DateTime.now(),
+        requiredPostsCount: (data[fieldRequiredPostsCount] as num?)?.toInt() ?? 12,
+        hintTitle: data[fieldHintTitle]?.toString(),
+        hintBody: data[fieldHintBody]?.toString(),
+        relatedBlogId: data[fieldRelatedBlogId]?.toString(),
+        badgeImageUrl: data[fieldBadgeImageUrl]?.toString(),
+        badgeAnimation: data[fieldBadgeAnimation]?.toString() ?? 'none',
+      );
+    } catch (e) {
+      debugPrint('Error parsing Season $id: $e');
+      return Season(
+        id: id,
+        taskName: 'Error loading season',
+        startDate: DateTime.now(),
+        endDate: DateTime.now(),
+      );
+    }
   }
 
   static Season createFallback(String taskName, {String? seasonId}) {

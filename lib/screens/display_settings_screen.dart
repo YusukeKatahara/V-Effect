@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,7 +13,7 @@ import '../widgets/responsive_container.dart';
 import '../models/app_user.dart';
 
 /// 表示とデザイン（テーマ切り替え）を行う画面
-class DisplaySettingsScreen extends StatelessWidget {
+class DisplaySettingsScreen extends ConsumerWidget {
   const DisplaySettingsScreen({super.key});
 
   /// プレビュー表示用およびデータ取得エラー時のフォールバック用ダミーユーザー情報
@@ -28,9 +28,8 @@ class DisplaySettingsScreen extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
-    final currentMode = themeProvider.themeMode;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentMode = ref.watch(themeProvider);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -114,7 +113,7 @@ class DisplaySettingsScreen extends StatelessWidget {
                       icon: Icons.light_mode,
                       isSelected: currentMode == ThemeMode.light,
                       mode: ThemeMode.light,
-                      onTap: () => themeProvider.setThemeMode(ThemeMode.light),
+                      onTap: () => ref.read(themeProvider.notifier).setThemeMode(ThemeMode.light),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -124,7 +123,7 @@ class DisplaySettingsScreen extends StatelessWidget {
                       icon: Icons.dark_mode,
                       isSelected: currentMode == ThemeMode.dark,
                       mode: ThemeMode.dark,
-                      onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
+                      onTap: () => ref.read(themeProvider.notifier).setThemeMode(ThemeMode.dark),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -134,7 +133,7 @@ class DisplaySettingsScreen extends StatelessWidget {
                       icon: Icons.brightness_auto,
                       isSelected: currentMode == ThemeMode.system,
                       mode: ThemeMode.system,
-                      onTap: () => themeProvider.setThemeMode(ThemeMode.system),
+                      onTap: () => ref.read(themeProvider.notifier).setThemeMode(ThemeMode.system),
                     ),
                   ),
                 ],

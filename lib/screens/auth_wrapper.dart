@@ -2,24 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/routes.dart';
 import '../services/analytics_service.dart';
 import '../services/user_service.dart';
+import '../providers/service_providers.dart';
 import '../widgets/splash_loading.dart';
 import '../widgets/global_error_widget.dart';
 import 'login_screen.dart';
 import 'dart:async';
 
 /// 認証状態とプロフィール完了状態を監視し、適切な画面へルーティングするラッパー
-class AuthWrapper extends StatefulWidget {
+class AuthWrapper extends ConsumerStatefulWidget {
   const AuthWrapper({super.key});
 
   @override
-  State<AuthWrapper> createState() => _AuthWrapperState();
+  ConsumerState<AuthWrapper> createState() => _AuthWrapperState();
 }
 
-class _AuthWrapperState extends State<AuthWrapper> {
+class _AuthWrapperState extends ConsumerState<AuthWrapper> {
   // アプリ起動後に AuthWrapper が初めて評価されるタイミングだけ true。
   // cold-start + オンボーディング未完了の組み合わせで「サイレントログアウト」を発火させるためのゲート。
   static bool _isFirstLaunch = true;
@@ -79,7 +81,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         if (_lastUid != user.uid) {
           _lastUid = user.uid;
           _navigating = false;
-          AnalyticsService.instance.setUserId(user.uid);
+          ref.read(analyticsServiceProvider).setUserId(user.uid);
           
           _userDocFuture = _fetchUserDocWithCacheBypass(user.uid);
         }
@@ -143,7 +145,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
             final totalPosts = data?['totalPosts'];
             final totalPostsMigrated = data?['totalPostsMigrated'] == true;
             if (!totalPostsMigrated || totalPosts == null || totalPosts == -1) {
-              UserService.instance.migrateTotalPosts(user.uid);
+              ref.read(userServiceProvider).migrateTotalPosts(user.uid);
             }
 
             final isOnboardingCompleted = data?['onboardingCompleted'] == true;

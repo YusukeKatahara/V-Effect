@@ -11,16 +11,11 @@ import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/post.dart';
 import '../models/app_task.dart';
-import '../models/app_user.dart';
 import '../models/season.dart';
-import '../services/analytics_service.dart';
-import '../services/post_service.dart';
-import '../services/user_service.dart';
 import '../widgets/shimmer_container.dart';
 import '../widgets/streak_flame.dart';
 import '../widgets/v_effect_header.dart';
 import '../widgets/frictionless_page_scroll_physics.dart';
-import '../services/sound_service.dart';
 import 'camera_screen.dart';
 import '../widgets/entropic_conversion_overlay.dart';
 import '../widgets/post_success_dialog.dart';
@@ -28,31 +23,25 @@ import '../widgets/season_hint_modal.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'main_shell.dart';
 import '../providers/dev_blog_provider.dart';
-import '../services/app_review_service.dart';
+import '../providers/service_providers.dart';
+import '../providers/hero_tasks_provider.dart';
 import 'hero_tasks/components/hero_task_item.dart';
 import 'hero_tasks/components/task_card.dart';
 import 'hero_task_share_preview_screen.dart';
 
 
 
-class HeroTasksScreen extends StatefulWidget {
+class HeroTasksScreen extends ConsumerStatefulWidget {
   final ValueChanged<bool>? onLoadingChanged;
 
   const HeroTasksScreen({super.key, this.onLoadingChanged});
 
   @override
-  State<HeroTasksScreen> createState() => _HeroTasksScreenState();
+  ConsumerState<HeroTasksScreen> createState() => _HeroTasksScreenState();
 }
 
-class _HeroTasksScreenState extends State<HeroTasksScreen>
+class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  final PostService _postService = PostService.instance;
-  final UserService _userService = UserService.instance;
-  final AnalyticsService _analytics = AnalyticsService.instance;
-  final SoundService _soundService = SoundService.instance;
-  StreamSubscription? _updateSubscription;
-  StreamSubscription? _userUpdateSubscription;
-
   int _streak = 0;
   int _streakProtections = 0;
   bool _loading = true;
@@ -112,7 +101,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             // スワイプが始まったら拡大状態を解除
             if (_expandedIndex != null) {
               setState(() => _expandedIndex = null);
-              SoundService.instance.stopBgm();
+              ref.read(soundServiceProvider).stopBgm();
               return;
             }
             _scrollPositionNotifier.value = page;
@@ -123,7 +112,6 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           }
         }
       });
-    _loadData();
 
     _sublimationController = AnimationController(
       vsync: this,
@@ -191,24 +179,13 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
     // チュートリアルの表示状態を判定して初期化
     _initSwipeGuide();
-
-    // データの更新通知を監視
-    _updateSubscription = _postService.updateStream.listen((_) {
-      if (mounted) _loadData();
-    });
-    // ヒーロータスク変更の通知を監視
-    _userUpdateSubscription = _userService.updateStream.listen((_) {
-      if (mounted) _loadData();
-    });
   }
 
   @override
   void dispose() {
     MainShell.activeTabIndex.removeListener(_onTabChanged);
     WidgetsBinding.instance.removeObserver(this);
-    _soundService.stopBgm();
-    _updateSubscription?.cancel();
-    _userUpdateSubscription?.cancel();
+    ref.read(soundServiceProvider).stopBgm();
     _pageController.dispose();
     _sublimationController.dispose();
     _swipeGuideController.dispose();
@@ -242,131 +219,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     await prefs.setBool('v_quest_swipe_tutorial_shown', true);
   }
 
-  Future<void> _loadData() async {
-    try {
-      final homeData = await _postService.getHomeData();
-      final friendUids =
-          (homeData['friends'] as List<dynamic>?)?.cast<String>() ?? [];
 
-      if (!mounted) return;
-
-      final allTasks = (homeData['tasks'] as List<dynamic>?)?.cast<AppTask>() ?? [];
-      
-      // ワンタイムタスクのクリーンアップ（期限切れを削除）
-      final uid = _userService.currentUid;
-      if (uid != null) {
-        final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-        if (snap.exists) {
-          final user = AppUser.fromFirestore(snap);
-          await _userService.cleanupExpiredTasks(user);
-          // クリーンアップされた可能性があるため、再ロードが必要な場合はここで再取得するか
-          // リマインドとして _loadData を再度呼ぶのもありだが、
-          // 24時間経過後に削除されるタイミングなので、ユーザーが画面を開いた瞬間に消えるので
-          // 取得済みの allTasks からフィルタリングして即時反映する
-          final now = DateTime.now();
-          final startOfToday = DateTime(now.year, now.month, now.day);
-          allTasks.removeWhere((t) => t.isOneTime && t.completedAt != null && t.completedAt!.isBefore(startOfToday));
-        }
-      }
-
-      final postedPosts =
-          (homeData['postedTasksToday'] as List<dynamic>?)?.cast<Post>() ?? [];
-
-      // Seasonタスクの進行状況を取得
-      final seasonTasks = allTasks.where((t) => t.isSeason).toList();
-      Map<String, Season> seasonsMap = {};
-      Map<String, int> seasonPostsCountMap = {};
-      if (uid != null && seasonTasks.isNotEmpty) {
-        final progressData = await _postService.getSeasonProgressMap(uid, seasonTasks);
-        seasonsMap = Map<String, Season>.from(progressData['seasonsMap'] ?? {});
-        seasonPostsCountMap = Map<String, int>.from(progressData['seasonPostsCountMap'] ?? {});
-      }
-
-      final List<HeroTaskItem> items = [];
-      for (final task in allTasks) {
-        final taskPosts = postedPosts.where((p) => p.taskName == task.title).toList();
-        final sId = task.seasonId ?? 'debug_season_test';
-        items.add(HeroTaskItem(
-          name: task.title, 
-          trigger: task.trigger,
-
-          completedPosts: taskPosts,
-          isOneTime: task.isOneTime,
-          isSeason: task.isSeason,
-          seasonId: task.seasonId,
-          season: (task.isSeason) 
-              ? (seasonsMap[sId] ?? seasonsMap['debug_season'] ?? seasonsMap['debug_season_test']) 
-              : null,
-          currentSeasonCount: (task.isSeason) ? (seasonPostsCountMap[sId] ?? 0) : 0,
-        ));
-      }
-
-      // リアクションしたユーザーの情報を取得
-      final Set<String> uidsToFetch = {};
-      for (final item in items) {
-        for (final post in item.completedPosts) {
-          uidsToFetch.addAll(post.emojiReactedUserIds);
-          uidsToFetch.addAll(post.userReactions.keys);
-        }
-      }
-
-      final Map<String, String?> photoMap = {};
-      final Map<String, String> nameMap = {};
-
-      if (uidsToFetch.isNotEmpty) {
-        final profiles =
-            await _postService.getFriendsListFromUids(uidsToFetch.toList());
-        for (final p in profiles) {
-          final uid = p['uid'] as String;
-          photoMap[uid] = p['photoUrl'] as String?;
-          nameMap[uid] = p['username'] as String? ?? 'Unknown';
-        }
-      }
-
-      // 自分自身のプロフィール情報をロード (アバター・名前・バッジの表示用)
-      String? myPhotoUrl;
-      String myUsername = 'V';
-      String? myBadgeUrl;
-      String? myBadgeAnimation;
-
-      if (uid != null) {
-        final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-        if (snap.exists) {
-          final user = AppUser.fromFirestore(snap);
-          myPhotoUrl = user.photoUrl;
-          myUsername = user.displayName ?? user.username ?? 'V';
-          myBadgeUrl = user.equippedBadgeUrl;
-          myBadgeAnimation = user.equippedBadgeAnimation;
-        }
-      }
-
-      setState(() {
-        _streak = (homeData['streak'] as num?)?.toInt() ?? 0;
-        _streakProtections = (homeData['streakProtections'] as num?)?.toInt() ?? 0;
-        _taskItems = items;
-        _userPhotos.addAll(photoMap);
-        _userNames.addAll(nameMap);
-        _myPhotoUrl = myPhotoUrl;
-        _myUsername = myUsername;
-        _myBadgeUrl = myBadgeUrl;
-        _myBadgeAnimation = myBadgeAnimation;
-        _loading = false;
-      });
-      widget.onLoadingChanged?.call(false);
-
-      _analytics.setStreakTier(_streak);
-      _analytics.setTaskCount(_taskItems.length);
-      _analytics.setFriendCount(friendUids.length);
-      _analytics.setTaskCategories(allTasks.map((t) => t.title).toList());
-
-    } catch (e) {
-      debugPrint('Load data error: $e');
-      if (mounted) {
-        setState(() => _loading = false);
-        widget.onLoadingChanged?.call(false);
-      }
-    }
-  }
 
 
 
@@ -382,7 +235,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
             ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
           final targetPost = sortedPosts.first;
           if (targetPost.bgmUrl != null) {
-            _soundService.playBgm(targetPost.bgmUrl!);
+            ref.read(soundServiceProvider).playBgm(targetPost.bgmUrl!);
           }
         }
       }
@@ -392,7 +245,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      _soundService.stopBgm();
+      ref.read(soundServiceProvider).stopBgm();
     } else if (state == AppLifecycleState.resumed) {
       // 復帰時に自動で鳴らさない
     }
@@ -425,19 +278,18 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
     if (confirmed == true) {
       setState(() => _loading = true);
       try {
-        await _postService.deletePost(postId);
+        await ref.read(postServiceProvider).deletePost(postId);
         if (mounted) {
           setState(() {
             if (_expandedIndex != null) {
               _expandedIndex = null; // 拡大状態をリセット
-              SoundService.instance.stopBgm(); // スワイプ時に音楽を止める
+              ref.read(soundServiceProvider).stopBgm(); // スワイプ時に音楽を止める
             }
           });
         }
-        await _loadData();
+        ref.invalidate(heroTasksDataProvider);
       } catch (e) {
         debugPrint('Delete post error: $e');
-      } finally {
         if (mounted) setState(() => _loading = false);
       }
     }
@@ -460,7 +312,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
       ),
       fallbackSeason,
       (newTrigger) async {
-        final uid = _userService.currentUid;
+        final uid = ref.read(userServiceProvider).currentUid;
         if (uid == null) return;
         final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
         if (!snap.exists) return;
@@ -477,7 +329,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
           }
           return t;
         }).toList();
-        await _userService.updateProfile(tasks: updatedTasks);
+        await ref.read(userServiceProvider).updateProfile(tasks: updatedTasks);
       },
     );
   }
@@ -546,10 +398,10 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
         );
         
         // ダイアログ（7秒間の演出）が完了した直後に、必要に応じてレビューをリクエスト
-        await AppReviewService.instance.requestReviewIfNeeded(newStreak);
+        await ref.read(appReviewServiceProvider).requestReviewIfNeeded(newStreak);
         
         // 4. 最後にデータを最新化して、NetworkImageなどへの切り替えを完了させる
-        await _loadData();
+        ref.invalidate(heroTasksDataProvider);
       }
     }
   }
@@ -616,13 +468,71 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
 
   @override
   Widget build(BuildContext context) {
+    final asyncData = ref.watch(heroTasksDataProvider);
+
+    // キャッシュデータがすでに存在し、かつローカルがまだ未初期化（_taskItemsが空でかつ初回ロード待ち）の場合、即座にローカルに同期（ゼロディレイ表示）
+    if (_loading && asyncData.hasValue) {
+      final data = asyncData.value!;
+      _streak = data.streak;
+      _streakProtections = data.streakProtections;
+      _taskItems = List.from(data.taskItems);
+      _userPhotos.addAll(data.userPhotos);
+      _userNames.addAll(data.userNames);
+      _myPhotoUrl = data.myPhotoUrl;
+      _myUsername = data.myUsername;
+      _myBadgeUrl = data.myBadgeUrl;
+      _myBadgeAnimation = data.myBadgeAnimation;
+      _loading = false;
+      
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onLoadingChanged?.call(false);
+      });
+    }
+
+    // データ更新時にローカルステートへ同期するリスナー
+    ref.listen<AsyncValue<HeroTasksData>>(heroTasksDataProvider, (previous, next) {
+      next.when(
+        data: (data) {
+          if (mounted) {
+            setState(() {
+              _streak = data.streak;
+              _streakProtections = data.streakProtections;
+              _taskItems = List.from(data.taskItems);
+              _userPhotos.clear();
+              _userPhotos.addAll(data.userPhotos);
+              _userNames.clear();
+              _userNames.addAll(data.userNames);
+              _myPhotoUrl = data.myPhotoUrl;
+              _myUsername = data.myUsername;
+              _myBadgeUrl = data.myBadgeUrl;
+              _myBadgeAnimation = data.myBadgeAnimation;
+              _loading = false;
+            });
+            widget.onLoadingChanged?.call(false);
+          }
+        },
+        error: (err, stack) {
+          if (mounted) {
+            setState(() => _loading = false);
+            widget.onLoadingChanged?.call(false);
+          }
+        },
+        loading: () {
+          // キャッシュがない最初期のみシマーを出す
+          if (_taskItems.isEmpty) {
+            if (mounted) setState(() => _loading = true);
+          }
+        },
+      );
+    });
+
     if (_taskItems.isEmpty && _loading) return _buildSkeleton();
 
     return VisibilityDetector(
       key: const Key('hero_tasks_screen_visibility'),
       onVisibilityChanged: (info) {
         if (info.visibleFraction < 0.1) {
-          SoundService.instance.stopBgm();
+          ref.read(soundServiceProvider).stopBgm();
         }
       },
       child: Scaffold(
@@ -769,7 +679,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                   // 左上のブックマーク（本）アイコン。ベルマークの色と統一するために白（AppColors.white）に設定
                   icon: Icon(Icons.menu_book_rounded, color: AppColors.white, size: 22),
                   onPressed: () {
-                    SoundService.instance.stopBgm();
+                    ref.read(soundServiceProvider).stopBgm();
                     Navigator.pushNamed(context, AppRoutes.vPractice);
                   },
                 ),
@@ -1041,7 +951,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                                   onTapUp: (details) {
                                     if (_expandedIndex != null) {
                                       setState(() => _expandedIndex = null);
-                                      SoundService.instance.stopBgm();
+                                      ref.read(soundServiceProvider).stopBgm();
                                       return;
                                     }
                                     // カードが中央にない場合はスナップして終了
@@ -1069,7 +979,7 @@ class _HeroTasksScreenState extends State<HeroTasksScreen>
                                             () => _expandedIndex = actualIndex);
                                         // [New] 拡大時に音楽を流す
                                         if (item.latestPost?.bgmUrl != null) {
-                                          SoundService.instance.playBgm(item.latestPost!.bgmUrl!);
+                                          ref.read(soundServiceProvider).playBgm(item.latestPost!.bgmUrl!);
                                         }
                                       }
                                     } else {

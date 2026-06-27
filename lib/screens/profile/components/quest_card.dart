@@ -186,17 +186,16 @@ class QuestCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // ---削除ボタン（シーズンタスクは削除不可、ただしデバッグ用は除く）
-                  if (!task.isSeason || task.seasonId == 'debug_season_test')
-                    IconButton(
-                      onPressed: onDelete,
-                      icon: Icon(
-                        Icons.close_rounded,
-                        size: 20,
-                        color: AppColors.white.withValues(alpha: 0.2),
-                      ),
-                      visualDensity: VisualDensity.compact,
+                  // --- 削除ボタン
+                  IconButton(
+                    onPressed: onDelete,
+                    icon: Icon(
+                      Icons.close_rounded,
+                      size: 20,
+                      color: AppColors.white.withValues(alpha: 0.2),
                     ),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ],
               ),
             ),

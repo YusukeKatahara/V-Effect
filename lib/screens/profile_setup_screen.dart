@@ -10,22 +10,23 @@ import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/premium_icon_header.dart';
 import '../widgets/section_title.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/service_providers.dart';
 
 /// 新規登録後のプロフィール設定画面（Step 1/2）
 /// ユーザー名、ユーザーID、生年月日、性別を入力します
-class ProfileSetupScreen extends StatefulWidget {
+class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
 
   @override
-  State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
+  ConsumerState<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
 }
 
-class _ProfileSetupScreenState extends State<ProfileSetupScreen>
+class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _usernameCtrl = TextEditingController();
   final _userIdCtrl = TextEditingController();
-  final _userService = UserService.instance;
   bool _isSaving = false;
 
   String? _occupation;
@@ -147,7 +148,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     setState(() => _isSaving = true);
     try {
       // ユーザーIDの重複チェック
-      final available = await _userService.isUserIdAvailable(
+      final available = await ref.read(userServiceProvider).isUserIdAvailable(
         _userIdCtrl.text.trim(),
       );
       if (!available) {
@@ -159,13 +160,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
         return;
       }
 
-      await _userService.saveProfile(
+      await ref.read(userServiceProvider).saveProfile(
         username: _usernameCtrl.text.trim(),
         userId: _userIdCtrl.text.trim(),
         occupation: _occupation!,
       );
 
-      await AnalyticsService.instance.logProfileSetupComplete();
+      await ref.read(analyticsServiceProvider).logProfileSetupComplete();
 
       if (mounted) {
         Navigator.of(

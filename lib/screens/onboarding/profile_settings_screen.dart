@@ -9,6 +9,8 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../../config/app_colors.dart';
 import '../../config/routes.dart';
 import '../../services/user_service.dart';
+import '../../providers/service_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/gradient_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -17,20 +19,20 @@ import '../../models/app_user.dart';
 import '../../widgets/notification_prompt_sheet.dart';
 import '../../widgets/friend_invite_prompt_sheet.dart';
 
-class OnboardingProfileSettingsScreen extends StatefulWidget {
+class OnboardingProfileSettingsScreen extends ConsumerStatefulWidget {
   const OnboardingProfileSettingsScreen({super.key});
 
   @override
-  State<OnboardingProfileSettingsScreen> createState() =>
+  ConsumerState<OnboardingProfileSettingsScreen> createState() =>
       _OnboardingProfileSettingsScreenState();
 }
 
 class _OnboardingProfileSettingsScreenState
-    extends State<OnboardingProfileSettingsScreen> {
+    extends ConsumerState<OnboardingProfileSettingsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameCtrl = TextEditingController();
   final _userIdCtrl = TextEditingController();
-  final _userService = UserService.instance;
+  late final UserService _userService;
   final _picker = ImagePicker();
 
   File? _profileImage;
@@ -40,6 +42,7 @@ class _OnboardingProfileSettingsScreenState
   @override
   void initState() {
     super.initState();
+    _userService = ref.read(userServiceProvider);
     _usernameCtrl.addListener(_updateCanProceed);
     _userIdCtrl.addListener(_updateCanProceed);
   }

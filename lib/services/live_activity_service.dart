@@ -14,6 +14,9 @@ class LiveActivityService {
     try {
       await _channel.invokeMethod('startActivity', {
         'taskName': taskName,
+        'progress': 0.05,
+        'status': 'uploading',
+        'statusMessage': 'アップロード中...',
       });
     } on PlatformException catch (e) {
       // プラットフォーム固有のエラーが発生した場合の処理（シミュレータやAndroidなど）
@@ -31,7 +34,7 @@ class LiveActivityService {
       await _channel.invokeMethod('updateActivity', {
         'progress': progress,
         'status': status,
-        'message': message,
+        'statusMessage': message,
       });
     } on PlatformException catch (e) {
       debugPrint('LiveActivityService.updateActivity エラー: ${e.message}');
@@ -44,8 +47,9 @@ class LiveActivityService {
   static Future<void> stopActivity(String status, String message) async {
     try {
       await _channel.invokeMethod('stopActivity', {
+        'progress': status == 'success' ? 1.0 : 0.0,
         'status': status,
-        'message': message,
+        'statusMessage': message,
       });
     } on PlatformException catch (e) {
       debugPrint('LiveActivityService.stopActivity エラー: ${e.message}');

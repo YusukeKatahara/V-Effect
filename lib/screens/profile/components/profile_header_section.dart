@@ -216,61 +216,63 @@ class ProfileHeaderSection extends StatelessWidget {
 
   /// プロフィール画像ウィジェット（タップで拡大表示）
   Widget _buildAvatar(BuildContext context) {
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient:
-            user.photoUrl == null
-                ? AppColors.primaryGradient
-                : null,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.white.withValues(alpha: 0.1),
-            blurRadius: 20,
-          ),
-        ],
-      ),
-      child:
-          user.photoUrl != null
-              ? GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        opaque: false,
-                        barrierColor: Colors.black.withValues(alpha: 0.9),
-                        pageBuilder: (context, _, __) => FullScreenImageViewer(
-                          imageUrl: user.photoUrl!,
-                          heroTag: 'profile_image_${user.uid}',
+    return RepaintBoundary(
+      child: Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient:
+              user.photoUrl == null
+                  ? AppColors.primaryGradient
+                  : null,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.white.withValues(alpha: 0.1),
+              blurRadius: 20,
+            ),
+          ],
+        ),
+        child:
+            user.photoUrl != null
+                ? GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          opaque: false,
+                          barrierColor: Colors.black.withValues(alpha: 0.9),
+                          pageBuilder: (context, _, __) => FullScreenImageViewer(
+                            imageUrl: user.photoUrl!,
+                            heroTag: 'profile_image_${user.uid}',
+                          ),
+                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                            return FadeTransition(opacity: animation, child: child);
+                          },
                         ),
-                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(opacity: animation, child: child);
-                        },
-                      ),
-                    );
-                  },
-                  child: Hero(
-                    tag: 'profile_image_${user.uid}',
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundImage: ResizeImage(
-                        CachedNetworkImageProvider(user.photoUrl!),
-                        width: 240,
+                      );
+                    },
+                    child: Hero(
+                      tag: 'profile_image_${user.uid}',
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundImage: ResizeImage(
+                          CachedNetworkImageProvider(user.photoUrl!),
+                          width: 240,
+                        ),
                       ),
                     ),
+                  )
+                : CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.transparent,
+                  child: Icon(
+                    Icons.person_rounded,
+                    size: 40,
+                    color: AppColors.black,
                   ),
-                )
-              : CircleAvatar(
-                radius: 40,
-                backgroundColor: Colors.transparent,
-                child: Icon(
-                  Icons.person_rounded,
-                  size: 40,
-                  color: AppColors.black,
                 ),
-              ),
+      ),
     );
   }
 

@@ -3,17 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../main.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider;
-import 'package:provider/provider.dart';
-import 'package:v_effect/providers/theme_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/routes.dart';
 
 /// アプリ全体で共有するエラー表示用ウィジェット
 class GlobalErrorWidget extends StatelessWidget {
   final FlutterErrorDetails? details;
   final String? error;
+  final StackTrace? stackTrace;
 
-  const GlobalErrorWidget({super.key, this.details, this.error});
+  const GlobalErrorWidget({super.key, this.details, this.error, this.stackTrace});
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +76,7 @@ class GlobalErrorWidget extends StatelessWidget {
                           ),
                           child: SingleChildScrollView(
                             child: Text(
-                              details?.exceptionAsString() ?? error ?? (l10n?.globalErrorUnknown ?? '未知のエラー'),
+                              '${details?.exceptionAsString() ?? error ?? "未知のエラー"}\n\n【スタックトレース】\n${details?.stack ?? stackTrace ?? ""}',
                               style: const TextStyle(
                                 color: Colors.redAccent,
                                 fontSize: 12,
@@ -94,14 +93,7 @@ class GlobalErrorWidget extends StatelessWidget {
                         // アプリの再起動を試みるため、rootAppを再度runAppする
                         runApp(
                           ProviderScope(
-                            child: MultiProvider(
-                              providers: [
-                                ChangeNotifierProvider<ThemeProvider>(
-                                  create: (_) => ThemeProvider(),
-                                ),
-                              ],
-                              child: const VEffectApp(initialRoute: AppRoutes.wrapper),
-                            ),
+                            child: const VEffectApp(initialRoute: AppRoutes.wrapper),
                           ),
                         );
                       },

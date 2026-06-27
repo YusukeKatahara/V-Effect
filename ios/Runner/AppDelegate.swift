@@ -2,6 +2,7 @@ import Flutter
 import UIKit
 import UserNotifications
 import ActivityKit
+import google_mobile_ads
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -69,6 +70,15 @@ import ActivityKit
     })
     
     GeneratedPluginRegistrant.register(with: self)
+    
+    // カスタム広告ファクトリを "customNativeAd" というIDで登録
+    let factory = MyNativeAdFactory()
+    FLTGoogleMobileAdsPlugin.registerNativeAdFactory(
+        self,
+        factoryId: "customNativeAd",
+        nativeAdFactory: factory
+    )
+    
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view contentMode="scaleToFill" id="iN0-l3-epB" customClass="CustomNativeAdView" customModule="Runner" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="375" height="500"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <!-- MediaView (fills entire view) -->
+                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="mediaView" customClass="GADMediaView">
+                    <rect key="frame" x="0.0" y="0.0" width="375" height="500"/>
+                    <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                </view>
+                <!-- Bottom Dark Gradient View -->
+                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gradientView">
+                    <rect key="frame" x="0.0" y="320" width="375" height="180"/>
+                    <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="180" id="heightGrad"/>
+                    </constraints>
+                </view>
+                <!-- Mute Button (top right) -->
+                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="muteButton">
+                    <rect key="frame" x="323" y="16" width="36" height="36"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="36" id="wMute"/>
+                        <constraint firstAttribute="height" constant="36" id="hMute"/>
+                    </constraints>
+                    <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                    <connections>
+                        <action selector="didTapMuteButton:" destination="iN0-l3-epB" eventType="touchUpInside" id="tapMute"/>
+                    </connections>
+                </button>
+                <!-- Bottom Overlay UI container -->
+                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bottomContainer">
+                    <rect key="frame" x="0.0" y="420" width="375" height="80"/>
+                    <subviews>
+                        <!-- App Icon -->
+                        <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="appIcon">
+                            <rect key="frame" x="16" y="20" width="40" height="40"/>
+                            <constraints>
+                                <constraint firstAttribute="width" constant="40" id="wIcon"/>
+                                <constraint firstAttribute="height" constant="40" id="hIcon"/>
+                            </constraints>
+                        </imageView>
+                        <!-- CTA Button -->
+                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ctaButton">
+                            <rect key="frame" x="259" y="22" width="100" height="36"/>
+                            <constraints>
+                                <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="100" id="wCTA"/>
+                                <constraint firstAttribute="height" constant="36" id="hCTA"/>
+                            </constraints>
+                            <fontDescription key="fontDescription" type="boldSystem" pointSize="13"/>
+                            <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                            <state key="normal" title="INSTALL">
+                                <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            </state>
+                        </button>
+                        <!-- Title and description Stack -->
+                        <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="2" translatesAutoresizingMaskIntoConstraints="NO" id="textStack">
+                            <rect key="frame" x="68" y="20" width="179" height="40"/>
+                            <subviews>
+                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="App Name" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="headlineLabel">
+                                    <rect key="frame" x="0.0" y="0.0" width="179" height="20.3"/>
+                                    <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
+                                    <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    <nil key="highlightedColor"/>
+                                </label>
+                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Description of the advertiser app." textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bodyLabel">
+                                    <rect key="frame" x="0.0" y="22.3" width="179" height="17.7"/>
+                                    <fontDescription key="fontDescription" type="system" pointSize="11"/>
+                                    <color key="textColor" red="0.80000000000000004" green="0.80000000000000004" blue="0.80000000000000004" alpha="1" colorSpace="custom" customColorSpace="calibratedRGB"/>
+                                    <nil key="highlightedColor"/>
+                                </label>
+                            </subviews>
+                        </stackView>
+                    </subviews>
+                    <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                    <constraints>
+                        <constraint firstItem="appIcon" firstAttribute="leading" secondItem="bottomContainer" secondAttribute="leading" constant="16" id="c1"/>
+                        <constraint firstItem="appIcon" firstAttribute="centerY" secondItem="bottomContainer" secondAttribute="centerY" id="c2"/>
+                        <constraint firstAttribute="trailing" secondItem="ctaButton" secondAttribute="trailing" constant="16" id="c3"/>
+                        <constraint firstItem="ctaButton" firstAttribute="centerY" secondItem="bottomContainer" secondAttribute="centerY" id="c4"/>
+                        <constraint firstItem="textStack" firstAttribute="leading" secondItem="appIcon" secondAttribute="trailing" x="12" id="c5"/>
+                        <constraint firstItem="ctaButton" firstAttribute="leading" secondItem="textStack" secondAttribute="trailing" constant="16" id="c6"/>
+                        <constraint firstItem="textStack" firstAttribute="centerY" secondItem="bottomContainer" secondAttribute="centerY" id="c7"/>
+                        <constraint firstAttribute="height" constant="80" id="hContainer"/>
+                    </constraints>
+                </view>
+            </subviews>
+            <viewLayoutGuide key="safeArea" id="vUN-kp-3ea"/>
+            <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+            <constraints>
+                <!-- MediaView Constraints (stretch to edges) -->
+                <constraint firstItem="mediaView" firstAttribute="leading" secondItem="iN0-l3-epB" secondAttribute="leading" id="m1"/>
+                <constraint firstItem="mediaView" firstAttribute="trailing" secondItem="iN0-l3-epB" secondAttribute="trailing" id="m2"/>
+                <constraint firstItem="mediaView" firstAttribute="top" secondItem="iN0-l3-epB" secondAttribute="top" id="m3"/>
+                <constraint firstItem="mediaView" firstAttribute="bottom" secondItem="iN0-l3-epB" secondAttribute="bottom" id="m4"/>
+                
+                <!-- Gradient View Constraints (bottom overlay) -->
+                <constraint firstItem="gradientView" firstAttribute="leading" secondItem="iN0-l3-epB" secondAttribute="leading" id="g1"/>
+                <constraint firstItem="gradientView" firstAttribute="trailing" secondItem="iN0-l3-epB" secondAttribute="trailing" id="g2"/>
+                <constraint firstItem="gradientView" firstAttribute="bottom" secondItem="iN0-l3-epB" secondAttribute="bottom" id="g3"/>
+                
+                <!-- Bottom Container Constraints -->
+                <constraint firstItem="bottomContainer" firstAttribute="leading" secondItem="iN0-l3-epB" secondAttribute="leading" id="bc1"/>
+                <constraint firstItem="bottomContainer" firstAttribute="trailing" secondItem="iN0-l3-epB" secondAttribute="trailing" id="bc2"/>
+                <constraint firstItem="bottomContainer" firstAttribute="bottom" secondItem="iN0-l3-epB" secondAttribute="bottom" id="bc3"/>
+                
+                <!-- Mute Button Constraints -->
+                <constraint firstAttribute="trailing" secondItem="muteButton" secondAttribute="trailing" constant="16" id="mu1"/>
+                <constraint firstItem="muteButton" firstAttribute="top" secondItem="iN0-l3-epB" secondAttribute="top" constant="16" id="mu2"/>
+            </constraints>
+            <nil key="simulatedTopBarMetrics"/>
+            <nil key="simulatedBottomBarMetrics"/>
+            <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
+            <connections>
+                <outlet property="customMediaView" destination="mediaView" id="ol1"/>
+                <outlet property="customHeadlineLabel" destination="headlineLabel" id="ol2"/>
+                <outlet property="customBodyLabel" destination="bodyLabel" id="ol3"/>
+                <outlet property="customCallToActionButton" destination="ctaButton" id="ol4"/>
+                <outlet property="customIconImageView" destination="appIcon" id="ol5"/>
+                <outlet property="customMuteButton" destination="muteButton" id="ol6"/>
+                <outlet property="gradientView" destination="gradientView" id="ol7"/>
+            </connections>
+            <point key="canvasLocation" x="-32.061068702290072" y="-12.67605633802817"/>
+        </view>
+    </objects>
+</document>

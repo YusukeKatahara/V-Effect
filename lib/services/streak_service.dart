@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../models/app_user.dart';
 import '../utils/date_helper.dart';
 import 'notification_service.dart';
 import '../models/app_notification.dart';
@@ -21,10 +22,10 @@ class StreakService {
     if (data == null) return 0;
 
     return calculateEffectiveStreak(
-      streak: (data['streak'] as num?)?.toInt() ?? 0,
-      protections: (data['streakProtections'] as num?)?.toInt() ?? 0,
-      lastPostedDate: data['lastPostedDate'] as String?,
-    )['streak']!;
+      streak: (data[AppUser.fieldStreak] as num?)?.toInt() ?? 0,
+      protections: (data[AppUser.fieldStreakProtections] as num?)?.toInt() ?? 0,
+      lastPostedDate: data[AppUser.fieldLastPostedDate] as String?,
+    )[AppUser.fieldStreak]!;
   }
 
   /// 自分が今日投稿済みかどうかをチェックします
@@ -33,7 +34,7 @@ class StreakService {
     final today = DateHelper.toDateString(DateTime.now());
     final userSnap = await _db.collection('users').doc(uid).get();
     if (!userSnap.exists) return false;
-    return userSnap.data()?['lastPostedDate'] == today;
+    return userSnap.data()?[AppUser.fieldLastPostedDate] == today;
   }
 
   /// ストリーク（連続記録）を更新する処理
@@ -47,12 +48,12 @@ class StreakService {
 
     if (!userSnap.exists) {
       await userRef.set({
-        'streak': 1,
-        'maxStreak': 1,
-        'streakProtections': 0,
-        'lastPostedDate': today,
-        'email': _auth.currentUser!.email,
-        'friends': [],
+        AppUser.fieldStreak: 1,
+        AppUser.fieldMaxStreak: 1,
+        AppUser.fieldStreakProtections: 0,
+        AppUser.fieldLastPostedDate: today,
+        AppUser.fieldEmail: _auth.currentUser!.email,
+        AppUser.fieldFriends: [],
       });
       return {'newStreak': 1, 'isRecordUpdating': true};
     }
@@ -82,12 +83,12 @@ class StreakService {
     required String uid,
   }) {
     final today = DateHelper.toDateString(now);
-    final rawLastPostedDate = userData['lastPostedDate'];
+    final rawLastPostedDate = userData[AppUser.fieldLastPostedDate];
     final lastPostedDate = rawLastPostedDate is String ? rawLastPostedDate : rawLastPostedDate?.toString();
 
-    final currentStreak = (userData['streak'] as num?)?.toInt() ?? 0;
-    final maxStreak = (userData['maxStreak'] as num?)?.toInt() ?? 0;
-    int currentProtections = (userData['streakProtections'] as num?)?.toInt() ?? 0;
+    final currentStreak = (userData[AppUser.fieldStreak] as num?)?.toInt() ?? 0;
+    final maxStreak = (userData[AppUser.fieldMaxStreak] as num?)?.toInt() ?? 0;
+    int currentProtections = (userData[AppUser.fieldStreakProtections] as num?)?.toInt() ?? 0;
 
     if (lastPostedDate == today) {
       return {
@@ -121,7 +122,7 @@ class StreakService {
     // 最大記録更新チェック
     final isRecordUpdating = newStreak > maxStreak;
 
-    final recentPostDates = (userData['recentPostDates'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    final recentPostDates = (userData[AppUser.fieldRecentPostDates] as List?)?.map((e) => e.toString()).toList() ?? [];
     if (!recentPostDates.contains(today)) {
       recentPostDates.add(today);
       if (recentPostDates.length > 180) {
@@ -130,13 +131,13 @@ class StreakService {
     }
 
     final updates = {
-      'streak': newStreak,
-      'streakProtections': currentProtections,
-      'lastPostedDate': today,
-      'recentPostDates': recentPostDates,
+      AppUser.fieldStreak: newStreak,
+      AppUser.fieldStreakProtections: currentProtections,
+      AppUser.fieldLastPostedDate: today,
+      AppUser.fieldRecentPostDates: recentPostDates,
     };
     if (isRecordUpdating) {
-      updates['maxStreak'] = newStreak;
+      updates[AppUser.fieldMaxStreak] = newStreak;
     }
 
     return {
@@ -155,23 +156,23 @@ class StreakService {
 
     if (!userSnap.exists) {
       await userRef.set({
-        'streak': 1,
-        'maxStreak': 1,
-        'streakProtections': 0,
-        'lastPostedDate': today,
-        'email': _auth.currentUser!.email,
-        'friends': [],
+        AppUser.fieldStreak: 1,
+        AppUser.fieldMaxStreak: 1,
+        AppUser.fieldStreakProtections: 0,
+        AppUser.fieldLastPostedDate: today,
+        AppUser.fieldEmail: _auth.currentUser!.email,
+        AppUser.fieldFriends: [],
       });
       return {'newStreak': 1, 'isRecordUpdating': true};
     }
 
     final data = userSnap.data()!;
-    final rawLastPostedDate = data['lastPostedDate'];
+    final rawLastPostedDate = data[AppUser.fieldLastPostedDate];
     final lastPostedDate = rawLastPostedDate is String ? rawLastPostedDate : rawLastPostedDate?.toString();
 
-    final currentStreak = (data['streak'] as num?)?.toInt() ?? 0;
-    final maxStreak = (data['maxStreak'] as num?)?.toInt() ?? 0;
-    int currentProtections = (data['streakProtections'] as num?)?.toInt() ?? 0;
+    final currentStreak = (data[AppUser.fieldStreak] as num?)?.toInt() ?? 0;
+    final maxStreak = (data[AppUser.fieldMaxStreak] as num?)?.toInt() ?? 0;
+    int currentProtections = (data[AppUser.fieldStreakProtections] as num?)?.toInt() ?? 0;
 
     if (lastPostedDate == today) {
       return {'newStreak': currentStreak, 'isRecordUpdating': false};
@@ -202,7 +203,7 @@ class StreakService {
     // 最大記録更新チェック
     final isRecordUpdating = newStreak > maxStreak;
 
-    final recentPostDates = (data['recentPostDates'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    final recentPostDates = (data[AppUser.fieldRecentPostDates] as List?)?.map((e) => e.toString()).toList() ?? [];
     if (!recentPostDates.contains(today)) {
       recentPostDates.add(today);
       if (recentPostDates.length > 180) {
@@ -211,13 +212,13 @@ class StreakService {
     }
 
     final updates = {
-      'streak': newStreak,
-      'streakProtections': currentProtections,
-      'lastPostedDate': today,
-      'recentPostDates': recentPostDates,
+      AppUser.fieldStreak: newStreak,
+      AppUser.fieldStreakProtections: currentProtections,
+      AppUser.fieldLastPostedDate: today,
+      AppUser.fieldRecentPostDates: recentPostDates,
     };
     if (isRecordUpdating) {
-      updates['maxStreak'] = newStreak;
+      updates[AppUser.fieldMaxStreak] = newStreak;
     }
 
     await userRef.update(updates);
@@ -235,7 +236,7 @@ class StreakService {
     required String? lastPostedDate,
   }) {
     if (lastPostedDate == null || streak <= 0) {
-      return {'streak': 0, 'streakProtections': 0};
+      return {AppUser.fieldStreak: 0, AppUser.fieldStreakProtections: 0};
     }
 
     final now = DateTime.now();
@@ -245,13 +246,13 @@ class StreakService {
 
     if (lastPostedDate == todayStr || lastPostedDate == yesterdayStr) {
       // 今日または昨日投稿済みなら有効
-      return {'streak': streak, 'streakProtections': protections};
+      return {AppUser.fieldStreak: streak, AppUser.fieldStreakProtections: protections};
     } else if (lastPostedDate == dayBeforeYesterdayStr && protections > 0) {
       // 一昨日投稿済みでシールドがあるなら、昨日分として1つ消費された状態
-      return {'streak': streak, 'streakProtections': protections - 1};
+      return {AppUser.fieldStreak: streak, AppUser.fieldStreakProtections: protections - 1};
     } else {
       // 2日以上未投稿、またはシールドなしで1日未投稿ならリセット
-      return {'streak': 0, 'streakProtections': 0};
+      return {AppUser.fieldStreak: 0, AppUser.fieldStreakProtections: 0};
     }
   }
 }

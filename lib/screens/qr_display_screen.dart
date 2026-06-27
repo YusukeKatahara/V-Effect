@@ -8,16 +8,18 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/invite_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/service_providers.dart';
 
-class QrDisplayScreen extends StatefulWidget {
+class QrDisplayScreen extends ConsumerStatefulWidget {
   final AppUser user;
   const QrDisplayScreen({super.key, required this.user});
 
   @override
-  State<QrDisplayScreen> createState() => _QrDisplayScreenState();
+  ConsumerState<QrDisplayScreen> createState() => _QrDisplayScreenState();
 }
 
-class _QrDisplayScreenState extends State<QrDisplayScreen> {
+class _QrDisplayScreenState extends ConsumerState<QrDisplayScreen> {
   final GlobalKey _cardKey = GlobalKey();
   bool _isDownloading = false;
 
@@ -50,7 +52,7 @@ class _QrDisplayScreenState extends State<QrDisplayScreen> {
   @override
   Widget build(BuildContext context) {
     final user = widget.user;
-    final qrData = InviteService.instance.buildInviteUrl(user.userId ?? '');
+    final qrData = ref.read(inviteServiceProvider).buildInviteUrl(user.userId ?? '');
 
     return Scaffold(
       backgroundColor: AppColors.bgBase,

@@ -5,24 +5,26 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../models/dev_blog_post.dart';
 import '../models/season.dart';
 import '../services/dev_blog_service.dart';
+import '../providers/service_providers.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/v_effect_header.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class BlogPostEditorScreen extends StatefulWidget {
+class BlogPostEditorScreen extends ConsumerStatefulWidget {
   const BlogPostEditorScreen({super.key});
 
   @override
-  State<BlogPostEditorScreen> createState() => _BlogPostEditorScreenState();
+  ConsumerState<BlogPostEditorScreen> createState() => _BlogPostEditorScreenState();
 }
 
-class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
+class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
   DevBlogPost? _editingPost;
   final _titleController = TextEditingController();
   final _titleEnController = TextEditingController();
@@ -210,10 +212,10 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
       final now = DateTime.now();
 
       if (_editingPost == null) {
-        final postId = DevBlogService.instance.generatePostId();
+        final postId = ref.read(devBlogServiceProvider).generatePostId();
         String? coverUrl;
         if (_coverImageFile != null) {
-          coverUrl = await DevBlogService.instance
+          coverUrl = await ref.read(devBlogServiceProvider)
               .uploadCoverImage(postId, _coverImageFile!);
         }
         final post = DevBlogPost(
@@ -230,7 +232,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           titleEn: titleEn.isNotEmpty ? titleEn : null,
           bodyEn: bodyEn.isNotEmpty ? bodyEn : null,
         );
-        await DevBlogService.instance.createPost(post);
+        await ref.read(devBlogServiceProvider).createPost(post);
 
         // シーズンタスクの設定があれば保存
         if (_isSeasonTask) {
@@ -258,7 +260,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
       } else {
         String? coverUrl = _existingCoverUrl;
         if (_coverImageFile != null) {
-          coverUrl = await DevBlogService.instance
+          coverUrl = await ref.read(devBlogServiceProvider)
               .uploadCoverImage(_editingPost!.id, _coverImageFile!);
         }
         final updated = _editingPost!.copyWith(
@@ -271,7 +273,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
           titleEn: titleEn.isNotEmpty ? titleEn : null,
           bodyEn: bodyEn.isNotEmpty ? bodyEn : null,
         );
-        await DevBlogService.instance.updatePost(updated);
+        await ref.read(devBlogServiceProvider).updatePost(updated);
 
         if (_isSeasonTask) {
           final durationDays = int.tryParse(_seasonDurationController.text) ?? 7;
@@ -640,7 +642,7 @@ class _BlogPostEditorScreenState extends State<BlogPostEditorScreen> {
       if (!mounted) return;
       setState(() => _isSaving = true);
       try {
-        final url = await DevBlogService.instance.uploadBadgeImage(File(picked.path));
+        final url = await ref.read(devBlogServiceProvider).uploadBadgeImage(File(picked.path));
         if (!mounted) return;
         setState(() {
           _seasonBadgeImageUrlController.text = url;

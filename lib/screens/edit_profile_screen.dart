@@ -5,11 +5,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/user_service.dart';
+import '../providers/service_providers.dart';
 import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/section_title.dart';
@@ -17,7 +19,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/swipe_back_gate.dart';
 
 
-class EditProfileScreen extends StatefulWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   final AppUser user;
   final Map<String, dynamic> privateData;
 
@@ -28,15 +30,15 @@ class EditProfileScreen extends StatefulWidget {
   });
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _usernameCtrl;
   late TextEditingController _userIdCtrl;
   late TextEditingController _instagramIdCtrl;
-  final _userService = UserService.instance;
+  late final UserService _userService;
 
   bool _isSaving = false;
   File? _newProfileImage;
@@ -67,6 +69,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _userService = ref.read(userServiceProvider);
     _usernameCtrl = TextEditingController(text: widget.user.username);
     _userIdCtrl = TextEditingController(text: widget.user.userId);
     _instagramIdCtrl = TextEditingController(text: widget.user.instagramId ?? '');

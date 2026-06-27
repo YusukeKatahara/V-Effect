@@ -335,9 +335,23 @@ class PostService {
 
     final userData = userSnap.data() as Map<String, dynamic>? ?? {};
 
+    // ユーザーのタスクリストを解析して、一致するタスクIDを特定する
+    final tasks = (userData['tasks'] as List? ?? [])
+        .map((item) => AppTask.fromFirestore(item))
+        .toList();
+
+    String? matchedTaskId;
+    for (final t in tasks) {
+      if (t.title == taskName) {
+        matchedTaskId = t.id;
+        break;
+      }
+    }
+
     final newPost = Post(
       id: postId,
       userId: uid,
+      taskId: matchedTaskId,
       imageUrl: imageUrl,
       taskName: taskName,
       caption: caption,
@@ -351,11 +365,6 @@ class PostService {
       bgmArtist: bgmArtist,
       bgmArtworkUrl: bgmArtworkUrl,
     );
-
-    // ワンタイムタスクの完了時間を記録
-    final tasks = (userData['tasks'] as List? ?? [])
-        .map((item) => AppTask.fromFirestore(item))
-        .toList();
     
     bool taskUpdated = false;
     final updatedTasks = tasks.map((t) {

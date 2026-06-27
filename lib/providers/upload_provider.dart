@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:v_effect/providers/home_provider.dart';
 import 'package:v_effect/services/post_service.dart';
+import 'package:v_effect/services/live_activity_service.dart';
 
 /// アップロードの状態を表す列挙型
 enum UploadStatus {
@@ -127,13 +128,22 @@ class UploadNotifier extends StateNotifier<UploadState> {
       return;
     }
 
+    // 🚀 Live Activity を開始します。
+    await LiveActivityService.startActivity(taskName);
+
     // 擬似的に進捗バーを進めるタイマーを開始（300msごとに少しずつ進行、最大90%まで）
     double currentProgress = 0.05;
-    _dummyProgressTimer = Timer.periodic(const Duration(milliseconds: 300), (timer) {
+    _dummyProgressTimer = Timer.periodic(const Duration(milliseconds: 300), (timer) async {
       if (currentProgress < 0.90) {
         currentProgress += 0.05;
         if (state.status == UploadStatus.uploading) {
           state = state.copyWith(progress: currentProgress);
+          // 🚀 Live Activity の進捗を更新します。
+          await LiveActivityService.updateActivity(
+            currentProgress,
+            'uploading',
+            'アップロード中... ${(currentProgress * 100).toInt()}%',
+          );
         }
       } else {
         timer.cancel();
@@ -160,6 +170,9 @@ class UploadNotifier extends StateNotifier<UploadState> {
         progress: 1.0,
       );
 
+      // 🚀 Live Activity を成功終了します。
+      await LiveActivityService.stopActivity('success', 'アップロードが完了しました');
+
       // ホームのデータを強制リフレッシュして最新のフィードを表示
       _ref.invalidate(homeDataProvider);
 
@@ -175,6 +188,9 @@ class UploadNotifier extends StateNotifier<UploadState> {
         status: UploadStatus.error,
         errorMessage: e.toString(),
       );
+
+      // 🚀 Live Activity をエラー終了します。
+      await LiveActivityService.stopActivity('error', 'アップロードに失敗しました');
     }
   }
 

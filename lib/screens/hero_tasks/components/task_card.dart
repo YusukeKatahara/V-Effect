@@ -7,12 +7,15 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../../../config/app_colors.dart';
 import '../../../models/post.dart';
 import '../../../services/sound_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../providers/service_providers.dart';
 import '../../../widgets/reaction_avatars.dart';
 import 'auto_size_text.dart';
 import 'hero_task_item.dart';
 import 'pulse_camera_button.dart';
+import '../../../providers/upload_provider.dart';
 
-class TaskCard extends StatefulWidget {
+class TaskCard extends ConsumerStatefulWidget {
   final HeroTaskItem item;
   final int index;
   final int total;
@@ -45,10 +48,10 @@ class TaskCard extends StatefulWidget {
   });
 
   @override
-  State<TaskCard> createState() => TaskCardState();
+  ConsumerState<TaskCard> createState() => TaskCardState();
 }
 
-class TaskCardState extends State<TaskCard> {
+class TaskCardState extends ConsumerState<TaskCard> {
   late PageController _pageController;
   int _currentPage = 0;
 
@@ -194,6 +197,23 @@ class TaskCardState extends State<TaskCard> {
     );
   }
 
+  Widget _buildLocalBackgroundImage(Uint8List? imageBytes, bool isExpanded, bool isTop) {
+    if (imageBytes == null) return const SizedBox.shrink();
+    return ColorFiltered(
+      colorFilter: ColorFilter.mode(
+        AppColors.pureBlack.withValues(
+          alpha: isExpanded ? 0.1 : (isTop ? 0.3 : 0.6),
+        ),
+        BlendMode.darken,
+      ),
+      child: Image.memory(
+        imageBytes,
+        fit: BoxFit.cover,
+        cacheWidth: 540,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
@@ -203,8 +223,14 @@ class TaskCardState extends State<TaskCard> {
     final showCamera = widget.showCamera;
     final userPhotos = widget.userPhotos;
 
+    final uploadState = ref.watch(uploadProvider);
+    final isUploadingThisTask = uploadState.status == UploadStatus.uploading &&
+        uploadState.taskName == item.name;
+    final isUploadSuccessThisTask = uploadState.status == UploadStatus.success &&
+        uploadState.taskName == item.name;
+
     final isTop = depth == 0;
-    final isCompleted = item.isCompleted;
+    final isCompleted = item.isCompleted || isUploadingThisTask || isUploadSuccessThisTask;
     final sortedPosts = _sortedPosts;
     final postCount = sortedPosts.length;
     final currentPost = (isExpanded && postCount > 1) 
@@ -286,7 +312,7 @@ class TaskCardState extends State<TaskCard> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (isCompleted && sortedPosts.isNotEmpty)
+            if (isCompleted)
               if (isExpanded && postCount > 1)
                 PageView.builder(
                   controller: _pageController,
@@ -301,10 +327,33 @@ class TaskCardState extends State<TaskCard> {
                     return _buildBackgroundImage(p.imageUrl, isExpanded, isTop);
                   },
                 )
-              else
-                _buildBackgroundImage(sortedPosts.first.imageUrl, isExpanded, isTop),
+              else if (sortedPosts.isNotEmpty)
+                _buildBackgroundImage(sortedPosts.first.imageUrl, isExpanded, isTop)
+              else if (isUploadingThisTask || isUploadSuccessThisTask)
+                _buildLocalBackgroundImage(uploadState.imageBytes, isExpanded, isTop),
 
-            _buildStack(item, isCompleted, postCount, isTop, depth, isExpanded, showCamera, tierColor, totalReactionCount, totalUserReactions, totalEmojiReactedUserIds.toList(), userPhotos, currentPost, widget.myPhotoUrl, widget.myUsername, widget.myBadgeUrl, widget.myBadgeAnimation),
+            _buildStack(
+              item,
+              isCompleted,
+              postCount,
+              isTop,
+              depth,
+              isExpanded,
+              showCamera,
+              tierColor,
+              totalReactionCount,
+              totalUserReactions,
+              totalEmojiReactedUserIds.toList(),
+              userPhotos,
+              currentPost,
+              widget.myPhotoUrl,
+              widget.myUsername,
+              widget.myBadgeUrl,
+              widget.myBadgeAnimation,
+              isUploadingThisTask: isUploadingThisTask,
+              isUploadSuccessThisTask: isUploadSuccessThisTask,
+              uploadProgress: uploadState.progress,
+            ),
           ],
         ),
       ),
@@ -328,8 +377,11 @@ class TaskCardState extends State<TaskCard> {
     String? myPhotoUrl,
     String myUsername,
     String? myBadgeUrl,
-    String? myBadgeAnimation,
-  ) {
+    String? myBadgeAnimation, {
+    required bool isUploadingThisTask,
+    required bool isUploadSuccessThisTask,
+    required double uploadProgress,
+  }) {
     final caption = currentPost?.caption;
     return Stack(
       children: [
@@ -410,7 +462,7 @@ class TaskCardState extends State<TaskCard> {
                       GestureDetector(
                         onTap: () async {
                           HapticFeedback.lightImpact();
-                          await SoundService.instance.toggleBgmMute(currentPost.bgmUrl);
+                          await ref.read(soundServiceProvider).toggleBgmMute(currentPost.bgmUrl);
                           setState(() {}); // ミュートアイコンの更新
                         },
                         child: currentPost.bgmArtworkUrl != null
@@ -426,7 +478,7 @@ class TaskCardState extends State<TaskCard> {
                                         imageUrl: currentPost.bgmArtworkUrl!,
                                         fit: BoxFit.cover,
                                       ),
-                                      if (SoundService.instance.isBgmMuted)
+                                      if (ref.read(soundServiceProvider).isBgmMuted)
                                         Container(
                                           color: AppColors.pureBlack.withValues(alpha: 0.5),
                                           child: Icon(
@@ -446,10 +498,10 @@ class TaskCardState extends State<TaskCard> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  SoundService.instance.isBgmMuted
+                                  ref.read(soundServiceProvider).isBgmMuted
                                       ? Icons.music_off_rounded
                                       : Icons.music_note_rounded,
-                                  color: SoundService.instance.isBgmMuted
+                                  color: ref.read(soundServiceProvider).isBgmMuted
                                       ? (isCompleted ? Colors.white54 : AppColors.grey50)
                                       : (isCompleted ? AppColors.pureWhite : AppColors.white),
                                   size: 16,
@@ -522,7 +574,7 @@ class TaskCardState extends State<TaskCard> {
                       GestureDetector(
                         onTap: () async {
                           HapticFeedback.lightImpact();
-                          await SoundService.instance.toggleBgmMute(currentPost?.bgmUrl);
+                          await ref.read(soundServiceProvider).toggleBgmMute(currentPost?.bgmUrl);
                           setState(() {}); // ミュートアイコンの更新
                         },
                         child: Container(
@@ -532,10 +584,10 @@ class TaskCardState extends State<TaskCard> {
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            SoundService.instance.isBgmMuted
+                            ref.read(soundServiceProvider).isBgmMuted
                                 ? Icons.music_off_rounded
                                 : Icons.music_note_rounded,
-                            color: SoundService.instance.isBgmMuted
+                            color: ref.read(soundServiceProvider).isBgmMuted
                                 ? Colors.white54
                                 : AppColors.pureWhite,
                             size: 16,
@@ -604,15 +656,100 @@ class TaskCardState extends State<TaskCard> {
           ),
 
         // カメラボタン：ど真ん中に絶対配置
-        if (!isCompleted && showCamera && depth == 0)
+        if (!isCompleted && showCamera && depth == 0 && !isUploadingThisTask)
           Positioned.fill(
             child: Center(
               child: PulseCameraButton(tierColor: tierColor),
             ),
           ),
 
+        // アップロード中の進捗表示
+        if (isUploadingThisTask && showCamera && depth == 0)
+          Positioned.fill(
+            child: Center(
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.black.withValues(alpha: 0.6),
+                  border: Border.all(
+                    color: AppColors.accentGold.withValues(alpha: 0.8),
+                    width: 2,
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          value: uploadProgress,
+                          color: AppColors.accentGold,
+                          strokeWidth: 2.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${(uploadProgress * 100).toInt()}%',
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.accentGold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+        // アップロード成功時のDONE表示
+        if (isUploadSuccessThisTask && showCamera && depth == 0)
+          Positioned.fill(
+            child: Center(
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.black.withValues(alpha: 0.6),
+                  border: Border.all(
+                    color: AppColors.accentGold,
+                    width: 2.5,
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: AppColors.accentGold,
+                        size: 28,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'DONE',
+                        style: GoogleFonts.outfit(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.accentGold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
         // 達成済みの場合の「追いV」カメラアイコン（中央）
-        if (isCompleted && showCamera && depth == 0 && !isExpanded)
+        if (isCompleted && showCamera && depth == 0 && !isExpanded && !isUploadingThisTask && !isUploadSuccessThisTask)
           Positioned.fill(
             child: Center(
               child: Container(
@@ -636,7 +773,7 @@ class TaskCardState extends State<TaskCard> {
           ),
 
         // depth!=0 の場合の小さいカメラアイコン（中央）
-        if (!isCompleted && showCamera && depth != 0)
+        if (!isCompleted && showCamera && depth != 0 && !isUploadingThisTask)
           Positioned.fill(
             child: Center(
               child: Icon(

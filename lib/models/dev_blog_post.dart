@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum BlogCategory {
@@ -52,39 +53,71 @@ class DevBlogPost {
   final String? titleEn;
   final String? bodyEn;
 
+  // ── フィールド名定数 ──
+  static const String fieldTitle = 'title';
+  static const String fieldBody = 'body';
+  static const String fieldCategory = 'category';
+  static const String fieldAuthorId = 'authorId';
+  static const String fieldAuthorName = 'authorName';
+  static const String fieldCoverImageUrl = 'coverImageUrl';
+  static const String fieldIsPinned = 'isPinned';
+  static const String fieldCreatedAt = 'createdAt';
+  static const String fieldUpdatedAt = 'updatedAt';
+  static const String fieldTitleEn = 'titleEn';
+  static const String fieldBodyEn = 'bodyEn';
+
   static DevBlogPost fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return DevBlogPost(
-      id: doc.id,
-      title: data['title'] as String? ?? '',
-      body: data['body'] as String? ?? '',
-      category: BlogCategory.values.firstWhere(
-        (e) => e.name == (data['category'] as String?),
-        orElse: () => BlogCategory.progress,
-      ),
-      authorId: data['authorId'] as String? ?? '',
-      authorName: data['authorName'] as String? ?? 'Developer',
-      coverImageUrl: data['coverImageUrl'] as String?,
-      isPinned: (data['isPinned'] as bool?) ?? false,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      titleEn: data['titleEn'] as String?,
-      bodyEn: data['bodyEn'] as String?,
-    );
+    final data = doc.data() as Map<String, dynamic>?;
+    return DevBlogPost.fromMap(doc.id, data ?? {});
+  }
+
+  static DevBlogPost fromMap(String id, Map<String, dynamic> data) {
+    try {
+      return DevBlogPost(
+        id: id,
+        title: data[fieldTitle]?.toString() ?? '',
+        body: data[fieldBody]?.toString() ?? '',
+        category: BlogCategory.values.firstWhere(
+          (e) => e.name == data[fieldCategory]?.toString(),
+          orElse: () => BlogCategory.progress,
+        ),
+        authorId: data[fieldAuthorId]?.toString() ?? '',
+        authorName: data[fieldAuthorName]?.toString() ?? 'Developer',
+        coverImageUrl: data[fieldCoverImageUrl]?.toString(),
+        isPinned: data[fieldIsPinned] == true,
+        createdAt: (data[fieldCreatedAt] as Timestamp?)?.toDate() ?? DateTime.now(),
+        updatedAt: (data[fieldUpdatedAt] as Timestamp?)?.toDate() ?? DateTime.now(),
+        titleEn: data[fieldTitleEn]?.toString(),
+        bodyEn: data[fieldBodyEn]?.toString(),
+      );
+    } catch (e) {
+      debugPrint('Error parsing DevBlogPost $id: $e');
+      return DevBlogPost(
+        id: id,
+        title: 'Error loading post',
+        body: '',
+        category: BlogCategory.progress,
+        authorId: '',
+        authorName: 'System',
+        isPinned: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+    }
   }
 
   Map<String, dynamic> toMap() => {
-        'title': title,
-        'body': body,
-        'category': category.name,
-        'authorId': authorId,
-        'authorName': authorName,
-        'coverImageUrl': coverImageUrl,
-        'isPinned': isPinned,
-        'createdAt': Timestamp.fromDate(createdAt),
-        'updatedAt': Timestamp.fromDate(updatedAt),
-        'titleEn': titleEn,
-        'bodyEn': bodyEn,
+        fieldTitle: title,
+        fieldBody: body,
+        fieldCategory: category.name,
+        fieldAuthorId: authorId,
+        fieldAuthorName: authorName,
+        fieldCoverImageUrl: coverImageUrl,
+        fieldIsPinned: isPinned,
+        fieldCreatedAt: Timestamp.fromDate(createdAt),
+        fieldUpdatedAt: Timestamp.fromDate(updatedAt),
+        fieldTitleEn: titleEn,
+        fieldBodyEn: bodyEn,
       };
 
   DevBlogPost copyWith({

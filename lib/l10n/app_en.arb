@@ -273,8 +273,25 @@
   "pastComparisonTaskEmpty": "No posts for this task yet",
   "pastComparisonCompare": "Compare",
   "pastComparisonSelectTwo": "Select 2 photos",
-  "pastComparisonMode": "Compare Mode",
+  "pastComparisonMode": "Select Mode",
   "pastComparisonOther": "Other",
+  "pastComparisonSelectMode": "Select Mode",
+  "pastComparisonMoveTask": "Move Task",
+  "pastComparisonMoveConfirmTitle": "Move Task",
+  "pastComparisonMoveConfirmBody": "Move {count} selected posts to \"{taskName}\"?",
+  "@pastComparisonMoveConfirmBody": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "taskName": { "type": "String" }
+    }
+  },
+  "pastComparisonMoveSuccess": "Moved {count} posts",
+  "@pastComparisonMoveSuccess": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pastComparisonCancel": "Cancel",
   "sharePreviewTitle": "Preview",
   "previewLabel": "Preview",
   "sharePreviewShareText": "Crushed my Hero Task {count} time(s) this week!\nCurrent streak: {streak} days 🔥\n#VEffect",
@@ -497,6 +514,39 @@
   "profileScreenFollowers": "Followers",
   "profileScreenStreak": "Streak",
   "profileScreenTotalV": "Total V",
+  "profileScreenCurrentRank": "Current Rank",
+  "profileScreenNextRank": "Next Rank",
+  "profileScreenStreakProgress": "Progress",
+  "profileScreenStreakDays": "{count} Days",
+  "@profileScreenStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileScreenStreakProgressValue": "{streak} / {threshold} Days",
+  "@profileScreenStreakProgressValue": {
+    "placeholders": {
+      "streak": {
+        "type": "int"
+      },
+      "threshold": {
+        "type": "int"
+      }
+    }
+  },
+  "profileScreenStreakMax": "Max",
+  "tierIron": "Iron",
+  "tierBronze": "Bronze",
+  "tierSilver": "Silver",
+  "tierGold": "Gold",
+  "tierPlatinum": "Platinum",
+  "tierEmerald": "Emerald",
+  "tierDiamond": "Diamond",
+  "tierMaster": "Master",
+  "tierGrandmaster": "Grandmaster",
+  "tierChallenger": "Challenger",
   "profileScreenFollowingTitle": "Following",
   "profileScreenFollowersTitle": "Followers",
   "profileScreenTrendTitle": "📈 Weekly Trend Habits",

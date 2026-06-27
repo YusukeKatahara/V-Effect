@@ -5,24 +5,25 @@ import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../config/routes.dart';
-import '../services/analytics_service.dart';
 import '../services/user_service.dart';
+import '../providers/service_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/premium_background.dart';
 
 /// プロフィール設定後に表示されるヒーロータスクテンプレート選択画面
 ///
 /// ユーザーが V Effect の標準フローを即座に体験できるよう、
 /// フロー: テンプレート選択 → Main (Home) へ遷移
-class TaskTemplateScreen extends StatefulWidget {
+class TaskTemplateScreen extends ConsumerStatefulWidget {
   const TaskTemplateScreen({super.key});
 
   @override
-  State<TaskTemplateScreen> createState() => _TaskTemplateScreenState();
+  ConsumerState<TaskTemplateScreen> createState() => _TaskTemplateScreenState();
 }
 
-class _TaskTemplateScreenState extends State<TaskTemplateScreen>
+class _TaskTemplateScreenState extends ConsumerState<TaskTemplateScreen>
     with TickerProviderStateMixin {
-  final UserService _userService = UserService.instance;
+  late final UserService _userService;
 
   // テンプレート定義
   static const _templateCount = 4;
@@ -52,6 +53,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
   @override
   void initState() {
     super.initState();
+    _userService = ref.read(userServiceProvider);
     _fadeCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -95,7 +97,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
 
     try {
       // Analytics: テンプレート選択を記録
-      AnalyticsService.instance.logTemplateSelected(
+      ref.read(analyticsServiceProvider).logTemplateSelected(
         templateName: taskName,
         isCustom: _selectedIndex == _templateCount - 1,
       );
@@ -123,7 +125,7 @@ class _TaskTemplateScreenState extends State<TaskTemplateScreen>
 
   /// スキップ → 直接ヒーロータスク設定画面へ
   void _onSkip() {
-    AnalyticsService.instance.logTemplateSelected(
+    ref.read(analyticsServiceProvider).logTemplateSelected(
       templateName: 'skipped',
       isCustom: false,
     );

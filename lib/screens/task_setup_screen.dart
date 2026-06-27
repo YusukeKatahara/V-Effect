@@ -15,21 +15,22 @@ import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/premium_icon_header.dart';
 import '../widgets/section_title.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/service_providers.dart';
 
 /// 新規登録後のヒーロータスク設定画面
 /// プロフィール写真、ヒーロータスク、ヒーロータスク実行時間、起床時間を入力します
 /// テンプレート選択で既にヒーロータスクが1つ保存されている場合、それをプリフィルします
-class TaskSetupScreen extends StatefulWidget {
+class TaskSetupScreen extends ConsumerStatefulWidget {
   const TaskSetupScreen({super.key});
 
   @override
-  State<TaskSetupScreen> createState() => _TaskSetupScreenState();
+  ConsumerState<TaskSetupScreen> createState() => _TaskSetupScreenState();
 }
 
-class _TaskSetupScreenState extends State<TaskSetupScreen>
+class _TaskSetupScreenState extends ConsumerState<TaskSetupScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _userService = UserService.instance;
   bool _isSaving = false;
 
   // フェードアニメーション
@@ -61,7 +62,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
   /// テンプレートで選択済みのヒーロータスクがあればプリフィル
   Future<void> _loadTemplateTask() async {
     try {
-      final uid = _userService.currentUid;
+      final uid = ref.read(userServiceProvider).currentUid;
       if (uid == null) return;
       final snap = await FirebaseFirestore.instance
           .collection('users')
@@ -119,7 +120,7 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
   /// プロフィール画像を Firebase Storage にアップロードして URL を返す
   Future<String?> _uploadProfileImage() async {
     if (_profileImage == null) return null;
-    return await _userService.uploadProfileImage(_profileImage!);
+    return await ref.read(userServiceProvider).uploadProfileImage(_profileImage!);
   }
 
   Future<void> _saveAndFinish() async {
@@ -149,14 +150,14 @@ class _TaskSetupScreenState extends State<TaskSetupScreen>
 
       debugPrint('ヒーロータスク保存開始: tasks=$tasks');
 
-      await _userService.saveTaskSettings(
+      await ref.read(userServiceProvider).saveTaskSettings(
         tasks: tasks,
         photoUrl: photoUrl,
       );
 
       debugPrint('ヒーロータスク保存成功！');
 
-      final analytics = AnalyticsService.instance;
+      final analytics = ref.read(analyticsServiceProvider);
       await analytics.logTaskSetupComplete(taskCount: tasks.length);
       await analytics.logOnboardingComplete();
       await analytics.setTaskCount(tasks.length);

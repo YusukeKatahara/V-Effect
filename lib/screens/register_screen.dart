@@ -11,22 +11,22 @@ import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../widgets/animated_v_logo.dart';
 import '../widgets/responsive_container.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/service_providers.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen>
+class _RegisterScreenState extends ConsumerState<RegisterScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _passConfirmCtrl = TextEditingController();
-  final _authService = AuthService();
-  final _analytics = AnalyticsService.instance;
   bool _isEmailLoading = false;
   bool _isAppleLoading = false;
   bool _isGoogleLoading = false;
@@ -108,7 +108,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       } catch (e) {
         debugPrint('Verification email send error: $e');
       }
-      await _analytics.logSignUp('email');
+      await ref.read(analyticsServiceProvider).logSignUp('email');
       await _ensureUserDoc(cred.user!);
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.wrapper, (r) => false);
@@ -131,9 +131,9 @@ class _RegisterScreenState extends State<RegisterScreen>
     final scaffold = ScaffoldMessenger.maybeOf(context);
     final l10n = AppLocalizations.of(context)!;
     try {
-      final cred = await _authService.signInWithApple();
+      final cred = await ref.read(authServiceProvider).signInWithApple();
       if (cred != null) {
-        await _analytics.logSignUp('apple');
+        await ref.read(analyticsServiceProvider).logSignUp('apple');
         await _ensureUserDocAndNavigate();
       } else {
         if (mounted) setState(() => _isAppleLoading = false);
@@ -151,9 +151,9 @@ class _RegisterScreenState extends State<RegisterScreen>
     final scaffold = ScaffoldMessenger.maybeOf(context);
     final l10n = AppLocalizations.of(context)!;
     try {
-      final cred = await _authService.signInWithGoogle();
+      final cred = await ref.read(authServiceProvider).signInWithGoogle();
       if (cred != null) {
-        await _analytics.logSignUp('google');
+        await ref.read(analyticsServiceProvider).logSignUp('google');
         await _ensureUserDocAndNavigate();
       } else {
         if (mounted) setState(() => _isGoogleLoading = false);

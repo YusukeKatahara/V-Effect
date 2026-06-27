@@ -7,15 +7,17 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../services/user_service.dart';
 import '../widgets/notification_prompt_sheet.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/service_providers.dart';
 
-class NotificationSettingsScreen extends StatefulWidget {
+class NotificationSettingsScreen extends ConsumerStatefulWidget {
   const NotificationSettingsScreen({super.key});
 
   @override
-  State<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+  ConsumerState<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
 }
 
-class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
+class _NotificationSettingsScreenState extends ConsumerState<NotificationSettingsScreen> {
   bool _pushNotifications = true;
   bool _reactionNotifications = true;
   bool _vFireNotifications = true;
@@ -81,7 +83,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     try {
       if (key == 'pushNotifications') {
         // マスタースイッチ：全てを一括更新
-        await UserService.instance.updateSettings(
+        await ref.read(userServiceProvider).updateSettings(
           pushNotifications: value,
           reactionNotifications: value,
           vFireNotifications: value,
@@ -91,7 +93,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         );
       } else {
         // 個別スイッチ：その項目のみ更新
-        await UserService.instance.updateSettings(
+        await ref.read(userServiceProvider).updateSettings(
           reactionNotifications: key == 'reactionNotifications' ? value : null,
           vFireNotifications: key == 'vFireNotifications' ? value : null,
           protectionNotifications: key == 'protectionNotifications' ? value : null,

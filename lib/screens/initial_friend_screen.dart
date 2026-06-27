@@ -8,18 +8,20 @@ import '../widgets/gradient_button.dart';
 import '../widgets/premium_icon_header.dart';
 import '../widgets/section_title.dart';
 import '../widgets/swipe_back_gate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/service_providers.dart';
 
 /// ヒーロータスク設定完了後に表示される初期フレンド登録画面
-class InitialFriendScreen extends StatefulWidget {
+class InitialFriendScreen extends ConsumerStatefulWidget {
   const InitialFriendScreen({super.key});
 
   @override
-  State<InitialFriendScreen> createState() => _InitialFriendScreenState();
+  ConsumerState<InitialFriendScreen> createState() => _InitialFriendScreenState();
 }
 
-class _InitialFriendScreenState extends State<InitialFriendScreen>
+class _InitialFriendScreenState extends ConsumerState<InitialFriendScreen>
     with SingleTickerProviderStateMixin {
-  final FriendService _friendService = FriendService.instance;
+  late final FriendService _friendService;
   final TextEditingController _userIdCtrl = TextEditingController();
 
   // プリセットユーザーの選択状態
@@ -40,6 +42,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
   @override
   void initState() {
     super.initState();
+    _friendService = ref.read(friendServiceProvider);
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -120,7 +123,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
       if (otherUserId != null && otherUserId.isNotEmpty) {
         referrers.add('other');
       }
-      AnalyticsService.instance
+      ref.read(analyticsServiceProvider)
           .logReferralSource(referrers: referrers, skipped: false);
 
       if (mounted) {
@@ -336,7 +339,7 @@ class _InitialFriendScreenState extends State<InitialFriendScreen>
                                       ? null
                                       : () {
                                           // スキップも記録
-                                          AnalyticsService.instance
+                                          ref.read(analyticsServiceProvider)
                                               .logReferralSource(
                                                   referrers: [], skipped: true);
                                           Navigator.of(context).pop();

@@ -14,18 +14,20 @@ import '../widgets/swipe_back_gate.dart';
 import '../widgets/full_screen_image_viewer.dart';
 import '../widgets/v_badge_widget.dart';
 import '../widgets/shimmer_container.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/service_providers.dart';
 /// 他ユーザーのプロフィール閲覧画面
 ///
 /// 引数（ModalRoute.settings.arguments）: String uid
-class UserProfileScreen extends StatefulWidget {
+class UserProfileScreen extends ConsumerStatefulWidget {
   const UserProfileScreen({super.key});
 
   @override
-  State<UserProfileScreen> createState() => _UserProfileScreenState();
+  ConsumerState<UserProfileScreen> createState() => _UserProfileScreenState();
 }
 
-class _UserProfileScreenState extends State<UserProfileScreen> {
-  final FriendService _friendService = FriendService.instance;
+class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
+  late final FriendService _friendService;
   final String _myUid = FirebaseAuth.instance.currentUser!.uid;
 
   String? _targetUid;
@@ -47,6 +49,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // late final フィールドの初期化（ref が有効になった後に実行）
+    if (!_initialized) {
+      _friendService = ref.read(friendServiceProvider);
+    }
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args != null && !_initialized) {
       _initialized = true;
@@ -71,7 +77,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final results = await Future.wait([
         _friendService.getUserByUid(_targetUid!),
         _friendService.isFollowing(_targetUid!),
-        BlockService.instance.isBlocked(_targetUid!),
+        ref.read(blockServiceProvider).isBlocked(_targetUid!),
         _friendService.getUserByUid(_myUid), // 自分（ログインユーザー）の情報を取得
       ]);
 
@@ -82,7 +88,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
       // 過去の投稿数(totalPosts)が未設定・未計算(-1)、またはマイグレーション未完了フラグの場合は遅延初期化を実行
       if (loadedUser != null && (!loadedUser.totalPostsMigrated || loadedUser.totalPosts == -1)) {
-        UserService.instance.migrateTotalPosts(loadedUser.uid);
+        ref.read(userServiceProvider).migrateTotalPosts(loadedUser.uid);
       }
 
       // friend_requests コレクションへのアクセスが失敗しても他の処理を妨げない
@@ -311,7 +317,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (_targetUid == null) return;
     setState(() => _isBlockProcessing = true);
     try {
-      await BlockService.instance.blockUser(_targetUid!);
+      await ref.read(blockServiceProvider).blockUser(_targetUid!);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -328,7 +334,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (_targetUid == null) return;
     setState(() => _isBlockProcessing = true);
     try {
-      await BlockService.instance.unblockUser(_targetUid!);
+      await ref.read(blockServiceProvider).unblockUser(_targetUid!);
       if (mounted) setState(() => _isBlocked = false);
     } catch (e) {
       if (mounted) {
@@ -386,7 +392,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Future<void> _performReport(String reason) async {
     if (_targetUid == null) return;
     try {
-      await BlockService.instance.reportUser(_targetUid!, reason);
+      await ref.read(blockServiceProvider).reportUser(_targetUid!, reason);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context)!.userProfileReportDone)),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -22,6 +23,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../providers/home_provider.dart';
 import '../providers/upload_provider.dart';
+import '../providers/service_providers.dart';
 import '../widgets/black_hole_loading_overlay.dart';
 
 /// Hero Task 撮影画面
@@ -42,7 +44,7 @@ class CameraScreen extends ConsumerStatefulWidget {
 class _CameraScreenState extends ConsumerState<CameraScreen>
     with WidgetsBindingObserver {
   final ImagePicker _picker = ImagePicker();
-  final PostService _postService = PostService.instance;
+  
   XFile? _image;
   bool _isUploading = false;
   final TextEditingController _captionController = TextEditingController();
@@ -1193,7 +1195,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   }
 }
 
-class MusicSearchBottomSheet extends StatefulWidget {
+class MusicSearchBottomSheet extends ConsumerStatefulWidget {
   final VoidCallback? onPreviewStarted;
   final VoidCallback? onPreviewStopped;
 
@@ -1204,10 +1206,10 @@ class MusicSearchBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<MusicSearchBottomSheet> createState() => _MusicSearchBottomSheetState();
+  ConsumerState<MusicSearchBottomSheet> createState() => _MusicSearchBottomSheetState();
 }
 
-class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
+class _MusicSearchBottomSheetState extends ConsumerState<MusicSearchBottomSheet> {
   final TextEditingController _searchController = TextEditingController();
   final AudioPlayer _previewPlayer = AudioPlayer();
   
@@ -1219,13 +1221,22 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
   bool _isLoadingInitial = true;
 
   String? _playingUrl;
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _loadInitialData();
-    _searchController.addListener(() {
-      if (_searchController.text.isEmpty) {
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      final query = _searchController.text;
+      if (query.trim().isNotEmpty) {
+        _search(query);
+      } else {
         setState(() {
           _results.clear();
         });
@@ -1234,8 +1245,8 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
   }
 
   Future<void> _loadInitialData() async {
-    final recent = await MusicApiService.instance.getRecentSongs();
-    final top = await MusicApiService.instance.getTopSongs();
+    final recent = await ref.read(musicApiServiceProvider).getRecentSongs();
+    final top = await ref.read(musicApiServiceProvider).getTopSongs();
     if (mounted) {
       setState(() {
         _recentSongs = recent;
@@ -1247,6 +1258,8 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _previewPlayer.dispose();
     super.dispose();
@@ -1257,7 +1270,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
     setState(() {
       _isLoading = true;
     });
-    final results = await MusicApiService.instance.searchSongs(query);
+    final results = await ref.read(musicApiServiceProvider).searchSongs(query);
     if (mounted) {
       setState(() {
         _results = results;
@@ -1335,6 +1348,7 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
                 ),
                 TextButton(
                   onPressed: () {
+                    HapticFeedback.mediumImpact();
                     Navigator.pop(context, 'remove');
                   },
                   child: Text(AppLocalizations.of(context)!.cameraMusicRemoveBgm, style: TextStyle(color: AppColors.error)),
@@ -1360,7 +1374,10 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
                   borderSide: BorderSide.none,
                 ),
               ),
-              onSubmitted: _search,
+              onSubmitted: (val) {
+                if (_debounce?.isActive ?? false) _debounce!.cancel();
+                _search(val);
+              },
               textInputAction: TextInputAction.search,
             ),
           ),
@@ -1456,33 +1473,32 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
     return ListTile(
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            CachedNetworkImage(
-              imageUrl: item.artworkUrl,
-              width: 50,
-              height: 50,
-              fit: BoxFit.cover,
-            ),
-            if (isPlaying)
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _togglePreview(item.previewUrl);
+          },
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CachedNetworkImage(
+                imageUrl: item.artworkUrl,
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              ),
               Container(
                 width: 50,
                 height: 50,
-                color: AppColors.black.withValues(alpha: 0.5),
-                child: Icon(Icons.pause, color: AppColors.white),
-              )
-            else
-              GestureDetector(
-                onTap: () => _togglePreview(item.previewUrl),
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  color: Colors.transparent,
-                  child: Icon(Icons.play_arrow, color: AppColors.white, size: 28),
+                color: AppColors.black.withValues(alpha: isPlaying ? 0.5 : 0.0),
+                child: Icon(
+                  isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: AppColors.white,
+                  size: 28,
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
       title: Text(
@@ -1510,8 +1526,9 @@ class _MusicSearchBottomSheetState extends State<MusicSearchBottomSheet> {
   }
 
   Future<void> _selectSong(MusicItem item) async {
+    HapticFeedback.mediumImpact();
     await _previewPlayer.stop();
-    await MusicApiService.instance.addRecentSong(item);
+    await ref.read(musicApiServiceProvider).addRecentSong(item);
     if (mounted) {
       Navigator.pop(context, item);
     }

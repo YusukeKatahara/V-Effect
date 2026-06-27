@@ -11,8 +11,8 @@ description: V EFFECT プロジェクトの概要・チーム構成・フォル�
 - **Platform:** Android / iOS (Cross-platform development using Flutter)
 - **Development Language:** Dart (Flutter framework)
 - **Development Members:** 2 members
-  - **renn** (Planner / Beginner): アプリ全体の統一感UIUXetcを意識してください
-  - **yusuke** (Technical Co-developer / Advanced): Doctoral course (Engineering). Experienced in Python/C/C++/Matlab. Well-versed in machine learning, generative AI, mathematics, and English. Role is to technically realize the app upon consultation from renn.
+  - **renn** (Main Developer / Planner): アプリの開発・コーディング、およびコマンド実行やデプロイ等の作業を自ら担当しています。
+  - **yusuke** (Technical Advisor / Security Lead): 技術設計のレビュー、セキュリティの監修・担当をしており、rennさんの開発を技術面・安全性から監修・サポートしています。
 - **Source Code Management:** GitHub (Repository: YusukeKatahara/V-Effect)
 
 ## Folder Structure (Flutter Project)

@@ -1,67 +1,58 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:v_effect/config/app_colors.dart';
 
 /// アプリ全体のテーマモード（ライト、ダーク、システム設定同期）を管理するプロバイダー
-///
-/// 起動時の白飛び（White Flash）を防ぐため、初期値は `ThemeMode.dark` に設定しています。
-/// SharedPreferences から非同期で設定を読み込み、変更時は永続化を行います。
-class ThemeProvider extends ChangeNotifier {
-  // 初期値はダークモードに設定（起動時のフラッシュ防止）
-  ThemeMode _themeMode = ThemeMode.dark;
+final themeProvider = NotifierProvider<ThemeNotifier, ThemeMode>(ThemeNotifier.new);
+
+class ThemeNotifier extends Notifier<ThemeMode> {
   Future<void>? _loadFuture;
   bool _hasUserOverride = false;
   Future<void> _writeChain = Future.value();
-
-  // ストレージとの同期が完了したかを示すフラグ（起動時のデータ競合/boot-raceを防ぐため）
   bool _isStorageSynced = false;
 
-  ThemeMode get themeMode => _themeMode;
   Future<void>? get loadFuture => _loadFuture;
 
-  ThemeProvider() {
+  @override
+  ThemeMode build() {
+    // 初期値はダークモードに設定（起動時のフラッシュ防止）
     _loadFuture = _loadTheme();
+    return ThemeMode.dark;
   }
 
   /// SharedPreferences から保存されたテーマ設定を非同期で読み込みます。
-  /// 旧バージョンの 'isDarkMode' (bool) からの移行処理も含んでいます。
   Future<void> _loadTheme() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       
       if (_hasUserOverride) return;
 
+      ThemeMode newMode;
       // 新しい String 型のキー 'theme_mode' を取得
       final savedMode = prefs.getString('theme_mode');
       
       if (savedMode != null) {
-        _themeMode = _parseThemeMode(savedMode);
+        newMode = _parseThemeMode(savedMode);
       } else {
         // 'theme_mode' が存在しない場合、旧 boolean キー 'isDarkMode' を確認
         final isDarkMode = prefs.getBool('isDarkMode');
         if (isDarkMode != null) {
-          // 'isDarkMode' の値を新フォーマットに変換して設定
-          _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
-          // 新しいキー 'theme_mode' で保存して移行完了とする
+          newMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
           await prefs.setString('theme_mode', isDarkMode ? 'dark' : 'light');
-          // 旧キー 'isDarkMode' を削除
           await prefs.remove('isDarkMode');
         } else {
-          // どちらも存在しない場合のデフォルトはシステム設定
-          _themeMode = ThemeMode.system;
+          newMode = ThemeMode.system;
         }
       }
 
       if (_hasUserOverride) return;
       
       // AppColors の状態も同期
-      AppColors.updateThemeMode(_themeMode);
-
-      // 同期が完了したことをマーク
+      AppColors.updateThemeMode(newMode);
       _isStorageSynced = true;
       
-      // 状態が変化したため、リスナー（UIなど）に通知して再描画を促します
-      notifyListeners();
+      state = newMode;
     } catch (e) {
       debugPrint('テーマの読み込みエラー: $e');
     }
@@ -72,13 +63,13 @@ class ThemeProvider extends ChangeNotifier {
     _hasUserOverride = true;
     
     // 同じテーマで、かつストレージ同期も完了している場合のみ早期リターン
-    if (_themeMode == mode && _isStorageSynced) return;
+    if (state == mode && _isStorageSynced) return;
+    
     _isStorageSynced = true;
-    _themeMode = mode;
+    state = mode;
     
     // AppColors の状態も同期
     AppColors.updateThemeMode(mode);
-    notifyListeners();
 
     _writeChain = _writeChain.then((_) async {
       try {
@@ -117,4 +108,3 @@ class ThemeProvider extends ChangeNotifier {
     }
   }
 }
-

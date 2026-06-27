@@ -1322,7 +1322,7 @@ abstract class AppLocalizations {
   /// No description provided for @pastComparisonMode.
   ///
   /// In ja, this message translates to:
-  /// **'比較モード'**
+  /// **'選択モード'**
   String get pastComparisonMode;
 
   /// No description provided for @pastComparisonOther.
@@ -1330,6 +1330,42 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'その他'**
   String get pastComparisonOther;
+
+  /// No description provided for @pastComparisonSelectMode.
+  ///
+  /// In ja, this message translates to:
+  /// **'選択モード'**
+  String get pastComparisonSelectMode;
+
+  /// No description provided for @pastComparisonMoveTask.
+  ///
+  /// In ja, this message translates to:
+  /// **'タスクを移動'**
+  String get pastComparisonMoveTask;
+
+  /// No description provided for @pastComparisonMoveConfirmTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'タスクの移動'**
+  String get pastComparisonMoveConfirmTitle;
+
+  /// No description provided for @pastComparisonMoveConfirmBody.
+  ///
+  /// In ja, this message translates to:
+  /// **'選択した{count}件の投稿を「{taskName}」に移動しますか？'**
+  String pastComparisonMoveConfirmBody(int count, String taskName);
+
+  /// No description provided for @pastComparisonMoveSuccess.
+  ///
+  /// In ja, this message translates to:
+  /// **'{count}件の投稿を移動しました'**
+  String pastComparisonMoveSuccess(int count);
+
+  /// No description provided for @pastComparisonCancel.
+  ///
+  /// In ja, this message translates to:
+  /// **'キャンセル'**
+  String get pastComparisonCancel;
 
   /// No description provided for @sharePreviewTitle.
   ///
@@ -2386,6 +2422,102 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'トータルV'**
   String get profileScreenTotalV;
+
+  /// No description provided for @profileScreenCurrentRank.
+  ///
+  /// In ja, this message translates to:
+  /// **'現在のランク'**
+  String get profileScreenCurrentRank;
+
+  /// No description provided for @profileScreenNextRank.
+  ///
+  /// In ja, this message translates to:
+  /// **'次のランク'**
+  String get profileScreenNextRank;
+
+  /// No description provided for @profileScreenStreakProgress.
+  ///
+  /// In ja, this message translates to:
+  /// **'進捗状況'**
+  String get profileScreenStreakProgress;
+
+  /// No description provided for @profileScreenStreakDays.
+  ///
+  /// In ja, this message translates to:
+  /// **'{count}日連続'**
+  String profileScreenStreakDays(int count);
+
+  /// No description provided for @profileScreenStreakProgressValue.
+  ///
+  /// In ja, this message translates to:
+  /// **'{streak} / {threshold} 日'**
+  String profileScreenStreakProgressValue(int streak, int threshold);
+
+  /// No description provided for @profileScreenStreakMax.
+  ///
+  /// In ja, this message translates to:
+  /// **'最大'**
+  String get profileScreenStreakMax;
+
+  /// No description provided for @tierIron.
+  ///
+  /// In ja, this message translates to:
+  /// **'アイアン'**
+  String get tierIron;
+
+  /// No description provided for @tierBronze.
+  ///
+  /// In ja, this message translates to:
+  /// **'ブロンズ'**
+  String get tierBronze;
+
+  /// No description provided for @tierSilver.
+  ///
+  /// In ja, this message translates to:
+  /// **'シルバー'**
+  String get tierSilver;
+
+  /// No description provided for @tierGold.
+  ///
+  /// In ja, this message translates to:
+  /// **'ゴールド'**
+  String get tierGold;
+
+  /// No description provided for @tierPlatinum.
+  ///
+  /// In ja, this message translates to:
+  /// **'プラチナ'**
+  String get tierPlatinum;
+
+  /// No description provided for @tierEmerald.
+  ///
+  /// In ja, this message translates to:
+  /// **'エメラルド'**
+  String get tierEmerald;
+
+  /// No description provided for @tierDiamond.
+  ///
+  /// In ja, this message translates to:
+  /// **'ダイヤモンド'**
+  String get tierDiamond;
+
+  /// No description provided for @tierMaster.
+  ///
+  /// In ja, this message translates to:
+  /// **'マスター'**
+  String get tierMaster;
+
+  /// No description provided for @tierGrandmaster.
+  ///
+  /// In ja, this message translates to:
+  /// **'グランドマスター'**
+  String get tierGrandmaster;
+
+  /// No description provided for @tierChallenger.
+  ///
+  /// In ja, this message translates to:
+  /// **'チャレンジャー'**
+  String get tierChallenger;
 
   /// No description provided for @profileScreenFollowingTitle.
   ///

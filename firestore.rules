@@ -246,10 +246,16 @@ service cloud.firestore {
       allow delete: if request.auth != null
         && resource.data.userId == request.auth.uid;
 
-      // 【仕様】reactionCount の更新は誰でも（ログインユーザーなら）OK
-      // ただし reactionCount 以外のフィールドを変更しようとしてもブロックします
-      allow update: if request.auth != null
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactionCount', 'emojiReactedUserIds', 'userReactions']);
+      // 【仕様】リアクション数などの更新は誰でも（ログインユーザーなら）OK
+      // また、本人の投稿であれば、マイグレーションのために taskId / taskName の更新を許可します。
+      allow update: if request.auth != null && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactionCount', 'emojiReactedUserIds', 'userReactions'])
+        ||
+        (
+          resource.data.userId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['taskId', 'taskName'])
+        )
+      );
 
       // 【仕様】(Vuln-2 対応の修正)
       // Firestoreのクエリ制約を満たすため、また getAllMyPastPosts 等の全取得クエリに対応するため以下のように修正:

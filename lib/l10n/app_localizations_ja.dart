@@ -647,10 +647,32 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pastComparisonSelectTwo => '2枚選んでください';
 
   @override
-  String get pastComparisonMode => '比較モード';
+  String get pastComparisonMode => '選択モード';
 
   @override
   String get pastComparisonOther => 'その他';
+
+  @override
+  String get pastComparisonSelectMode => '選択モード';
+
+  @override
+  String get pastComparisonMoveTask => 'タスクを移動';
+
+  @override
+  String get pastComparisonMoveConfirmTitle => 'タスクの移動';
+
+  @override
+  String pastComparisonMoveConfirmBody(int count, String taskName) {
+    return '選択した$count件の投稿を「$taskName」に移動しますか？';
+  }
+
+  @override
+  String pastComparisonMoveSuccess(int count) {
+    return '$count件の投稿を移動しました';
+  }
+
+  @override
+  String get pastComparisonCancel => 'キャンセル';
 
   @override
   String get sharePreviewTitle => 'プレビュー';
@@ -1197,6 +1219,58 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileScreenTotalV => 'トータルV';
+
+  @override
+  String get profileScreenCurrentRank => '現在のランク';
+
+  @override
+  String get profileScreenNextRank => '次のランク';
+
+  @override
+  String get profileScreenStreakProgress => '進捗状況';
+
+  @override
+  String profileScreenStreakDays(int count) {
+    return '$count日連続';
+  }
+
+  @override
+  String profileScreenStreakProgressValue(int streak, int threshold) {
+    return '$streak / $threshold 日';
+  }
+
+  @override
+  String get profileScreenStreakMax => '最大';
+
+  @override
+  String get tierIron => 'アイアン';
+
+  @override
+  String get tierBronze => 'ブロンズ';
+
+  @override
+  String get tierSilver => 'シルバー';
+
+  @override
+  String get tierGold => 'ゴールド';
+
+  @override
+  String get tierPlatinum => 'プラチナ';
+
+  @override
+  String get tierEmerald => 'エメラルド';
+
+  @override
+  String get tierDiamond => 'ダイヤモンド';
+
+  @override
+  String get tierMaster => 'マスター';
+
+  @override
+  String get tierGrandmaster => 'グランドマスター';
+
+  @override
+  String get tierChallenger => 'チャレンジャー';
 
   @override
   String get profileScreenFollowingTitle => 'フォロー中';

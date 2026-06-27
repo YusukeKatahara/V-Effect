@@ -6,16 +6,17 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/app_user.dart';
-import '../services/friend_service.dart';
+import '../providers/service_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class QrScannerScreen extends StatefulWidget {
+class QrScannerScreen extends ConsumerStatefulWidget {
   const QrScannerScreen({super.key});
 
   @override
-  State<QrScannerScreen> createState() => _QrScannerScreenState();
+  ConsumerState<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> {
+class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   final MobileScannerController _controller = MobileScannerController();
   bool _isProcessing = false;
 
@@ -41,11 +42,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
     final parsedId = Uri.decodeComponent(segments[1]);
     try {
-      // まずはユーザー設定の ID (userId) で検索
-      AppUser? user = await FriendService.instance.searchByUserId(parsedId);
+      // まずはユーザー設定 of ID (userId) で検索
+      AppUser? user = await ref.read(friendServiceProvider).searchByUserId(parsedId);
       
       // 見つからない場合は、システムID (uid) での取得を試みる
-      user ??= await FriendService.instance.getUserByUid(parsedId);
+      user ??= await ref.read(friendServiceProvider).getUserByUid(parsedId);
 
       if (!mounted) return;
       if (user == null) {

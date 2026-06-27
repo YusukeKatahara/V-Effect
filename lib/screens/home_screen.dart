@@ -19,6 +19,7 @@ import '../services/post_service.dart';
 import '../services/analytics_service.dart';
 import '../services/block_service.dart';
 import '../services/sound_service.dart';
+import '../providers/service_providers.dart';
 import '../utils/ad_helper.dart';
 import '../widgets/v_effect_header.dart';
 import '../widgets/native_ad_card.dart';
@@ -27,6 +28,7 @@ import '../widgets/home/friend_request_banner.dart';
 import '../widgets/home/announcement_area.dart';
 import '../widgets/home/home_empty_state.dart';
 import 'weekly_review_screen.dart';
+import '../services/migration_service.dart';
 import '../providers/home_provider.dart';
 import '../providers/upload_provider.dart';
 import '../widgets/upload_progress_bar.dart';
@@ -50,7 +52,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  final PostService _postService = PostService.instance;
+  late final PostService _postService;
   bool _postedToday = false;
   bool _friendFeedLogged = false; // friend_feed_viewed をフィード初回ロード時に1回だけ送るためのガード
   List<dynamic> _feedItems = [];
@@ -113,9 +115,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final item = _feedItems[currentFocused];
     if (item is Post && item.bgmUrl != null) {
-      await SoundService.instance.playBgm(item.bgmUrl!);
+      await ref.read(soundServiceProvider).playBgm(item.bgmUrl!);
     } else {
-      await SoundService.instance.stopBgm();
+      await ref.read(soundServiceProvider).stopBgm();
     }
   }
 
@@ -145,6 +147,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void initState() {
     super.initState();
+    _postService = ref.read(postServiceProvider);
     WidgetsBinding.instance.addObserver(this);
     MainShell.activeTabIndex.addListener(_onTabChanged);
     _flashController = AnimationController(
@@ -213,6 +216,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _requestTrackingAuthorization();
+      MigrationService.instance.runTaskIdMigration();
     });
   }
 
@@ -220,7 +224,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void dispose() {
     MainShell.activeTabIndex.removeListener(_onTabChanged);
     WidgetsBinding.instance.removeObserver(this);
-    SoundService.instance.stopBgm();
+    ref.read(soundServiceProvider).stopBgm();
     for (final ad in _nativeAds.values) {
       ad.dispose();
     }
@@ -242,32 +246,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final ad = NativeAd(
       adUnitId: AdHelper.nativeAdUnitId,
       request: const AdRequest(),
-      nativeTemplateStyle: NativeTemplateStyle(
-        templateType: TemplateType.medium,
-        mainBackgroundColor: AppColors.grey15,
-        cornerRadius: 24.0,
-        callToActionTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.white,
-          backgroundColor: AppColors.accentGold,
-          style: NativeTemplateFontStyle.bold,
-          size: 16.0,
-        ),
-        primaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.white,
-          style: NativeTemplateFontStyle.bold,
-          size: 18.0,
-        ),
-        secondaryTextStyle: NativeTemplateTextStyle(
-          textColor: AppColors.textSecondary,
-          style: NativeTemplateFontStyle.normal,
-          size: 14.0,
-        ),
-        tertiaryTextStyle: NativeTemplateTextStyle(
-          textColor: AppColors.textSecondary,
-          style: NativeTemplateFontStyle.normal,
-          size: 14.0,
-        ),
-      ),
+      factoryId: 'customNativeAd',
       listener: NativeAdListener(
         onAdLoaded: (loadedAd) {
           if (mounted) {
@@ -276,6 +255,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             });
           }
         },
+
         onAdFailedToLoad: (failedAd, error) {
           debugPrint('NativeAd failed to load at index $index: $error');
           failedAd.dispose();
@@ -664,7 +644,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           glowColor: glowColor,
           bottomOffset: _flameBottomOffset,
         );
-        SoundService.instance.playFireTapSound(playbackRate: soundPitch);
+        ref.read(soundServiceProvider).playFireTapSound(playbackRate: soundPitch);
       }
     }
 
@@ -832,7 +812,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                await BlockService.instance.blockUser(targetUid);
+                await ref.read(blockServiceProvider).blockUser(targetUid);
                 ref.invalidate(homeDataProvider);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -886,7 +866,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       onTap: () async {
         Navigator.pop(ctx);
         try {
-          await BlockService.instance.reportPost(post.id, post.userId, reason);
+          await ref.read(blockServiceProvider).reportPost(post.id, post.userId, reason);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(AppLocalizations.of(context)!.homeReportSuccess)),
@@ -936,7 +916,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           final todayCount = homeData.feedPosts
               .where((p) => !p.createdAt.isBefore(start))
               .length;
-          AnalyticsService.instance
+          ref.read(analyticsServiceProvider)
               .logFriendFeedViewed(todayFriendPostsCount: todayCount);
           _friendFeedLogged = true;
         }
@@ -1083,7 +1063,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       onVisibilityChanged: (info) {
         if (info.visibleFraction < 0.1) {
           // 画面がほぼ見えなくなった時（他のタブや別画面に移動した時）
-          SoundService.instance.stopBgm();
+          ref.read(soundServiceProvider).stopBgm();
         }
       },
       child: Scaffold(
@@ -1365,9 +1345,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                           artist: item.bgmArtist,
                                           url: item.bgmUrl,
                                           artworkUrl: item.bgmArtworkUrl,
-                                          isMuted: SoundService.instance.isBgmMuted,
+                                          isMuted: ref.read(soundServiceProvider).isBgmMuted,
                                           onMuteToggle: () async {
-                                            await SoundService.instance.toggleBgmMute(item.bgmUrl);
+                                            await ref.read(soundServiceProvider).toggleBgmMute(item.bgmUrl);
                                             setState(() {});
                                           },
                                         ),

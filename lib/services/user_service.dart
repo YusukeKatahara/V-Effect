@@ -21,6 +21,19 @@ class UserService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  /// タスクのリストに対し、IDがないものに一意のID（Firestoreの自動生成ID）を割り当てます
+  List<AppTask> _ensureTaskIds(List<AppTask> tasks) {
+    return tasks.map((t) {
+      if (t.id.isEmpty) {
+        final newId = _db.collection('users').doc().id;
+        return t.copyWith(id: newId);
+      }
+      return t;
+    }).toList();
+  }
+
+
+
   /// マイグレーション処理の多重実行を防ぐためのメモリ内ロック
   final Set<String> _migratingUids = {};
 
@@ -45,17 +58,17 @@ class UserService {
     batch.set(
       _db.collection('users').doc(uid),
       {
-        'username': username,
-        'usernameLower': username.toLowerCase(),
-        'userId': userId,
-        'userIdLower': userId.toLowerCase(),
-        'streak': 0,
-        'lastPostedDate': null,
-        'following': [],
-        'followers': [],
-        'tasks': [],
-        'photoUrl': null,
-        'profileCompleted': true,
+        AppUser.fieldUsername: username,
+        AppUser.fieldUsernameLower: username.toLowerCase(),
+        AppUser.fieldUserId: userId,
+        AppUser.fieldUserIdLower: userId.toLowerCase(),
+        AppUser.fieldStreak: 0,
+        AppUser.fieldLastPostedDate: null,
+        AppUser.fieldFollowing: [],
+        AppUser.fieldFollowers: [],
+        AppUser.fieldTasks: [],
+        AppUser.fieldPhotoUrl: null,
+        AppUser.fieldProfileCompleted: true,
       },
       SetOptions(merge: true),
     );
@@ -64,10 +77,10 @@ class UserService {
     batch.set(
       _db.collection('users').doc(uid).collection('private').doc('data'),
       {
-        'email': email,
-        'birthDate': birthDate,
-        'gender': gender,
-        'occupation': occupation,
+        AppUser.fieldEmail: email,
+        AppUser.fieldBirthDate: birthDate,
+        AppUser.fieldGender: gender,
+        AppUser.fieldOccupation: occupation,
       },
       SetOptions(merge: true),
     );
@@ -82,11 +95,12 @@ class UserService {
   /// 選択されたヒーロータスクをtasksの最初の要素として保存し、templateCompletedをtrueに設定
   Future<void> saveTemplateTask({required String taskName}) async {
     final uid = _auth.currentUser!.uid;
+    final taskWithId = _ensureTaskIds([AppTask(title: taskName)]).first;
     await _db.collection('users').doc(uid).set(
       {
-        'tasks': [AppTask(title: taskName).toFirestore()],
-        'templateCompleted': true,
-        'onboardingCompleted': true,
+        AppUser.fieldTasks: [taskWithId.toFirestore()],
+        AppUser.fieldTemplateCompleted: true,
+        AppUser.fieldOnboardingCompleted: true,
       },
       SetOptions(merge: true),
     );
@@ -104,16 +118,15 @@ class UserService {
     final uid = _auth.currentUser!.uid;
     final batch = _db.batch();
 
-    // 🚀 【動的マージ対応】シーズンタスクは保存しないように除外します（メモリ上でのみマージするため）
-    final nonSeasonTasks = tasks.where((t) => !t.isSeason).toList();
+    final tasksWithIds = _ensureTaskIds(tasks);
 
     // 公開情報
     final publicData = <String, dynamic>{
-      'tasks': nonSeasonTasks.map((t) => t.toFirestore()).toList(),
-      'onboardingCompleted': true,
+      AppUser.fieldTasks: tasksWithIds.map((t) => t.toFirestore()).toList(),
+      AppUser.fieldOnboardingCompleted: true,
     };
     if (photoUrl != null) {
-      publicData['photoUrl'] = photoUrl;
+      publicData[AppUser.fieldPhotoUrl] = photoUrl;
     }
     batch.set(
       _db.collection('users').doc(uid),
@@ -136,7 +149,7 @@ class UserService {
     final uid = _auth.currentUser!.uid;
     final query = await _db
         .collection('users')
-        .where('userId', isEqualTo: userId)
+        .where(AppUser.fieldUserId, isEqualTo: userId)
         .limit(2)
         .get();
     // 結果が空なら利用可能
@@ -175,30 +188,29 @@ class UserService {
     // 公開情報の更新
     final publicData = <String, dynamic>{};
     if (username != null) {
-      publicData['username'] = username;
-      publicData['usernameLower'] = username.toLowerCase();
+      publicData[AppUser.fieldUsername] = username;
+      publicData[AppUser.fieldUsernameLower] = username.toLowerCase();
     }
     if (userId != null) {
-      publicData['userId'] = userId;
-      publicData['userIdLower'] = userId.toLowerCase();
+      publicData[AppUser.fieldUserId] = userId;
+      publicData[AppUser.fieldUserIdLower] = userId.toLowerCase();
     }
-    if (photoUrl != null) publicData['photoUrl'] = photoUrl;
+    if (photoUrl != null) publicData[AppUser.fieldPhotoUrl] = photoUrl;
     if (tasks != null) {
-      // 🚀 【動的マージ対応】シーズンタスクは保存しないように除外します（メモリ上でのみマージするため）
-      final nonSeasonTasks = tasks.where((t) => !t.isSeason).toList();
-      publicData['tasks'] = nonSeasonTasks.map((t) => t.toFirestore()).toList();
+      final tasksWithIds = _ensureTaskIds(tasks);
+      publicData[AppUser.fieldTasks] = tasksWithIds.map((t) => t.toFirestore()).toList();
     }
     if (updateEditDate) {
-      publicData['lastProfileEditDate'] = DateTime.now().millisecondsSinceEpoch;
+      publicData[AppUser.fieldLastProfileEditDate] = DateTime.now().millisecondsSinceEpoch;
     }
     if (equippedBadgeUrl != null) {
-      publicData['equippedBadgeUrl'] = equippedBadgeUrl.isEmpty ? null : equippedBadgeUrl;
+      publicData[AppUser.fieldEquippedBadgeUrl] = equippedBadgeUrl.isEmpty ? null : equippedBadgeUrl;
     }
     if (equippedBadgeAnimation != null) {
-      publicData['equippedBadgeAnimation'] = equippedBadgeAnimation.isEmpty ? null : equippedBadgeAnimation;
+      publicData[AppUser.fieldEquippedBadgeAnimation] = equippedBadgeAnimation.isEmpty ? null : equippedBadgeAnimation;
     }
     if (instagramId != null) {
-      publicData['instagramId'] = instagramId.isEmpty ? null : instagramId;
+      publicData[AppUser.fieldInstagramId] = instagramId.isEmpty ? null : instagramId;
     }
 
     if (publicData.isNotEmpty) {
@@ -211,8 +223,8 @@ class UserService {
 
     // 非公開情報の更新
     final privateData = <String, dynamic>{};
-    if (birthDate != null) privateData['birthDate'] = birthDate;
-    if (gender != null) privateData['gender'] = gender;
+    if (birthDate != null) privateData[AppUser.fieldBirthDate] = birthDate;
+    if (gender != null) privateData[AppUser.fieldGender] = gender;
 
     if (privateData.isNotEmpty) {
       batch.set(
@@ -247,13 +259,13 @@ class UserService {
     if (uid == null) return;
 
     final data = <String, dynamic>{};
-    if (pushNotifications != null) data['pushNotifications'] = pushNotifications;
-    if (reactionNotifications != null) data['reactionNotifications'] = reactionNotifications;
-    if (protectionNotifications != null) data['protectionNotifications'] = protectionNotifications;
-    if (vFireNotifications != null) data['vFireNotifications'] = vFireNotifications;
-    if (streakCelebrationNotifications != null) data['streakCelebrationNotifications'] = streakCelebrationNotifications;
-    if (streakWarningNotifications != null) data['streakWarningNotifications'] = streakWarningNotifications;
-    if (isPrivateAccount != null) data['isPrivateAccount'] = isPrivateAccount;
+    if (pushNotifications != null) data[AppUser.fieldPushNotifications] = pushNotifications;
+    if (reactionNotifications != null) data[AppUser.fieldReactionNotifications] = reactionNotifications;
+    if (protectionNotifications != null) data[AppUser.fieldProtectionNotifications] = protectionNotifications;
+    if (vFireNotifications != null) data[AppUser.fieldVFireNotifications] = vFireNotifications;
+    if (streakCelebrationNotifications != null) data[AppUser.fieldStreakCelebrationNotifications] = streakCelebrationNotifications;
+    if (streakWarningNotifications != null) data[AppUser.fieldStreakWarningNotifications] = streakWarningNotifications;
+    if (isPrivateAccount != null) data[AppUser.fieldIsPrivateAccount] = isPrivateAccount;
 
     if (data.isNotEmpty) {
       await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
@@ -265,7 +277,7 @@ class UserService {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
     await _db.collection('users').doc(uid).set(
-      {'onboardingStep': step},
+      {AppUser.fieldOnboardingStep: step},
       SetOptions(merge: true),
     );
   }
@@ -284,26 +296,26 @@ class UserService {
     batch.set(
       _db.collection('users').doc(uid),
       {
-        'username': username,
-        'usernameLower': username.toLowerCase(),
-        'userId': userId,
-        'userIdLower': userId.toLowerCase(),
-        'streak': 0,
-        'lastPostedDate': null,
-        'following': [],
-        'followers': [],
-        if (photoUrl != null) 'photoUrl': photoUrl,
-        'profileCompleted': true,
-        'onboardingCompleted': true,
-        'templateCompleted': true, // 後方互換
-        'onboardingStep': 'completed',
+        AppUser.fieldUsername: username,
+        AppUser.fieldUsernameLower: username.toLowerCase(),
+        AppUser.fieldUserId: userId,
+        AppUser.fieldUserIdLower: userId.toLowerCase(),
+        AppUser.fieldStreak: 0,
+        AppUser.fieldLastPostedDate: null,
+        AppUser.fieldFollowing: [],
+        AppUser.fieldFollowers: [],
+        if (photoUrl != null) AppUser.fieldPhotoUrl: photoUrl,
+        AppUser.fieldProfileCompleted: true,
+        AppUser.fieldOnboardingCompleted: true,
+        AppUser.fieldTemplateCompleted: true, // 後方互換
+        AppUser.fieldOnboardingStep: 'completed',
       },
       SetOptions(merge: true),
     );
 
     batch.set(
       _db.collection('users').doc(uid).collection('private').doc('data'),
-      {'email': email},
+      {AppUser.fieldEmail: email},
       SetOptions(merge: true),
     );
 
@@ -318,17 +330,19 @@ class UserService {
   Future<void> saveFirstVQuest({String? questTitle, String? questTrigger}) async {
     final uid = _auth.currentUser!.uid;
     final data = <String, dynamic>{
-      'onboardingStep': 'profile_settings',
+      AppUser.fieldOnboardingStep: 'profile_settings',
     };
     
-    final tasks = <Map<String, dynamic>>[];
+    final tasks = <AppTask>[];
     // ウェルカムチュートリアルタスクを追加
-    tasks.add(AppTask(title: 'Welcome to V EFFECT', isOneTime: true).toFirestore());
+    tasks.add(AppTask(title: 'Welcome to V EFFECT', isOneTime: true));
     
     if (questTitle != null && questTitle.isNotEmpty) {
-      tasks.add(AppTask(title: questTitle, trigger: questTrigger).toFirestore());
+      tasks.add(AppTask(title: questTitle, trigger: questTrigger));
     }
-    data['tasks'] = tasks;
+    
+    final tasksWithIds = _ensureTaskIds(tasks);
+    data[AppUser.fieldTasks] = tasksWithIds.map((t) => t.toFirestore()).toList();
 
     await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
   }
@@ -360,7 +374,7 @@ class UserService {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
     await _db.collection('users').doc(uid).set({
-      'processedSeasonTaskIds': FieldValue.arrayUnion([seasonId])
+      AppUser.fieldProcessedSeasonTaskIds: FieldValue.arrayUnion([seasonId])
     }, SetOptions(merge: true));
   }
 
@@ -376,15 +390,15 @@ class UserService {
       // 2026ベストプラクティス：通信不安定時のハングアップを防ぐタイムアウト（6秒）を設定
       final snap = await _db
           .collection('posts')
-          .where('userId', isEqualTo: uid)
+          .where(AppUser.fieldUserId, isEqualTo: uid)
           .count()
           .get()
           .timeout(const Duration(seconds: 6));
       
       final count = snap.count ?? 0;
       await _db.collection('users').doc(uid).update({
-        'totalPosts': count,
-        'totalPostsMigrated': true,
+        AppUser.fieldTotalPosts: count,
+        AppUser.fieldTotalPostsMigrated: true,
       });
       debugPrint('マイグレーション完了: UID $uid の過去投稿数を $count 件で更新しました');
     } catch (e) {

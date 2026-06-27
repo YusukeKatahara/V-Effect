@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.gms.ads.nativead.NativeAdView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- 1. MediaView (Video/Image Area) -->
+        <com.google.android.gms.ads.nativead.MediaView
+            android:id="@+id/ad_media"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center" />
+
+        <!-- 2. Dark Gradient Overlay for readability -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/ad_bottom_gradient" />
+
+        <!-- 3. Mute/Unmute Toggle Button -->
+        <ImageView
+            android:id="@+id/ad_mute_button"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:padding="6dp"
+            android:background="@drawable/ad_circle_bg"
+            android:src="@android:drawable/ic_lock_silent_mode"
+            android:contentDescription="Mute Button"
+            android:clickable="true"
+            android:focusable="true"/>
+
+        <!-- 4. Text and Interactive Elements Area at the bottom -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:padding="16dp">
+
+            <!-- App/Advertiser Icon -->
+            <ImageView
+                android:id="@+id/ad_app_icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentTop="true"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/ad_circle_bg"
+                android:scaleType="centerCrop"
+                tools:src="@android:drawable/sym_def_app_icon" />
+
+            <!-- CTA Button (Download / Open) -->
+            <Button
+                android:id="@+id/ad_call_to_action"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/ad_cta_button_bg"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                tools:text="INSTALL" />
+
+            <!-- Headline and Body layout -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/ad_app_icon"
+                android:layout_toStartOf="@id/ad_call_to_action"
+                android:orientation="vertical">
+
+                <!-- Headline -->
+                <TextView
+                    android:id="@+id/ad_headline"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    tools:text="App Name" />
+
+                <!-- Body -->
+                <TextView
+                    android:id="@+id/ad_body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:textColor="#CCCCCC"
+                    android:textSize="11sp"
+                    tools:text="This is the description of the advertiser app." />
+
+            </LinearLayout>
+
+        </RelativeLayout>
+
+    </FrameLayout>
+</com.google.android.gms.ads.nativead.NativeAdView>

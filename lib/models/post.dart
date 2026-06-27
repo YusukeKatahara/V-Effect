@@ -13,6 +13,7 @@ enum ReactionType {
 class Post {
   final String id;
   final String userId;
+  final String? taskId; // タスクを識別するID（オプショナル、過去データ対応）
   final String? imageUrl;
   final String taskName;
   final String? caption;
@@ -28,6 +29,7 @@ class Post {
 
   // ── フィールド名定数 ──
   static const String fieldUserId = 'userId';
+  static const String fieldTaskId = 'taskId';
   static const String fieldImageUrl = 'imageUrl';
   static const String fieldTaskName = 'taskName';
   static const String fieldCaption = 'caption';
@@ -44,6 +46,7 @@ class Post {
   const Post({
     required this.id,
     required this.userId,
+    this.taskId,
     this.imageUrl,
     required this.taskName,
     this.caption,
@@ -103,6 +106,7 @@ class Post {
     return Post(
       id: id,
       userId: data[fieldUserId] ?? '',
+      taskId: data[fieldTaskId]?.toString(),
       imageUrl: data[fieldImageUrl],
       taskName: data[fieldTaskName] ?? '今日のヒーロータスク',
       caption: data[fieldCaption],
@@ -128,6 +132,7 @@ class Post {
           runtimeType == other.runtimeType &&
           id == other.id &&
           userId == other.userId &&
+          taskId == other.taskId &&
           imageUrl == other.imageUrl &&
           taskName == other.taskName &&
           caption == other.caption &&
@@ -145,6 +150,7 @@ class Post {
   int get hashCode =>
       id.hashCode ^
       userId.hashCode ^
+      taskId.hashCode ^
       imageUrl.hashCode ^
       taskName.hashCode ^
       caption.hashCode ^
@@ -180,6 +186,7 @@ class Post {
   Map<String, dynamic> toFirestore() {
     return {
       fieldUserId: userId,
+      if (taskId != null) fieldTaskId: taskId,
       fieldImageUrl: imageUrl,
       fieldTaskName: taskName,
       fieldCaption: caption,
@@ -213,6 +220,7 @@ class Post {
   Post copyWith({
     String? id,
     String? userId,
+    String? taskId,
     String? imageUrl,
     String? taskName,
     String? caption,
@@ -229,6 +237,7 @@ class Post {
     return Post(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      taskId: taskId ?? this.taskId,
       imageUrl: imageUrl ?? this.imageUrl,
       taskName: taskName ?? this.taskName,
       caption: caption ?? this.caption,

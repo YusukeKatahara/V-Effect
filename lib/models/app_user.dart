@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'app_task.dart';
 import '../services/streak_service.dart';
@@ -38,6 +39,49 @@ class AppUser {
   final List<String> processedSeasonTaskIds;
   final bool totalPostsMigrated;
 
+  // ── フィールド名定数 ──
+  static const String fieldUid = 'uid';
+  static const String fieldEmail = 'email';
+  static const String fieldUsername = 'username';
+  static const String fieldUsernameLower = 'usernameLower';
+  static const String fieldUserId = 'userId';
+  static const String fieldUserIdLower = 'userIdLower';
+  static const String fieldDisplayName = 'displayName';
+  static const String fieldBirthDate = 'birthDate';
+  static const String fieldGender = 'gender';
+  static const String fieldPhotoUrl = 'photoUrl';
+  static const String fieldStreak = 'streak';
+  static const String fieldStreakProtections = 'streakProtections';
+  static const String fieldTotalPosts = 'totalPosts';
+  static const String fieldLastPostedDate = 'lastPostedDate';
+  static const String fieldFollowing = 'following';
+  static const String fieldFollowers = 'followers';
+  static const String fieldRecentPostDates = 'recentPostDates';
+  static const String fieldTasks = 'tasks';
+  static const String fieldOccupation = 'occupation';
+  static const String fieldProfileCompleted = 'profileCompleted';
+  static const String fieldTemplateCompleted = 'templateCompleted';
+  static const String fieldOnboardingCompleted = 'onboardingCompleted';
+  static const String fieldLastProfileEditDate = 'lastProfileEditDate';
+  static const String fieldPushNotifications = 'pushNotifications';
+  static const String fieldFocusTimeNotifications = 'focusTimeNotifications';
+  static const String fieldReactionNotifications = 'reactionNotifications';
+  static const String fieldProtectionNotifications = 'protectionNotifications';
+  static const String fieldVFireNotifications = 'vFireNotifications';
+  static const String fieldIsPrivateAccount = 'isPrivateAccount';
+  static const String fieldEquippedBadgeUrl = 'equippedBadgeUrl';
+  static const String fieldEquippedBadgeAnimation = 'equippedBadgeAnimation';
+  static const String fieldOwnedBadges = 'ownedBadges';
+  static const String fieldInstagramId = 'instagramId';
+  static const String fieldProcessedSeasonTaskIds = 'processedSeasonTaskIds';
+  static const String fieldTotalPostsMigrated = 'totalPostsMigrated';
+  static const String fieldMaxStreak = 'maxStreak';
+  static const String fieldFriends = 'friends';
+  static const String fieldBlockedUsers = 'blockedUsers';
+  static const String fieldStreakCelebrationNotifications = 'streakCelebrationNotifications';
+  static const String fieldStreakWarningNotifications = 'streakWarningNotifications';
+  static const String fieldOnboardingStep = 'onboardingStep';
+
   const AppUser({
     required this.uid,
     this.email,
@@ -75,115 +119,122 @@ class AppUser {
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>?;
+    return AppUser.fromMap(doc.id, data ?? {});
+  }
 
-    String? safeString(dynamic value) {
-      if (value == null) return null;
-      if (value is String) return value;
-      return value.toString();
-    }
-
-    // Helper to extract UIDs from either a List or a Map (legacy format support)
-    List<String> extractUids(String fieldName1, [String? fieldName2]) {
-      final raw = data[fieldName1] ?? (fieldName2 != null ? data[fieldName2] : null);
-      if (raw == null) return [];
-      if (raw is List) {
-        return raw.map((e) => e.toString()).toList();
+  factory AppUser.fromMap(String id, Map<String, dynamic> data) {
+    try {
+      String? safeString(dynamic value) {
+        if (value == null) return null;
+        if (value is String) return value;
+        return value.toString();
       }
-      if (raw is Map) {
-        // Legacy format: { "uid1": true, "uid2": true }
-        return raw.keys.map((k) => k.toString()).toList();
+
+      // Helper to extract UIDs from either a List or a Map (legacy format support)
+      List<String> extractUids(String fieldName1, [String? fieldName2]) {
+        final raw = data[fieldName1] ?? (fieldName2 != null ? data[fieldName2] : null);
+        if (raw == null) return [];
+        if (raw is List) {
+          return raw.map((e) => e.toString()).toList();
+        }
+        if (raw is Map) {
+          // Legacy format: { "uid1": true, "uid2": true }
+          return raw.keys.map((k) => k.toString()).toList();
+        }
+        return [];
       }
-      return [];
+
+      return AppUser(
+        uid: id,
+        email: safeString(data[fieldEmail]),
+        username: safeString(data[fieldUsername]),
+        userId: safeString(data[fieldUserId]),
+        displayName: safeString(data[fieldDisplayName]),
+        birthDate: safeString(data[fieldBirthDate]),
+        gender: safeString(data[fieldGender]),
+        photoUrl: safeString(data[fieldPhotoUrl]),
+        streak: StreakService.calculateEffectiveStreak(
+          streak: (data[fieldStreak] as num?)?.toInt() ?? 0,
+          protections: (data[fieldStreakProtections] as num?)?.toInt() ?? 0,
+          lastPostedDate: safeString(data[fieldLastPostedDate]),
+        )['streak']!,
+        streakProtections: StreakService.calculateEffectiveStreak(
+          streak: (data[fieldStreak] as num?)?.toInt() ?? 0,
+          protections: (data[fieldStreakProtections] as num?)?.toInt() ?? 0,
+          lastPostedDate: safeString(data[fieldLastPostedDate]),
+        )['streakProtections']!,
+        totalPosts: data[fieldTotalPosts] != null
+            ? (data[fieldTotalPosts] as num).toInt()
+            : -1,
+        lastPostedDate: safeString(data[fieldLastPostedDate]),
+        following: extractUids(fieldFollowing, 'friends'),
+        followers: extractUids(fieldFollowers, 'friends'),
+        recentPostDates: (data[fieldRecentPostDates] as List?)?.map((e) => e.toString()).toList() ?? [],
+        tasks: (data[fieldTasks] as List? ?? [])
+            .map((item) => AppTask.fromFirestore(item))
+            .toList(),
+        occupation: safeString(data[fieldOccupation]),
+        profileCompleted: data[fieldProfileCompleted] == true,
+        templateCompleted: data[fieldTemplateCompleted] == true,
+        onboardingCompleted: data[fieldOnboardingCompleted] == true,
+        lastProfileEditDate: data[fieldLastProfileEditDate] is num
+            ? (data[fieldLastProfileEditDate] as num).toInt()
+            : null,
+        pushNotifications: data[fieldPushNotifications] ?? true,
+        focusTimeNotifications: data[fieldFocusTimeNotifications] ?? true,
+        reactionNotifications: data[fieldReactionNotifications] ?? true,
+        protectionNotifications: data[fieldProtectionNotifications] ?? true,
+        vFireNotifications: data[fieldVFireNotifications] ?? true,
+        isPrivateAccount: data[fieldIsPrivateAccount] == true,
+        equippedBadgeUrl: safeString(data[fieldEquippedBadgeUrl]),
+        equippedBadgeAnimation: safeString(data[fieldEquippedBadgeAnimation]),
+        ownedBadges: (data[fieldOwnedBadges] as List?)?.map((e) => e.toString()).toList() ?? [],
+        instagramId: safeString(data[fieldInstagramId]),
+        processedSeasonTaskIds: (data[fieldProcessedSeasonTaskIds] as List?)?.map((e) => e.toString()).toList() ?? [],
+        totalPostsMigrated: data[fieldTotalPostsMigrated] == true,
+      );
+    } catch (e) {
+      debugPrint('Error parsing AppUser $id: $e');
+      return AppUser(uid: id);
     }
-
-    return AppUser(
-      uid: doc.id,
-      email: safeString(data['email']),
-      username: safeString(data['username']),
-      userId: safeString(data['userId']),
-      displayName: safeString(data['displayName']),
-      birthDate: safeString(data['birthDate']),
-      gender: safeString(data['gender']),
-      photoUrl: safeString(data['photoUrl']),
-      streak: StreakService.calculateEffectiveStreak(
-        streak: (data['streak'] as num?)?.toInt() ?? 0,
-        protections: (data['streakProtections'] as num?)?.toInt() ?? 0,
-        lastPostedDate: safeString(data['lastPostedDate']),
-      )['streak']!,
-      streakProtections: StreakService.calculateEffectiveStreak(
-        streak: (data['streak'] as num?)?.toInt() ?? 0,
-        protections: (data['streakProtections'] as num?)?.toInt() ?? 0,
-        lastPostedDate: safeString(data['lastPostedDate']),
-      )['streakProtections']!,
-      totalPosts: data['totalPosts'] != null
-          ? (data['totalPosts'] as num).toInt()
-          : -1,
-      lastPostedDate: safeString(data['lastPostedDate']),
-      following: extractUids('following', 'friends'),
-      followers: extractUids('followers', 'friends'),
-      recentPostDates: (data['recentPostDates'] as List?)?.map((e) => e.toString()).toList() ?? [],
-      tasks: (data['tasks'] as List? ?? [])
-          .map((item) => AppTask.fromFirestore(item))
-          .toList(),
-      occupation: data['occupation'],
-      profileCompleted: data['profileCompleted'] ?? false,
-      templateCompleted: data['templateCompleted'] ?? false,
-      onboardingCompleted: data['onboardingCompleted'] ?? false,
-      lastProfileEditDate: data['lastProfileEditDate'] is num
-          ? (data['lastProfileEditDate'] as num).toInt()
-          : null,
-
-      pushNotifications: data['pushNotifications'] ?? true,
-      focusTimeNotifications: data['focusTimeNotifications'] ?? true,
-      reactionNotifications: data['reactionNotifications'] ?? true,
-      protectionNotifications: data['protectionNotifications'] ?? true,
-      vFireNotifications: data['vFireNotifications'] ?? true,
-      isPrivateAccount: data['isPrivateAccount'] ?? false,
-      equippedBadgeUrl: safeString(data['equippedBadgeUrl']),
-      equippedBadgeAnimation: safeString(data['equippedBadgeAnimation']),
-      ownedBadges: (data['ownedBadges'] as List?)?.map((e) => e.toString()).toList() ?? [],
-      instagramId: safeString(data['instagramId']),
-      processedSeasonTaskIds: (data['processedSeasonTaskIds'] as List?)?.map((e) => e.toString()).toList() ?? [],
-      totalPostsMigrated: data['totalPostsMigrated'] ?? false,
-    );
   }
 
   /// Firestore 保存用の Map を生成します
   Map<String, dynamic> toFirestore() {
     return {
-      'email': email,
-      'username': username,
-      'userId': userId,
-      'displayName': displayName,
-      'birthDate': birthDate,
-      'gender': gender,
-      'photoUrl': photoUrl,
-      'streak': streak,
-      'streakProtections': streakProtections,
-      'totalPosts': totalPosts,
-      'lastPostedDate': lastPostedDate,
-      'following': following,
-      'followers': followers,
-      'recentPostDates': recentPostDates,
-      'tasks': tasks.map((t) => t.toFirestore()).toList(),
-      'occupation': occupation,
-      'profileCompleted': profileCompleted,
-      'templateCompleted': templateCompleted,
-      'onboardingCompleted': onboardingCompleted,
-      'lastProfileEditDate': lastProfileEditDate,
-      'pushNotifications': pushNotifications,
-      'focusTimeNotifications': focusTimeNotifications,
-      'reactionNotifications': reactionNotifications,
-      'protectionNotifications': protectionNotifications,
-      'vFireNotifications': vFireNotifications,
-      'isPrivateAccount': isPrivateAccount,
-      'equippedBadgeUrl': equippedBadgeUrl,
-      'equippedBadgeAnimation': equippedBadgeAnimation,
-      'ownedBadges': ownedBadges,
-      'instagramId': instagramId,
-      'processedSeasonTaskIds': processedSeasonTaskIds,
-      'totalPostsMigrated': totalPostsMigrated,
+      fieldEmail: email,
+      fieldUsername: username,
+      fieldUserId: userId,
+      fieldDisplayName: displayName,
+      fieldBirthDate: birthDate,
+      fieldGender: gender,
+      fieldPhotoUrl: photoUrl,
+      fieldStreak: streak,
+      fieldStreakProtections: streakProtections,
+      fieldTotalPosts: totalPosts,
+      fieldLastPostedDate: lastPostedDate,
+      fieldFollowing: following,
+      fieldFollowers: followers,
+      fieldRecentPostDates: recentPostDates,
+      fieldTasks: tasks.map((t) => t.toFirestore()).toList(),
+      fieldOccupation: occupation,
+      fieldProfileCompleted: profileCompleted,
+      fieldTemplateCompleted: templateCompleted,
+      fieldOnboardingCompleted: onboardingCompleted,
+      fieldLastProfileEditDate: lastProfileEditDate,
+      fieldPushNotifications: pushNotifications,
+      fieldFocusTimeNotifications: focusTimeNotifications,
+      fieldReactionNotifications: reactionNotifications,
+      fieldProtectionNotifications: protectionNotifications,
+      fieldVFireNotifications: vFireNotifications,
+      fieldIsPrivateAccount: isPrivateAccount,
+      fieldEquippedBadgeUrl: equippedBadgeUrl,
+      fieldEquippedBadgeAnimation: equippedBadgeAnimation,
+      fieldOwnedBadges: ownedBadges,
+      fieldInstagramId: instagramId,
+      fieldProcessedSeasonTaskIds: processedSeasonTaskIds,
+      fieldTotalPostsMigrated: totalPostsMigrated,
     };
   }
 

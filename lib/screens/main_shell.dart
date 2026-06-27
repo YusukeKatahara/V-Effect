@@ -10,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../widgets/notification_prompt_sheet.dart';
 import '../services/sound_service.dart';
+import '../providers/service_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'hero_tasks_screen.dart';
@@ -18,7 +20,7 @@ import 'hero_tasks_screen.dart';
 ///
 /// ボトムナビゲーションを排除。
 /// 画面下部に最小限のナビゲーションヒントのみ配置。
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerStatefulWidget {
   final int initialIndex;
   const MainShell({super.key, this.initialIndex = 0});
 
@@ -26,10 +28,10 @@ class MainShell extends StatefulWidget {
   static final ValueNotifier<int> activeTabIndex = ValueNotifier<int>(0);
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends ConsumerState<MainShell> {
   late int _currentIndex;
   bool _isHomeLoading = true;
 
@@ -53,7 +55,7 @@ class _MainShellState extends State<MainShell> {
   void _onGlobalTabChanged() {
     if (mounted && _currentIndex != MainShell.activeTabIndex.value) {
       // 外部からのタブ切り替え時に確実にBGMを止める
-      SoundService.instance.stopBgm();
+      ref.read(soundServiceProvider).stopBgm();
       setState(() {
         _currentIndex = MainShell.activeTabIndex.value;
       });
@@ -78,7 +80,7 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _checkNotificationPrompt() async {
     final prefs = await SharedPreferences.getInstance();
-    final uid = UserService.instance.currentUid;
+    final uid = ref.read(userServiceProvider).currentUid;
     if (uid == null) return;
 
     // すでに表示済みの場合は何もしません
@@ -120,7 +122,7 @@ class _MainShellState extends State<MainShell> {
   void _onTap(int index) {
     if (_currentIndex != index) {
       // タブ切り替え時に確実にBGMを止める
-      SoundService.instance.stopBgm();
+      ref.read(soundServiceProvider).stopBgm();
     }
     HapticFeedback.selectionClick();
     MainShell.activeTabIndex.value = index;
@@ -229,7 +231,7 @@ class _MainShellState extends State<MainShell> {
 
                     // Profile
                     StreamBuilder<List<FriendRequest>>(
-                      stream: FriendService.instance.getReceivedRequests(),
+                      stream: ref.watch(friendServiceProvider).getReceivedRequests(),
                       builder: (context, snapshot) {
                         final hasRequests = snapshot.hasData && snapshot.data!.isNotEmpty;
                         return _SpatialNavItem(

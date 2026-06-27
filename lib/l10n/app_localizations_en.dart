@@ -647,10 +647,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pastComparisonSelectTwo => 'Select 2 photos';
 
   @override
-  String get pastComparisonMode => 'Compare Mode';
+  String get pastComparisonMode => 'Select Mode';
 
   @override
   String get pastComparisonOther => 'Other';
+
+  @override
+  String get pastComparisonSelectMode => 'Select Mode';
+
+  @override
+  String get pastComparisonMoveTask => 'Move Task';
+
+  @override
+  String get pastComparisonMoveConfirmTitle => 'Move Task';
+
+  @override
+  String pastComparisonMoveConfirmBody(int count, String taskName) {
+    return 'Move $count selected posts to \"$taskName\"?';
+  }
+
+  @override
+  String pastComparisonMoveSuccess(int count) {
+    return 'Moved $count posts';
+  }
+
+  @override
+  String get pastComparisonCancel => 'Cancel';
 
   @override
   String get sharePreviewTitle => 'Preview';
@@ -1197,6 +1219,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileScreenTotalV => 'Total V';
+
+  @override
+  String get profileScreenCurrentRank => 'Current Rank';
+
+  @override
+  String get profileScreenNextRank => 'Next Rank';
+
+  @override
+  String get profileScreenStreakProgress => 'Progress';
+
+  @override
+  String profileScreenStreakDays(int count) {
+    return '$count Days';
+  }
+
+  @override
+  String profileScreenStreakProgressValue(int streak, int threshold) {
+    return '$streak / $threshold Days';
+  }
+
+  @override
+  String get profileScreenStreakMax => 'Max';
+
+  @override
+  String get tierIron => 'Iron';
+
+  @override
+  String get tierBronze => 'Bronze';
+
+  @override
+  String get tierSilver => 'Silver';
+
+  @override
+  String get tierGold => 'Gold';
+
+  @override
+  String get tierPlatinum => 'Platinum';
+
+  @override
+  String get tierEmerald => 'Emerald';
+
+  @override
+  String get tierDiamond => 'Diamond';
+
+  @override
+  String get tierMaster => 'Master';
+
+  @override
+  String get tierGrandmaster => 'Grandmaster';
+
+  @override
+  String get tierChallenger => 'Challenger';
 
   @override
   String get profileScreenFollowingTitle => 'Following';

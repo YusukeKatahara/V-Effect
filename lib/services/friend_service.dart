@@ -19,15 +19,26 @@ class FriendService {
   final NotificationService _notificationService = NotificationService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
 
+  CollectionReference<AppUser> get _usersRef =>
+      _db.collection('users').withConverter<AppUser>(
+        fromFirestore: (snapshot, _) => AppUser.fromFirestore(snapshot),
+        toFirestore: (user, _) => user.toFirestore(),
+      );
+
+  CollectionReference<FriendRequest> get _friendReqsRef =>
+      _db.collection('friend_requests').withConverter<FriendRequest>(
+        fromFirestore: (snapshot, _) => FriendRequest.fromFirestore(snapshot),
+        toFirestore: (req, _) => req.toFirestore(),
+      );
+
   /// ユーザーIDで検索します（完全一致）
   Future<AppUser?> searchByUserId(String userId) async {
-    final query = await _db
-        .collection('users')
-        .where('userId', isEqualTo: userId)
+    final query = await _usersRef
+        .where(AppUser.fieldUserId, isEqualTo: userId)
         .limit(1)
         .get();
     if (query.docs.isEmpty) return null;
-    return AppUser.fromFirestore(query.docs.first);
+    return query.docs.first.data();
   }
 
   /// 名前（username）で検索します（部分一致・大文字小文字区別なし）
@@ -37,26 +48,24 @@ class FriendService {
     final results = <AppUser>[];
 
     // 1. 元のクエリ（小文字）で検索
-    final originalResults = await _db
-        .collection('users')
-        .where('usernameLower', isGreaterThanOrEqualTo: queryLower)
-        .where('usernameLower', isLessThanOrEqualTo: '$queryLower\uf8ff')
+    final originalResults = await _usersRef
+        .where(AppUser.fieldUsernameLower, isGreaterThanOrEqualTo: queryLower)
+        .where(AppUser.fieldUsernameLower, isLessThanOrEqualTo: '$queryLower\uf8ff')
         .limit(20)
         .get();
-    results.addAll(originalResults.docs.map((doc) => AppUser.fromFirestore(doc)));
+    results.addAll(originalResults.docs.map((doc) => doc.data()));
 
     // 2. もしクエリに日本語が含まれる場合、ローマ字に変換して検索
     if (kanaKit.isRomaji(queryLower) == false) {
       final romajiQuery = kanaKit.toRomaji(queryLower);
       if (romajiQuery != queryLower) {
-        final romajiResults = await _db
-            .collection('users')
-            .where('usernameLower', isGreaterThanOrEqualTo: romajiQuery)
-            .where('usernameLower', isLessThanOrEqualTo: '$romajiQuery\uf8ff')
+        final romajiResults = await _usersRef
+            .where(AppUser.fieldUsernameLower, isGreaterThanOrEqualTo: romajiQuery)
+            .where(AppUser.fieldUsernameLower, isLessThanOrEqualTo: '$romajiQuery\uf8ff')
             .limit(10)
             .get();
         for (final doc in romajiResults.docs) {
-          final user = AppUser.fromFirestore(doc);
+          final user = doc.data();
           if (!results.any((u) => u.uid == user.uid)) {
             results.add(user);
           }
@@ -80,24 +89,22 @@ class FriendService {
     final results = <AppUser>[];
 
     // 1. userId (完全一致) - 互換性のため
-    final idExact = await _db
-        .collection('users')
-        .where('userId', isEqualTo: cleanQuery)
+    final idExact = await _usersRef
+        .where(AppUser.fieldUserId, isEqualTo: cleanQuery)
         .limit(1)
         .get();
     if (idExact.docs.isNotEmpty) {
-      results.add(AppUser.fromFirestore(idExact.docs.first));
+      results.add(idExact.docs.first.data());
     }
 
     // 2. userIdLower (部分一致) - 新設フィールド用
-    final idLowerResults = await _db
-        .collection('users')
-        .where('userIdLower', isGreaterThanOrEqualTo: queryLower)
-        .where('userIdLower', isLessThanOrEqualTo: '$queryLower\uf8ff')
+    final idLowerResults = await _usersRef
+        .where(AppUser.fieldUserIdLower, isGreaterThanOrEqualTo: queryLower)
+        .where(AppUser.fieldUserIdLower, isLessThanOrEqualTo: '$queryLower\uf8ff')
         .limit(20)
         .get();
     for (final doc in idLowerResults.docs) {
-      final user = AppUser.fromFirestore(doc);
+      final user = doc.data();
       if (!results.any((u) => u.uid == user.uid)) {
         results.add(user);
       }
@@ -132,15 +139,14 @@ class FriendService {
       if (await isFollowing(targetUid)) return;
 
       // 相手から既に申請が来ているかチェック（来ていれば自動承認）
-      final reverseSnap = await _db
-          .collection('friend_requests')
+      final reverseSnap = await _friendReqsRef
           .where('fromUid', isEqualTo: targetUid)
           .where('toUid', isEqualTo: myUid)
           .where('status', isEqualTo: 'pending')
           .limit(1)
           .get();
       if (reverseSnap.docs.isNotEmpty) {
-        final reverseRequest = FriendRequest.fromFirestore(reverseSnap.docs.first);
+        final reverseRequest = reverseSnap.docs.first.data();
         await acceptRequest(reverseRequest);
         return;
       }
@@ -156,26 +162,28 @@ class FriendService {
       }
 
       // 自分のユーザー情報を取得
-      final mySnap = await _db.collection('users').doc(myUid).get();
-      final myUsername = mySnap.data()?['username'] ?? '';
-      final myUserId = mySnap.data()?['userId'] ?? '';
+      final mySnap = await _usersRef.doc(myUid).get();
+      final myUsername = mySnap.data()?.username ?? '';
+      final myUserId = mySnap.data()?.userId ?? '';
 
       // 相手のユーザー情報を取得
-      final targetSnap = await _db.collection('users').doc(targetUid).get();
-      final targetUsername = targetSnap.data()?['username'] ?? '';
-      final targetUserId = targetSnap.data()?['userId'] ?? '';
+      final targetSnap = await _usersRef.doc(targetUid).get();
+      final targetUsername = targetSnap.data()?.username ?? '';
+      final targetUserId = targetSnap.data()?.userId ?? '';
 
       // friend_requests に追加
-      final docRef = await _db.collection('friend_requests').add({
-        'fromUid': myUid,
-        'toUid': targetUid,
-        'fromUserId': myUserId,
-        'fromUsername': myUsername,
-        'toUserId': targetUserId,
-        'toUsername': targetUsername,
-        'status': 'pending',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      final newRequest = FriendRequest(
+        id: '', // Will be ignored by add() usually, or we can just use a map
+        fromUid: myUid,
+        toUid: targetUid,
+        fromUserId: myUserId,
+        fromUsername: myUsername,
+        toUserId: targetUserId,
+        toUsername: targetUsername,
+        status: FriendRequestStatus.pending,
+        createdAt: DateTime.now(),
+      );
+      await _friendReqsRef.add(newRequest);
 
 
 
@@ -193,8 +201,8 @@ class FriendService {
     _processingLocks.add(lockKey);
 
     try {
-      final reqSnap = await _db.collection('friend_requests').doc(request.id).get();
-      if (!reqSnap.exists || reqSnap.data()?['status'] != 'pending') {
+      final reqSnap = await _friendReqsRef.doc(request.id).get();
+      if (!reqSnap.exists || reqSnap.data()?.status.name != 'pending') {
         await _notificationService.markNotificationAsProcessedByRelatedId(request.id);
         return;
       }
@@ -212,7 +220,7 @@ class FriendService {
 
       // リクエストのステータスを承認に更新
       batch.update(
-        _db.collection('friend_requests').doc(request.id),
+        _friendReqsRef.doc(request.id),
         {'status': 'accepted'},
       );
 
@@ -251,8 +259,8 @@ class FriendService {
     _processingLocks.add(lockKey);
 
     try {
-      final reqSnap = await _db.collection('friend_requests').doc(request.id).get();
-      if (!reqSnap.exists || reqSnap.data()?['status'] != 'pending') {
+      final reqSnap = await _friendReqsRef.doc(request.id).get();
+      if (!reqSnap.exists || reqSnap.data()?.status.name != 'pending') {
         await _notificationService.markNotificationAsProcessedByRelatedId(request.id);
         return;
       }
@@ -361,18 +369,16 @@ class FriendService {
   /// 受信した申請一覧をリアルタイムで取得します（pending のみ）
   Stream<List<FriendRequest>> getReceivedRequests() {
     final myUid = _auth.currentUser!.uid;
-    return _db
-        .collection('friend_requests')
+    return _friendReqsRef
         .where('toUid', isEqualTo: myUid)
         .where('status', isEqualTo: 'pending')
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((doc) => FriendRequest.fromFirestore(doc)).toList());
+        .map((snap) => snap.docs.map((doc) => doc.data()).toList());
   }
 
   /// IDで申請を1件取得します
   Future<FriendRequest?> getRequestById(String requestId) async {
-    final snap = await _db.collection('friend_requests').doc(requestId).get();
+    final snap = await _friendReqsRef.doc(requestId).get();
     if (!snap.exists) return null;
     return FriendRequest.fromFirestore(snap);
   }
@@ -425,9 +431,8 @@ class FriendService {
 
   /// UIDでユーザーを1件取得します
   Future<AppUser?> getUserByUid(String uid) async {
-    final snap = await _db.collection('users').doc(uid).get();
-    if (!snap.exists) return null;
-    return AppUser.fromFirestore(snap);
+    final snap = await _usersRef.doc(uid).get();
+    return snap.data();
   }
 
   /// 複数UIDのユーザーを一括取得します（最大30件/チャンク）

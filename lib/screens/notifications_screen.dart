@@ -11,18 +11,20 @@ import '../services/user_service.dart';
 import '../utils/date_helper.dart';
 import '../widgets/swipe_back_gate.dart';
 import '../widgets/shimmer_container.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/service_providers.dart';
 
 /// 通知画面
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
-  final NotificationService _notificationService = NotificationService.instance;
-  final FriendService _friendService = FriendService.instance;
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  late NotificationService _notificationService;
+  late FriendService _friendService;
   late final Stream<List<AppNotification>> _notificationsStream;
   bool _isProcessing = false;
   final Set<String> _initialUnreadIds = {};
@@ -68,6 +70,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
+    _notificationService = ref.read(notificationServiceProvider);
+    _friendService = ref.read(friendServiceProvider);
     _notificationsStream = _notificationService.getMyNotifications();
     // 画面を開いた瞬間の既読化は build 内のデータ受信時に遅延実行する
   }
@@ -91,6 +95,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NotificationType.badgeAcquired:
         return Icons.military_tech;
       case NotificationType.seasonTaskDistributed:
+      case NotificationType.seasonTaskReceived:
+      case NotificationType.seasonTaskPushOnly:
         return Icons.event_available;
     }
   }
@@ -114,6 +120,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NotificationType.badgeAcquired:
         return AppColors.accentGold;
       case NotificationType.seasonTaskDistributed:
+      case NotificationType.seasonTaskReceived:
+      case NotificationType.seasonTaskPushOnly:
         return AppColors.accentGold;
     }
   }
@@ -303,7 +311,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     setState(() => _isProcessing = true);
     try {
       // 🚀 【動的マージ対応】シーズンタスクを処理済み（非表示）にマークします
-      await UserService.instance.markSeasonTaskAsProcessed(notif.relatedId!);
+      await ref.read(userServiceProvider).markSeasonTaskAsProcessed(notif.relatedId!);
       
       if (mounted) {
         setState(() {});

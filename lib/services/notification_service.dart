@@ -22,6 +22,12 @@ class NotificationService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  CollectionReference<AppNotification> get _notificationsRef =>
+      _db.collection('notifications').withConverter<AppNotification>(
+        fromFirestore: (snapshot, _) => AppNotification.fromFirestore(snapshot),
+        toFirestore: (notification, _) => notification.toFirestore(),
+      );
+
   /// 通知を作成します（テンプレートからメッセージを自動生成）
   ///
   /// [params] はプレースホルダーの置換に使用されます。
@@ -34,44 +40,36 @@ class NotificationService {
     bool sendPush = true,
   }) async {
     final content = NotificationMessages.build(type, params);
-    await _db.collection('notifications').add({
-      'toUid': toUid,
-      'type': type.name,
-      'title': content.title,
-      'body': content.body,
-      'fromUid': fromUid,
-      'relatedId': relatedId,
-      'isRead': false,
-      'sendPush': sendPush,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    final notification = AppNotification(
+      id: '',
+      toUid: toUid,
+      type: type,
+      title: content.title,
+      body: content.body,
+      fromUid: fromUid,
+      relatedId: relatedId,
+      isRead: false,
+      sendPush: sendPush,
+      createdAt: DateTime.now(),
+    );
+    await _notificationsRef.add(notification);
   }
 
   Stream<List<AppNotification>> getMyNotifications() {
     final myUid = _auth.currentUser!.uid;
     final threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
 
-    return _db
-        .collection('notifications')
-        .where('toUid', isEqualTo: myUid)
+    return _notificationsRef
+        .where(AppNotification.fieldToUid, isEqualTo: myUid)
         .snapshots()
         .asyncMap((snap) async {
       final list = snap.docs
-          .map((doc) {
-            // 🚀 【動的マージ対応】Firestore上の生データ（Map）を取得してtypeを確認
-            final data = doc.data();
-            final typeStr = data['type'] as String?;
-            return MapEntry(typeStr, AppNotification.fromFirestore(doc));
-          })
-          .where((entry) {
-            final typeStr = entry.key;
-            final n = entry.value;
-            // 🚀 【動的マージ対応】FCMプッシュ通知の配信用として作成された実体レコードは
-            // 通知画面の二重表示を防ぐために一覧から除外します（お知らせは動的マージで表示されます）
-            final isSeasonPushOnly = typeStr == 'seasonTaskReceived' || typeStr == 'seasonTaskPushOnly';
+          .map((doc) => doc.data())
+          .where((n) {
+            // FCMプッシュ通知の配信用として作成された実体レコードは通知画面の二重表示を防ぐために除外
+            final isSeasonPushOnly = n.type == NotificationType.seasonTaskReceived || n.type == NotificationType.seasonTaskPushOnly;
             return n.createdAt.isAfter(threeDaysAgo) && !isSeasonPushOnly;
           })
-          .map((entry) => entry.value)
           .toList();
 
       // --- ここからシーズンタスク動的マージ処理 ---
@@ -127,14 +125,13 @@ class NotificationService {
     final myUid = _auth.currentUser!.uid;
     final threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
 
-    return _db
-        .collection('notifications')
-        .where('toUid', isEqualTo: myUid)
-        .where('isRead', isEqualTo: false)
+    return _notificationsRef
+        .where(AppNotification.fieldToUid, isEqualTo: myUid)
+        .where(AppNotification.fieldIsRead, isEqualTo: false)
         .snapshots()
         .map((snap) {
       return snap.docs
-          .map((doc) => AppNotification.fromFirestore(doc))
+          .map((doc) => doc.data())
           .where((n) => n.createdAt.isAfter(threeDaysAgo))
           .length;
     });
@@ -143,33 +140,32 @@ class NotificationService {
   /// 全ての未読通知を既読にします
   Future<void> markAllAsRead() async {
     final myUid = _auth.currentUser!.uid;
-    final snap = await _db
-        .collection('notifications')
-        .where('toUid', isEqualTo: myUid)
-        .where('isRead', isEqualTo: false)
+    final snap = await _notificationsRef
+        .where(AppNotification.fieldToUid, isEqualTo: myUid)
+        .where(AppNotification.fieldIsRead, isEqualTo: false)
         .get();
     
     if (snap.docs.isEmpty) return;
 
     final batch = _db.batch();
     for (final doc in snap.docs) {
-      batch.update(doc.reference, {'isRead': true});
+      batch.update(doc.reference, {AppNotification.fieldIsRead: true});
     }
     await batch.commit();
   }
 
   /// 通知を1件削除します
   Future<void> deleteNotification(String notificationId) async {
-    await _db.collection('notifications').doc(notificationId).delete();
+    await _notificationsRef.doc(notificationId).delete();
   }
 
   /// 関連ID(relatedId)に基づいて通知を削除します（フレンド申請処理後など）
   Future<void> deleteNotificationByRelatedId(String relatedId, {bool isSender = false}) async {
     final myUid = _auth.currentUser!.uid;
-    final query = _db.collection('notifications').where('relatedId', isEqualTo: relatedId);
+    final query = _notificationsRef.where(AppNotification.fieldRelatedId, isEqualTo: relatedId);
     final snap = await (isSender 
-        ? query.where('fromUid', isEqualTo: myUid) 
-        : query.where('toUid', isEqualTo: myUid)).get();
+        ? query.where(AppNotification.fieldFromUid, isEqualTo: myUid) 
+        : query.where(AppNotification.fieldToUid, isEqualTo: myUid)).get();
     
     if (snap.docs.isEmpty) return;
 
@@ -183,17 +179,16 @@ class NotificationService {
   /// 特定の関連ID(フレンド申請IDなど)に紐づく通知を処理済みにします
   Future<void> markNotificationAsProcessedByRelatedId(String relatedId) async {
     final myUid = _auth.currentUser!.uid;
-    final snap = await _db
-        .collection('notifications')
-        .where('toUid', isEqualTo: myUid)
-        .where('relatedId', isEqualTo: relatedId)
+    final snap = await _notificationsRef
+        .where(AppNotification.fieldToUid, isEqualTo: myUid)
+        .where(AppNotification.fieldRelatedId, isEqualTo: relatedId)
         .get();
     
     if (snap.docs.isEmpty) return;
 
     final batch = _db.batch();
     for (final doc in snap.docs) {
-      batch.update(doc.reference, {'isProcessed': true});
+      batch.update(doc.reference, {AppNotification.fieldIsProcessed: true});
     }
     await batch.commit();
   }

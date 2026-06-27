@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,6 +26,7 @@ import '../widgets/shimmer_container.dart';
 import 'profile/components/profile_header_section.dart';
 import 'profile/components/task_section.dart';
 import 'profile/components/trending_tasks_bottom_sheet.dart';
+import 'profile/components/quest_card.dart';
 
 
 class ProfileScreen extends StatefulWidget {
@@ -47,8 +49,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, int> _seasonPostsCountMap = {};
   Stream<DocumentSnapshot>? _userStream;
   List<Map<String, dynamic>> _trendingTasks = [];
-  /// 現在開催中のシーズンタスクリスト（動的マージ用）
-  List<AppTask> _activeSeasonTasks = [];
+  StreamSubscription<void>? _postUpdateSubscription;
+  StreamSubscription<void>? _userUpdateSubscription;
 
   @override
   void initState() {
@@ -58,6 +60,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadPrivateData();
     _loadTrendingTasks();
     _loadProfile();
+
+    // データの更新通知を監視
+    _postUpdateSubscription = _postService.updateStream.listen((_) {
+      if (mounted) _loadProfile();
+    });
+    // ヒーロータスク変更の通知を監視
+    _userUpdateSubscription = _userService.updateStream.listen((_) {
+      if (mounted) _loadProfile();
+    });
+  }
+
+  @override
+  void dispose() {
+    _postUpdateSubscription?.cancel();
+    _userUpdateSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadTrendingTasks() async {
@@ -103,16 +121,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // 非公開情報の再ロード
       await _loadPrivateData();
 
+      // 過去の投稿数のマイグレーションチェック（非同期）
+      final userDoc = await _db.collection('users').doc(uid).get();
+      if (userDoc.exists) {
+        final rawUser = AppUser.fromFirestore(userDoc);
+        if (!rawUser.totalPostsMigrated || rawUser.totalPosts == -1) {
+          _userService.migrateTotalPosts(uid);
+        }
+      }
+
       // 🚀 現在開催中のシーズンタスクを Firestore から取得
       final now = DateTime.now();
-      final seasonsSnap = await _db.collection('seasons')
+      var seasonsSnap = await _db.collection('seasons')
           .where('startDate', isLessThanOrEqualTo: now)
           .get();
 
-      final activeSeasons = seasonsSnap.docs
+      var activeSeasons = seasonsSnap.docs
           .map((doc) => Season.fromFirestore(doc))
           .where((s) => now.isBefore(s.endDate))
           .toList();
+
+      // 💡 検証・デバッグ環境での日付超過対策: アクティブなシーズンが0件の場合、メモリ上でテスト用のシーズンを作成して追加します
+      if (activeSeasons.isEmpty) {
+        final dummySeasonId = 'debug_season_test';
+        final dummySeason = Season(
+          id: dummySeasonId,
+          taskName: '感謝を伝える', // 重複を避ける一般的なシーズンタスク名
+          requiredPostsCount: 12,
+          startDate: now.subtract(const Duration(days: 7)),
+          endDate: now.add(const Duration(days: 365)), // 1年後まで有効
+          hintTitle: '感謝を伝えるヒント💡',
+          hintBody: '毎日1回、周囲の人や出来事に感謝して、言葉や記録に残してみましょう！',
+        );
+        activeSeasons.add(dummySeason);
+      }
 
       final seasonTasks = activeSeasons.map((s) => AppTask(
         title: s.taskName,
@@ -139,22 +181,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // 再ロード（削除された可能性があるため）
         final freshDoc =
             await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        
+        final freshRawUser = AppUser.fromFirestore(freshDoc);
+        final mergedTasks = List<AppTask>.from(freshRawUser.tasks);
+        final newSeasonTasks = <AppTask>[];
+        for (final sTask in seasonTasks) {
+          final exists = mergedTasks.any(
+            (uTask) => uTask.title == sTask.title && uTask.isSeason,
+          );
+          if (!exists) {
+            newSeasonTasks.add(sTask);
+          }
+        }
+        
+        bool didAdd = false;
+        if (newSeasonTasks.isNotEmpty) {
+          // 新規のシーズンタスクはリストの先頭に自動挿入する
+          mergedTasks.insertAll(0, newSeasonTasks);
+          didAdd = true;
+        }
+
+        // 新規追加が発生した場合は、Firestore に保存して同期
+        if (didAdd) {
+          await _userService.updateProfile(tasks: mergedTasks);
+        }
+
         if (mounted) {
           setState(() {
-            _activeSeasonTasks = seasonTasks;
-
-            final freshRawUser = AppUser.fromFirestore(freshDoc);
-            final mergedTasks = <AppTask>[];
-            for (final sTask in seasonTasks) {
-              final existing = freshRawUser.tasks.firstWhere(
-                (uTask) => uTask.title == sTask.title && uTask.isSeason,
-                orElse: () => sTask,
-              );
-              mergedTasks.add(existing);
-            }
-            final normalTasks = freshRawUser.tasks.where((t) => !t.isSeason).toList();
-            mergedTasks.addAll(normalTasks);
-
             _user = freshRawUser.copyWith(tasks: mergedTasks);
             _todayPosts = todayPosts;
             _seasonsMap = newSeasonsMap;
@@ -764,24 +817,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   builder: (context, snapshot) {
                     if (snapshot.hasData && snapshot.data!.exists) {
                       final rawUser = AppUser.fromFirestore(snapshot.data!);
-
-                      // 過去の投稿数(totalPosts)が未設定・未計算(-1)、またはマイグレーション未完了フラグの場合は遅延初期化を実行
-                      if (!rawUser.totalPostsMigrated || rawUser.totalPosts == -1) {
-                        _userService.migrateTotalPosts(rawUser.uid);
-                      }
-
-                      final mergedTasks = <AppTask>[];
-                      for (final sTask in _activeSeasonTasks) {
-                        final existing = rawUser.tasks.firstWhere(
-                          (uTask) => uTask.title == sTask.title && uTask.isSeason,
-                          orElse: () => sTask,
-                        );
-                        mergedTasks.add(existing);
-                      }
-                      final normalTasks = rawUser.tasks.where((t) => !t.isSeason).toList();
-                      mergedTasks.addAll(normalTasks);
-
-                      _user = rawUser.copyWith(tasks: mergedTasks);
+                      _user = rawUser;
                     }
                     if (_user == null) return _buildEmptyState();
                     return _buildContent();
@@ -836,11 +872,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: GestureDetector(
                         onTap: () {
                           if (_user == null) return;
-                          final taskNames = _user!.tasks.map((t) => t.title).toList();
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => PastComparisonScreen(userTaskNames: taskNames),
+                              builder: (_) => PastComparisonScreen(userTasks: _user!.tasks),
                             ),
                           );
                         },
@@ -884,16 +919,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // ---── ヒーロータスクセクション ──
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    sliver: SliverToBoxAdapter(
-                      child: TaskSection(
-                        user: _user!,
-                        seasonsMap: _seasonsMap,
-                        seasonPostsCountMap: _seasonPostsCountMap,
-                        todayPosts: _todayPosts,
-                        onAddTask: _addTask,
+                    sliver: SliverTaskSectionHeader(
+                      onShowTrendingTasks: () {
+                        showTrendingTasksBottomSheet(
+                          context,
+                          trendingTasks: _trendingTasks,
+                          onAddTask: _addTask,
+                        );
+                      },
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
-                        onEditTask: _editTask,
-                        onDeleteTask: _deleteTask,
+                  if (_user!.tasks.isEmpty)
+                    SliverPadding(
+                      key: const ValueKey('profile_empty_task_card_padding'),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      sliver: SliverEmptyTaskCard(
+                        onAddTask: _addTask,
+                      ),
+                    )
+                  else ...[
+                    SliverPadding(
+                      key: const ValueKey('profile_reorderable_list_padding'),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      sliver: SliverReorderableList(
+                        itemCount: _user!.tasks.length,
                         onReorder: (int oldIndex, int newIndex) async {
                           if (oldIndex < newIndex) {
                             newIndex -= 1;
@@ -910,33 +961,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           await _userService.updateProfile(tasks: updatedTasks);
                           _loadProfile();
                         },
-                        onShowTrendingTasks: () {
-                          showTrendingTasksBottomSheet(
-                            context,
-                            trendingTasks: _trendingTasks,
-                            onAddTask: _addTask,
-                          );
-                        },
-                        onSeasonTaskTap: (int index) {
+                        itemBuilder: (context, index) {
                           final task = _user!.tasks[index];
-                          final season = _seasonsMap[task.seasonId] ?? _seasonsMap['debug_season'] ?? _seasonsMap['debug_season_test'] ?? Season.createFallback(
-                            task.title,
-                            seasonId: task.seasonId,
+                          return ReorderableDelayedDragStartListener(
+                            key: ValueKey(task.id.isNotEmpty ? task.id : 'task_${task.title}_$index'),
+                            index: index,
+                            child: QuestCard(
+                              index: index,
+                              task: task,
+                              seasonsMap: _seasonsMap,
+                              seasonPostsCountMap: _seasonPostsCountMap,
+                              todayPosts: _todayPosts,
+                              onTap: () {
+                                if (task.isSeason) {
+                                  final season = _seasonsMap[task.seasonId] ??
+                                      _seasonsMap['debug_season'] ??
+                                      _seasonsMap['debug_season_test'] ??
+                                      Season.createFallback(
+                                        task.title,
+                                        seasonId: task.seasonId,
+                                      );
+                                  
+                                  SeasonHintModal.show(context, task, season, (newTrigger) async {
+                                    final updatedTasks = List<AppTask>.from(_user!.tasks);
+                                    updatedTasks[index] = task.copyWith(
+                                      trigger: newTrigger.isEmpty ? null : newTrigger,
+                                      clearTrigger: newTrigger.isEmpty,
+                                    );
+                                    await _userService.updateProfile(tasks: updatedTasks);
+                                    _loadProfile();
+                                  });
+                                } else {
+                                  _editTask(index);
+                                }
+                              },
+                              onDelete: () => _deleteTask(index),
+                            ),
                           );
-                          
-                          SeasonHintModal.show(context, task, season, (newTrigger) async {
-                            final updatedTasks = List<AppTask>.from(_user!.tasks);
-                            updatedTasks[index] = task.copyWith(
-                              trigger: newTrigger.isEmpty ? null : newTrigger,
-                              clearTrigger: newTrigger.isEmpty,
-                            );
-                            await _userService.updateProfile(tasks: updatedTasks);
-                            _loadProfile();
-                          });
                         },
                       ),
                     ),
-                  ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                    SliverPadding(
+                      key: const ValueKey('profile_add_task_slot_padding'),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      sliver: SliverAddTaskSlot(
+                        onAddTask: _addTask,
+                      ),
+                    ),
+                  ],
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               ),
@@ -1031,12 +1104,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_user == null) return const SizedBox.shrink();
 
     final streak = _user!.streak;
+    final l10n = AppLocalizations.of(context)!;
     
     // 閾値、ティア名、カラーの定義
     final thresholds = [0, 3, 7, 14, 30, 66, 100, 180, 270, 365];
     final names = [
-      'アイアン', 'ブロンズ', 'シルバー', 'ゴールド', 'プラチナ', 
-      'エメラルド', 'ダイヤモンド', 'マスター', 'グランドマスター', 'チャレンジャー'
+      l10n.tierIron,
+      l10n.tierBronze,
+      l10n.tierSilver,
+      l10n.tierGold,
+      l10n.tierPlatinum,
+      l10n.tierEmerald,
+      l10n.tierDiamond,
+      l10n.tierMaster,
+      l10n.tierGrandmaster,
+      l10n.tierChallenger,
     ];
     final colors = [
       const Color(0xFF5E4B43),
@@ -1051,8 +1133,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const Color(0xFFE0A33B),
     ];
 
-    String currentTier = 'アイアン';
-    String nextTier = 'チャレンジャー';
+    String currentTier = l10n.tierIron;
+    String nextTier = l10n.tierChallenger;
     int currentThreshold = 0;
     int nextThreshold = 365;
     double percent = 1.0;
@@ -1072,8 +1154,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       currentThreshold = thresholds[index];
       nextThreshold = thresholds[index + 1];
     } else {
-      currentTier = 'チャレンジャー';
-      nextTier = 'チャレンジャー';
+      currentTier = l10n.tierChallenger;
+      nextTier = l10n.tierChallenger;
       currentThreshold = 365;
       nextThreshold = 365;
     }
@@ -1092,82 +1174,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
       nextTierColor = colors.last;
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.bgSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          // 左側: セグメント分割型円形メーター
-          SizedBox(
-            width: 90,
-            height: 90,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CustomPaint(
-                  size: const Size(90, 90),
-                  painter: SegmentedCircularProgressPainter(
-                    percent: percent,
-                    activeColor: currentTierColor,
-                    inactiveColor: Colors.white.withValues(alpha: 0.08),
-                    segmentCount: segmentCount,
-                    strokeWidth: 12, // 太くして存在感を出す
+    return RepaintBoundary(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.bgSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            // 左側: セグメント分割型円形メーター
+            SizedBox(
+              width: 90,
+              height: 90,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CustomPaint(
+                    size: const Size(90, 90),
+                    painter: SegmentedCircularProgressPainter(
+                      percent: percent,
+                      activeColor: currentTierColor,
+                      inactiveColor: Colors.white.withValues(alpha: 0.08),
+                      segmentCount: segmentCount,
+                      strokeWidth: 12, // 太くして存在感を出す
+                    ),
                   ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$streak',
-                      style: GoogleFonts.outfit(
-                        color: currentTierColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$streak',
+                        style: GoogleFonts.outfit(
+                          color: currentTierColor,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'ストリーク',
-                      style: TextStyle(
-                        color: currentTierColor,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
+                      Text(
+                        l10n.profileScreenStreak,
+                        style: TextStyle(
+                          color: currentTierColor,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 20),
-          // 右側: 詳細テキスト項目
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildDetailRow('現在のランク', currentTier, valueColor: currentTierColor),
-                const SizedBox(height: 6),
-                _buildDetailRow('ストリーク', '$streak日連続'),
-                const SizedBox(height: 6),
-                _buildDetailRow(
-                  '進捗状況',
-                  '$streak / $nextThreshold 日',
-                ),
-                const SizedBox(height: 6),
-                _buildDetailRow(
-                  '次のランク',
-                  streak < 365 ? nextTier : '最大',
-                  valueColor: streak < 365 ? nextTierColor : const Color(0xFFE0A33B),
-                ),
-              ],
+            const SizedBox(width: 20),
+            // 右側: 詳細テキスト項目
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildDetailRow(l10n.profileScreenCurrentRank, currentTier, valueColor: currentTierColor),
+                  const SizedBox(height: 6),
+                  _buildDetailRow(l10n.profileScreenStreak, l10n.profileScreenStreakDays(streak)),
+                  const SizedBox(height: 6),
+                  _buildDetailRow(
+                    l10n.profileScreenStreakProgress,
+                    l10n.profileScreenStreakProgressValue(streak, nextThreshold),
+                  ),
+                  const SizedBox(height: 6),
+                  _buildDetailRow(
+                    l10n.profileScreenNextRank,
+                    streak < 365 ? nextTier : l10n.profileScreenStreakMax,
+                    valueColor: streak < 365 ? nextTierColor : const Color(0xFFE0A33B),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

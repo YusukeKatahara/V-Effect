@@ -5,21 +5,23 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/friend_service.dart';
+import '../providers/service_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/swipe_back_gate.dart';
 
 /// フォロー中 / フォロワー 一覧画面
 ///
 /// 引数（ModalRoute.settings.arguments）:
 ///   {'uid': String, 'isFollowing': bool, 'title': String}
-class FollowListScreen extends StatefulWidget {
+class FollowListScreen extends ConsumerStatefulWidget {
   const FollowListScreen({super.key});
 
   @override
-  State<FollowListScreen> createState() => _FollowListScreenState();
+  ConsumerState<FollowListScreen> createState() => _FollowListScreenState();
 }
 
-class _FollowListScreenState extends State<FollowListScreen> {
-  final FriendService _friendService = FriendService.instance;
+class _FollowListScreenState extends ConsumerState<FollowListScreen> {
+  late final FriendService _friendService;
   final String _myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   bool _loading = true;
@@ -27,6 +29,12 @@ class _FollowListScreenState extends State<FollowListScreen> {
   bool _showPendingBanner = false;
   List<AppUser> _users = [];
   String _title = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _friendService = ref.read(friendServiceProvider);
+  }
 
   @override
   void didChangeDependencies() {

@@ -4,20 +4,21 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../../config/app_colors.dart';
 import '../../config/routes.dart';
-import '../../services/user_service.dart';
+import '../../providers/service_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/gradient_button.dart';
 
-class VEffectScreen extends StatefulWidget {
+class VEffectScreen extends ConsumerStatefulWidget {
   const VEffectScreen({super.key});
 
   @override
-  State<VEffectScreen> createState() => _VEffectScreenState();
+  ConsumerState<VEffectScreen> createState() => _VEffectScreenState();
 }
 
-class _VEffectScreenState extends State<VEffectScreen> {
+class _VEffectScreenState extends ConsumerState<VEffectScreen> {
   // 次のオンボーディング画面（プロフィール設定）へ進みます。
   void _next() {
-    unawaited(UserService.instance.saveOnboardingStep('first_v_quest'));
+    unawaited(ref.read(userServiceProvider).saveOnboardingStep('first_v_quest'));
     Navigator.pushNamed(context, AppRoutes.onboardingFirstQuest);
   }
 

@@ -4,22 +4,24 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../../config/app_colors.dart';
 import '../../config/routes.dart';
 import '../../services/user_service.dart';
+import '../../providers/service_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/gradient_button.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../profile/components/trending_tasks_bottom_sheet.dart';
 
-class FirstVQuestScreen extends StatefulWidget {
+class FirstVQuestScreen extends ConsumerStatefulWidget {
   const FirstVQuestScreen({super.key});
 
   @override
-  State<FirstVQuestScreen> createState() => _FirstVQuestScreenState();
+  ConsumerState<FirstVQuestScreen> createState() => _FirstVQuestScreenState();
 }
 
-class _FirstVQuestScreenState extends State<FirstVQuestScreen>
+class _FirstVQuestScreenState extends ConsumerState<FirstVQuestScreen>
     with TickerProviderStateMixin {
   final _questCtrl = TextEditingController();
   final _triggerCtrl = TextEditingController();
-  final _userService = UserService.instance;
+  late final UserService _userService;
   bool _isSaving = false;
   int _selectedTimeframeIndex = 0; // 0: 朝, 1: 昼, 2: 夜
   List<Map<String, dynamic>> _trendingTasks = [];
@@ -59,6 +61,7 @@ class _FirstVQuestScreenState extends State<FirstVQuestScreen>
   @override
   void initState() {
     super.initState();
+    _userService = ref.read(userServiceProvider);
 
     _ctrlB = AnimationController(
       vsync: this,

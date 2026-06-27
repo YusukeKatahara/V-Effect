@@ -3,16 +3,17 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/friend_request.dart';
-import '../services/friend_service.dart';
+import '../providers/service_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/swipe_back_gate.dart';
 
 /// 届いているフォロー申請一覧画面
-class PendingRequestsScreen extends StatelessWidget {
+class PendingRequestsScreen extends ConsumerWidget {
   const PendingRequestsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final friendService = FriendService.instance;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final friendService = ref.read(friendServiceProvider);
 
     return SwipeBackGate(
       child: Scaffold(
@@ -59,21 +60,21 @@ class PendingRequestsScreen extends StatelessWidget {
   }
 }
 
-class _RequestTile extends StatefulWidget {
+class _RequestTile extends ConsumerStatefulWidget {
   final FriendRequest request;
   const _RequestTile({required this.request});
 
   @override
-  State<_RequestTile> createState() => _RequestTileState();
+  ConsumerState<_RequestTile> createState() => _RequestTileState();
 }
 
-class _RequestTileState extends State<_RequestTile> {
+class _RequestTileState extends ConsumerState<_RequestTile> {
   bool _loading = false;
 
   Future<void> _accept() async {
     setState(() => _loading = true);
     try {
-      await FriendService.instance.acceptRequest(widget.request);
+      await ref.read(friendServiceProvider).acceptRequest(widget.request);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -88,7 +89,7 @@ class _RequestTileState extends State<_RequestTile> {
   Future<void> _reject() async {
     setState(() => _loading = true);
     try {
-      await FriendService.instance.rejectRequest(widget.request);
+      await ref.read(friendServiceProvider).rejectRequest(widget.request);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -142,14 +143,14 @@ class _RequestTileState extends State<_RequestTile> {
   }
 }
 
-class _Avatar extends StatelessWidget {
+class _Avatar extends ConsumerWidget {
   final String uid;
   const _Avatar({required this.uid});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return FutureBuilder(
-      future: FriendService.instance.getUserByUid(uid),
+      future: ref.read(friendServiceProvider).getUserByUid(uid),
       builder: (context, snapshot) {
         final photoUrl = snapshot.data?.photoUrl;
         return Container(

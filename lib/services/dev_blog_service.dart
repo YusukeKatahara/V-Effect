@@ -12,7 +12,11 @@ class DevBlogService {
   final _storage = FirebaseStorage.instance;
   final _auth = FirebaseAuth.instance;
 
-  CollectionReference get _blogRef => _db.collection('dev_blog');
+  CollectionReference<DevBlogPost> get _blogRef =>
+      _db.collection('dev_blog').withConverter<DevBlogPost>(
+        fromFirestore: (snapshot, _) => DevBlogPost.fromFirestore(snapshot),
+        toFirestore: (post, _) => post.toMap(),
+      );
 
   Future<bool> isDeveloper() async {
     final authUid = _auth.currentUser?.uid;
@@ -32,27 +36,23 @@ class DevBlogService {
   }
 
   Stream<DevBlogPost?> getPost(String id) {
-    return _blogRef.doc(id).snapshots().map((snap) {
-      if (!snap.exists) return null;
-      return DevBlogPost.fromFirestore(snap);
-    });
+    return _blogRef.doc(id).snapshots().map((snap) => snap.data());
   }
 
   Stream<List<DevBlogPost>> getPosts() {
     return _blogRef
-        .orderBy('isPinned', descending: true)
-        .orderBy('createdAt', descending: true)
+        .orderBy(DevBlogPost.fieldIsPinned, descending: true)
+        .orderBy(DevBlogPost.fieldCreatedAt, descending: true)
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((d) => DevBlogPost.fromFirestore(d)).toList());
+        .map((snap) => snap.docs.map((d) => d.data()).toList());
   }
 
   Future<void> createPost(DevBlogPost post) async {
-    await _blogRef.doc(post.id).set(post.toMap());
+    await _blogRef.doc(post.id).set(post);
   }
 
   Future<void> updatePost(DevBlogPost post) async {
-    await _blogRef.doc(post.id).update(post.toMap());
+    await _db.collection('dev_blog').doc(post.id).update(post.toMap());
   }
 
   Future<void> deletePost(String postId) async {

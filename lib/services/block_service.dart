@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../models/app_user.dart';
+import '../models/friend_request.dart';
 import 'analytics_service.dart';
 
 /// ブロック・通報機能を担当するサービス
@@ -23,15 +25,15 @@ class BlockService {
 
     // 自分側: ブロックリスト追加 + フォロー・フォロワーから削除
     batch.update(_db.collection('users').doc(myUid), {
-      'blockedUsers': FieldValue.arrayUnion([targetUid]),
-      'following': FieldValue.arrayRemove([targetUid]),
-      'followers': FieldValue.arrayRemove([targetUid]),
+      AppUser.fieldBlockedUsers: FieldValue.arrayUnion([targetUid]),
+      AppUser.fieldFollowing: FieldValue.arrayRemove([targetUid]),
+      AppUser.fieldFollowers: FieldValue.arrayRemove([targetUid]),
     });
 
     // 相手側: フォロー・フォロワーから自分を削除
     batch.update(_db.collection('users').doc(targetUid), {
-      'followers': FieldValue.arrayRemove([myUid]),
-      'following': FieldValue.arrayRemove([myUid]),
+      AppUser.fieldFollowers: FieldValue.arrayRemove([myUid]),
+      AppUser.fieldFollowing: FieldValue.arrayRemove([myUid]),
     });
 
     await batch.commit();
@@ -46,15 +48,15 @@ class BlockService {
     final snaps = await Future.wait([
       _db
           .collection('friend_requests')
-          .where('fromUid', isEqualTo: myUid)
-          .where('toUid', isEqualTo: targetUid)
-          .where('status', isEqualTo: 'pending')
+          .where(FriendRequest.fieldFromUid, isEqualTo: myUid)
+          .where(FriendRequest.fieldToUid, isEqualTo: targetUid)
+          .where(FriendRequest.fieldStatus, isEqualTo: FriendRequestStatus.pending.name)
           .get(),
       _db
           .collection('friend_requests')
-          .where('fromUid', isEqualTo: targetUid)
-          .where('toUid', isEqualTo: myUid)
-          .where('status', isEqualTo: 'pending')
+          .where(FriendRequest.fieldFromUid, isEqualTo: targetUid)
+          .where(FriendRequest.fieldToUid, isEqualTo: myUid)
+          .where(FriendRequest.fieldStatus, isEqualTo: FriendRequestStatus.pending.name)
           .get(),
     ]);
     for (final snap in snaps) {
@@ -68,7 +70,7 @@ class BlockService {
   Future<void> unblockUser(String targetUid) async {
     final myUid = _auth.currentUser!.uid;
     await _db.collection('users').doc(myUid).update({
-      'blockedUsers': FieldValue.arrayRemove([targetUid]),
+      AppUser.fieldBlockedUsers: FieldValue.arrayRemove([targetUid]),
     });
   }
 
@@ -76,7 +78,7 @@ class BlockService {
   Future<bool> isBlocked(String targetUid) async {
     final myUid = _auth.currentUser!.uid;
     final snap = await _db.collection('users').doc(myUid).get();
-    final blocked = List<String>.from(snap.data()?['blockedUsers'] ?? []);
+    final blocked = List<String>.from(snap.data()?[AppUser.fieldBlockedUsers] ?? []);
     return blocked.contains(targetUid);
   }
 
@@ -84,7 +86,7 @@ class BlockService {
   Future<bool> isBlockedBy(String targetUid) async {
     final myUid = _auth.currentUser!.uid;
     final snap = await _db.collection('users').doc(targetUid).get();
-    final blocked = List<String>.from(snap.data()?['blockedUsers'] ?? []);
+    final blocked = List<String>.from(snap.data()?[AppUser.fieldBlockedUsers] ?? []);
     return blocked.contains(myUid);
   }
 
@@ -92,7 +94,7 @@ class BlockService {
   Future<List<String>> getBlockedUids() async {
     final myUid = _auth.currentUser!.uid;
     final snap = await _db.collection('users').doc(myUid).get();
-    return List<String>.from(snap.data()?['blockedUsers'] ?? []);
+    return List<String>.from(snap.data()?[AppUser.fieldBlockedUsers] ?? []);
   }
 
   /// ユーザーを通報する（同一ユーザーへの7日以内の重複通報を防止）

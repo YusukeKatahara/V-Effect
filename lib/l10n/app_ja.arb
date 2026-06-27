@@ -273,8 +273,25 @@
   "pastComparisonTaskEmpty": "このタスクの投稿はまだありません",
   "pastComparisonCompare": "比較する",
   "pastComparisonSelectTwo": "2枚選んでください",
-  "pastComparisonMode": "比較モード",
+  "pastComparisonMode": "選択モード",
   "pastComparisonOther": "その他",
+  "pastComparisonSelectMode": "選択モード",
+  "pastComparisonMoveTask": "タスクを移動",
+  "pastComparisonMoveConfirmTitle": "タスクの移動",
+  "pastComparisonMoveConfirmBody": "選択した{count}件の投稿を「{taskName}」に移動しますか？",
+  "@pastComparisonMoveConfirmBody": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "taskName": { "type": "String" }
+    }
+  },
+  "pastComparisonMoveSuccess": "{count}件の投稿を移動しました",
+  "@pastComparisonMoveSuccess": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "pastComparisonCancel": "キャンセル",
   "sharePreviewTitle": "プレビュー",
   "previewLabel": "プレビュー",
   "sharePreviewShareText": "今週も{count}回のヒーロータスクを完遂！\n現在のストリーク: {streak}日 🔥\n#VEffect",
@@ -497,6 +514,39 @@
   "profileScreenFollowers": "フォロワー",
   "profileScreenStreak": "ストリーク",
   "profileScreenTotalV": "トータルV",
+  "profileScreenCurrentRank": "現在のランク",
+  "profileScreenNextRank": "次のランク",
+  "profileScreenStreakProgress": "進捗状況",
+  "profileScreenStreakDays": "{count}日連続",
+  "@profileScreenStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileScreenStreakProgressValue": "{streak} / {threshold} 日",
+  "@profileScreenStreakProgressValue": {
+    "placeholders": {
+      "streak": {
+        "type": "int"
+      },
+      "threshold": {
+        "type": "int"
+      }
+    }
+  },
+  "profileScreenStreakMax": "最大",
+  "tierIron": "アイアン",
+  "tierBronze": "ブロンズ",
+  "tierSilver": "シルバー",
+  "tierGold": "ゴールド",
+  "tierPlatinum": "プラチナ",
+  "tierEmerald": "エメラルド",
+  "tierDiamond": "ダイヤモンド",
+  "tierMaster": "マスター",
+  "tierGrandmaster": "グランドマスター",
+  "tierChallenger": "チャレンジャー",
   "profileScreenFollowingTitle": "フォロー中",
   "profileScreenFollowersTitle": "フォロワー",
   "profileScreenTrendTitle": "📈 ウィークリートレンド習慣",
