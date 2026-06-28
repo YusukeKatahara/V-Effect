@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -11,6 +12,7 @@ class LiveActivityService {
   /// Live Activity を開始します。
   /// [taskName] は現在実行中のタスクの名前です。
   static Future<void> startActivity(String taskName) async {
+    if (!Platform.isIOS) return; // iOS以外のプラットフォーム（Androidなど）では処理をスキップします
     try {
       await _channel.invokeMethod('startActivity', {
         'taskName': taskName,
@@ -18,10 +20,9 @@ class LiveActivityService {
         'status': 'uploading',
         'statusMessage': 'アップロード中...',
       });
-    } on PlatformException catch (e) {
-      // プラットフォーム固有のエラーが発生した場合の処理（シミュレータやAndroidなど）
-      // ログを出力して、アプリ全体がクラッシュするのを防ぎます
-      debugPrint('LiveActivityService.startActivity エラー: ${e.message}');
+    } catch (e) {
+      // プラットフォーム固有のエラーや MissingPluginException を安全にキャッチしてアプリ全体のクラッシュを防ぎます
+      debugPrint('LiveActivityService.startActivity エラー: $e');
     }
   }
 
@@ -30,14 +31,15 @@ class LiveActivityService {
   /// [status] は進捗状態を示す文字列です。
   /// [message] はユーザー向けに表示されるメッセージです。
   static Future<void> updateActivity(double progress, String status, String message) async {
+    if (!Platform.isIOS) return; // iOS以外のプラットフォーム（Androidなど）では処理をスキップします
     try {
       await _channel.invokeMethod('updateActivity', {
         'progress': progress,
         'status': status,
         'statusMessage': message,
       });
-    } on PlatformException catch (e) {
-      debugPrint('LiveActivityService.updateActivity エラー: ${e.message}');
+    } catch (e) {
+      debugPrint('LiveActivityService.updateActivity エラー: $e');
     }
   }
 
@@ -45,14 +47,15 @@ class LiveActivityService {
   /// [status] は終了時の状態 (success, error など) です。
   /// [message] はユーザー向けに表示されるメッセージです。
   static Future<void> stopActivity(String status, String message) async {
+    if (!Platform.isIOS) return; // iOS以外のプラットフォーム（Androidなど）では処理をスキップします
     try {
       await _channel.invokeMethod('stopActivity', {
         'progress': status == 'success' ? 1.0 : 0.0,
         'status': status,
         'statusMessage': message,
       });
-    } on PlatformException catch (e) {
-      debugPrint('LiveActivityService.stopActivity エラー: ${e.message}');
+    } catch (e) {
+      debugPrint('LiveActivityService.stopActivity エラー: $e');
     }
   }
 }
