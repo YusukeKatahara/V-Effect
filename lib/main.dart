@@ -332,6 +332,8 @@ class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObse
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       AnalyticsService.instance.onAppPaused();
+      // バックグラウンド移行時にバッジを最新の未読件数に同期
+      PushNotificationService().syncBadgeCount();
       // バックグラウンド移行時に、溜まった action_logs を確実に送信しきる
       AnalyticsService.instance.flushBatch();
     }

@@ -21,10 +21,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
 import '../providers/home_provider.dart';
 import '../providers/upload_provider.dart';
 import '../providers/service_providers.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/black_hole_loading_overlay.dart';
+import '../widgets/v_badge_widget.dart';
+import '../screens/home/components/bgm_indicator.dart';
 
 /// Hero Task 撮影画面
 ///
@@ -84,11 +88,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initCamera();
+    _captionController.addListener(_onCaptionChanged);
+  }
+
+  void _onCaptionChanged() {
+    setState(() {});
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _captionController.removeListener(_onCaptionChanged);
     _cameraController?.dispose();
     _captionController.dispose();
     _transformationController.dispose();
@@ -426,6 +436,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         bgmArtworkUrl: _selectedMusic?.artworkUrl,
       );
 
+      // 拡大調整・圧縮済みの画像データを一時ファイルとしてローカル（Temporary Directory: 一時フォルダ）に書き出し、演出用に使用する
+      final tempDir = await getTemporaryDirectory();
+      final tempPath = '${tempDir.path}/v_effect_post_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final tempFile = File(tempPath);
+      await tempFile.writeAsBytes(finalBytes);
+
       // 現在の streak と今日投稿済みフラグを取得して、適切な楽観的結果を返して即座に画面を閉じる
       final homeData = ref.read(homeDataProvider).value;
       final currentStreak = homeData?.streak ?? 0;
@@ -436,7 +452,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       if (mounted) {
         Navigator.pop(context, {
           'posted': true,
-          'imagePath': _image!.path,
+          'imagePath': tempPath, // 拡大調整された一時ファイルのパスを返す
           'newStreak': calculatedStreak,
           'isRecordUpdating': false,
         });
@@ -904,6 +920,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   Widget _buildPreview() {
     final taskName = _taskName ?? AppLocalizations.of(context)!.cameraScreenTaskDefault;
 
+    // homeDataProvider からユーザー情報を取得
+    final homeData = ref.watch(homeDataProvider).value;
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    final username = homeData?.username ?? '';
+    final userPhotoUrl = myUid != null ? homeData?.userPhotos[myUid] : null;
+    final userBadgeUrl = myUid != null ? homeData?.userBadgeUrls[myUid] : null;
+    final userBadgeAnimation = myUid != null ? homeData?.userBadgeAnimations[myUid] : null;
+
+    // キャプション（コメント入力欄のリアルタイム値）
+    final captionText = _captionController.text.trim();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Center(
@@ -911,262 +938,326 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           aspectRatio: 9 / 16,
           child: Container(
             decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppColors.white.withValues(alpha: 0.08),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.5),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-            spreadRadius: -2,
-          ),
-          BoxShadow(
-            color: AppColors.accentGold.withValues(alpha: 0.15),
-            blurRadius: 30,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // ドラッグ＆ピンチズーム用の領域（画像部分のみをRepaintBoundaryで囲んで切り取る）
-            // ClipRRectを外側にすることで、保存される画像に角丸（白枠）が焼き付かないようにする
-            ClipRRect(
               borderRadius: BorderRadius.circular(24),
-              child: RepaintBoundary(
-                key: _boundaryKey,
-                child: InteractiveViewer(
-                  transformationController: _transformationController,
-                  minScale: 1.0,
-                  maxScale: 3.0,
-                  panEnabled: true,
-                  scaleEnabled: true,
-                  child: kIsWeb
-                      ? Image.network(
-                          _image!.path,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        )
-                      : Image.file(
-                          File(_image!.path),
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
+              border: Border.all(
+                color: AppColors.accentGold.withValues(alpha: 0.8), // FeedCardのisTop=true時のボーダーと同期
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  blurRadius: 30,
+                  offset: const Offset(0, 15),
+                ),
+                BoxShadow(
+                  color: AppColors.accentGold.withValues(alpha: 0.15),
+                  blurRadius: 40,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // 背景色 (白枠対策)
+                  Container(color: AppColors.grey15),
+
+                  // ドラッグ＆ピンチズーム用の領域（画像部分のみをRepaintBoundaryで囲んで切り取る）
+                  // ClipRRectを外側にすることで、保存される画像に角丸（白枠）が焼き付かないようにする
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: RepaintBoundary(
+                      key: _boundaryKey,
+                      child: InteractiveViewer(
+                        transformationController: _transformationController,
+                        minScale: 1.0,
+                        maxScale: 3.0,
+                        panEnabled: true,
+                        scaleEnabled: true,
+                        child: kIsWeb
+                            ? Image.network(
+                                _image!.path,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                              )
+                            : Image.file(
+                                File(_image!.path),
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  // グラデーションオーバーレイ（下部を暗くしてテキストを読みやすく、FeedCardと同期）
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 240,
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.9),
+                              Colors.transparent,
+                            ],
+                          ),
                         ),
-                ),
-              ),
-            ),
+                      ),
+                    ),
+                  ),
 
-            // ダークフィルタ（ホーム画面のカードに重なる暗み）
-            IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  color: AppColors.pureBlack.withValues(alpha: 0.35),
-                ),
-              ),
-            ),
-
-            // ヒーロータスク枠のデザイン：上部テキスト（タスク名 ＆ DONE）
-            Positioned(
-              top: 32,
-              left: 32,
-              right: 32,
-              child: IgnorePointer(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      taskName,
-                      style: GoogleFonts.notoSerifJp(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.pureWhite,
-                        height: 1.4,
-                        letterSpacing: 1.5,
-                        shadows: [
-                          Shadow(
-                            color: AppColors.pureBlack.withValues(alpha: 0.8),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          )
+                  // カード左上のタスク名チップ ＆ 投稿時間（今）＆ BGM
+                  Positioned(
+                    top: 24,
+                    left: 20,
+                    right: 60, // 右上の音符ボタンと重ならないように制限
+                    child: IgnorePointer(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    width: 0.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.3),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  taskName,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.pureWhite,
+                                    letterSpacing: 1,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                AppLocalizations.of(context)!.timeNow,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.pureWhite.withValues(alpha: 0.8),
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withValues(alpha: 0.5),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_selectedMusic != null) ...[
+                            const SizedBox(height: 8),
+                            BgmIndicator(
+                              title: _selectedMusic!.title,
+                              artist: _selectedMusic!.artist,
+                              url: _selectedMusic!.previewUrl,
+                              artworkUrl: _selectedMusic!.artworkUrl,
+                              isMuted: false, // プレビュー中はミュート状態を固定表示
+                              onMuteToggle: () {},
+                            ),
+                          ],
                         ],
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
-                    Row(
+                  ),
+
+                  // カード下部のユーザー情報 ＆ キャプション (リアルタイム反映)
+                  Positioned(
+                    bottom: 32, // 絶対基準線の起点、FeedCardと同期
+                    left: 20,
+                    right: 20,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Container(
-                          width: 16,
-                          height: 1,
-                          color: AppColors.accentGold,
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // アバター + ユーザー名
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: AppColors.grey20,
+                                    backgroundImage: userPhotoUrl != null
+                                        ? ResizeImage(
+                                            CachedNetworkImageProvider(userPhotoUrl),
+                                            width: 120,
+                                          )
+                                        : null,
+                                    child: userPhotoUrl == null
+                                        ? Text(
+                                            username.isNotEmpty ? username[0].toUpperCase() : 'U',
+                                            style: TextStyle(
+                                              color: AppColors.pureWhite,
+                                              fontSize: 12,
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    username,
+                                    textAlign: TextAlign.left,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.pureWhite,
+                                      letterSpacing: 0.5,
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black54,
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (userBadgeUrl != null && userBadgeUrl.isNotEmpty) ...[
+                                    const SizedBox(width: 4),
+                                    VBadgeWidget(
+                                      imageUrl: userBadgeUrl,
+                                      animationType: userBadgeAnimation ?? 'none',
+                                      size: 14,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              if (captionText.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  captionText,
+                                  style: TextStyle(
+                                    color: AppColors.pureWhite,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w400,
+                                    height: 1.3,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black54,
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'DONE',
-                          style: GoogleFonts.outfit(
-                            fontSize: 10,
-                            color: AppColors.accentGold,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 3,
+                        
+                        // V Fire 表示 (0固定、タップ無効)
+                        IgnorePointer(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: AppColors.pureWhite.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.pureWhite.withValues(alpha: 0.1),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.local_fire_department,
+                                  color: AppColors.accentGold,
+                                  size: 32,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                height: 16,
+                                child: Text(
+                                  '0',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.pureWhite,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    // BGM情報の表示
-                    if (_selectedMusic != null) ...[
-                      const SizedBox(height: 12),
-                      Row(
+                  ),
+
+                  // 指示テキスト（調整可能なことをユーザーに示すマイクロUX）
+                  // ※ アバター/ユーザー情報と重ならないように、下部エリアより少し上に配置
+                  Positioned(
+                    bottom: 120, // アバター情報(bottom 32)の上に避けるように配置
+                    left: 20,
+                    child: IgnorePointer(
+                      child: Row(
                         children: [
-                          if (_selectedMusic!.artworkUrl.isNotEmpty)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: CachedNetworkImage(
-                                imageUrl: _selectedMusic!.artworkUrl,
-                                width: 22,
-                                height: 22,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  width: 22,
-                                  height: 22,
-                                  color: AppColors.pureBlack.withValues(alpha: 0.6),
-                                  child: Icon(Icons.music_note_rounded, color: AppColors.pureWhite, size: 14),
-                                ),
-                                errorWidget: (context, url, error) => Container(
-                                  width: 22,
-                                  height: 22,
-                                  color: AppColors.pureBlack.withValues(alpha: 0.6),
-                                  child: Icon(Icons.music_note_rounded, color: AppColors.pureWhite, size: 14),
-                                ),
-                              ),
-                            )
-                          else
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: AppColors.pureBlack.withValues(alpha: 0.6),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(Icons.music_note_rounded, color: AppColors.pureWhite, size: 14),
-                            ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _selectedMusic!.title,
-                                  style: TextStyle(
-                                    color: AppColors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  _selectedMusic!.artist,
-                                  style: TextStyle(
-                                    color: AppColors.grey50,
-                                    fontSize: 10,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                          Icon(
+                            Icons.zoom_out_map_rounded,
+                            color: AppColors.pureWhite.withValues(alpha: 0.6),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            AppLocalizations.of(context)!.cameraScreenDragPinch,
+                            style: GoogleFonts.notoSansJp(
+                              fontSize: 10,
+                              color: AppColors.pureWhite.withValues(alpha: 0.6),
+                              shadows: [
+                                Shadow(
+                                  color: AppColors.pureBlack,
+                                  blurRadius: 4,
+                                )
                               ],
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            // ヒーロータスク枠のデザイン：右下のV FIREボタン
-            Positioned(
-              bottom: 24,
-              right: 20,
-              child: IgnorePointer(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: AppColors.pureWhite.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.pureWhite.withValues(alpha: 0.1),
-                          width: 1,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.local_fire_department,
-                        color: AppColors.accentGold,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '0',
-                      style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.pureWhite,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // 指示テキスト（調整可能なことをユーザーに示すマイクロUX）
-            Positioned(
-              bottom: 20,
-              left: 20,
-              child: IgnorePointer(
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.zoom_out_map_rounded,
-                      color: AppColors.pureWhite.withValues(alpha: 0.6),
-                      size: 14,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      AppLocalizations.of(context)!.cameraScreenDragPinch,
-                      style: GoogleFonts.notoSansJp(
-                        fontSize: 10,
-                        color: AppColors.pureWhite.withValues(alpha: 0.6),
-                        shadows: [
-                          Shadow(
-                            color: AppColors.pureBlack,
-                            blurRadius: 4,
-                          )
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            ],
           ),
         ),
-      ),
-      ),
       ),
     );
   }

@@ -15,6 +15,7 @@ void showTrendingTasksBottomSheet(
 }) {
   showModalBottomSheet(
     context: context,
+    useRootNavigator: true,
     backgroundColor: Colors.transparent, // DraggableScrollableSheet用に透明化
     isScrollControlled: true,
     builder: (ctx) {

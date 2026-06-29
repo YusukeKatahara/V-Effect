@@ -28,6 +28,7 @@ import '../providers/hero_tasks_provider.dart';
 import 'hero_tasks/components/hero_task_item.dart';
 import 'hero_tasks/components/task_card.dart';
 import 'hero_task_share_preview_screen.dart';
+import '../services/sound_service.dart';
 
 
 
@@ -46,6 +47,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
   int _streakProtections = 0;
   bool _loading = true;
   List<HeroTaskItem> _taskItems = [];
+  late final SoundService _soundService; // BGM制御用サービス（アンマウント時のクラッシュ防止のため保持）
 
   // ── Card Expansion ──
   int? _expandedIndex; // 長押しで拡大中のカードインデックス
@@ -89,6 +91,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
   @override
   void initState() {
     super.initState();
+    _soundService = ref.read(soundServiceProvider);
     WidgetsBinding.instance.addObserver(this);
     MainShell.activeTabIndex.addListener(_onTabChanged);
     final initialPage = 10000;
@@ -101,7 +104,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
             // スワイプが始まったら拡大状態を解除
             if (_expandedIndex != null) {
               setState(() => _expandedIndex = null);
-              ref.read(soundServiceProvider).stopBgm();
+              _soundService.stopBgm();
               return;
             }
             _scrollPositionNotifier.value = page;
@@ -185,7 +188,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
   void dispose() {
     MainShell.activeTabIndex.removeListener(_onTabChanged);
     WidgetsBinding.instance.removeObserver(this);
-    ref.read(soundServiceProvider).stopBgm();
+    _soundService.stopBgm();
     _pageController.dispose();
     _sublimationController.dispose();
     _swipeGuideController.dispose();
@@ -235,7 +238,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
             ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
           final targetPost = sortedPosts.first;
           if (targetPost.bgmUrl != null) {
-            ref.read(soundServiceProvider).playBgm(targetPost.bgmUrl!);
+            _soundService.playBgm(targetPost.bgmUrl!);
           }
         }
       }
@@ -245,7 +248,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      ref.read(soundServiceProvider).stopBgm();
+      _soundService.stopBgm();
     } else if (state == AppLifecycleState.resumed) {
       // 復帰時に自動で鳴らさない
     }
@@ -283,7 +286,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
           setState(() {
             if (_expandedIndex != null) {
               _expandedIndex = null; // 拡大状態をリセット
-              ref.read(soundServiceProvider).stopBgm(); // スワイプ時に音楽を止める
+              _soundService.stopBgm(); // スワイプ時に音楽を止める
             }
           });
         }
@@ -532,7 +535,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
       key: const Key('hero_tasks_screen_visibility'),
       onVisibilityChanged: (info) {
         if (info.visibleFraction < 0.1) {
-          ref.read(soundServiceProvider).stopBgm();
+          _soundService.stopBgm();
         }
       },
       child: Scaffold(
@@ -679,7 +682,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                   // 左上のブックマーク（本）アイコン。ベルマークの色と統一するために白（AppColors.white）に設定
                   icon: Icon(Icons.menu_book_rounded, color: AppColors.white, size: 22),
                   onPressed: () {
-                    ref.read(soundServiceProvider).stopBgm();
+                    _soundService.stopBgm();
                     Navigator.pushNamed(context, AppRoutes.vPractice);
                   },
                 ),
@@ -951,7 +954,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                                   onTapUp: (details) {
                                     if (_expandedIndex != null) {
                                       setState(() => _expandedIndex = null);
-                                      ref.read(soundServiceProvider).stopBgm();
+                                      _soundService.stopBgm();
                                       return;
                                     }
                                     // カードが中央にない場合はスナップして終了
@@ -979,7 +982,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                                             () => _expandedIndex = actualIndex);
                                         // [New] 拡大時に音楽を流す
                                         if (item.latestPost?.bgmUrl != null) {
-                                          ref.read(soundServiceProvider).playBgm(item.latestPost!.bgmUrl!);
+                                          _soundService.playBgm(item.latestPost!.bgmUrl!);
                                         }
                                       }
                                     } else {

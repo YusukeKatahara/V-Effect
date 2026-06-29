@@ -243,6 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true, // コンテンツサイズに応じて高さを調整可能にする
       backgroundColor: Colors.transparent, // 角丸のコンテナを綺麗に表現するため背景は透明に設定
       builder:
@@ -412,6 +413,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true, // コンテンツサイズに応じて高さを調整可能にする
       backgroundColor: Colors.transparent, // 角丸のコンテナを綺麗に表現するため背景は透明に設定
       builder:

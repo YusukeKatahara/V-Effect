@@ -117,7 +117,7 @@ class SoundService {
   /// 投稿のBGMを再生（初回のみゆっくりフェードイン、以降は即座に再生）
   /// [userExplicitAction] が true の場合、ユーザーが明示的にミュート解除したと見なし、マナーモードを上書き（playback）して音を鳴らします。
   /// それ以外（自動再生）の場合はマナーモードに従います（ambient）。
-  Future<void> playBgm(String url, {bool userExplicitAction = false}) async {
+  Future<void> playBgm(String url, {bool userExplicitAction = false, double initialVolume = 1.0}) async {
     _fadeTimer?.cancel();
     
     if (_isBgmMuted) {
@@ -155,15 +155,15 @@ class SoundService {
           if (fadeTicks > maxTicks) {
             timer.cancel();
             _fadeTimer = null;
-            _bgmPlayer.setVolume(1.0);
+            _bgmPlayer.setVolume(initialVolume);
           } else {
-            final vol = (fadeTicks / maxTicks).clamp(0.0, 1.0);
+            final vol = ((fadeTicks / maxTicks) * initialVolume).clamp(0.0, 1.0);
             _bgmPlayer.setVolume(vol);
           }
         });
       } else {
-        // 2曲目以降：即座に再生
-        await _bgmPlayer.setVolume(1.0);
+        // 2曲目以降：即座に指定の初期音量で再生
+        await _bgmPlayer.setVolume(initialVolume);
         await _bgmPlayer.play(UrlSource(url));
       }
       
@@ -183,6 +183,15 @@ class SoundService {
     } finally {
       // BGM停止に合わせてオーディオ設定を戻す
       await _setAmbientSession();
+    }
+  }
+
+  /// 現在再生中のBGMの音量を変更します (0.0 〜 1.0)
+  Future<void> setBgmVolume(double volume) async {
+    try {
+      await _bgmPlayer.setVolume(volume.clamp(0.0, 1.0));
+    } catch (e) {
+      debugPrint('Error setting BGM volume: $e');
     }
   }
 

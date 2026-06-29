@@ -34,10 +34,12 @@ class MainShell extends ConsumerStatefulWidget {
 class _MainShellState extends ConsumerState<MainShell> {
   late int _currentIndex;
   bool _isHomeLoading = true;
+  late final SoundService _soundService; // BGM制御用サービス（アンマウント時のクラッシュ防止のため保持）
 
   @override
   void initState() {
     super.initState();
+    _soundService = ref.read(soundServiceProvider);
     // 起動時の初期値をセット
     MainShell.activeTabIndex.value = widget.initialIndex;
     _currentIndex = widget.initialIndex;
@@ -55,7 +57,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   void _onGlobalTabChanged() {
     if (mounted && _currentIndex != MainShell.activeTabIndex.value) {
       // 外部からのタブ切り替え時に確実にBGMを止める
-      ref.read(soundServiceProvider).stopBgm();
+      _soundService.stopBgm();
       setState(() {
         _currentIndex = MainShell.activeTabIndex.value;
       });
@@ -122,7 +124,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   void _onTap(int index) {
     if (_currentIndex != index) {
       // タブ切り替え時に確実にBGMを止める
-      ref.read(soundServiceProvider).stopBgm();
+      _soundService.stopBgm();
     }
     HapticFeedback.selectionClick();
     MainShell.activeTabIndex.value = index;

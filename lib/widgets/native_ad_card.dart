@@ -25,10 +25,9 @@ class NativeAdCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        color: AppColors.bgSurface,
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.6),
+            color: Colors.black.withValues(alpha: 0.6),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -45,94 +44,75 @@ class NativeAdCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Premium Background Gradient
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AppColors.accentGold.withValues(alpha: 0.15),
-                      AppColors.grey15,
-                      AppColors.grey15,
-                      AppColors.black.withValues(alpha: 0.4),
-                    ],
-                    stops: const [0.0, 0.3, 0.7, 1.0],
-                  ),
-                ),
-              ),
-            ),
+            // 背景色 (FeedCard と同じ AppColors.grey15)
+            Container(color: AppColors.grey15),
 
-            // Center Area: Ad Content
+            // 広告コンテンツの埋め込み (AdWidget)
             if (isAdLoaded && nativeAd != null)
               Positioned.fill(
                 child: AdWidget(ad: nativeAd!),
               )
             else if (isAdLoadFailed)
               Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  child: Icon(Icons.campaign_rounded, color: AppColors.grey30, size: 64),
-                ),
+                child: Icon(Icons.campaign_rounded, color: AppColors.grey30, size: 64),
               )
-
             else
               Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  child: CircularProgressIndicator(color: AppColors.accentGold),
+                child: CircularProgressIndicator(
+                  color: AppColors.accentGold,
+                  strokeWidth: 2,
                 ),
               ),
 
-
-            // Top Left Badge
+            // 左上のスマートな「広告」バッジ (透過背景でオーガニックに溶け込ませる)
             Positioned(
-              top: 24,
-              left: 20,
+              top: 14,
+              left: 10, // 三点リーダーボタン (right: 10) と対称に配置
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 高さと余白を統一
                 decoration: BoxDecoration(
-                  color: AppColors.accentGold.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.3)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.isDark
-                          ? Colors.transparent
-                          : AppColors.accentGold.withValues(alpha: 0.15),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  color: Colors.black.withValues(alpha: 0.2), // 三点リーダーと同じ黒透過20%
+                  borderRadius: BorderRadius.circular(12), // 他の丸型パーツと親和性の高い角丸
                 ),
                 child: Text(
                   AppLocalizations.of(context)!.adLabel,
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.accentGold,
-                    letterSpacing: 1,
+                    color: AppColors.pureWhite,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
             ),
 
-            // NOTE: 広告主名・アイコン・"広告" 表記といったアセットは、すべて
-            // ネイティブ広告テンプレート (AdWidget) が NativeAdView の *内部* に
-            // 描画する。広告主アセットをビュー外に偽装描画すると AdMob の
-            // ネイティブ広告ポリシー違反 (advertiser assets outside native ad view)
-            // になるため、従来あった偽の広告主プロフィールは撤去している。
 
-            // Dim Overlay for un-focused cards
+
+            // 暗幕レイヤー (奥にあるカードを暗くする処理)
             if (dimAlpha > 0)
               Positioned.fill(
-                child: IgnorePointer(
-                  child: Container(
-                    color: Colors.black.withValues(alpha: dimAlpha),
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: dimAlpha),
+                ),
+              ),
+
+            // 最前面のボーダー (アンチエイリアスの隙間/白枠を隠す + 輪郭の強調)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isTop
+                          ? AppColors.accentGold.withValues(alpha: 0.8)
+                          : AppColors.grey15.withValues(alpha: 0.1),
+                      width: isTop ? 1.5 : 0.5,
+                      strokeAlign: BorderSide.strokeAlignInside,
+                    ),
                   ),
                 ),
               ),
+            ),
           ],
         ),
       ),

@@ -180,6 +180,9 @@ final postUpdateProvider = StreamProvider.autoDispose<void>((ref) {
   return PostService.instance.updateStream;
 });
 
+/// 初回ロード完了フラグを保持するProvider
+final homeDataLoadedProvider = StateProvider.autoDispose<bool>((ref) => false);
+
 final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
   // PostService からの更新信号を監視。信号が届くたびにこの Provider は再実行される。
   ref.watch(postUpdateProvider);
@@ -191,15 +194,20 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
   final prefs = await SharedPreferences.getInstance();
   final cacheKey = 'homeData_$myUid';
 
+  final isLoaded = ref.read(homeDataLoadedProvider);
+
   // 1. まずローカルキャッシュから即座に表示（ゼロ・ディレイ起動）
-  final cachedStr = prefs.getString(cacheKey);
-  if (cachedStr != null) {
-    try {
-      final cachedJson = jsonDecode(cachedStr) as Map<String, dynamic>;
-      final cachedData = HomeData.fromJson(cachedJson);
-      yield cachedData;
-    } catch (e) {
-      debugPrint('HomeData cache decode error: $e');
+  // 2026ベストプラクティス：再フェッチ時はすでに最新データがメモリ上にあるため、古いキャッシュの読み込みをスキップして表示の巻き戻りを防ぐ
+  if (!isLoaded) {
+    final cachedStr = prefs.getString(cacheKey);
+    if (cachedStr != null) {
+      try {
+        final cachedJson = jsonDecode(cachedStr) as Map<String, dynamic>;
+        final cachedData = HomeData.fromJson(cachedJson);
+        yield cachedData;
+      } catch (e) {
+        debugPrint('HomeData cache decode error: $e');
+      }
     }
   }
   
@@ -293,5 +301,6 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
 
   // 3. 取得した最新データをキャッシュに保存し、UIへ反映
   prefs.setString(cacheKey, jsonEncode(latestData.toJson()));
+  ref.read(homeDataLoadedProvider.notifier).state = true; // ロード完了フラグを設定
   yield latestData;
 });

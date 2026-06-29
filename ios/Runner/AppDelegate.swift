@@ -31,7 +31,11 @@ import google_mobile_ads
             result(FlutterError(code: "INVALID_ARGUMENT", message: "Arguments missing", details: nil))
             return
           }
-          self?.startLiveActivity(taskName: taskName, progress: progress, status: status, statusMessage: statusMessage, result: result)
+          
+          let imageBytesData = args["imageBytes"] as? FlutterStandardTypedData
+          let data = imageBytesData?.data
+          
+          self?.startLiveActivity(taskName: taskName, progress: progress, status: status, statusMessage: statusMessage, imageBytes: data, result: result)
         } else {
           result(FlutterError(code: "UNSUPPORTED_PLATFORM", message: "iOS 16.1 or higher is required", details: nil))
         }
@@ -85,9 +89,16 @@ import google_mobile_ads
   // MARK: - Live Activity Management
 
   @available(iOS 16.2, *)
-  private func startLiveActivity(taskName: String, progress: Double, status: String, statusMessage: String, result: @escaping FlutterResult) {
+  private func startLiveActivity(taskName: String, progress: Double, status: String, statusMessage: String, imageBytes: Data?, result: @escaping FlutterResult) {
     // 既存のアップロードLive Activityをすべて終了させる
     stopExistingActivities()
+    
+    // サムネイル画像の保存または削除
+    if let data = imageBytes {
+      saveImageToAppGroup(data: data)
+    } else {
+      removeImageFromAppGroup()
+    }
     
     let attributes = VEffectUploadAttributes(taskName: taskName)
     let contentState = VEffectUploadAttributes.ContentState(
@@ -106,6 +117,67 @@ import google_mobile_ads
     } catch {
       result(FlutterError(code: "START_FAILED", message: "Failed to start Live Activity: \(error.localizedDescription)", details: nil))
     }
+  }
+  
+  private func saveImageToAppGroup(data: Data) {
+    guard let sharedContainer = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.veffect.app.vEffect") else {
+      print("LiveActivity: App Group container URL is nil")
+      return
+    }
+    let fileURL = sharedContainer.appendingPathComponent("upload_thumbnail.jpg")
+    
+    // 画像データを一度UIImageに変換し、サムネイルサイズにリサイズする
+    guard let image = UIImage(data: data) else {
+      print("LiveActivity: Failed to create UIImage from data")
+      return
+    }
+    
+    // サムネイルサイズ（高さ最大240、元画像のアスペクト比を維持）にリサイズ
+    let maxImageHeight: CGFloat = 240
+    let scaleFactor = maxImageHeight / image.size.height
+    let finalScale = min(scaleFactor, 1.0)
+    
+    let scaledWidth = image.size.width * finalScale
+    let scaledHeight = image.size.height * finalScale
+    
+    // UIGraphicsImageRendererFormatを使用し、スケールを1.0に強制設定します。
+    // これを行わないとデバイスのデフォルト解像度（2xや3x）が適用され、
+    // メモリ消費量が非常に大きくなってWidgetの表示制限（グレーボックス化）に引っかかります。
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1.0
+    let renderer = UIGraphicsImageRenderer(size: CGSize(width: scaledWidth, height: scaledHeight), format: format)
+    
+    let resizedImage = renderer.image { _ in
+      image.draw(in: CGRect(origin: .zero, size: CGSize(width: scaledWidth, height: scaledHeight)))
+    }
+    
+    // 圧縮率を下げて（JPEGで品質0.7程度）データサイズを数KBに抑える
+    guard let resizedData = resizedImage.jpegData(compressionQuality: 0.7) else {
+      print("LiveActivity: Failed to compress resized image")
+      return
+    }
+    
+    do {
+      // ロック画面でもアクセス可能なオプション（noFileProtection）を追加して書き込み
+      try resizedData.write(to: fileURL, options: [.atomic, .noFileProtection])
+      
+      // ファイル保護レベルを「なし」に明示的に設定（二重の安全策）
+      var attributes = [FileAttributeKey: Any]()
+      attributes[.protectionKey] = FileProtectionType.none
+      try FileManager.default.setAttributes(attributes, ofItemAtPath: fileURL.path)
+      
+      print("LiveActivity: Successfully saved resized thumbnail image to App Group. Size: \(resizedData.count) bytes")
+    } catch {
+      print("LiveActivity: Failed to save thumbnail image to App Group: \(error.localizedDescription)")
+    }
+  }
+  
+  private func removeImageFromAppGroup() {
+    guard let sharedContainer = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.veffect.app.vEffect") else {
+      return
+    }
+    let fileURL = sharedContainer.appendingPathComponent("upload_thumbnail.jpg")
+    try? FileManager.default.removeItem(at: fileURL)
   }
   
   @available(iOS 16.2, *)
@@ -133,8 +205,10 @@ import google_mobile_ads
     )
     
     Task {
+      // 完了ステータスを15秒間表示したのち、自動的にロック画面から非表示にします
+      let autoDismissDate = Date(timeIntervalSinceNow: 15)
       for activity in Activity<VEffectUploadAttributes>.activities {
-        await activity.end(ActivityContent(state: contentState, staleDate: nil), dismissalPolicy: .default)
+        await activity.end(ActivityContent(state: contentState, staleDate: nil), dismissalPolicy: .after(autoDismissDate))
       }
       result(nil)
     }

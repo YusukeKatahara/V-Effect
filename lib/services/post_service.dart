@@ -567,6 +567,7 @@ class PostService {
     String emoji, {
     String targetUid = '',
     String targetTaskName = '',
+    bool triggerUpdateStream = false, // 2026ベストプラクティス：自分自身の送信時は無駄な再フェッチを避けるためデフォルトfalse
   }) async {
     final myUid = _auth.currentUser!.uid;
     final docRef = _postsRef.doc(postId);
@@ -583,7 +584,9 @@ class PostService {
       reactionType: 'emoji',
       emoji: emoji,
     );
-    _updateController.add(null);
+    if (triggerUpdateStream) {
+      _updateController.add(null);
+    }
     _sendReactionNotification(postId, emoji: emoji).catchError((_) {});
   }
 
@@ -593,6 +596,7 @@ class PostService {
     int count, {
     String targetUid = '',
     String targetTaskName = '',
+    bool triggerUpdateStream = false, // 2026ベストプラクティス：自分自身の送信時は無駄な再フェッチを避けるためデフォルトfalse
   }) async {
     if (count <= 0) return;
     final docRef = _db.collection('posts').doc(postId);
@@ -609,12 +613,15 @@ class PostService {
         reactionType: 'flame',
         flameCount: count,
       );
-      _updateController.add(null);
+      if (triggerUpdateStream) {
+        _updateController.add(null);
+      }
       
       // 通知は1回にまとめて送信
       _sendReactionNotification(postId, flameIncrement: count).catchError((_) {});
     } catch (e) {
       debugPrint('Flame increment failed: $e');
+      rethrow; // 楽観的UI更新（画面側の仮表示）をロールバックできるよう呼び出し元へ例外を伝播
     }
   }
 
@@ -623,9 +630,9 @@ class PostService {
   @Deprecated('Use addEmojiReaction or incrementFlameCount instead')
   Future<void> addReaction(String postId, {String? emoji}) async {
     if (emoji != null) {
-      return addEmojiReaction(postId, emoji);
+      return addEmojiReaction(postId, emoji, triggerUpdateStream: true);
     } else {
-      return incrementFlameCount(postId, 1);
+      return incrementFlameCount(postId, 1, triggerUpdateStream: true);
     }
   }
 

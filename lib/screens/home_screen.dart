@@ -55,6 +55,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late final PostService _postService;
+  late final SoundService _soundService; // BGM制御用サービス（アンマウント時のクラッシュ防止のため保持）
   bool _postedToday = false;
   bool _friendFeedLogged = false; // friend_feed_viewed をフィード初回ロード時に1回だけ送るためのガード
   List<dynamic> _feedItems = [];
@@ -117,9 +118,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final item = _feedItems[currentFocused];
     if (item is Post && item.bgmUrl != null) {
-      await ref.read(soundServiceProvider).playBgm(item.bgmUrl!);
+      // 再生開始時にも現在のスワイプ割合に合わせた音量を計算して渡す
+      final page = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
+      final nearestPageIndex = page.round();
+      final double offset = (page - nearestPageIndex).abs();
+      final double volume = (1.0 - (offset * 2.0)).clamp(0.0, 1.0);
+
+      await _soundService.playBgm(item.bgmUrl!, initialVolume: volume);
     } else {
-      await ref.read(soundServiceProvider).stopBgm();
+      await _soundService.stopBgm();
     }
   }
 
@@ -150,6 +157,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void initState() {
     super.initState();
     _postService = ref.read(postServiceProvider);
+    _soundService = ref.read(soundServiceProvider);
     WidgetsBinding.instance.addObserver(this);
     MainShell.activeTabIndex.addListener(_onTabChanged);
     _flashController = AnimationController(
@@ -176,10 +184,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             if (_showSwipeGuide && (page - initialPage).abs() > 0.1) {
               _dismissSwipeGuide();
             }
+
+            // ── V字型オーディオフェードのリアルタイム計算 ──
+            final nearestPageIndex = page.round();
+            final double offset = (page - nearestPageIndex).abs();
+            // 0.0(中心) -> 音量1.0, 0.5(中間) -> 音量0.0
+            final double volume = (1.0 - (offset * 2.0)).clamp(0.0, 1.0);
+            _soundService.setBgmVolume(volume);
+
             final currentFocused = _focusedIndex;
             if (currentFocused != _lastFocusedIndex) {
               _lastFocusedIndex = currentFocused;
               _playBgmForFocusedPost();
+              _cleanupRemoteAds(_focusedGlobalIndex);
             }
           }
         }
@@ -226,7 +243,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void dispose() {
     MainShell.activeTabIndex.removeListener(_onTabChanged);
     WidgetsBinding.instance.removeObserver(this);
-    ref.read(soundServiceProvider).stopBgm();
+    _soundService.stopBgm();
     for (final ad in _nativeAds.values) {
       ad.dispose();
     }
@@ -242,8 +259,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.dispose();
   }
 
-  void _loadAdForIndex(int index) {
-    if (_nativeAds.containsKey(index) || _adLoadStatus.containsKey(index)) return;
+  int get _focusedGlobalIndex {
+    if (_feedItems.isEmpty) return 10000;
+    return (_pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0).round();
+  }
+
+  void _loadAdForGlobalIndex(int globalIndex) {
+    if (_nativeAds.containsKey(globalIndex) || _adLoadStatus.containsKey(globalIndex)) return;
 
     final ad = NativeAd(
       adUnitId: AdHelper.nativeAdUnitId,
@@ -253,24 +275,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         onAdLoaded: (loadedAd) {
           if (mounted) {
             setState(() {
-              _adLoadStatus[index] = true;
+              _adLoadStatus[globalIndex] = true;
             });
           }
         },
-
         onAdFailedToLoad: (failedAd, error) {
-          debugPrint('NativeAd failed to load at index $index: $error');
+          debugPrint('NativeAd failed to load at globalIndex $globalIndex: $error');
           failedAd.dispose();
           if (mounted) {
             setState(() {
-              _adLoadStatus[index] = false;
+              _adLoadStatus[globalIndex] = false;
             });
           }
         },
       ),
     );
-    _nativeAds[index] = ad;
+    _nativeAds[globalIndex] = ad;
     ad.load();
+
+    // 新しい広告がロードされた際にもクリーンアップを走らせる
+    _cleanupRemoteAds(_focusedGlobalIndex);
+  }
+
+  void _cleanupRemoteAds(int currentGlobalIndex) {
+    final keysToRemove = <int>[];
+    _nativeAds.forEach((key, ad) {
+      // TikTok方式：現在位置から距離が2つ以上離れた広告は即座に破棄してクリア
+      if ((key - currentGlobalIndex).abs() >= 2) {
+        ad.dispose();
+        keysToRemove.add(key);
+      }
+    });
+
+    for (final key in keysToRemove) {
+      _nativeAds.remove(key);
+      _adLoadStatus.remove(key);
+    }
   }
 
 
@@ -646,7 +686,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           glowColor: glowColor,
           bottomOffset: _flameBottomOffset,
         );
-        ref.read(soundServiceProvider).playFireTapSound(playbackRate: soundPitch);
+        _soundService.playFireTapSound(playbackRate: soundPitch);
       }
     }
 
@@ -688,20 +728,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               countToSend,
               targetUid: post.userId,
               targetTaskName: post.taskName,
+              triggerUpdateStream: false, // 2026ベストプラクティス：自分自身の送信時は無駄な再フェッチを避ける
             );
 
-            // 同期成功後、ローカル増分から送信分を差し引く
+            // 同期成功後、ローカル増分から送信分を差し引き、メモリ上の _feedItems を直接更新
             if (mounted) {
-              // ここでは表示の整合性を取るため setState を行う
               setState(() {
                 final current = _localFlameIncrements[post.id] ?? 0;
                 _localFlameIncrements[post.id] = (current - countToSend).clamp(0, 100000);
+                
+                // メモリ上のキャッシュと同期
+                _feedItems = _feedItems.map((item) {
+                  if (item is Post && item.id == post.id) {
+                    return item.copyWith(
+                      reactionCount: item.reactionCount + countToSend,
+                    );
+                  }
+                  return item;
+                }).toList();
               });
             }
           } catch (e) {
             debugPrint('Flame sync error: $e');
-          } finally {
-            // VFIREでは _reactingPostIds は使用しないため、ロック解除は不要
+            // 2026ベストプラクティス：例外発生時のロールバック処理
+            if (mounted) {
+              setState(() {
+                // 送信失敗した分をローカル増分から引き、ValueNotifier も元の値へロールバックする
+                final current = _localFlameIncrements[post.id] ?? 0;
+                _localFlameIncrements[post.id] = (current - countToSend).clamp(0, 100000);
+                
+                final notifier = _flameNotifiers[post.id];
+                if (notifier != null) {
+                  notifier.value = (notifier.value - countToSend).clamp(0, 100000);
+                }
+              });
+            }
           }
         }
       });
@@ -1069,7 +1130,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       onVisibilityChanged: (info) {
         if (info.visibleFraction < 0.1) {
           // 画面がほぼ見えなくなった時（他のタブや別画面に移動した時）
-          ref.read(soundServiceProvider).stopBgm();
+          _soundService.stopBgm();
         }
       },
       child: Scaffold(
@@ -1237,6 +1298,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       final actualIndex = index % _feedItems.length;
                       final item = _feedItems[actualIndex];
 
+                      // 広告スロットの場合は、前面にタップを遮る要素を置かず、タッチを背後の AdWidget へ通過させる
+                      if (item is String && item == 'ad') {
+                        return const IgnorePointer(
+                          child: SizedBox.expand(),
+                        );
+                      }
+
                       final myUid = FirebaseAuth.instance.currentUser?.uid;
                       final alreadyReacted = item is Post ? item.hasEmojiReacted(myUid) : false;
 
@@ -1351,9 +1419,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                           artist: item.bgmArtist,
                                           url: item.bgmUrl,
                                           artworkUrl: item.bgmArtworkUrl,
-                                          isMuted: ref.read(soundServiceProvider).isBgmMuted,
+                                          isMuted: _soundService.isBgmMuted,
                                           onMuteToggle: () async {
-                                            await ref.read(soundServiceProvider).toggleBgmMute(item.bgmUrl);
+                                            await _soundService.toggleBgmMute(item.bgmUrl);
                                             setState(() {});
                                           },
                                         ),
@@ -1668,6 +1736,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (relativePos > halfLength) relativePos -= _feedItems.length;
     if (relativePos < -halfLength) relativePos += _feedItems.length;
 
+    // scrollPosition と relativePos からグローバルインデックスを算出
+    final int globalIndex = (scrollPosition + relativePos).round();
+
     final double smoothDepth = relativePos.abs();
 
     if (smoothDepth > 3) return const SizedBox.shrink(); // パフォーマンス最適化
@@ -1738,19 +1809,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             child: item is String && item == 'ad'
               ? () {
                   // 近くの広告のみロード
-                  int dist = (index - _focusedIndex).abs();
-                  if (dist > _feedItems.length / 2) {
-                     dist = _feedItems.length - dist;
-                  }
+                  int dist = (globalIndex - _focusedGlobalIndex).abs();
+
+
+
                   if (dist <= 3) {
-                    _loadAdForIndex(index);
+                    _loadAdForGlobalIndex(globalIndex);
                   }
                   return NativeAdCard(
                     dimAlpha: dimAlpha,
-                    isTop: index == _focusedIndex,
-                    nativeAd: index == _focusedIndex ? _nativeAds[index] : null,
-                    isAdLoaded: _adLoadStatus[index] == true,
-                    isAdLoadFailed: _adLoadStatus[index] == false,
+                    isTop: globalIndex == _focusedGlobalIndex,
+                    nativeAd: globalIndex == _focusedGlobalIndex ? _nativeAds[globalIndex] : null,
+                    isAdLoaded: _adLoadStatus[globalIndex] == true,
+                    isAdLoadFailed: _adLoadStatus[globalIndex] == false,
                   );
                 }()
               : () {

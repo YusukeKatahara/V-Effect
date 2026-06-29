@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -11,14 +12,16 @@ class LiveActivityService {
 
   /// Live Activity を開始します。
   /// [taskName] は現在実行中のタスクの名前です。
-  static Future<void> startActivity(String taskName) async {
+  /// [imageBytes] はアップロード対象の画像データです。
+  static Future<void> startActivity(String taskName, Uint8List? imageBytes) async {
     if (!Platform.isIOS) return; // iOS以外のプラットフォーム（Androidなど）では処理をスキップします
     try {
       await _channel.invokeMethod('startActivity', {
         'taskName': taskName,
         'progress': 0.05,
         'status': 'uploading',
-        'statusMessage': 'アップロード中...',
+        'statusMessage': '投稿中...',
+        'imageBytes': imageBytes,
       });
     } catch (e) {
       // プラットフォーム固有のエラーや MissingPluginException を安全にキャッチしてアプリ全体のクラッシュを防ぎます

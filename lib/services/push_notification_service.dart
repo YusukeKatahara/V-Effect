@@ -137,6 +137,68 @@ class PushNotificationService {
     }
   }
 
+  /// 最新の未読通知数をカウントし、アプリアイコンバッジに同期する
+  Future<void> syncBadgeCount() async {
+    if (kIsWeb) return;
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      // iOS で通知許可が得られていない場合はバッジ操作をガードする
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final settings = await FirebaseMessaging.instance.getNotificationSettings();
+        if (settings.authorizationStatus != AuthorizationStatus.authorized &&
+            settings.authorizationStatus != AuthorizationStatus.provisional) {
+          debugPrint('Badge同期スキップ: iOSで通知許可が得られていません');
+          return;
+        }
+      }
+
+      final myUid = currentUser.uid;
+      final threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
+
+      // 3日以内の未読通知数を取得（インデックス不要のクエリで取得し、メモリ上で絞り込み）
+      final snap = await _db
+          .collection('notifications')
+          .where('toUid', isEqualTo: myUid)
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      int unreadCount = 0;
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final createdAtRaw = data['createdAt'];
+        final DateTime? createdAt = createdAtRaw is Timestamp
+            ? createdAtRaw.toDate()
+            : null;
+        final String? type = data['type'] as String?;
+
+        final isSeasonPushOnly = type == NotificationType.seasonTaskReceived.name ||
+            type == NotificationType.seasonTaskPushOnly.name;
+        final isWithinThreeDays = createdAt != null && createdAt.isAfter(threeDaysAgo);
+
+        if (isWithinThreeDays && !isSeasonPushOnly) {
+          unreadCount++;
+        }
+      }
+
+      final bool isSupported = await FlutterAppBadger.isAppBadgeSupported();
+      if (isSupported) {
+        if (unreadCount > 0) {
+          await FlutterAppBadger.updateBadgeCount(unreadCount);
+          debugPrint('App Badge 同期完了: 未読 $unreadCount 件');
+        } else {
+          await FlutterAppBadger.removeBadge();
+          debugPrint('App Badge 同期完了: 未読 0 件 (バッジ消去)');
+        }
+      } else {
+        debugPrint('App Badge はこのデバイスでサポートされていません');
+      }
+    } catch (e) {
+      debugPrint('Badge同期エラー: $e');
+    }
+  }
+
   /// 通知権限をリクエスト
   Future<void> requestPermission() async {
     final settings = await _messaging.requestPermission(

@@ -129,7 +129,7 @@ class UploadNotifier extends StateNotifier<UploadState> {
     }
 
     // 🚀 Live Activity を開始します。
-    await LiveActivityService.startActivity(taskName);
+    await LiveActivityService.startActivity(taskName, imageBytes);
 
     // 擬似的に進捗バーを進めるタイマーを開始（300msごとに少しずつ進行、最大90%まで）
     double currentProgress = 0.05;
@@ -142,7 +142,7 @@ class UploadNotifier extends StateNotifier<UploadState> {
           await LiveActivityService.updateActivity(
             currentProgress,
             'uploading',
-            'アップロード中... ${(currentProgress * 100).toInt()}%',
+            '投稿中...',
           );
         }
       } else {
@@ -171,7 +171,7 @@ class UploadNotifier extends StateNotifier<UploadState> {
       );
 
       // 🚀 Live Activity を成功終了します。
-      await LiveActivityService.stopActivity('success', 'アップロードが完了しました');
+      await LiveActivityService.stopActivity('success', '投稿完了');
 
       // ホームのデータを強制リフレッシュして最新のフィードを表示
       _ref.invalidate(homeDataProvider);
@@ -190,7 +190,7 @@ class UploadNotifier extends StateNotifier<UploadState> {
       );
 
       // 🚀 Live Activity をエラー終了します。
-      await LiveActivityService.stopActivity('error', 'アップロードに失敗しました');
+      await LiveActivityService.stopActivity('error', '投稿できませんでした');
     }
   }
 

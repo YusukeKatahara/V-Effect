@@ -53,6 +53,37 @@ async function sendPushToUser(toUid, title, body) {
   }
   if (!fcmToken) return;
 
+  // 3日前の日時を計算（アプリ内の通知一覧の表示期限と同期させるため）
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+  // 宛先ユーザーの未読通知数を取得（インデックス不要で取得するため、メモリ上でフィルタリング）
+  let unreadCount = 0;
+  try {
+    const unreadSnap = await db.collection("notifications")
+        .where("toUid", "==", toUid)
+        .where("isRead", "==", false)
+        .get();
+
+    unreadSnap.forEach((doc) => {
+      const data = doc.data();
+      const createdAt = data.createdAt ? data.createdAt.toDate() : null;
+      const type = data.type;
+      
+      // シーズンタスク配信系（seasonTaskReceived / seasonTaskPushOnly）はアプリの通知画面では二重表示を防ぐために除外されているため、バッジカウントからも除外
+      const isSeasonPushOnly = type === "seasonTaskReceived" || type === "seasonTaskPushOnly";
+      const isWithinThreeDays = createdAt && createdAt >= threeDaysAgo;
+      
+      if (isWithinThreeDays && !isSeasonPushOnly) {
+        unreadCount++;
+      }
+    });
+  } catch (error) {
+    console.error(`Error calculating unread notification count for ${toUid}:`, error);
+    // エラー時はフォールバックとして 1 を設定
+    unreadCount = 1;
+  }
+
   // FCM メッセージを送信
   const message = {
     token: fcmToken,
@@ -75,7 +106,7 @@ async function sendPushToUser(toUid, title, body) {
       payload: {
         aps: {
           sound: "default",
-          badge: 1,
+          badge: unreadCount, // 動的な未読件数を設定
           // "content-available": 1, // バックグラウンド処理が必要な場合はコメントを外す
         },
       },
