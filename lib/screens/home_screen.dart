@@ -1298,11 +1298,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       final actualIndex = index % _feedItems.length;
                       final item = _feedItems[actualIndex];
 
-                      // 広告スロットの場合は、前面にタップを遮る要素を置かず、タッチを背後の AdWidget へ通過させる
+                      // 広告スロットの場合は、前面と背面で描画を動的に切り替えてタップを疎通させる
                       if (item is String && item == 'ad') {
-                        return const IgnorePointer(
-                          child: SizedBox.expand(),
-                        );
+                        final page = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
+                        final nearestPageIndex = page.round();
+                        final double offset = (page - nearestPageIndex).abs();
+
+                        // スワイプがほぼ静止（ズレが0.01未満）し、フォーカスが合っている時だけ、
+                        // 最前面（PageViewの子）で直接広告を描画して確実にタップ可能にする
+                        if (index == nearestPageIndex && offset < 0.01) {
+                          final int globalIndex = index;
+                          return Center(
+                            child: SizedBox(
+                              width: finalCardWidth,
+                              height: maxCardHeight,
+                              child: NativeAdCard(
+                                dimAlpha: 0.0,
+                                isTop: true,
+                                nativeAd: _nativeAds[globalIndex],
+                                isAdLoaded: _adLoadStatus[globalIndex] == true,
+                                isAdLoadFailed: _adLoadStatus[globalIndex] == false,
+                              ),
+                            ),
+                          );
+                        } else {
+                          // 移動中または奥にあるときは、前面はタッチスルーにして背面（3Dレイヤー）での描画に任せる
+                          return const IgnorePointer(
+                            child: SizedBox.expand(),
+                          );
+                        }
                       }
 
                       final myUid = FirebaseAuth.instance.currentUser?.uid;
@@ -1808,11 +1832,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             height: cardHeight,
             child: item is String && item == 'ad'
               ? () {
+                  // スワイプ座標のズレ幅を算出
+                  final double offset = (scrollPosition - globalIndex).abs();
+
+                  // 静止状態でフォーカスが合っている時は、前面の PageView.builder 側が
+                  // 最前面で直接描画するため、背面では二重描画を避けるため SizedBox.shrink() を返す
+                  if (globalIndex == _focusedGlobalIndex && offset < 0.01) {
+                    return const SizedBox.shrink();
+                  }
+
                   // 近くの広告のみロード
                   int dist = (globalIndex - _focusedGlobalIndex).abs();
-
-
-
                   if (dist <= 3) {
                     _loadAdForGlobalIndex(globalIndex);
                   }
