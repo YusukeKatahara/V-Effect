@@ -104,13 +104,49 @@ void showTrendingTasksBottomSheet(
                                   ),
                                   // ---タスク名
                                   Expanded(
-                                    child: Text(
-                                      name,
-                                      style: TextStyle(
-                                        color: AppColors.white,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            name,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: AppColors.white,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        if (trend['isTrending'] == true) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.withValues(alpha: 0.15),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(
+                                                color: Colors.redAccent.withValues(alpha: 0.5),
+                                                width: 0.5,
+                                              ),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.whatshot, color: Colors.redAccent, size: 10),
+                                                SizedBox(width: 2),
+                                                Text(
+                                                  'HOT',
+                                                  style: TextStyle(
+                                                    color: Colors.redAccent,
+                                                    fontSize: 8,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                   // ---割合（パーセンテージ）

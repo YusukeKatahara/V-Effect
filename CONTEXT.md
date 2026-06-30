@@ -7,15 +7,24 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-06-17
-- **Activeエージェント:** Gemini CLI (Idle)
-- **Current Task:** Unify streak text label color with tier color on profile pages (Completed)
-- **Action:** Updated profile_header_section.dart and user_profile_screen.dart to color the "STREAK" label with the tier-based theme color.
+- **Last Updated:** 2026-06-30
+- **Activeエージェント:** Antigravity (Idle)
+- **Current Task:** Weighted Trend Scoring & Hot Badge UI (Completed)
+- **Action:** Updated aggregateTrendingTasks in index.js to calculate weighted scores (VFIRE/emoji/streaks) and detect velocity ratio. Added "HOT" badge in trending_tasks_bottom_sheet.dart.
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-06-30 (Antigravity)
+- **Weighted Trend Scoring & Hot Badge UI (トレンドの加重スコアリングと急上昇バッジ表示):**
+    - [functions/index.js](file:///Users/rennlikeu/development/V-Effect/functions/index.js) 内の `aggregateTrendingTasks`（毎日午前2時のバッチ処理）を更新。単純カウントから、VFIRE/絵文字リアクション数および投稿者のストリーク（継続日数）を加味した重み付けスコア（加重スコアリング）に変更しました。
+    - 直近14日間のデータを取得し、前週比で **1.3倍（30%増）以上** に急増しているタスクに対して `isTrending: true` を判定・保存する急上昇（Velocity）検知ロジックを実装。
+    - [trending_tasks_bottom_sheet.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/profile/components/trending_tasks_bottom_sheet.dart) にて、急上昇トレンドの横に「🔥 HOT」バッジを表示する UI を追加し、長いテキストに対しても `Flexible` / `ellipsis` によるレイアウト崩れ対策を施しました。
+- **AI Trend Categorization & Topic Hierarchy (AI統計のトピック階層化):**
+    - [functions/index.js](file:///Users/rennlikeu/development/V-Effect/functions/index.js) 内の `onPostCreated` にて、Gemini API の構造化出力スキーマに `sub_activity`（小カテゴリ）を追加。
+    - Firestore の `posts` ドキュメントに `aiSubActivity` フィールドを保存するように拡張し、3階層でのデータ蓄積を可能にしました。
 
 ### 2026-06-18 (Gemini CLI)
 - **Unify Game Trends to "Ranked Match" (ランク戦への名称統一):**

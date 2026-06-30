@@ -101,6 +101,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // ── Ad Caching ──
   final Map<int, NativeAd> _nativeAds = {};
   final Map<int, bool> _adLoadStatus = {}; // true: loaded, false: failed
+  Timer? _adRefreshTimer; // 広告自動リフレッシュ用のタイマー (30秒滞在でリフレッシュ)
+  bool _isScrolling = false; // スワイプ（スクロール）中かどうかのフラグ。スワイプ中のかくつきを防止するために使用
 
   // pageController.page を直接参照するように変更
   int get _focusedIndex {
@@ -247,6 +249,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     for (final ad in _nativeAds.values) {
       ad.dispose();
     }
+    _adRefreshTimer?.cancel();
     _pageController.dispose();
     _flashController.dispose();
     _reactionMenuController.dispose();
@@ -297,11 +300,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _cleanupRemoteAds(_focusedGlobalIndex);
   }
 
+  void _preloadAdsNearFocusedIndex() {
+    if (_feedItems.isEmpty) return;
+    final focusedPage = _focusedGlobalIndex;
+    
+    // 現在位置の前後2ページの範囲を探索して広告があれば事前ロード（スワイプ完了後に安全にロード）
+    for (int i = -2; i <= 2; i++) {
+      final targetPage = focusedPage + i;
+      final actualIndex = targetPage % _feedItems.length;
+      if (_feedItems[actualIndex] is String && _feedItems[actualIndex] == 'ad') {
+        _loadAdForGlobalIndex(targetPage);
+      }
+    }
+  }
+
   void _cleanupRemoteAds(int currentGlobalIndex) {
     final keysToRemove = <int>[];
     _nativeAds.forEach((key, ad) {
-      // TikTok方式：現在位置から距離が2つ以上離れた広告は即座に破棄してクリア
-      if ((key - currentGlobalIndex).abs() >= 2) {
+      // 距離が3つ以上離れた広告は安全に破棄してクリア
+      if ((key - currentGlobalIndex).abs() >= 3) {
         ad.dispose();
         keysToRemove.add(key);
       }
@@ -311,6 +328,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _nativeAds.remove(key);
       _adLoadStatus.remove(key);
     }
+
+    // 実際に破棄が発生した場合はウィジェットを再構築し、古い参照を排除する
+    if (keysToRemove.isNotEmpty && mounted) {
+      setState(() {});
+    }
+  }
+
+  // ── 広告タイマー関連の制御メソッド ──
+  void _startAdRefreshTimer(int globalIndex) {
+    _adRefreshTimer?.cancel();
+    _adRefreshTimer = Timer(const Duration(seconds: 30), () {
+      _refreshAdAt(globalIndex);
+    });
+  }
+
+  void _cancelAdRefreshTimer() {
+    _adRefreshTimer?.cancel();
+    _adRefreshTimer = null;
+  }
+
+  void _refreshAdAt(int globalIndex) {
+    if (!mounted) return;
+    
+    // 現在フォーカスされている位置と一致する場合のみリフレッシュする
+    if (_focusedGlobalIndex != globalIndex) return;
+
+    final ad = _nativeAds[globalIndex];
+    if (ad != null) {
+      ad.dispose();
+      _nativeAds.remove(globalIndex);
+      _adLoadStatus.remove(globalIndex);
+    }
+    
+    // 新しくロードを実行
+    _loadAdForGlobalIndex(globalIndex);
+    
+    // さらに滞在し続ける場合に備えてタイマーを再始動
+    _startAdRefreshTimer(globalIndex);
   }
 
 
@@ -326,15 +381,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       _lastPausedTime ??= DateTime.now();
+      _cancelAdRefreshTimer(); // バックグラウンド移行時は無駄なリクエストを防ぐためタイマーをクリア
     } else if (state == AppLifecycleState.resumed) {
+      final page = _pageController.hasClients ? _pageController.page?.round() ?? 10000 : 10000;
+
       if (_lastPausedTime != null) {
         final elapsed = DateTime.now().difference(_lastPausedTime!);
         _lastPausedTime = null; // リセット
         if (elapsed.inMinutes < 3) {
-          // 3分以内の復帰ならリフレッシュせず順番を保持する
+          // 3分以内の復帰ならフィードはリフレッシュせず順番を保持する
+          // ただし、現在広告が表示されているなら新鮮さを保つため広告を強制更新
+          if (_feedItems.isNotEmpty) {
+            final actualIndex = page % _feedItems.length;
+            if (_feedItems[actualIndex] is String && _feedItems[actualIndex] == 'ad') {
+              _refreshAdAt(page); // 広告を更新し、タイマーも再始動
+            }
+          }
           return;
         }
       }
+
+      // 3分以上経過しており全体がリフレッシュされる場合でも、もし現在が広告枠ならタイマーを再始動
+      if (_feedItems.isNotEmpty) {
+        final actualIndex = page % _feedItems.length;
+        if (_feedItems[actualIndex] is String && _feedItems[actualIndex] == 'ad') {
+          _startAdRefreshTimer(page);
+        }
+      }
+
       if (mounted) {
         setState(() {
           _needsRefreshJump = true;
@@ -418,6 +492,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final currentItem = _feedItems[actualIndex];
     if (currentItem is Post) {
       _viewedPostIds.add(currentItem.id);
+      _cancelAdRefreshTimer();
+    } else if (currentItem is String && currentItem == 'ad') {
+      _startAdRefreshTimer(index);
+    } else {
+      _cancelAdRefreshTimer();
     }
     
     // 次の5枚の画像をプリキャッシュしてスムーズなめくりを実現
@@ -1076,10 +1155,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         }
 
         final newItems = <dynamic>[];
+        final bool shouldInsertAd = combinedPosts.length >= 3;
         for (int i = 0; i < combinedPosts.length; i++) {
           newItems.add(combinedPosts[i]);
           // 最初の投稿の直後、およびその後3投稿ごとに広告を挿入
-          if (i % 3 == 0) {
+          // ただし、投稿数が極端に少ない（3件未満）場合はユーザー体験保護のため広告を非表示にする
+          if (shouldInsertAd && i % 3 == 0) {
             newItems.add('ad');
           }
         }
@@ -1290,43 +1371,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
 
                 Positioned.fill(
-                  child: PageView.builder(
-                    controller: _pageController,
-                    physics: const FrictionlessPageScrollPhysics(),
-                    onPageChanged: _onPageChanged,
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (notification) {
+                      if (notification is ScrollStartNotification) {
+                        if (!_isScrolling) {
+                          _isScrolling = true;
+                        }
+                      } else if (notification is ScrollEndNotification) {
+                        if (_isScrolling) {
+                          setState(() {
+                            _isScrolling = false;
+                          });
+                          // スワイプが完全に停止したタイミングで周辺の広告をロードする
+                          _preloadAdsNearFocusedIndex();
+                        }
+                      }
+                      return false;
+                    },
+                    child: PageView.builder(
+                      controller: _pageController,
+                      physics: const FrictionlessPageScrollPhysics(),
+                      onPageChanged: _onPageChanged,
                     itemBuilder: (context, index) {
                       final actualIndex = index % _feedItems.length;
                       final item = _feedItems[actualIndex];
 
-                      // 広告スロットの場合は、前面と背面で描画を動的に切り替えてタップを疎通させる
+                      // 広告スロットの場合：
+                      // ガクつき（破棄・再生成）を防ぐため、常にプラットフォームビューを前面ツリーに保持します。
+                      // ただし、2Dの横滑りが見えないよう、スワイプ中は透過させ、背面のプレースホルダーを透かして見せます。
                       if (item is String && item == 'ad') {
                         final page = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
                         final nearestPageIndex = page.round();
                         final double offset = (page - nearestPageIndex).abs();
+                        final bool isStatic = (index == nearestPageIndex && offset < 0.01);
 
-                        // スワイプがほぼ静止（ズレが0.01未満）し、フォーカスが合っている時だけ、
-                        // 最前面（PageViewの子）で直接広告を描画して確実にタップ可能にする
-                        if (index == nearestPageIndex && offset < 0.01) {
-                          final int globalIndex = index;
-                          return Center(
-                            child: SizedBox(
-                              width: finalCardWidth,
-                              height: maxCardHeight,
-                              child: NativeAdCard(
-                                dimAlpha: 0.0,
-                                isTop: true,
-                                nativeAd: _nativeAds[globalIndex],
-                                isAdLoaded: _adLoadStatus[globalIndex] == true,
-                                isAdLoadFailed: _adLoadStatus[globalIndex] == false,
+                        final int globalIndex = index;
+                        return IgnorePointer(
+                          ignoring: !isStatic, // 動いている時はタップをスルー
+                          child: Opacity(
+                            opacity: isStatic ? 1.0 : 0.0, // 静止時のみ実体を見せる
+                            child: Center(
+                              child: SizedBox(
+                                width: finalCardWidth,
+                                height: maxCardHeight,
+                                child: NativeAdCard(
+                                  dimAlpha: 0.0,
+                                  isTop: true,
+                                  nativeAd: _nativeAds[globalIndex], // 常にアタッチしたまま保持
+                                  isAdLoaded: _adLoadStatus[globalIndex] == true,
+                                  isAdLoadFailed: _adLoadStatus[globalIndex] == false,
+                                ),
                               ),
                             ),
-                          );
-                        } else {
-                          // 移動中または奥にあるときは、前面はタッチスルーにして背面（3Dレイヤー）での描画に任せる
-                          return const IgnorePointer(
-                            child: SizedBox.expand(),
-                          );
-                        }
+                          ),
+                        );
                       }
 
                       final myUid = FirebaseAuth.instance.currentUser?.uid;
@@ -1678,6 +1776,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 },
               ),
             ),
+          ),
 
             // ── Swipe Guide Tutorial UI ──
             if (_showSwipeGuide && _feedItems.length > 1)
@@ -1835,23 +1934,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   // スワイプ座標のズレ幅を算出
                   final double offset = (scrollPosition - globalIndex).abs();
 
-                  // 静止状態でフォーカスが合っている時は、前面の PageView.builder 側が
-                  // 最前面で直接描画するため、背面では二重描画を避けるため SizedBox.shrink() を返す
-                  if (globalIndex == _focusedGlobalIndex && offset < 0.01) {
-                    return const SizedBox.shrink();
-                  }
+                  // 広告のプレースホルダー描画：
+                  // 遠くにある時やスワイプ中は、他のカードと同じく 3D 空間にカード枠だけを描画します。
+                  // プラットフォームビューの二重マウントを避けるため nativeAd は null を渡します。
+                  final bool isStaticFocused = (globalIndex == _focusedGlobalIndex && offset < 0.01);
 
-                  // 近くの広告のみロード
                   int dist = (globalIndex - _focusedGlobalIndex).abs();
-                  if (dist <= 3) {
+                  // スワイプ（スクロール）中はロード処理を実行しない（かくつき防止）
+                  if (dist <= 2 && !_isScrolling) {
                     _loadAdForGlobalIndex(globalIndex);
                   }
-                  return NativeAdCard(
-                    dimAlpha: dimAlpha,
-                    isTop: globalIndex == _focusedGlobalIndex,
-                    nativeAd: globalIndex == _focusedGlobalIndex ? _nativeAds[globalIndex] : null,
-                    isAdLoaded: _adLoadStatus[globalIndex] == true,
-                    isAdLoadFailed: _adLoadStatus[globalIndex] == false,
+
+                  return Opacity(
+                    opacity: isStaticFocused ? 0.0 : 1.0, // 静止時は透明にして、前面の実体広告に任せる
+                    child: NativeAdCard(
+                      dimAlpha: dimAlpha,
+                      isTop: globalIndex == _focusedGlobalIndex,
+                      nativeAd: null, // 背面では絶対にビューをアタッチしない
+                      isAdLoaded: _adLoadStatus[globalIndex] == true,
+                      isAdLoadFailed: _adLoadStatus[globalIndex] == false,
+                    ),
                   );
                 }()
               : () {

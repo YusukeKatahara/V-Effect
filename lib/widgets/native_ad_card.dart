@@ -53,8 +53,85 @@ class NativeAdCard extends StatelessWidget {
                 child: AdWidget(ad: nativeAd!),
               )
             else if (isAdLoadFailed)
-              Center(
-                child: Icon(Icons.campaign_rounded, color: AppColors.grey30, size: 64),
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // プレミアム感を演出するゴールドの王冠アイコン
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.accentGold.withValues(alpha: 0.1),
+                          border: Border.all(
+                            color: AppColors.accentGold.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.workspace_premium_rounded,
+                          color: AppColors.accentGold,
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'V-PREMIUM',
+                        style: GoogleFonts.outfit(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.accentGold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '広告を非表示にして、より快適に。',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.pureWhite,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '限定BGMの解放や特別なプロフィールバッジなど、すべてのプレミアム特典にアクセス。',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(
+                          fontSize: 11,
+                          color: AppColors.grey70,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () {
+                          // 将来的にプレミアムプラン課金シートを開くなどの拡張が可能です
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accentGold,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'プレミアムプラン詳細',
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               )
             else
               Center(
@@ -65,26 +142,28 @@ class NativeAdCard extends StatelessWidget {
               ),
 
             // 左上のスマートな「広告」バッジ (透過背景でオーガニックに溶け込ませる)
-            Positioned(
-              top: 14,
-              left: 10, // 三点リーダーボタン (right: 10) と対称に配置
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 高さと余白を統一
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.2), // 三点リーダーと同じ黒透過20%
-                  borderRadius: BorderRadius.circular(12), // 他の丸型パーツと親和性の高い角丸
-                ),
-                child: Text(
-                  AppLocalizations.of(context)!.adLabel,
-                  style: GoogleFonts.outfit(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.pureWhite,
-                    letterSpacing: 0.5,
+            // 広告ロード成功時のみ表示（自社プロモ表示時は隠す）
+            if (isAdLoaded && nativeAd != null)
+              Positioned(
+                top: 14,
+                left: 10, // 三点リーダーボタン (right: 10) と対称に配置
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 高さと余白を統一
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.2), // 三点リーダーと同じ黒透過20%
+                    borderRadius: BorderRadius.circular(12), // 他の丸型パーツと親和性の高い角丸
+                  ),
+                  child: Text(
+                    AppLocalizations.of(context)!.adLabel,
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.pureWhite,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ),
-            ),
 
 
 

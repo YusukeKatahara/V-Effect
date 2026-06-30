@@ -1,6 +1,7 @@
 import UIKit
 import google_mobile_ads
 
+@objc(CustomNativeAdView)
 class CustomNativeAdView: NativeAdView {
     @IBOutlet weak var customMediaView: MediaView!
     @IBOutlet weak var customHeadlineLabel: UILabel!

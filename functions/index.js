@@ -822,14 +822,19 @@ exports.onPostCreated = onDocumentCreated(
                   type: Type.STRING,
                   description: "表記揺れをなくした短く一般的なタスク名（例: 筋トレ、早起き、プログラミング、セルフケア）。※「休養」や「休息」といった硬い言葉は避け、代わりに「セルフケア」等を使用すること。",
                 },
+                sub_activity: {
+                  type: Type.STRING,
+                  description: "タスク名から抽出できる具体的な行動（例: スクワット、英語リスニング、瞑想、読書）。抽出できない場合は空文字とする。",
+                },
               },
-              required: ["category", "normalized_name"],
+              required: ["category", "normalized_name", "sub_activity"],
             },
           },
         });
         
         const aiResult = JSON.parse(response.text);
         let normalizedName = aiResult.normalized_name || taskName;
+        let subActivity = aiResult.sub_activity || "";
 
         // 「ゲーム」や「ポケモン」関連の名称を「ランクマッチ」に統一（ユーザー要望）
         const lowerName = normalizedName.toLowerCase().trim();
@@ -848,6 +853,7 @@ exports.onPostCreated = onDocumentCreated(
         await event.data.ref.update({
           aiCategory: aiResult.category,
           normalizedName: normalizedName,
+          aiSubActivity: subActivity,
         });
         console.log(`Categorized task ${taskName}:`, aiResult);
       } catch (error) {
@@ -1083,37 +1089,105 @@ exports.aggregateTrendingTasks = onSchedule(
   },
   async (event) => {
     const db = getFirestore();
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const now = Date.now();
+    const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now - 14 * 24 * 60 * 60 * 1000);
 
+    // 過去14日間の投稿を取得
     const postsSnap = await db.collection("posts")
-      .where("createdAt", ">", sevenDaysAgo)
+      .where("createdAt", ">", fourteenDaysAgo)
       .get();
     
-    // 集計: category::normalized_name をキーとする
-    const counts = {};
+    const thisWeekPosts = [];
+    const lastWeekPosts = [];
+
     postsSnap.forEach(doc => {
       const data = doc.data();
-      const cat = data.aiCategory;
-      const norm = data.normalizedName;
-      if (cat && norm) {
-        const key = `${cat}::${norm}`;
-        counts[key] = (counts[key] || 0) + 1;
+      const createdAt = data.createdAt ? data.createdAt.toDate() : null;
+      if (createdAt) {
+        if (createdAt > sevenDaysAgo) {
+          thisWeekPosts.push({ id: doc.id, ...data });
+        } else {
+          lastWeekPosts.push({ id: doc.id, ...data });
+        }
       }
     });
 
-    // オブジェクトをカテゴリごとに整理
+    // 投稿ユーザーのIDを一意にして集約
+    const userIds = [...new Set([
+      ...thisWeekPosts.map(p => p.userId),
+      ...lastWeekPosts.map(p => p.userId)
+    ])].filter(Boolean);
+
+    // 各ユーザーの最新ストリーク数を一括取得 (db.getAll を使用)
+    const userStreakMap = {};
+    if (userIds.length > 0) {
+      const chunkSize = 100;
+      for (let i = 0; i < userIds.length; i += chunkSize) {
+        const chunk = userIds.slice(i, i + chunkSize);
+        const refs = chunk.map(uid => db.collection("users").doc(uid));
+        const snaps = await db.getAll(...refs);
+        snaps.forEach(snap => {
+          if (snap.exists) {
+            userStreakMap[snap.id] = snap.data().streak || 0;
+          }
+        });
+      }
+    }
+
+    // 投稿ごとにスコアを計算するヘルパー
+    const calculatePostScore = (post) => {
+      const reactionCount = post.reactionCount || 0;
+      const emojiCount = Array.isArray(post.emojiReactedUserIds) ? post.emojiReactedUserIds.length : 0;
+      const userStreak = userStreakMap[post.userId] || 0;
+
+      // 重み付け計算式: (1 + VFIRE*0.1 + 絵文字*0.2) * (1 + min(ストリーク, 100)*0.005)
+      const baseScore = 1 + (reactionCount * 0.1) + (emojiCount * 0.2);
+      const streakMultiplier = 1 + (Math.min(userStreak, 100) * 0.005);
+      
+      return baseScore * streakMultiplier;
+    };
+
+    // 今週の集計: category::normalized_name をキーとする
+    const thisWeekScores = {};
+    const thisWeekCounts = {};
+    thisWeekPosts.forEach(post => {
+      const cat = post.aiCategory;
+      const norm = post.normalizedName;
+      if (cat && norm) {
+        const key = `${cat}::${norm}`;
+        const score = calculatePostScore(post);
+        thisWeekScores[key] = (thisWeekScores[key] || 0) + score;
+        thisWeekCounts[key] = (thisWeekCounts[key] || 0) + 1;
+      }
+    });
+
+    // 前週の集計
+    const lastWeekScores = {};
+    lastWeekPosts.forEach(post => {
+      const cat = post.aiCategory;
+      const norm = post.normalizedName;
+      if (cat && norm) {
+        const key = `${cat}::${norm}`;
+        const score = calculatePostScore(post);
+        lastWeekScores[key] = (lastWeekScores[key] || 0) + score;
+      }
+    });
+
+    // 今週のオブジェクトをカテゴリごとに整理
     const categoryMap = {};
-    Object.entries(counts).forEach(([key, count]) => {
+    Object.entries(thisWeekScores).forEach(([key, score]) => {
       const [category, name] = key.split("::");
+      const count = thisWeekCounts[key] || 0;
       if (!categoryMap[category]) {
         categoryMap[category] = [];
       }
-      categoryMap[category].push({ category, name, count });
+      categoryMap[category].push({ category, name, score, count });
     });
 
     let finalTrends = [];
 
-    // カテゴリごとに大雑把なタスク(name === category)の件数を具体タスクのトップに分配
+    // カテゴリごとに大雑把なタスク(name === category)のスコアと件数を具体タスクのトップに分配
     Object.keys(categoryMap).forEach(category => {
       let items = categoryMap[category];
       const genericItemIndex = items.findIndex(item => item.name === category);
@@ -1121,10 +1195,11 @@ exports.aggregateTrendingTasks = onSchedule(
       if (genericItemIndex !== -1) {
         const genericItem = items[genericItemIndex];
         const specificItems = items.filter(item => item.name !== category)
-                                   .sort((a, b) => b.count - a.count);
+                                   .sort((a, b) => b.score - a.score);
         
         if (specificItems.length > 0) {
           // トップの具体タスクに加算
+          specificItems[0].score += genericItem.score;
           specificItems[0].count += genericItem.count;
           // 大雑把なタスクは除外
           items = items.filter(item => item.name !== category);
@@ -1133,9 +1208,32 @@ exports.aggregateTrendingTasks = onSchedule(
       finalTrends.push(...items);
     });
 
-    // 全体を降順ソートしてトップ10を取得
-    const sorted = finalTrends
-      .sort((a, b) => b.count - a.count)
+    // トレンドごとの急上昇度（Velocity）の計算
+    const trendsWithVelocity = finalTrends.map(item => {
+      const key = `${item.category}::${item.name}`;
+      const thisWeekScore = item.score;
+      const lastWeekScore = lastWeekScores[key] || 0;
+
+      // 増加比率 = (今週スコア + 1) / (前週スコア + 1)
+      const scoreDiff = thisWeekScore - lastWeekScore;
+      const velocityRatio = (thisWeekScore + 1) / (lastWeekScore + 1);
+      // 増加スコアが 0.5 以上、かつ比率が 1.3 倍以上なら急上昇
+      const isTrending = scoreDiff > 0.5 && velocityRatio >= 1.3;
+
+      return {
+        category: item.category,
+        name: item.name,
+        count: item.count,
+        score: parseFloat(thisWeekScore.toFixed(2)),
+        lastWeekScore: parseFloat(lastWeekScore.toFixed(2)),
+        isTrending: isTrending,
+        velocityRatio: parseFloat(velocityRatio.toFixed(2))
+      };
+    });
+
+    // スコアの降順でソートしてトップ10を取得
+    const sorted = trendsWithVelocity
+      .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
     // trends ドキュメントへ保存
@@ -1144,7 +1242,7 @@ exports.aggregateTrendingTasks = onSchedule(
       trends: sorted,
     });
 
-    console.log("Trending tasks aggregated:", sorted);
+    console.log("Trending tasks aggregated with scoring & velocity:", sorted);
   }
 );
 
