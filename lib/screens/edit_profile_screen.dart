@@ -10,6 +10,7 @@ import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
+import '../models/badge_definition.dart';
 import '../services/user_service.dart';
 import '../providers/service_providers.dart';
 import '../widgets/premium_background.dart';
@@ -831,9 +832,24 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   void _showBadgeSelector() {
-    // Generate the list of owned badges, deduplicated
-    final Set<String> badges = {'', 'tester'};
-    badges.addAll(widget.user.ownedBadges);
+    final List<Map<String, dynamic>> badgeOptions = [
+      {
+        'id': '',
+        'label': AppLocalizations.of(context)!.editProfileBadgeOptionNone,
+        'animation': 'none',
+        'isOwned': true,
+      },
+    ];
+
+    for (final def in BadgeDefinition.allBadges) {
+      final bool isOwned = def.id == 'tester' || widget.user.ownedBadges.contains(def.id);
+      badgeOptions.add({
+        'id': def.id,
+        'label': def.id == 'assets/icon/gratitude_heart_badge.png' ? '感謝' : def.name,
+        'animation': def.animation,
+        'isOwned': isOwned,
+      });
+    }
 
     showModalBottomSheet(
       context: context,
@@ -867,19 +883,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       spacing: 16,
                       runSpacing: 16,
                       alignment: WrapAlignment.center,
-                      children: badges.map((badgeUrl) {
-                        String label = '';
-                        if (badgeUrl == '') {
-                          label = AppLocalizations.of(context)!.editProfileBadgeOptionNone;
-                        } else if (badgeUrl == 'tester') {
-                          label = AppLocalizations.of(context)!.editProfileBadgeOptionTester;
-                        } else if (badgeUrl == 'assets/icon/gratitude_heart_badge.png') {
-                          label = '感謝';
-                        } else {
-                          label = AppLocalizations.of(context)!.editProfileBadgeOptionSeason;
-                        }
-                        
-                        return _buildBadgeOption(label, badgeUrl);
+                      children: badgeOptions.map((opt) {
+                        return _buildBadgeOption(
+                          opt['label'] as String,
+                          opt['id'] as String,
+                          opt['animation'] as String,
+                          opt['isOwned'] as bool,
+                        );
                       }).toList(),
                     ),
                   ),
@@ -893,122 +903,142 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  Widget _buildBadgeOption(String label, String badgeUrl) {
+  Widget _buildBadgeOption(String label, String badgeUrl, String animation, bool isOwned) {
     final isSelected = (_equippedBadgeUrl ?? '') == badgeUrl;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _equippedBadgeUrl = badgeUrl;
-          if (badgeUrl == 'tester') {
-            _equippedBadgeAnimation = 'shimmer';
-          } else if (badgeUrl.contains('gratitude_heart_badge')) {
-            _equippedBadgeAnimation = 'pixel_bounce';
-          } else {
-            _equippedBadgeAnimation = 'none';
-          }
-        });
-        Navigator.pop(context);
-      },
-      child: Container(
-        width: 100,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.2) : AppColors.bgSurface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            if (badgeUrl == 'tester')
-              Container(
-                height: 40,
-                alignment: Alignment.center,
-                child: Transform(
-                  transform: Matrix4.skewX(-0.15),
-                  alignment: Alignment.center,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                    Text(
-                      'T',
-                      style: GoogleFonts.outfit(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        fontStyle: FontStyle.italic,
-                        foreground: Paint()
-                          ..style = PaintingStyle.stroke
-                          ..strokeWidth = 3.5
-                          ..color = AppColors.black.withValues(alpha: 0.8),
-                      ),
-                    ),
-                    ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        colors: [
-                          Color(0xFFFFF2CC),
-                          Color(0xFFFFD700),
-                          Color(0xFFD4AF37),
-                          Color(0xFFFFF2CC),
-                        ],
-                        stops: [0.0, 0.4, 0.8, 1.0],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ).createShader(bounds),
-                      child: Text(
-                        'T',
-                        style: GoogleFonts.outfit(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          fontStyle: FontStyle.italic,
+      onTap: isOwned
+          ? () {
+              setState(() {
+                _equippedBadgeUrl = badgeUrl;
+                _equippedBadgeAnimation = animation;
+              });
+              Navigator.pop(context);
+            }
+          : null,
+      child: Stack(
+        children: [
+          Opacity(
+            opacity: isOwned ? 1.0 : 0.4,
+            child: Container(
+              width: 100,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary.withValues(alpha: 0.2) : AppColors.bgSurface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : AppColors.border,
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  if (badgeUrl == 'tester')
+                    Container(
+                      height: 40,
+                      alignment: Alignment.center,
+                      child: Transform(
+                        transform: Matrix4.skewX(-0.15),
+                        alignment: Alignment.center,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Text(
+                              'T',
+                              style: GoogleFonts.outfit(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900,
+                                fontStyle: FontStyle.italic,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = 3.5
+                                  ..color = AppColors.black.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            ShaderMask(
+                              shaderCallback: (bounds) => const LinearGradient(
+                                colors: [
+                                  Color(0xFFFFF2CC),
+                                  Color(0xFFFFD700),
+                                  Color(0xFFD4AF37),
+                                  Color(0xFFFFF2CC),
+                                ],
+                                stops: [0.0, 0.4, 0.8, 1.0],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ).createShader(bounds),
+                              child: Text(
+                                'T',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w900,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                ),
-              )
-            else if (badgeUrl.isNotEmpty)
-              Container(
-                height: 40,
-                width: 40,
-                alignment: Alignment.center,
-                child: badgeUrl.startsWith('http')
-                  ? CachedNetworkImage(
-                      imageUrl: badgeUrl,
-                      fit: BoxFit.contain,
-                      errorWidget: (c,u,e) => Icon(Icons.broken_image, color: AppColors.textMuted),
                     )
-                  : Image.asset(
-                      badgeUrl == 'assets/icon/gratitude_heart_badge.png' 
-                          ? 'assets/icon/gratitude_heart_badge_v3.png'
-                          : badgeUrl,
-                      fit: BoxFit.contain,
-                      errorBuilder: (c,e,s) => Icon(Icons.broken_image, color: AppColors.textMuted),
+                  else if (badgeUrl.isNotEmpty)
+                    Container(
+                      height: 40,
+                      width: 40,
+                      alignment: Alignment.center,
+                      child: badgeUrl.startsWith('http')
+                          ? CachedNetworkImage(
+                              imageUrl: badgeUrl,
+                              fit: BoxFit.contain,
+                              errorWidget: (c, u, e) => Icon(Icons.broken_image, color: AppColors.textMuted),
+                            )
+                          : Image.asset(
+                              badgeUrl == 'assets/icon/gratitude_heart_badge.png'
+                                  ? 'assets/icon/gratitude_heart_badge_v3.png'
+                                  : badgeUrl,
+                              fit: BoxFit.contain,
+                              errorBuilder: (c, e, s) => Icon(Icons.broken_image, color: AppColors.textMuted),
+                            ),
+                    )
+                  else
+                    Icon(
+                      Icons.do_disturb_alt_rounded,
+                      color: AppColors.textMuted,
+                      size: 40,
                     ),
-              )
-            else
-              Icon(
-                Icons.do_disturb_alt_rounded,
-                color: AppColors.textMuted,
-                size: 40,
+                  const SizedBox(height: 12),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: isSelected ? AppColors.primary : (isOwned ? AppColors.textPrimary : AppColors.textMuted),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
+          ),
+          if (!isOwned)
+            Positioned(
+              top: 6,
+              right: 6,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.black,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.lock_rounded,
+                  size: 12,
+                  color: AppColors.accentGold,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

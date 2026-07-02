@@ -16,6 +16,14 @@
         { "fieldPath": "reportedUid", "order": "ASCENDING" },
         { "fieldPath": "createdAt",   "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "seasons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "taskName", "order": "ASCENDING" },
+        { "fieldPath": "startDate", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

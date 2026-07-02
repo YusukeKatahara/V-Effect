@@ -7,15 +7,20 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-06-30
+- **Last Updated:** 2026-07-01
 - **Activeエージェント:** Antigravity (Idle)
-- **Current Task:** Weighted Trend Scoring & Hot Badge UI (Completed)
-- **Action:** Updated aggregateTrendingTasks in index.js to calculate weighted scores (VFIRE/emoji/streaks) and detect velocity ratio. Added "HOT" badge in trending_tasks_bottom_sheet.dart.
+- **Current Task:** Scalable Daily Stats & Summarized Trends (Completed)
+- **Action:** Implemented createDailyTaskStats to summary posts at 1:50 JST, and refactored aggregateTrendingTasks at 2:00 JST to merge summaries (14 docs) instead of scanning posts.
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-07-01 (Antigravity)
+- **Scalable Daily Stats & Summarized Trends (日次確定サマリー方式によるデータスケール対策):**
+    - [functions/index.js](file:///Users/rennlikeu/development/V-Effect/functions/index.js) に `createDailyTaskStats` スケジュール関数（毎日午前1時50分実行）を新規追加。前日の投稿（JST基準）を集計し、加重スコアをまとめた日次サマリーを `daily_task_stats` コレクションに作成する処理を実装しました。
+    - `aggregateTrendingTasks`（毎日午前2時00分実行）を、過去14日間の `posts` を直接全件取得する方式から、過去14日分の日次サマリー（計14件のドキュメント）をマージする方式へ移行。これにより、ユーザー数が急増した際も深夜バッチの Firestore 読み込み数（Read数）が最小化され、課金コストがほぼ増えないスケーラブルなアーキテクチャとなりました。
 
 ### 2026-06-30 (Antigravity)
 - **Weighted Trend Scoring & Hot Badge UI (トレンドの加重スコアリングと急上昇バッジ表示):**

@@ -1078,48 +1078,58 @@ exports.processPostNotifications = onTaskDispatched(
 );
 
 /**
- * 毎日午前2時に、直近1週間のタスク名をAIカテゴリごとに集計し、
- * トレンド習慣として global_stats/trends に保存する
+ * 毎日午前1時50分に、前日のタスク投稿をスコア化して
+ * 日次サマリー (daily_task_stats) を作成する
  */
-exports.aggregateTrendingTasks = onSchedule(
+exports.createDailyTaskStats = onSchedule(
   {
-    schedule: "0 2 * * *",
+    schedule: "50 1 * * *",
     timeZone: "Asia/Tokyo",
     memory: "256MiB",
   },
   async (event) => {
     const db = getFirestore();
-    const now = Date.now();
-    const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
-    const fourteenDaysAgo = new Date(now - 14 * 24 * 60 * 60 * 1000);
 
-    // 過去14日間の投稿を取得
+    // 日本時間での実行を前提
+    const nowJST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+    
+    // 前日の日付を計算
+    const yesterdayJST = new Date(nowJST);
+    yesterdayJST.setDate(nowJST.getDate() - 1);
+    
+    const year = yesterdayJST.getFullYear();
+    const month = String(yesterdayJST.getMonth() + 1).padStart(2, "0");
+    const day = String(yesterdayJST.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`; // ドキュメントID用 (例: "2026-06-30")
+
+    // 前日の開始・終了のJST日時
+    const startOfYesterdayJST = new Date(year, yesterdayJST.getMonth(), yesterdayJST.getDate(), 0, 0, 0);
+    const endOfYesterdayJST = new Date(year, yesterdayJST.getMonth(), yesterdayJST.getDate(), 23, 59, 59, 999);
+
+    // JSTの時刻をUTC時間に変換 (JSTはUTC+9なので、9時間引く)
+    const startOfYesterdayUTC = new Date(startOfYesterdayJST.getTime() - 9 * 60 * 60 * 1000);
+    const endOfYesterdayUTC = new Date(endOfYesterdayJST.getTime() - 9 * 60 * 60 * 1000);
+
+    // 前日分の投稿を取得
     const postsSnap = await db.collection("posts")
-      .where("createdAt", ">", fourteenDaysAgo)
+      .where("createdAt", ">=", startOfYesterdayUTC)
+      .where("createdAt", "<=", endOfYesterdayUTC)
       .get();
     
-    const thisWeekPosts = [];
-    const lastWeekPosts = [];
-
-    postsSnap.forEach(doc => {
-      const data = doc.data();
-      const createdAt = data.createdAt ? data.createdAt.toDate() : null;
-      if (createdAt) {
-        if (createdAt > sevenDaysAgo) {
-          thisWeekPosts.push({ id: doc.id, ...data });
-        } else {
-          lastWeekPosts.push({ id: doc.id, ...data });
-        }
-      }
-    });
+    if (postsSnap.empty) {
+      console.log(`No posts found for ${dateStr}. Created empty stats.`);
+      await db.collection("daily_task_stats").doc(dateStr).set({
+        date: dateStr,
+        createdAt: FieldValue.serverTimestamp(),
+        stats: {}
+      });
+      return;
+    }
 
     // 投稿ユーザーのIDを一意にして集約
-    const userIds = [...new Set([
-      ...thisWeekPosts.map(p => p.userId),
-      ...lastWeekPosts.map(p => p.userId)
-    ])].filter(Boolean);
+    const userIds = [...new Set(postsSnap.docs.map(doc => doc.data().userId))].filter(Boolean);
 
-    // 各ユーザーの最新ストリーク数を一括取得 (db.getAll を使用)
+    // 各ユーザーの最新ストリーク数を一括取得
     const userStreakMap = {};
     if (userIds.length > 0) {
       const chunkSize = 100;
@@ -1148,30 +1158,96 @@ exports.aggregateTrendingTasks = onSchedule(
       return baseScore * streakMultiplier;
     };
 
-    // 今週の集計: category::normalized_name をキーとする
-    const thisWeekScores = {};
-    const thisWeekCounts = {};
-    thisWeekPosts.forEach(post => {
+    // 集計: category::normalized_name をキーとする
+    const stats = {};
+    postsSnap.forEach(doc => {
+      const post = doc.data();
       const cat = post.aiCategory;
       const norm = post.normalizedName;
       if (cat && norm) {
         const key = `${cat}::${norm}`;
-        const score = calculatePostScore(post);
-        thisWeekScores[key] = (thisWeekScores[key] || 0) + score;
-        thisWeekCounts[key] = (thisWeekCounts[key] || 0) + 1;
+        const score = calculatePostScore({ id: doc.id, ...post });
+        if (!stats[key]) {
+          stats[key] = { count: 0, totalScore: 0 };
+        }
+        stats[key].count += 1;
+        stats[key].totalScore += score;
       }
     });
 
-    // 前週の集計
-    const lastWeekScores = {};
-    lastWeekPosts.forEach(post => {
-      const cat = post.aiCategory;
-      const norm = post.normalizedName;
-      if (cat && norm) {
-        const key = `${cat}::${norm}`;
-        const score = calculatePostScore(post);
-        lastWeekScores[key] = (lastWeekScores[key] || 0) + score;
-      }
+    // 小数点以下を丸める
+    Object.keys(stats).forEach(key => {
+      stats[key].totalScore = parseFloat(stats[key].totalScore.toFixed(2));
+    });
+
+    await db.collection("daily_task_stats").doc(dateStr).set({
+      date: dateStr,
+      createdAt: FieldValue.serverTimestamp(),
+      stats: stats
+    });
+
+    console.log(`Successfully created daily stats for ${dateStr}:`, stats);
+  }
+);
+
+/**
+ * 毎日午前2時に、過去14日間の日次サマリー (daily_task_stats) をマージし、
+ * 急上昇度を加味したウィークリートレンド (global_stats/trends) を作成する
+ */
+exports.aggregateTrendingTasks = onSchedule(
+  {
+    schedule: "0 2 * * *",
+    timeZone: "Asia/Tokyo",
+    memory: "256MiB",
+  },
+  async (event) => {
+    const db = getFirestore();
+    
+    // 日本時間での実行を前提
+    const nowJST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+    
+    // 過去14日分の日付文字列リストを生成 (直近1日前〜14日前)
+    const dates = [];
+    for (let i = 1; i <= 14; i++) {
+      const d = new Date(nowJST);
+      d.setDate(nowJST.getDate() - i);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      dates.push(`${year}-${month}-${day}`);
+    }
+
+    // 14ドキュメントを一括取得
+    const refs = dates.map(date => db.collection("daily_task_stats").doc(date));
+    const snaps = await db.getAll(...refs);
+
+    const thisWeekScores = {}; // key -> sumScore
+    const thisWeekCounts = {}; // key -> count
+    const lastWeekScores = {}; // key -> sumScore
+
+    // dates[0] 〜 dates[6] が今週 (1日前〜7日前)
+    // dates[7] 〜 dates[13] が前週 (8日前〜14日前)
+    const thisWeekDates = dates.slice(0, 7);
+
+    snaps.forEach(snap => {
+      if (!snap.exists) return;
+      const data = snap.data();
+      const date = snap.id;
+      const stats = data.stats || {};
+
+      const isThisWeek = thisWeekDates.includes(date);
+
+      Object.entries(stats).forEach(([key, val]) => {
+        const score = val.totalScore || 0;
+        const count = val.count || 0;
+
+        if (isThisWeek) {
+          thisWeekScores[key] = (thisWeekScores[key] || 0) + score;
+          thisWeekCounts[key] = (thisWeekCounts[key] || 0) + count;
+        } else {
+          lastWeekScores[key] = (lastWeekScores[key] || 0) + score;
+        }
+      });
     });
 
     // 今週のオブジェクトをカテゴリごとに整理
@@ -1242,7 +1318,7 @@ exports.aggregateTrendingTasks = onSchedule(
       trends: sorted,
     });
 
-    console.log("Trending tasks aggregated with scoring & velocity:", sorted);
+    console.log("Trending tasks aggregated with scoring & velocity via daily stats:", sorted);
   }
 );
 
