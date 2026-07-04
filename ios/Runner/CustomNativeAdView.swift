@@ -46,6 +46,12 @@ class CustomNativeAdView: NativeAdView {
         self.callToActionView = customCallToActionButton
         self.iconView = customIconImageView
 
+        // ボタン以外のUI要素のインタラクションを無効化して、タッチをFlutterの親ビューに透過させる
+        customMediaView.isUserInteractionEnabled = false
+        customHeadlineLabel.isUserInteractionEnabled = false
+        customBodyLabel.isUserInteractionEnabled = false
+        customIconImageView.isUserInteractionEnabled = false
+
         // データの割り当て
         customMediaView.mediaContent = nativeAd.mediaContent
         

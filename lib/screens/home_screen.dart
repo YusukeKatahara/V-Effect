@@ -106,6 +106,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Timer? _adRefreshTimer; // 広告自動リフレッシュ用のタイマー (30秒滞在でリフレッシュ)
   bool _isScrolling = false; // スワイプ（スクロール）中かどうかのフラグ。スワイプ中のかくつきを防止するために使用
 
+
+
   // pageController.page を直接参照するように変更
   int get _focusedIndex {
     if (_feedItems.isEmpty) return 0;
@@ -595,6 +597,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       });
     }
   }
+
+
 
   Future<void> _triggerRefresh() async {
     setState(() {
@@ -1506,18 +1510,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     scrollPosition: scrollPos,
                   ),
 
-                  // プラットフォームビューによるネイティブジェスチャーの強制キャンセルを防ぐため、
-                  // 実体の広告（NativeAdCard）は座標を固定したまま最前面（PageViewの裏）に置く。
-                  // 動いている間は画面外へ飛ばす。
-                  for (final i in _sortedCardIndices(scrollPos))
-                    if (_feedItems.isNotEmpty && _feedItems[i % _feedItems.length] == 'ad')
-                      _buildFixedAdWidget(
-                        index: i,
-                        cardWidth: finalCardWidth,
-                        cardHeight: maxCardHeight,
-                        scrollPosition: scrollPos,
-                      ),
-
                 Positioned.fill(
                   child: NotificationListener<ScrollNotification>(
                     onNotification: (notification) {
@@ -1551,7 +1543,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       // プラットフォームビューのネイティブタッチキャンセル問題（強制スワイプ）を防ぐため、
                       // PageView内では透明なスペーサーのみを返し、実体の広告は背面の固定レイヤーで描画します。
                       if (item is String && item == 'ad') {
-                        return const SizedBox.expand();
+                        final int globalIndex = index;
+                        return Center(
+                          child: SizedBox(
+                            width: finalCardWidth,
+                            height: maxCardHeight,
+                            child: AbsorbPointer(
+                              absorbing: _isScrolling, // スワイプ中のみ広告へのタッチ入力を遮断してガクつきを防ぐ
+                              child: NativeAdCard(
+                                dimAlpha: 0.0,
+                                isTop: actualIndex == _focusedGlobalIndex % _feedItems.length,
+                                nativeAd: _nativeAds[globalIndex],
+                                isAdLoaded: _adLoadStatus[globalIndex] == true,
+                                isAdLoadFailed: _adLoadStatus[globalIndex] == false,
+                              ),
+                            ),
+                          ),
+                        );
                       }
 
                       final myUid = FirebaseAuth.instance.currentUser?.uid;
@@ -2010,16 +2018,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         animation: _shuffleController,
         builder: (context, child) {
           final isSingleCard = _feedItems.length <= 1;
-          final matrix = Matrix4.identity()..setEntry(3, 2, 0.001); // 遠近感を追加
+          final matrix = Matrix4.identity();
           
-          if (_isRefreshing && isSingleCard) {
-            // 3D 垂直回転 (Y軸回転)
-            final double angle = _shuffleController.value * pi * 2;
-            matrix.rotateY(index % 2 == 0 ? angle : -angle);
-          } else {
-            matrix.rotateZ(rotateZ + _getShuffleRotation(index));
+          if (item is! String || item != 'ad') {
+            matrix.setEntry(3, 2, 0.001); // 遠近感を追加
+            if (_isRefreshing && isSingleCard) {
+              // 3D 垂直回転 (Y軸回転)
+              final double angle = _shuffleController.value * pi * 2;
+              matrix.rotateY(index % 2 == 0 ? angle : -angle);
+            } else {
+              matrix.rotateZ(rotateZ + _getShuffleRotation(index));
+            }
+            matrix.scale(scale * _getShuffleScale(index));
           }
-          matrix.scale(scale * _getShuffleScale(index));
 
           return Transform(
             alignment: Alignment.center,
@@ -2069,15 +2080,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   // 広告ロードはスクロール終了時（_preloadAdsNearFocusedIndex）と
                   // ページ切り替え時（_onPageChanged）に安全に行われます。
 
-                  return Opacity(
-                    opacity: isStaticFocused ? 0.0 : 1.0, // 静止時は透明にして、前面の実体広告に任せる
-                    child: NativeAdCard(
-                      dimAlpha: dimAlpha,
-                      isTop: globalIndex == _focusedGlobalIndex,
-                      nativeAd: null, // 背面では絶対にビューをアタッチしない
-                      isAdLoaded: _adLoadStatus[globalIndex] == true,
-                      isAdLoadFailed: _adLoadStatus[globalIndex] == false,
-                    ),
+                  return NativeAdCard(
+                    dimAlpha: dimAlpha,
+                    isTop: globalIndex == _focusedGlobalIndex,
+                    nativeAd: null, // 二重マウントを避けるため背面はプレースホルダー
+                    isAdLoaded: _adLoadStatus[globalIndex] == true,
+                    isAdLoadFailed: _adLoadStatus[globalIndex] == false,
                   );
                 }()
               : () {
@@ -2119,43 +2127,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildFixedAdWidget({
-    required int index,
-    required double cardWidth,
-    required double cardHeight,
-    required double scrollPosition,
-  }) {
-    final halfLength = _feedItems.length / 2.0;
-    double relativePos = (index - scrollPosition) % _feedItems.length;
-    if (relativePos > halfLength) relativePos -= _feedItems.length;
-    if (relativePos < -halfLength) relativePos += _feedItems.length;
-
-    // scrollPosition と relativePos からグローバルインデックス（無限スクロールスケール）を算出
-    final int globalIndex = (scrollPosition + relativePos).round();
-    final double offset = (scrollPosition - globalIndex).abs();
-    final bool isStaticFocused = (globalIndex == _focusedGlobalIndex && offset < 0.01);
-
-    return Transform.translate(
-      // 動いている時やフォーカスされていない時は、遥か画面外へ移動させて隠す（ガクつき防止）
-      offset: isStaticFocused ? Offset.zero : const Offset(9999.0, 9999.0),
-      child: Center(
-        child: SizedBox(
-          width: cardWidth,
-          height: cardHeight,
-          child: IgnorePointer(
-            ignoring: !isStaticFocused, // 画面外の時は絶対にタップを受け付けない
-            child: NativeAdCard(
-              dimAlpha: 0.0,
-              isTop: true,
-              nativeAd: _nativeAds[globalIndex],
-              isAdLoaded: _adLoadStatus[globalIndex] == true,
-              isAdLoadFailed: _adLoadStatus[globalIndex] == false,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   String _formatPostTime(DateTime createdAt, BuildContext context) {
     final now = DateTime.now();
