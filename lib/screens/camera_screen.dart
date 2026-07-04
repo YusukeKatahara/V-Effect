@@ -51,6 +51,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   
   XFile? _image;
   bool _isUploading = false;
+  bool _isPosted = false; // ── 投稿完了フラグ（離脱ログ判定用） ──
   final TextEditingController _captionController = TextEditingController();
   final GlobalKey _boundaryKey = GlobalKey();
   final TransformationController _transformationController = TransformationController();
@@ -89,6 +90,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     WidgetsBinding.instance.addObserver(this);
     _initCamera();
     _captionController.addListener(_onCaptionChanged);
+    
+    // ── 投稿（撮影）フロー開始ログ ──
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(analyticsServiceProvider).logPostFlowStart();
+    });
   }
 
   void _onCaptionChanged() {
@@ -97,6 +103,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   @override
   void dispose() {
+    // ── 投稿フローを完了せず画面が破棄された場合は離脱ログ ──
+    if (!_isPosted) {
+      ref.read(analyticsServiceProvider).logPostFlowCancel(reason: 'dismissed');
+    }
     WidgetsBinding.instance.removeObserver(this);
     _captionController.removeListener(_onCaptionChanged);
     _cameraController?.dispose();
@@ -450,6 +460,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       final calculatedStreak = postedToday ? currentStreak : currentStreak + 1;
 
       if (mounted) {
+        _isPosted = true; // ── 投稿完了を記録 ──
         Navigator.pop(context, {
           'posted': true,
           'imagePath': tempPath, // 拡大調整された一時ファイルのパスを返す

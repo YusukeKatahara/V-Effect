@@ -3,6 +3,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
+import '../config/routes.dart';
 
 class NativeAdCard extends StatelessWidget {
   final double dimAlpha;
@@ -52,7 +53,7 @@ class NativeAdCard extends StatelessWidget {
               Positioned.fill(
                 child: AdWidget(ad: nativeAd!),
               )
-            else if (isAdLoadFailed)
+            else
               Positioned.fill(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
@@ -60,7 +61,7 @@ class NativeAdCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // プレミアム感を演出するゴールドの王冠アイコン
+                      // お知らせアイコン (メガホンアイコン)
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -72,14 +73,14 @@ class NativeAdCard extends StatelessWidget {
                           ),
                         ),
                         child: Icon(
-                          Icons.workspace_premium_rounded,
+                          Icons.campaign_rounded,
                           color: AppColors.accentGold,
                           size: 32,
                         ),
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'V-PREMIUM',
+                        'V-NEWS',
                         style: GoogleFonts.outfit(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -89,7 +90,7 @@ class NativeAdCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        '広告を非表示にして、より快適に。',
+                        '運営からのお知らせ',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
                           fontSize: 14,
@@ -99,7 +100,7 @@ class NativeAdCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '限定BGMの解放や特別なプロフィールバッジなど、すべてのプレミアム特典にアクセス。',
+                        '新機能やイベント、開発状況などの最新情報をいち早くお届けします。お知らせ画面からご確認ください。',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
                           fontSize: 11,
@@ -110,7 +111,7 @@ class NativeAdCard extends StatelessWidget {
                       const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: () {
-                          // 将来的にプレミアムプラン課金シートを開くなどの拡張が可能です
+                          Navigator.pushNamed(context, AppRoutes.vPractice);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accentGold,
@@ -122,7 +123,7 @@ class NativeAdCard extends StatelessWidget {
                           elevation: 0,
                         ),
                         child: Text(
-                          'プレミアムプラン詳細',
+                          'お知らせを見る',
                           style: GoogleFonts.outfit(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
@@ -131,13 +132,6 @@ class NativeAdCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
-              )
-            else
-              Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.accentGold,
-                  strokeWidth: 2,
                 ),
               ),
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
@@ -300,6 +301,17 @@ class PostService {
     final ref = _storage.ref().child('posts/$uid/$postId.jpg');
     final uploadTask = ref.putData(imageBytes, SettableMetadata(contentType: 'image/jpeg'));
 
+    // 🚀 サムネイル用画像の生成とアップロード (超軽量プレースホルダー)
+    final thumbBytes = await FlutterImageCompress.compressWithList(
+      imageBytes,
+      minWidth: 150,
+      minHeight: 266,
+      quality: 30,
+      format: CompressFormat.jpeg,
+    );
+    final thumbRef = _storage.ref().child('posts/$uid/post_thumb_$postId.jpg');
+    final thumbUploadTask = thumbRef.putData(thumbBytes, SettableMetadata(contentType: 'image/jpeg'));
+
     // 🚀 【爆速化 1】Storageのアップロードと並列で、Firestoreからユーザー情報を事前フェッチ
     final fetchDataFuture = Future.wait([
       _db.collection('users').doc(uid).get(),
@@ -309,20 +321,27 @@ class PostService {
     // 両方の完了を同時に待つことで、シーケンシャルな待ち時間を劇的に削減
     final results = await Future.wait<dynamic>([
       uploadTask,
+      thumbUploadTask,
       fetchDataFuture,
     ]);
 
-    final fetchResults = results[1] as List<DocumentSnapshot>;
+    final fetchResults = results[2] as List<DocumentSnapshot>;
     final userSnap = fetchResults[0];
     final userPrivateSnap = fetchResults[1];
 
     final imageUrl = await ref.getDownloadURL();
+    final thumbnailUrl = await thumbRef.getDownloadURL();
 
     // 🚀 ローカルキャッシュに先回りして保存 (Optimistic Cache Seeding)
     try {
       await DefaultCacheManager().putFile(
         imageUrl,
         imageBytes,
+        fileExtension: 'jpg',
+      );
+      await DefaultCacheManager().putFile(
+        thumbnailUrl,
+        thumbBytes,
         fileExtension: 'jpg',
       );
     } catch (e) {
@@ -353,6 +372,7 @@ class PostService {
       userId: uid,
       taskId: matchedTaskId,
       imageUrl: imageUrl,
+      thumbnailUrl: thumbnailUrl,
       taskName: taskName,
       caption: caption,
       createdAt: now,

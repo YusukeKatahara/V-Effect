@@ -1,4 +1,5 @@
 import 'package:share_plus/share_plus.dart';
+import 'analytics_service.dart';
 
 class InviteService {
   static final InviteService _instance = InviteService._internal();
@@ -24,5 +25,6 @@ class InviteService {
         subject: 'V EFFECTに参加しよう',
       ),
     );
+    await AnalyticsService.instance.logPostShared(platform: 'invite_link');
   }
 }

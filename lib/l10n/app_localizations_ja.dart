@@ -1804,6 +1804,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeProveVictory => 'Victory を証明しましょう';
 
   @override
+  String get homeNewPostsAvailable => '新しい投稿があります';
+
+  @override
   String get editProfileGenderMale => '男性';
 
   @override

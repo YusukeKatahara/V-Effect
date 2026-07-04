@@ -72,11 +72,16 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF1E1E1E), // 暗いグレー
-                    Color(0xFF2C2A20), // ほんのりゴールドがかったグレー
-                  ],
+                gradient: LinearGradient(
+                  colors: AppColors.isDark
+                      ? const [
+                          Color(0xFF1E1E1E), // 暗いグレー
+                          Color(0xFF2C2A20), // ほんのりゴールドがかったグレー
+                        ]
+                      : [
+                          AppColors.grey10, // ライトモード時の薄いグレー
+                          AppColors.grey15, // ライトモード時の極薄グレー
+                        ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -89,12 +94,14 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
                 children: [
                   // アイコン
                   Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.accentGold.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
+                     width: 40,
+                     height: 40,
+                     decoration: BoxDecoration(
+                       color: AppColors.accentGold.withValues(
+                         alpha: AppColors.isDark ? 0.1 : 0.15,
+                       ),
+                       shape: BoxShape.circle,
+                     ),
                     child: Icon(
                       Icons.star_rounded,
                       color: AppColors.accentGold,
@@ -114,7 +121,9 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.accentGold.withValues(alpha: 0.8),
+                            color: AppColors.isDark
+                                ? AppColors.accentGold.withValues(alpha: 0.8)
+                                : AppColors.accentGold,
                             letterSpacing: 1.2,
                           ),
                         ),
@@ -124,7 +133,7 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.pureWhite,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -132,9 +141,9 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
                   ),
                   
                   // 矢印
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_ios_rounded,
-                    color: Colors.white54,
+                    color: AppColors.textSecondary,
                     size: 16,
                   ),
                 ],

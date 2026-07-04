@@ -545,4 +545,86 @@ class AnalyticsService {
     if (hour < 22) return 'evening';    // 夜 18-21
     return 'night';                     // 深夜 22-23
   }
+
+  // ════════════════════════════════════════════
+  // 閲覧・拡散・広告・作成フローの新規イベント
+  // ════════════════════════════════════════════
+
+  /// 友達の投稿を詳細表示/閲覧した時
+  Future<void> logFriendPostViewed({
+    required String friendUid,
+    required String taskName,
+  }) async {
+    final category = classifyTask(taskName);
+    await _analytics.logEvent(
+      name: 'friend_post_viewed',
+      parameters: {
+        'friend_uid_hash': friendUid.hashCode.toString(),
+        'task_category': category,
+      },
+    );
+    _logToActionLogs('friend_post_viewed', {
+      'friend_uid': friendUid,
+      'task_category': category,
+    });
+  }
+
+  /// 投稿を外部SNS等にシェアした時
+  Future<void> logPostShared({required String platform}) async {
+    await _analytics.logEvent(
+      name: 'post_shared',
+      parameters: {
+        'platform': platform,
+      },
+    );
+    _logToActionLogs('post_shared', {
+      'platform': platform,
+    });
+  }
+
+  /// 投稿（撮影）フローを開始した時
+  Future<void> logPostFlowStart() async {
+    await _analytics.logEvent(name: 'post_flow_start');
+    _logToActionLogs('post_flow_start');
+  }
+
+  /// 投稿（撮影）フローを途中で離脱した時
+  Future<void> logPostFlowCancel({required String reason}) async {
+    await _analytics.logEvent(
+      name: 'post_flow_cancel',
+      parameters: {
+        'reason': reason,
+      },
+    );
+    _logToActionLogs('post_flow_cancel', {
+      'reason': reason,
+    });
+  }
+
+  /// 広告が表示された時（インプレッション）
+  Future<void> logAdImpression({required String adUnitId}) async {
+    await _analytics.logEvent(
+      name: 'ad_impression_custom',
+      parameters: {
+        'ad_unit_id': adUnitId,
+      },
+    );
+    _logToActionLogs('ad_impression', {
+      'ad_unit_id': adUnitId,
+    });
+  }
+
+  /// 広告がクリックされた時
+  Future<void> logAdClicked({required String adUnitId}) async {
+    await _analytics.logEvent(
+      name: 'ad_clicked_custom',
+      parameters: {
+        'ad_unit_id': adUnitId,
+      },
+    );
+    _logToActionLogs('ad_clicked', {
+      'ad_unit_id': adUnitId,
+    });
+  }
 }
+

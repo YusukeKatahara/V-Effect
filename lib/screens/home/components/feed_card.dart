@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -71,16 +72,32 @@ class FeedCard extends StatelessWidget {
                         imageUrl: post.imageUrl!,
                         fit: BoxFit.cover,
                         alignment: Alignment.center,
-                        memCacheWidth: 1600,
-                        placeholder: (ctx, url) => Container(
-                          color: AppColors.grey10,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.accentGold,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        ),
+                        memCacheWidth: 1080,
+                        memCacheHeight: 1920,
+                        placeholder: (ctx, url) => post.thumbnailUrl != null
+                            ? Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  CachedNetworkImage(
+                                    imageUrl: post.thumbnailUrl!,
+                                    fit: BoxFit.cover,
+                                    memCacheWidth: 150,
+                                  ),
+                                  BackdropFilter(
+                                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                                    child: Container(color: Colors.black.withValues(alpha: 0.1)),
+                                  ),
+                                ],
+                              )
+                            : Container(
+                                color: AppColors.grey10,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.accentGold,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
                         errorWidget: (ctx, url, error) => Center(
                           child: Icon(
                             Icons.broken_image,

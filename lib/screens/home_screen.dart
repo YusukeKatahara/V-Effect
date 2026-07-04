@@ -75,6 +75,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final Map<String, ({String emoji, String uid})> _pendingEmojis = {};
   
   DateTime? _lastPausedTime;
+  bool _showNewPostsButton = false; // 新しい投稿ボタンの表示フラグ
+  String? _lastFeedTopPostId; // 前回のフィードの先頭投稿ID
 
 
   // ── VFIRE デバウンス用 ──
@@ -199,6 +201,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               _lastFocusedIndex = currentFocused;
               _playBgmForFocusedPost();
               _cleanupRemoteAds(_focusedGlobalIndex);
+
+              // ── フォーカスが切り替わったタイミングで閲覧ログを送信 ──
+              if (_feedItems.isNotEmpty &&
+                  currentFocused >= 0 &&
+                  currentFocused < _feedItems.length) {
+                final item = _feedItems[currentFocused];
+                if (item is Post) {
+                  ref.read(analyticsServiceProvider).logFriendPostViewed(
+                        friendUid: item.userId,
+                        taskName: item.taskName,
+                      );
+                }
+              }
+
+              if (currentFocused == 0 && _showNewPostsButton) {
+                setState(() {
+                  _showNewPostsButton = false;
+                });
+              }
             }
           }
         }
@@ -291,6 +312,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             });
           }
         },
+        onAdImpression: (ad) {
+          ref.read(analyticsServiceProvider).logAdImpression(adUnitId: ad.adUnitId);
+        },
+        onAdClicked: (ad) {
+          ref.read(analyticsServiceProvider).logAdClicked(adUnitId: ad.adUnitId);
+        },
       ),
     );
     _nativeAds[globalIndex] = ad;
@@ -304,8 +331,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (_feedItems.isEmpty) return;
     final focusedPage = _focusedGlobalIndex;
     
-    // 現在位置の前後2ページの範囲を探索して広告があれば事前ロード（スワイプ完了後に安全にロード）
-    for (int i = -2; i <= 2; i++) {
+    // 現在位置の前後1ページの範囲（隣のカードのみ）を探索して広告があれば事前ロード（スワイプ完了後に安全にロード）
+    for (int i = -1; i <= 1; i++) {
       final targetPage = focusedPage + i;
       final actualIndex = targetPage % _feedItems.length;
       if (_feedItems[actualIndex] is String && _feedItems[actualIndex] == 'ad') {
@@ -384,38 +411,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _cancelAdRefreshTimer(); // バックグラウンド移行時は無駄なリクエストを防ぐためタイマーをクリア
     } else if (state == AppLifecycleState.resumed) {
       final page = _pageController.hasClients ? _pageController.page?.round() ?? 10000 : 10000;
+      final actualIndex = _feedItems.isNotEmpty ? (page % _feedItems.length + _feedItems.length) % _feedItems.length : 0;
+      final isTopPage = actualIndex == 0;
 
       if (_lastPausedTime != null) {
         final elapsed = DateTime.now().difference(_lastPausedTime!);
         _lastPausedTime = null; // リセット
-        if (elapsed.inMinutes < 3) {
-          // 3分以内の復帰ならフィードはリフレッシュせず順番を保持する
+        if (elapsed.inSeconds < 30) {
+          // 30秒未満の復帰ならフィードはリフレッシュせず順番を保持する
           // ただし、現在広告が表示されているなら新鮮さを保つため広告を強制更新
           if (_feedItems.isNotEmpty) {
-            final actualIndex = page % _feedItems.length;
             if (_feedItems[actualIndex] is String && _feedItems[actualIndex] == 'ad') {
               _refreshAdAt(page); // 広告を更新し、タイマーも再始動
             }
           }
           return;
         }
+
+        // 30秒以上のバックグラウンド経過があった場合はリフレッシュを実行する
+        if (mounted) {
+          setState(() {
+            _needsResort = true;
+            // 5分以上経過しており、かつ現在先頭ページ（1枚目の投稿）にいる場合のみ自動的に先頭へジャンプ
+            if (elapsed.inMinutes >= 5 && isTopPage) {
+              _needsRefreshJump = true;
+            } else {
+              _needsRefreshJump = false;
+            }
+          });
+          // 復帰時にフィードをリフレッシュ
+          ref.invalidate(homeDataProvider);
+        }
       }
 
       // 3分以上経過しており全体がリフレッシュされる場合でも、もし現在が広告枠ならタイマーを再始動
       if (_feedItems.isNotEmpty) {
-        final actualIndex = page % _feedItems.length;
         if (_feedItems[actualIndex] is String && _feedItems[actualIndex] == 'ad') {
           _startAdRefreshTimer(page);
         }
-      }
-
-      if (mounted) {
-        setState(() {
-          _needsRefreshJump = true;
-          _needsResort = true;
-        });
-        // 復帰時にフィードをリフレッシュ
-        ref.invalidate(homeDataProvider);
       }
     }
   }
@@ -503,11 +536,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     for (int i = 1; i <= 5; i++) {
       final nextIndex = (index + i) % _feedItems.length;
       final item = _feedItems[nextIndex];
-      if (item is Post && item.imageUrl != null) {
-        precacheImage(
-          ResizeImage(CachedNetworkImageProvider(item.imageUrl!), width: 1600),
-          context,
-        );
+      if (item is Post) {
+        if (item.imageUrl != null) {
+          precacheImage(
+            ResizeImage(CachedNetworkImageProvider(item.imageUrl!), width: 1080),
+            context,
+          );
+        }
+        if (item.thumbnailUrl != null) {
+          precacheImage(
+            ResizeImage(CachedNetworkImageProvider(item.thumbnailUrl!), width: 150),
+            context,
+          );
+        }
       }
     }
   }
@@ -517,11 +558,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // 最初の5枚を先読み
     for (int i = 0; i < 5 && i < _feedItems.length; i++) {
       final item = _feedItems[i];
-      if (item is Post && item.imageUrl != null) {
-        precacheImage(
-          ResizeImage(CachedNetworkImageProvider(item.imageUrl!), width: 1600),
-          context,
-        );
+      if (item is Post) {
+        if (item.imageUrl != null) {
+          precacheImage(
+            ResizeImage(CachedNetworkImageProvider(item.imageUrl!), width: 1080),
+            context,
+          );
+        }
+        if (item.thumbnailUrl != null) {
+          precacheImage(
+            ResizeImage(CachedNetworkImageProvider(item.thumbnailUrl!), width: 150),
+            context,
+          );
+        }
       }
     }
   }
@@ -1067,6 +1116,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           _friendFeedLogged = true;
         }
 
+        // 新しい投稿の検知
+        final activePosts = homeData.feedPosts;
+        final latestPostId = activePosts.isNotEmpty ? activePosts.first.id : null;
+        final page = _pageController.hasClients ? _pageController.page?.round() ?? 10000 : 10000;
+        final actualIndex = _feedItems.isNotEmpty ? (page % _feedItems.length + _feedItems.length) % _feedItems.length : 0;
+        final isTopPage = actualIndex == 0;
+
+        if (_lastFeedTopPostId != null && latestPostId != null && _lastFeedTopPostId != latestPostId) {
+          if (!isTopPage && !_needsRefreshJump) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _showNewPostsButton = true;
+                });
+              }
+            });
+          }
+        }
+        if (latestPostId != null) {
+          _lastFeedTopPostId = latestPostId;
+        }
+
         _postedToday = homeData.postedToday;
         _postedFriends = homeData.postedFriends;
         _userNames = homeData.userNames;
@@ -1155,13 +1226,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         }
 
         final newItems = <dynamic>[];
+        // 投稿数が3件以上ある場合に広告を挿入する（少人数での利用を考慮）
         final bool shouldInsertAd = combinedPosts.length >= 3;
         for (int i = 0; i < combinedPosts.length; i++) {
           newItems.add(combinedPosts[i]);
-          // 最初の投稿の直後、およびその後3投稿ごとに広告を挿入
-          // ただし、投稿数が極端に少ない（3件未満）場合はユーザー体験保護のため広告を非表示にする
-          if (shouldInsertAd && i % 3 == 0) {
-            newItems.add('ad');
+          // 1枚目（インデックス0）の直後には入れず、2枚目（インデックス1）の直後に最初の広告を挿入。
+          // その後は5投稿ごと（i == 6, 11...）に挿入することで、過度な広告表示を防ぐ。
+          if (shouldInsertAd) {
+            if (i == 1 || (i > 1 && (i - 1) % 5 == 0)) {
+              newItems.add('ad');
+            }
           }
         }
         _feedItems = newItems;
@@ -1264,6 +1338,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
           ),
+          // 6. 「新しい投稿があります」ボタン (浮遊ピル型UI)
+          if (_showNewPostsButton &&
+              (_postedToday ||
+                  uploadState.status == UploadStatus.uploading ||
+                  uploadState.status == UploadStatus.success))
+            Positioned(
+              top: MediaQuery.paddingOf(context).top + 70.0,
+              left: 0,
+              right: 0,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: _buildNewPostsButton(),
+              ),
+            ),
         ],
       ),
     ));
@@ -1328,6 +1416,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  Widget _buildNewPostsButton() {
+    return GestureDetector(
+      onTap: () {
+        if (_pageController.hasClients && _feedItems.isNotEmpty) {
+          setState(() {
+            _showNewPostsButton = false;
+          });
+          final targetIndex = 100000 - (100000 % _feedItems.length);
+          _pageController.animateToPage(
+            targetIndex,
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOutCubic,
+          );
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.accentGold.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.arrow_upward_rounded, color: AppColors.black, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              AppLocalizations.of(context)!.homeNewPostsAvailable,
+              style: GoogleFonts.outfit(
+                color: AppColors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTitleBar() => VEffectHeader(
     leading: IconButton(
       icon: Icon(Icons.search_rounded, color: AppColors.white, size: 22),
@@ -1370,6 +1506,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     scrollPosition: scrollPos,
                   ),
 
+                  // プラットフォームビューによるネイティブジェスチャーの強制キャンセルを防ぐため、
+                  // 実体の広告（NativeAdCard）は座標を固定したまま最前面（PageViewの裏）に置く。
+                  // 動いている間は画面外へ飛ばす。
+                  for (final i in _sortedCardIndices(scrollPos))
+                    if (_feedItems.isNotEmpty && _feedItems[i % _feedItems.length] == 'ad')
+                      _buildFixedAdWidget(
+                        index: i,
+                        cardWidth: finalCardWidth,
+                        cardHeight: maxCardHeight,
+                        scrollPosition: scrollPos,
+                      ),
+
                 Positioned.fill(
                   child: NotificationListener<ScrollNotification>(
                     onNotification: (notification) {
@@ -1399,32 +1547,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       // 広告スロットの場合：
                       // ガクつき（破棄・再生成）を防ぐため、常にプラットフォームビューを前面ツリーに保持します。
                       // ただし、2Dの横滑りが見えないよう、スワイプ中は透過させ、背面のプレースホルダーを透かして見せます。
+                      // 広告スロットの場合：
+                      // プラットフォームビューのネイティブタッチキャンセル問題（強制スワイプ）を防ぐため、
+                      // PageView内では透明なスペーサーのみを返し、実体の広告は背面の固定レイヤーで描画します。
                       if (item is String && item == 'ad') {
-                        final page = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
-                        final nearestPageIndex = page.round();
-                        final double offset = (page - nearestPageIndex).abs();
-                        final bool isStatic = (index == nearestPageIndex && offset < 0.01);
-
-                        final int globalIndex = index;
-                        return IgnorePointer(
-                          ignoring: !isStatic, // 動いている時はタップをスルー
-                          child: Opacity(
-                            opacity: isStatic ? 1.0 : 0.0, // 静止時のみ実体を見せる
-                            child: Center(
-                              child: SizedBox(
-                                width: finalCardWidth,
-                                height: maxCardHeight,
-                                child: NativeAdCard(
-                                  dimAlpha: 0.0,
-                                  isTop: true,
-                                  nativeAd: _nativeAds[globalIndex], // 常にアタッチしたまま保持
-                                  isAdLoaded: _adLoadStatus[globalIndex] == true,
-                                  isAdLoadFailed: _adLoadStatus[globalIndex] == false,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
+                        return const SizedBox.expand();
                       }
 
                       final myUid = FirebaseAuth.instance.currentUser?.uid;
@@ -1938,12 +2065,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   // 遠くにある時やスワイプ中は、他のカードと同じく 3D 空間にカード枠だけを描画します。
                   // プラットフォームビューの二重マウントを避けるため nativeAd は null を渡します。
                   final bool isStaticFocused = (globalIndex == _focusedGlobalIndex && offset < 0.01);
-
-                  int dist = (globalIndex - _focusedGlobalIndex).abs();
-                  // スワイプ（スクロール）中はロード処理を実行しない（かくつき防止）
-                  if (dist <= 2 && !_isScrolling) {
-                    _loadAdForGlobalIndex(globalIndex);
-                  }
+                  // 2026ベストプラクティス：描画中の非同期副作用（ロード処理）を排除。
+                  // 広告ロードはスクロール終了時（_preloadAdsNearFocusedIndex）と
+                  // ページ切り替え時（_onPageChanged）に安全に行われます。
 
                   return Opacity(
                     opacity: isStaticFocused ? 0.0 : 1.0, // 静止時は透明にして、前面の実体広告に任せる
@@ -1989,6 +2113,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     },
                   );
                 }(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFixedAdWidget({
+    required int index,
+    required double cardWidth,
+    required double cardHeight,
+    required double scrollPosition,
+  }) {
+    final halfLength = _feedItems.length / 2.0;
+    double relativePos = (index - scrollPosition) % _feedItems.length;
+    if (relativePos > halfLength) relativePos -= _feedItems.length;
+    if (relativePos < -halfLength) relativePos += _feedItems.length;
+
+    // scrollPosition と relativePos からグローバルインデックス（無限スクロールスケール）を算出
+    final int globalIndex = (scrollPosition + relativePos).round();
+    final double offset = (scrollPosition - globalIndex).abs();
+    final bool isStaticFocused = (globalIndex == _focusedGlobalIndex && offset < 0.01);
+
+    return Transform.translate(
+      // 動いている時やフォーカスされていない時は、遥か画面外へ移動させて隠す（ガクつき防止）
+      offset: isStaticFocused ? Offset.zero : const Offset(9999.0, 9999.0),
+      child: Center(
+        child: SizedBox(
+          width: cardWidth,
+          height: cardHeight,
+          child: IgnorePointer(
+            ignoring: !isStaticFocused, // 画面外の時は絶対にタップを受け付けない
+            child: NativeAdCard(
+              dimAlpha: 0.0,
+              isTop: true,
+              nativeAd: _nativeAds[globalIndex],
+              isAdLoaded: _adLoadStatus[globalIndex] == true,
+              isAdLoadFailed: _adLoadStatus[globalIndex] == false,
+            ),
           ),
         ),
       ),

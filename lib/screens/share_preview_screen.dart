@@ -7,10 +7,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_colors.dart';
+import '../providers/service_providers.dart';
 
-class SharePreviewScreen extends StatefulWidget {
+class SharePreviewScreen extends ConsumerStatefulWidget {
   final String? imageUrl;
   final int postsCount;
   final int currentStreak;
@@ -27,10 +29,10 @@ class SharePreviewScreen extends StatefulWidget {
   });
 
   @override
-  State<SharePreviewScreen> createState() => _SharePreviewScreenState();
+  ConsumerState<SharePreviewScreen> createState() => _SharePreviewScreenState();
 }
 
-class _SharePreviewScreenState extends State<SharePreviewScreen> {
+class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
   final GlobalKey _previewKey = GlobalKey();
   bool _isSharing = false;
 
@@ -61,6 +63,9 @@ class _SharePreviewScreenState extends State<SharePreviewScreen> {
           text: l10n.sharePreviewShareText(widget.postsCount, widget.currentStreak),
         ),
       );
+      if (mounted) {
+        ref.read(analyticsServiceProvider).logPostShared(platform: 'stats_share_card');
+      }
     } catch (e) {
       debugPrint('Share error: $e');
       if (mounted) {

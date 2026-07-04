@@ -15,6 +15,7 @@ class Post {
   final String userId;
   final String? taskId; // タスクを識別するID（オプショナル、過去データ対応）
   final String? imageUrl;
+  final String? thumbnailUrl;
   final String taskName;
   final String? caption;
   final DateTime createdAt;
@@ -31,6 +32,7 @@ class Post {
   static const String fieldUserId = 'userId';
   static const String fieldTaskId = 'taskId';
   static const String fieldImageUrl = 'imageUrl';
+  static const String fieldThumbnailUrl = 'thumbnailUrl';
   static const String fieldTaskName = 'taskName';
   static const String fieldCaption = 'caption';
   static const String fieldCreatedAt = 'createdAt';
@@ -48,6 +50,7 @@ class Post {
     required this.userId,
     this.taskId,
     this.imageUrl,
+    this.thumbnailUrl,
     required this.taskName,
     this.caption,
     required this.createdAt,
@@ -108,6 +111,7 @@ class Post {
       userId: data[fieldUserId] ?? '',
       taskId: data[fieldTaskId]?.toString(),
       imageUrl: data[fieldImageUrl],
+      thumbnailUrl: data[fieldThumbnailUrl],
       taskName: data[fieldTaskName] ?? '今日のヒーロータスク',
       caption: data[fieldCaption],
       createdAt: (data[fieldCreatedAt] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -134,6 +138,7 @@ class Post {
           userId == other.userId &&
           taskId == other.taskId &&
           imageUrl == other.imageUrl &&
+          thumbnailUrl == other.thumbnailUrl &&
           taskName == other.taskName &&
           caption == other.caption &&
           createdAt == other.createdAt &&
@@ -152,6 +157,7 @@ class Post {
       userId.hashCode ^
       taskId.hashCode ^
       imageUrl.hashCode ^
+      thumbnailUrl.hashCode ^
       taskName.hashCode ^
       caption.hashCode ^
       createdAt.hashCode ^
@@ -188,6 +194,7 @@ class Post {
       fieldUserId: userId,
       if (taskId != null) fieldTaskId: taskId,
       fieldImageUrl: imageUrl,
+      if (thumbnailUrl != null) fieldThumbnailUrl: thumbnailUrl,
       fieldTaskName: taskName,
       fieldCaption: caption,
       fieldCreatedAt: Timestamp.fromDate(createdAt),
@@ -222,6 +229,7 @@ class Post {
     String? userId,
     String? taskId,
     String? imageUrl,
+    String? thumbnailUrl,
     String? taskName,
     String? caption,
     DateTime? createdAt,
@@ -239,6 +247,7 @@ class Post {
       userId: userId ?? this.userId,
       taskId: taskId ?? this.taskId,
       imageUrl: imageUrl ?? this.imageUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       taskName: taskName ?? this.taskName,
       caption: caption ?? this.caption,
       createdAt: createdAt ?? this.createdAt,

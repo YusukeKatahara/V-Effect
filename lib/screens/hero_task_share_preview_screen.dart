@@ -7,12 +7,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_colors.dart';
+import '../providers/service_providers.dart';
 
 /// ヒーロータスク単体をシェアするためのプレビュー画面
 /// 縦長(9:16)のインスタストーリー画角で写真にロゴとストリーク数を載せます
-class HeroTaskSharePreviewScreen extends StatefulWidget {
+class HeroTaskSharePreviewScreen extends ConsumerStatefulWidget {
   final String? imageUrl;
   final int currentStreak;
 
@@ -23,10 +25,10 @@ class HeroTaskSharePreviewScreen extends StatefulWidget {
   });
 
   @override
-  State<HeroTaskSharePreviewScreen> createState() => _HeroTaskSharePreviewScreenState();
+  ConsumerState<HeroTaskSharePreviewScreen> createState() => _HeroTaskSharePreviewScreenState();
 }
 
-class _HeroTaskSharePreviewScreenState extends State<HeroTaskSharePreviewScreen> {
+class _HeroTaskSharePreviewScreenState extends ConsumerState<HeroTaskSharePreviewScreen> {
   final GlobalKey _previewKey = GlobalKey();
   bool _isSharing = false;
 
@@ -63,6 +65,9 @@ class _HeroTaskSharePreviewScreenState extends State<HeroTaskSharePreviewScreen>
           text: l10n.heroTaskShareText(widget.currentStreak),
         ),
       );
+      if (mounted) {
+        ref.read(analyticsServiceProvider).logPostShared(platform: 'hero_task_share_card');
+      }
     } catch (e) {
       debugPrint('Hero task share error: $e');
       if (mounted) {

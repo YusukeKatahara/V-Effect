@@ -3545,6 +3545,12 @@ abstract class AppLocalizations {
   /// **'Victory を証明しましょう'**
   String get homeProveVictory;
 
+  /// No description provided for @homeNewPostsAvailable.
+  ///
+  /// In ja, this message translates to:
+  /// **'新しい投稿があります'**
+  String get homeNewPostsAvailable;
+
   /// No description provided for @editProfileGenderMale.
   ///
   /// In ja, this message translates to:
