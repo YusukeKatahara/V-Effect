@@ -1,12 +1,22 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Title is dynamically controlled by script, default to JA -->
     <title>プライバシーポリシー - V EFFECT</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; line-height: 1.8; padding: 24px 20px; max-width: 800px; margin: 0 auto; color: #222; background: #fff; }
-        h1 { font-size: 1.6em; border-bottom: 2px solid #ddd; padding-bottom: 12px; margin-bottom: 8px; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; 
+            line-height: 1.8; 
+            padding: 40px 20px; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            color: #222; 
+            background: #fff; 
+            position: relative;
+        }
+        h1 { font-size: 1.6em; border-bottom: 2px solid #ddd; padding-bottom: 12px; margin-bottom: 8px; margin-right: 80px; }
         h2 { font-size: 1.1em; margin-top: 36px; margin-bottom: 8px; }
         h3 { font-size: 1em; margin-top: 20px; margin-bottom: 4px; }
         p { margin: 8px 0; }
@@ -15,98 +25,277 @@
         .meta { color: #666; font-size: 0.9em; margin-bottom: 24px; }
         .contact { border-top: 1px solid #ddd; margin-top: 40px; padding-top: 16px; }
         strong { font-weight: 600; }
+
+        /* Language switcher styles */
+        .lang-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 13px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: #f7f7f7;
+            padding: 4px 8px;
+            border-radius: 20px;
+            border: 1px solid #e5e5e5;
+        }
+        .lang-switcher button {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .lang-switcher button:hover {
+            color: #222;
+        }
+        .lang-switcher button.active {
+            color: #fff;
+            background-color: #E53935; /* App core red accent color */
+        }
+        .lang-switcher span {
+            color: #ddd;
+        }
+
+        /* Toggle visibility based on lang attribute */
+        html[lang="ja"] .lang-en { display: none !important; }
+        html[lang="en"] .lang-ja { display: none !important; }
     </style>
 </head>
 <body>
-    <h1>V EFFECT プライバシーポリシー</h1>
-    <p class="meta">制定日：2026年4月17日　改定日：2026年4月17日</p>
-
-    <p>V EFFECT（以下、「当アプリ」といいます。）は、ユーザーの皆様（以下、「ユーザー」といいます。）の個人情報およびプライバシーに関する情報の取り扱いについて、以下のとおりプライバシーポリシー（以下、「本ポリシー」といいます。）を定めます。</p>
-
-    <h2>1. 取得する情報</h2>
-    <p>当アプリでは、サービスの提供にあたり以下の情報を取得します。</p>
-
-    <h3>(1) ユーザーから直接提供される情報</h3>
-    <p>アカウント登録およびプロフィールの設定、または当アプリの利用を通じて、以下の情報を取得します。</p>
-    <ul>
-        <li><strong>アカウント情報：</strong>メールアドレス、ユーザー名（ユーザーID）、表示名</li>
-        <li><strong>属性情報：</strong>生年月日、性別、職業</li>
-        <li><strong>設定・習慣に関する情報：</strong>起床時間、タスク実行時間、目標（ヒーロータスク）、テンプレート等の設定情報</li>
-        <li><strong>コンテンツ情報：</strong>プロフィール画像、投稿内容（テキスト、写真等）、当アプリ内で作成したその他のデータ</li>
-    </ul>
-
-    <h3>(2) 自動的に取得される情報</h3>
-    <p>当アプリの利用に伴い、ユーザーの端末や利用状況に関する以下の情報が自動的に記録されることがあります。</p>
-    <ul>
-        <li><strong>行動履歴・利用状況：</strong>当アプリ内の機能利用履歴（ログイン履歴、投稿、リアクション、フレンド申請・承認・ブロック、ストリーク更新等）、画面遷移、招待元（リファラル）情報</li>
-        <li><strong>デバイスおよびシステム情報：</strong>端末の識別子、OSの種類およびバージョン、言語設定、IPアドレスなど</li>
-        <li><strong>センサー情報：</strong>端末が搭載する各種センサー（加速度センサー等）より得られる情報</li>
-        <li><strong>クラッシュ・エラー情報：</strong>障害発生時の端末状況、エラーログ</li>
-    </ul>
-
-    <h3>(3) 端末の権限を必要とする情報</h3>
-    <p>当アプリでは、以下の端末機能にアクセスする場合があります。取得にはユーザーご自身の端末上での許可が必要です。</p>
-    <ul>
-        <li><strong>カメラ・写真ライブラリ：</strong>プロフィール画像や投稿写真の撮影・アップロードのため</li>
-        <li><strong>プッシュ通知：</strong>リマインダーや他のユーザーからのリアクションなどをお知らせするため</li>
-    </ul>
-    <p>なお、当アプリは位置情報（GPS等）へのアクセスは行いません。</p>
-
-    <h2>2. 取得した情報の利用目的</h2>
-    <p>取得した情報は、以下の目的で利用します。</p>
-    <ul>
-        <li><strong>サービスの提供および運営：</strong>当アプリのアカウント作成、ログイン認証、本人確認、ユーザー間のコミュニケーション機能（投稿の共有、フレンド機能、リアクション等）の提供のため</li>
-        <li><strong>機能の最適化およびパーソナライズ：</strong>目標（ヒーロータスク）のカテゴリ分類、ストリークに応じた体験の提供、ユーザーの利用時間帯に合わせた機能の調整のため</li>
-        <li><strong>サービスの改善および分析：</strong>サービス利用状況の分析（アクセス解析など）、品質向上、新機能の開発、および障害や不具合の調査・対応のため</li>
-        <li><strong>通知および連絡：</strong>プッシュ通知の送信、重要なお知らせ、規約変更などの連絡や、ユーザーからのお問い合わせへの対応のため</li>
-        <li><strong>不正行為の防止：</strong>当アプリの利用規約に違反する行為、不正アクセス等の調査および防止のため</li>
-    </ul>
-
-    <h2>3. 第三者への情報の提供</h2>
-    <p>当アプリは、以下の場合を除き、ユーザーの同意を得ることなく第三者に個人情報を提供することはありません。</p>
-    <ul>
-        <li>法令に基づく場合</li>
-        <li>人の生命、身体または財産の保護のために必要があり、本人の同意を得ることが困難な場合</li>
-        <li>利用目的の達成に必要な範囲内で、個人情報の取り扱いの全部または一部を委託する場合</li>
-    </ul>
-    <p>当アプリでは、クラウドインフラ、認証機能、アクセス解析およびクラッシュレポートのツールとして、以下の外部サービスを利用しています。これらのサービスを通じて情報が処理・保存される場合があります。なお、これらのサービスのサーバーは日本国外（主に米国）に所在するため、情報が海外に転送されることがあります。</p>
-    <ul>
-        <li><strong>Firebase関連サービス（Google LLC）：</strong>Authentication, Cloud Firestore, Firebase Storage, Firebase Analytics, Firebase Crashlytics, Firebase Cloud Messaging など</li>
-    </ul>
-    <p>また、当アプリはApple Inc.が提供する「Sign in with Apple」を利用しており、同機能の利用に際してApple Inc.が定めるプライバシーポリシーに従って情報が取り扱われます。</p>
-
-    <h2>4. 他のユーザーへの情報の公開</h2>
-    <p>当アプリはSNS機能を提供するため、ユーザーが設定したプロフィール情報（表示名、ユーザー名、プロフィール画像）や、投稿した内容（写真・テキスト等）、目標（ヒーロータスク）、連続達成記録（ストリーク数）は、当アプリの仕様およびプライバシー設定に従って、他のユーザー（フレンドなど）に共有・公開されます。アカウントを非公開設定（プライベートアカウント）にすることで、閲覧できるユーザーを制限することが可能です。</p>
-
-    <h2>5. 情報の管理とセキュリティ</h2>
-    <p>当アプリは、取得した情報を適切に管理し、漏洩、滅失、または毀損の防止のために合理的なセキュリティ対策を講じます（パスワード情報を取り扱わず外部の認証プロバイダを利用する等）。</p>
-
-    <h2>6. 情報の保持期間</h2>
-    <p>取得した情報は、サービスの提供に必要な期間保持します。アカウントが削除された場合の取り扱いについては、第9条をご参照ください。</p>
-
-    <h2>7. 未成年者の利用</h2>
-    <p>当アプリは13歳以上の方を対象としています。13歳未満の方は当アプリをご利用いただけません。13歳未満の方から個人情報を取得したことが判明した場合、当該情報を速やかに削除します。</p>
-
-    <h2>8. 個人情報に関する権利</h2>
-    <p>ユーザーは、当アプリが保有する自己の個人情報について、以下の請求を行うことができます。</p>
-    <ul>
-        <li><strong>開示の請求：</strong>保有する個人情報の内容の確認</li>
-        <li><strong>訂正・追加・削除の請求：</strong>内容が事実でない場合の訂正等</li>
-        <li><strong>利用停止・消去の請求：</strong>法令に定める場合における利用の停止または消去</li>
-    </ul>
-    <p>請求は、第11条のお問い合わせ窓口までご連絡ください。法令に基づき対応いたします。</p>
-
-    <h2>9. アカウントの削除およびデータの消去</h2>
-    <p>ユーザーは、当アプリ内の設定画面等からアカウントを削除することができます。アカウント削除の操作が行われた場合、法令に基づく保存義務がある場合を除き、ユーザーの個人情報や投稿データは速やかに消去または匿名化します。</p>
-
-    <h2>10. プライバシーポリシーの変更</h2>
-    <p>当アプリは、必要に応じて本ポリシーの内容を変更することがあります。変更が生じた場合は、当アプリ内での掲示やアプリのアップデートを通じてお知らせいたします。変更後も引き続き当アプリをご利用いただいた場合、変更後のプライバシーポリシーに同意したものとみなします。</p>
-
-    <div class="contact">
-        <h2>11. お問い合わせ窓口</h2>
-        <p>本ポリシーに関するお問い合わせや、個人情報の取り扱いに関するご質問等がございましたら、以下の連絡先までご連絡ください。</p>
-        <p><strong>運営者：</strong>V EFFECT<br>
-        <strong>メールアドレス：</strong>V.EFFECT.developer@gmail.com</p>
+    <!-- Language Switcher -->
+    <div class="lang-switcher">
+        <button onclick="setLanguage('ja')" id="btn-ja">JP</button>
+        <span>|</span>
+        <button onclick="setLanguage('en')" id="btn-en">EN</button>
     </div>
+
+    <!-- ==================== JAPANESE CONTENT ==================== -->
+    <div class="lang-ja">
+        <h1>V EFFECT プライバシーポリシー</h1>
+        <p class="meta">制定日：2026年4月17日　改定日：2026年4月17日</p>
+
+        <p>V EFFECT（以下、「当アプリ」といいます。）は、ユーザーの皆様（以下、「ユーザー」といいます。）の個人情報およびプライバシーに関する情報の取り扱いについて、以下のとおりプライバシーポリシー（以下、「本ポリシー」といいます。）を定めます。</p>
+
+        <h2>1. 取得する情報</h2>
+        <p>当アプリでは、サービスの提供にあたり以下の情報を取得します。</p>
+
+        <h3>(1) ユーザーから直接提供される情報</h3>
+        <p>アカウント登録およびプロフィールの設定、または当アプリの利用を通じて、以下の情報を取得します。</p>
+        <ul>
+            <li><strong>アカウント情報：</strong>メールアドレス、ユーザー名（ユーザーID）、表示名</li>
+            <li><strong>属性情報：</strong>生年月日、性別、職業</li>
+            <li><strong>設定・習慣に関する情報：</strong>起床時間、タスク実行時間、目標（ヒーロータスク）、テンプレート等の設定情報</li>
+            <li><strong>コンテンツ情報：</strong>プロフィール画像、投稿内容（テキスト、写真等）、当アプリ内で作成したその他のデータ</li>
+        </ul>
+
+        <h3>(2) 自動的に取得される情報</h3>
+        <p>当アプリの利用に伴い、ユーザーの端末や利用状況に関する以下の情報が自動的に記録されることがあります。</p>
+        <ul>
+            <li><strong>行動履歴・利用状況：</strong>当アプリ内の機能利用履歴（ログイン履歴、投稿、リアクション、フレンド申請・承認・ブロック、ストリーク更新等）、画面遷移、招待元（リファラル）情報</li>
+            <li><strong>デバイスおよびシステム情報：</strong>端末の識別子、OSの種類およびバージョン、言語設定、IPアドレスなど</li>
+            <li><strong>センサー情報：</strong>端末が搭載する各種センサー（加速度センサー等）より得られる情報</li>
+            <li><strong>クラッシュ・エラー情報：</strong>障害発生時の端末状況、エラーログ</li>
+        </ul>
+
+        <h3>(3) 端末の権限を必要とする情報</h3>
+        <p>当アプリでは、以下の端末機能にアクセスする場合があります。取得にはユーザーご自身の端末上での許可が必要です。</p>
+        <ul>
+            <li><strong>カメラ・写真ライブラリ：</strong>プロフィール画像や投稿写真の撮影・アップロードのため</li>
+            <li><strong>プッシュ通知：</strong>リマインダーや他のユーザーからのリアクションなどをお知らせするため</li>
+        </ul>
+        <p>なお、当アプリは位置情報（GPS等）へのアクセスは行いません。</p>
+
+        <h2>2. 取得した情報の利用目的</h2>
+        <p>取得した情報は、以下の目的で利用します。</p>
+        <ul>
+            <li><strong>サービスの提供および運営：</strong>当アプリのアカウント作成、ログイン認証、本人確認、ユーザー間のコミュニケーション機能（投稿の共有、フレンド機能、リアクション等）の提供のため</li>
+            <li><strong>機能の最適化およびパーソナライズ：</strong>目標（ヒーロータスク）のカテゴリ分類、ストリークに応じた体験の提供、ユーザーの利用時間帯に合わせた機能の調整のため</li>
+            <li><strong>サービスの改善および分析：</strong>サービス利用状況の分析（アクセス解析など）、品質向上、新機能の開発、および障害や不具合の調査・対応のため</li>
+            <li><strong>通知および連絡：</strong>プッシュ通知の送信、重要なお知らせ、規約変更などの連絡や、ユーザーからのお問い合わせへの対応のため</li>
+            <li><strong>不正行為の防止：</strong>当アプリの利用規約に違反する行為、不正アクセス等の調査および防止のため</li>
+        </ul>
+
+        <h2>3. 第三者への情報の提供</h2>
+        <p>当アプリは、以下の場合を除き、ユーザーの同意を得ることなく第三者に個人情報を提供することはありません。</p>
+        <ul>
+            <li>法令に基づく場合</li>
+            <li>人の生命、身体または財産の保護のために必要があり、本人の同意を得ることが困難な場合</li>
+            <li>利用目的の達成に必要な範囲内で、個人情報の取り扱いの全部または一部を委託する場合</li>
+        </ul>
+        <p>当アプリでは、クラウドインフラ、認証機能、アクセス解析およびクラッシュレポートのツールとして、以下の外部サービスを利用しています。これらのサービスを通じて情報が処理・保存される場合があります。なお、これらのサービスのサーバーは日本国外（主に米国）に所在するため、情報が海外に転送されることがあります。</p>
+        <ul>
+            <li><strong>Firebase関連サービス（Google LLC）：</strong>Authentication, Cloud Firestore, Firebase Storage, Firebase Analytics, Firebase Crashlytics, Firebase Cloud Messaging など</li>
+        </ul>
+        <p>また、当アプリはApple Inc.が提供する「Sign in with Apple」を利用しており、同機能の利用に際してApple Inc.が定めるプライバシーポリシーに従って情報が取り扱われます。</p>
+
+        <h2>4. 他のユーザーへの情報の公開</h2>
+        <p>当アプリはSNS機能を提供するため、ユーザーが設定したプロフィール情報（表示名、ユーザー名、プロフィール画像）や、投稿した内容（写真・テキスト等）、目標（ヒーロータスク）、連続達成記録（ストリーク数）は、当アプリの仕様およびプライバシー設定に従って、他のユーザー（フレンドなど）に共有・公開されます。アカウントを非公開設定（プライベートアカウント）にすることで、閲覧できるユーザーを制限することが可能です。</p>
+
+        <h2>5. 情報の管理とセキュリティ</h2>
+        <p>当アプリは、取得した情報を適切に管理し、漏洩、滅失、または毀損の防止のために合理的なセキュリティ対策を講じます（パスワード情報を取り扱わず外部の認証プロバイダを利用する等）。</p>
+
+        <h2>6. 情報の保持期間</h2>
+        <p>取得した情報は、サービスの提供に必要な期間保持します。アカウントが削除された場合の取り扱いについては、第9条をご参照ください。</p>
+
+        <h2>7. 未成年者の利用</h2>
+        <p>当アプリは13歳以上の方を対象としています。13歳未満の方は当アプリをご利用いただけません。13歳未満の方から個人情報を取得したことが判明した場合、当該情報を速やかに削除します。</p>
+
+        <h2>8. 個人情報に関する権利</h2>
+        <p>ユーザーは、当アプリが保有する自己の個人情報について、以下の請求を行うことができます。</p>
+        <ul>
+            <li><strong>開示の請求：</strong>保有する個人情報の内容の確認</li>
+            <li><strong>訂正・追加・削除の請求：</strong>内容が事実でない場合の訂正等</li>
+            <li><strong>利用停止・消去の請求：</strong>法令に定める場合における利用の停止または消去</li>
+        </ul>
+        <p>請求は、第11条のお問い合わせ窓口までご連絡ください。法令に基づき対応いたします。</p>
+
+        <h2>9. アカウントの削除およびデータの消去</h2>
+        <p>ユーザーは、当アプリ内の設定画面等からアカウントを削除することができます。アカウント削除の操作が行われた場合、法令に基づく保存義務がある場合を除き、ユーザーの個人情報や投稿データは速やかに消去または匿名化します。</p>
+
+        <h2>10. プライバシーポリシーの変更</h2>
+        <p>当アプリは、必要に応じて本ポリシーの内容を変更することがあります。変更が生じた場合は、当アプリ内での掲示やアプリのアップデートを通じてお知らせいたします。変更後も引き続き当アプリをご利用いただいた場合、変更後のプライバシーポリシーに同意したものとみなします。</p>
+
+        <div class="contact">
+            <h2>11. お問い合わせ窓口</h2>
+            <p>本ポリシーに関するお問い合わせや、個人情報の取り扱いに関するご質問等がございましたら、以下の連絡先までご連絡ください。</p>
+            <p><strong>運営者：</strong>V EFFECT<br>
+            <strong>メールアドレス：</strong>V.EFFECT.developer@gmail.com</p>
+        </div>
+    </div>
+
+    <!-- ==================== ENGLISH CONTENT ==================== -->
+    <div class="lang-en">
+        <h1>V EFFECT Privacy Policy</h1>
+        <p class="meta">Effective Date: April 17, 2026&nbsp;&nbsp;&nbsp;&nbsp;Last Updated: April 17, 2026</p>
+
+        <p>V EFFECT (hereinafter referred to as the "App," "we," "us," or "our") is committed to protecting the personal information and privacy of our users (hereinafter referred to as "users" or "you"). This Privacy Policy (hereinafter referred to as the "Policy") describes how we collect, use, disclose, and manage your information when you use our habit-building social media application, V EFFECT.</p>
+
+        <h2>1. Information We Collect</h2>
+        <p>We collect several types of information in connection with your use of the App:</p>
+
+        <h3>(1) Information Provided Directly by You</h3>
+        <p>We collect information that you directly provide to us during account registration, profile setup, or through your regular use of the App:</p>
+        <ul>
+            <li><strong>Account Information:</strong> Email address, username (User ID), and display name.</li>
+            <li><strong>Demographic Information:</strong> Date of birth, gender, and occupation.</li>
+            <li><strong>Preferences & Habit-Related Data:</strong> Wake-up times, task execution schedules, goals ("Hero Tasks"), template choices, and other app configuration preferences.</li>
+            <li><strong>User Content:</strong> Profile images, posts (including text, photographs, etc.), and any other data you generate or upload within the App.</li>
+        </ul>
+
+        <h3>(2) Information Collected Automatically</h3>
+        <p>When you access or use the App, we may automatically collect details about your device and app usage:</p>
+        <ul>
+            <li><strong>Usage & Activity Data:</strong> Logs of features used (login history, posts, reactions, friend requests, approvals, blocks, streak updates, etc.), screen transitions and navigation paths, and referral or invitation source information.</li>
+            <li><strong>Device & System Information:</strong> Unique device identifiers, operating system (OS) type and version, language settings, IP address, and other diagnostic data.</li>
+            <li><strong>Sensor Data:</strong> Information derived from built-in device sensors, such as the accelerometer.</li>
+            <li><strong>Crash & Diagnostics Reports:</strong> System performance, crash logs, and the state of your device when an error or malfunction occurs.</li>
+        </ul>
+
+        <h3>(3) Device Permissions Required</h3>
+        <p>To enable specific features, the App may request access to certain functions on your device. These will only be accessed if you grant explicit permission:</p>
+        <ul>
+            <li><strong>Camera and Photo Library:</strong> Required to capture or upload profile pictures and photographs for habit verification posts.</li>
+            <li><strong>Push Notifications:</strong> Required to send reminders, streak alerts, and notifications regarding reactions or updates from other users.</li>
+        </ul>
+        <p><em>Note: The App does not access or collect your location data (e.g., GPS coordinates).</em></p>
+
+        <h2>2. How We Use the Information</h2>
+        <p>We use the collected information for the following purposes:</p>
+        <ul>
+            <li><strong>Service Provision and Operations:</strong> To create accounts, authenticate user logins, verify identities, and facilitate social interactions (sharing posts, managing friend lists, sending reactions, etc.).</li>
+            <li><strong>Optimization and Personalization:</strong> To categorize goals ("Hero Tasks"), tailor user experiences based on streaks, and optimize features to match your active hours.</li>
+            <li><strong>Service Improvement and Analytics:</strong> To analyze usage trends (access analysis), enhance software quality, develop new features, and research and resolve errors or bugs.</li>
+            <li><strong>Notifications and Support:</strong> To send push notifications, communicate important announcements (such as updates to our terms or policies), and respond to your inquiries and support requests.</li>
+            <li><strong>Security and Fraud Prevention:</strong> To monitor, investigate, and prevent activities that violate our Terms of Service, unauthorized access, or other security threats.</li>
+        </ul>
+
+        <h2>3. Third-Party Sharing and Cross-Border Transfers</h2>
+        <p>We do not share your personal information with third parties without your prior consent, except in the following circumstances:</p>
+        <ul>
+            <li>As required by applicable laws, regulations, or legal processes.</li>
+            <li>When necessary to protect human life, physical safety, or property, and it is difficult to obtain your consent.</li>
+            <li>When outsourcing data processing tasks to trusted service providers within the scope necessary to achieve the utilization purposes specified in this Policy.</li>
+        </ul>
+        <p>To support our application infrastructure, authentication, analytics, and error reporting, we utilize the following external services. These service providers may process and store your information. Because these providers operate globally, your data may be transferred to and stored in servers located outside your country of residence (predominantly in the United States):</p>
+        <ul>
+            <li><strong>Firebase Services (Google LLC):</strong> Firebase Authentication, Cloud Firestore, Firebase Storage, Google Analytics for Firebase, Firebase Crashlytics, and Firebase Cloud Messaging (FCM).</li>
+        </ul>
+        <p>Also, when using the "Sign in with Apple" feature, your information is processed in accordance with Apple's Privacy Policy.</p>
+
+        <h2>4. Public Profile and Sharing with Other Users</h2>
+        <p>V EFFECT is a social platform designed to help users build habits together. Consequently, certain elements of your profile (display name, username, and profile image), your posts (photos and text), goals ("Hero Tasks"), and consecutive completion records (streaks) will be shared and made visible to other users (such as your friends) in accordance with the App's default specifications and your chosen privacy settings. You may restrict who can view your posts and activity by setting your account to private (Private Account).</p>
+
+        <h2>5. Information Security and Management</h2>
+        <p>We implement reasonable and appropriate technical and administrative safeguards to protect your personal information from unauthorized access, loss, destruction, alteration, or disclosure. For security purposes, we do not store password credentials directly; instead, we rely on secure external authentication providers.</p>
+
+        <h2>6. Data Retention Period</h2>
+        <p>We retain your personal information for the period necessary to fulfill the purposes outlined in this Policy, or as required by law. For details on what happens when you delete your account, please refer to Section 9 (Account Deletion and Data Erasure).</p>
+
+        <h2>7. Children's Privacy</h2>
+        <p>The App is intended for users who are at least 13 years of age. We do not knowingly collect or solicit personal information from children under the age of 13. If we discover that we have inadvertently collected personal information from a child under 13, we will take prompt steps to delete that information from our records.</p>
+
+        <h2>8. Your Rights Regarding Personal Information</h2>
+        <p>You have the following rights regarding the personal information we hold about you:</p>
+        <ul>
+            <li><strong>Right to Access:</strong> The right to request confirmation and details of the personal information we hold.</li>
+            <li><strong>Right to Rectification, Addition, or Erasure:</strong> The right to request the correction, update, or deletion of inaccurate or incomplete personal information.</li>
+            <li><strong>Right to Restrict or Suspend Processing:</strong> The right to request that we suspend or terminate the use or processing of your personal information, in accordance with applicable laws.</li>
+        </ul>
+        <p>To exercise any of these rights, please contact us using the contact details provided in Section 11. We will respond to your request in a timely manner and in compliance with applicable legislation.</p>
+
+        <h2>9. Account Deletion and Data Erasure</h2>
+        <p>You can delete your account at any time through the settings menu within the App. Upon receiving an account deletion request, we will promptly delete or permanently anonymize your personal information and posts, unless we are legally required to retain certain records under applicable laws or regulatory obligations.</p>
+
+        <h2>10. Changes to this Privacy Policy</h2>
+        <p>We may update this Privacy Policy from time to time to reflect changes in our practices or for regulatory updates. We will notify you of any material changes by posting the updated Policy within the App or through other appropriate means. Your continued use of the App after the effective date of the updated Policy constitutes your acceptance of the changes.</p>
+
+        <div class="contact">
+            <h2>11. Contact Us</h2>
+            <p>If you have any questions, concerns, or requests regarding this Privacy Policy or our handling of personal information, please contact us at:</p>
+            <p><strong>Operator:</strong> V EFFECT<br>
+            <strong>Email Address:</strong> V.EFFECT.developer@gmail.com</p>
+        </div>
+    </div>
+
+    <!-- Script for Dynamic Language Switching -->
+    <script>
+        function setLanguage(lang) {
+            document.documentElement.setAttribute('lang', lang);
+            localStorage.setItem('v-effect-lang', lang);
+            
+            // Update active class on buttons
+            document.querySelectorAll('.lang-switcher button').forEach(btn => {
+                btn.classList.toggle('active', btn.id === `btn-${lang}`);
+            });
+
+            // Update title dynamically based on selected language
+            if (lang === 'ja') {
+                document.title = "プライバシーポリシー - V EFFECT";
+            } else {
+                document.title = "Privacy Policy - V EFFECT";
+            }
+        }
+
+        // Automatic language detection on load
+        (function() {
+            const savedLang = localStorage.getItem('v-effect-lang');
+            let lang = 'ja';
+            if (savedLang) {
+                lang = savedLang;
+            } else {
+                const browserLang = navigator.language || navigator.userLanguage;
+                if (browserLang && !browserLang.startsWith('ja')) {
+                    lang = 'en';
+                }
+            }
+            setLanguage(lang);
+        })();
+    </script>
 </body>
 </html>

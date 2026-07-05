@@ -1,12 +1,21 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>利用規約 - V EFFECT</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; line-height: 1.8; padding: 24px 20px; max-width: 800px; margin: 0 auto; color: #222; background: #fff; }
-        h1 { font-size: 1.6em; border-bottom: 2px solid #ddd; padding-bottom: 12px; margin-bottom: 8px; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; 
+            line-height: 1.8; 
+            padding: 40px 20px; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            color: #222; 
+            background: #fff; 
+            position: relative;
+        }
+        h1 { font-size: 1.6em; border-bottom: 2px solid #ddd; padding-bottom: 12px; margin-bottom: 8px; margin-right: 80px; }
         h2 { font-size: 1.1em; margin-top: 36px; margin-bottom: 8px; }
         p { margin: 8px 0; }
         ul, ol { margin: 8px 0; padding-left: 24px; }
@@ -14,99 +23,279 @@
         .meta { color: #666; font-size: 0.9em; margin-bottom: 24px; }
         .contact { border-top: 1px solid #ddd; margin-top: 40px; padding-top: 16px; }
         strong { font-weight: 600; }
+
+        /* Language switcher styles */
+        .lang-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 13px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: #f7f7f7;
+            padding: 4px 8px;
+            border-radius: 20px;
+            border: 1px solid #e5e5e5;
+        }
+        .lang-switcher button {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .lang-switcher button:hover {
+            color: #222;
+        }
+        .lang-switcher button.active {
+            color: #fff;
+            background-color: #E53935; /* App core red accent color */
+        }
+        .lang-switcher span {
+            color: #ddd;
+        }
+
+        /* Toggle visibility based on lang attribute */
+        html[lang="ja"] .lang-en { display: none !important; }
+        html[lang="en"] .lang-ja { display: none !important; }
     </style>
 </head>
 <body>
-    <h1>V EFFECT 利用規約</h1>
-    <p class="meta">制定日：2026年4月16日　改訂日：2026年4月16日</p>
-
-    <p>本利用規約（以下、「本規約」といいます。）は、本アプリ「V EFFECT」（以下、「本アプリ」といいます。）の利用条件を定めるものです。インストールおよび利用を開始する前に、必ず本規約をよくお読みください。</p>
-
-    <h2>第1条（適用）</h2>
-    <p>本規約は、ユーザーと開発者・運営者（以下、「運営者」といいます。）との間の、本アプリの利用に関わる一切の関係に適用されるものとします。</p>
-
-    <h2>第2条（ユーザー登録とアカウント管理）</h2>
-    <ol>
-        <li>本アプリの利用を希望する者は、本規約に同意した上で、運営者の定める方法によりユーザー登録を行うものとします。</li>
-        <li>ユーザーは、自己の責任において、本アプリのアカウント情報およびパスワードを適切に管理・保管するものとし、これを第三者に利用させたり、貸与、譲渡、名義変更、売買等をしてはならないものとします。</li>
-        <li>アカウント情報およびパスワードの管理不十分、使用上の過誤、第三者の使用等によって生じた損害に関する責任はユーザーが負うものとします。</li>
-        <li>本アプリは13歳以上の方を対象としています。13歳未満の方は利用できません。</li>
-    </ol>
-
-    <h2>第3条（サービスの内容）</h2>
-    <p>本アプリは、成長とモチベーション維持を目的とした全肯定型のSNSとして、主に以下の機能を提供します。</p>
-    <ul>
-        <li>日々の努力の過程を写真とともに共有する機能</li>
-        <li>自己成長の可視化機能（ストリーク要素）</li>
-        <li>自身の投稿を行ったユーザーのみが、友人などの限られたコミュニティ内で他のユーザーの投稿を閲覧できる機能</li>
-        <li>他のユーザーの投稿に対して称賛を送る機能</li>
-    </ul>
-
-    <h2>第4条（禁止事項）</h2>
-    <p>ユーザーは、本アプリの利用にあたり、以下の行為をしてはなりません。</p>
-    <ol>
-        <li>法令、裁判所の判決、決定もしくは命令、または法令上拘束力のある行政措置に違反する行為、またはこれらを助長する行為</li>
-        <li>公序良俗に反する行為</li>
-        <li>運営者、本アプリの他のユーザーまたは第三者の著作権、商標権等の知的財産権、肖像権、プライバシー権、名誉、その他の権利または利益を侵害する行為</li>
-        <li>本アプリの趣旨に反する、暴力的、わいせつ的、差別的な表現や、他のユーザーに不快感を与えるコンテンツの投稿や送信</li>
-        <li>面識のない第三者との出会いを目的とする行為</li>
-        <li>本アプリの提供する機能、ネットワークまたはシステム等に過度な負荷をかける行為、または本アプリの不具合を意図的に利用する行為（チートツール等の不正利用を含む）</li>
-        <li>運営者、他のユーザー、または第三者になりすます行為</li>
-        <li>他のユーザーの個人情報等を無断で収集、蓄積する行為</li>
-        <li>その他、運営者が不適切と判断する行為</li>
-    </ol>
-
-    <h2>第5条（コンテンツの権利）</h2>
-    <ol>
-        <li>ユーザーが本アプリに投稿した写真、テキスト等のコンテンツ（以下、「投稿データ」といいます。）の著作権は、当該ユーザーまたは当該ユーザーに利用を許諾した第三者に留保されます。</li>
-        <li>ユーザーは、本アプリ内でのサービス提供および本アプリの普及・宣伝等の目的の範囲内において、運営者が投稿データを無償で非独占的に使用、複製、改変、配布等をすることを許諾するものとします。</li>
-        <li>ユーザーは、投稿データについて、適法な権利を有していること、および第三者の権利を侵害していないことを運営者に対し表明し、保証するものとします。</li>
-    </ol>
-
-    <h2>第6条（本アプリの提供の停止等）</h2>
-    <p>運営者は、以下のいずれかの事由があると判断した場合、ユーザーに事前に通知することなく本アプリの全部または一部の提供を停止または中断することができるものとします。</p>
-    <ol>
-        <li>本アプリにかかるコンピュータシステムの保守点検または更新を行う場合</li>
-        <li>地震、落雷、火災、停電または天災などの不可抗力により、本アプリの提供が困難となった場合</li>
-        <li>通信回線等が事故により停止した場合</li>
-        <li>その他、運営者が本アプリの提供が困難と判断した場合</li>
-    </ol>
-
-    <h2>第7条（利用制限および登録抹消）</h2>
-    <p>運営者は、ユーザーが本規約のいずれかの条項に違反した場合、または運営者が本アプリの利用を適当でないと判断した場合には、事前の通知なく、ユーザーに対して本アプリの全部もしくは一部の利用を制限し、またはユーザーとしての登録を抹消することができるものとします。</p>
-
-    <h2>第8条（退会）</h2>
-    <p>ユーザーは、運営者の定める退会手続きにより、本アプリ内の設定画面から退会できるものとします。</p>
-
-    <h2>第9条（保証の否認および免責事項）</h2>
-    <ol>
-        <li>運営者は、本アプリに事実上または法律上の瑕疵（安全性、信頼性、正確性、その他の欠陥）がないことを明示的にも黙示的にも保証しません。</li>
-        <li>運営者は、運営者の故意または重過失に起因する場合を除き、本アプリに起因してユーザーに生じた損害について責任を負いません。ただし、消費者契約法の適用その他の理由により運営者の免責が認められない場合でも、運営者の責任は、運営者の過失（重過失を除きます。）による債務不履行または不法行為によりユーザーに生じた直接かつ通常の損害に限られるものとします。</li>
-        <li>運営者は、本アプリに関して、ユーザーと他のユーザーまたは第三者との間において生じた取引、連絡または紛争等について一切責任を負いません。</li>
-    </ol>
-
-    <h2>第10条（サービス内容の変更等）</h2>
-    <p>運営者は、ユーザーに通知することなく、本アプリの内容や仕様の変更、または本アプリの提供を中止・終了することができるものとし、これによってユーザーに生じた損害について一切の責任を負いません。</p>
-
-    <h2>第11条（利用規約の変更）</h2>
-    <p>変更後の規約は、本アプリ内での掲示またはアップデート通知によりユーザーへ周知します。周知後に本アプリを継続利用した場合、変更後の規約に同意したものとみなします。</p>
-
-    <h2>第12条（個人情報の取扱い）</h2>
-    <p>本アプリの利用によって取得する個人情報の取り扱いについては、別途定める「プライバシーポリシー」に従い適切に取り扱うものとします。</p>
-
-    <h2>第13条（分離可能性）</h2>
-    <p>本規約のいずれかの条項またはその一部が、法令等により無効または執行不能と判断された場合であっても、本規約の残りの規定は、継続して完全に効力を有するものとします。</p>
-
-    <h2>第14条（準拠法・裁判管轄）</h2>
-    <ol>
-        <li>本規約の解釈にあたっては、日本法を準拠法とします。</li>
-        <li>本アプリに関して紛争が生じた場合には、新潟地方裁判所または新潟簡易裁判所を第一審の専属的合意管轄裁判所とします。</li>
-    </ol>
-
-    <div class="contact">
-        <p><strong>お問い合わせ先</strong><br>
-        本アプリに関するお問い合わせは、以下の窓口までご連絡ください。<br>
-        V EFFECT開発チーム：V.EFFECT.developer@gmail.com</p>
+    <!-- Language Switcher -->
+    <div class="lang-switcher">
+        <button onclick="setLanguage('ja')" id="btn-ja">JP</button>
+        <span>|</span>
+        <button onclick="setLanguage('en')" id="btn-en">EN</button>
     </div>
+
+    <!-- ==================== JAPANESE CONTENT ==================== -->
+    <div class="lang-ja">
+        <h1>V EFFECT 利用規約</h1>
+        <p class="meta">制定日：2026年4月16日　改訂日：2026年4月16日</p>
+
+        <p>本利用規約（以下、「本規約」といいます。）は、本アプリ「V EFFECT」（以下、「本アプリ」といいます。）の利用条件を定めるものです。インストールおよび利用を開始する前に、必ず本規約をよくお読みください。</p>
+
+        <h2>第1条（適用）</h2>
+        <p>本規約は、ユーザーと開発者・運営者（以下、「運営者」といいます。）との間の、本アプリの利用に関わる一切の関係に適用されるものとします。</p>
+
+        <h2>第2条（ユーザー登録とアカウント管理）</h2>
+        <ol>
+            <li>本アプリの利用を希望する者は、本規約に同意した上で、運営者の定める方法によりユーザー登録を行うものとします。</li>
+            <li>ユーザーは、自己の責任において、本アプリのアカウント情報およびパスワードを適切に管理・保管するものとし、これを第三者に利用させたり、貸与、譲渡、名義変更、売買等をしてはならないものとします。</li>
+            <li>アカウント情報およびパスワードの管理不十分、使用上の過誤、第三者の使用等によって生じた損害に関する責任はユーザーが負うものとします。</li>
+            <li>本アプリは13歳以上の方を対象としています。13歳未満の方は利用できません。</li>
+        </ol>
+
+        <h2>第3条（サービスの内容）</h2>
+        <p>本アプリは、成長とモチベーション維持を目的とした全肯定型のSNSとして、主に以下の機能を提供します。</p>
+        <ul>
+            <li>日々の努力の過程を写真とともに共有する機能</li>
+            <li>自己成長の可視化機能（ストリーク要素）</li>
+            <li>自身の投稿を行ったユーザーのみが、友人などの限られたコミュニティ内で他のユーザーの投稿を閲覧できる機能</li>
+            <li>他のユーザーの投稿に対して称賛を送る機能</li>
+        </ul>
+
+        <h2>第4条（禁止事項）</h2>
+        <p>ユーザーは、本アプリの利用にあたり、以下の行為をしてはなりません。</p>
+        <ol>
+            <li>法令、裁判所の判決、決定もしくは命令、または法令上拘束力のある行政措置に違反する行為、またはこれらを助長する行為</li>
+            <li>公序良俗に反する行為</li>
+            <li>運営者、本アプリの他のユーザーまたは第三者の著作権、商標権等の知的財産権、肖像権、プライバシー権、名誉、その他の権利または利益を侵害する行為</li>
+            <li>本アプリの趣旨に反する、暴力的、わいせつ的、差別的な表現や、他のユーザーに不快感を与えるコンテンツの投稿や送信</li>
+            <li>面識のない第三者との出会いを目的とする行為</li>
+            <li>本アプリの提供する機能、ネットワークまたはシステム等に過度な負荷をかける行為、または本アプリの不具合を意図的に利用する行為（チートツール等の不正利用を含む）</li>
+            <li>運営者、他のユーザー、または第三者になりすます行為</li>
+            <li>他のユーザーの個人情報等を無断で収集、蓄積する行為</li>
+            <li>その他、運営者が不適切と判断する行為</li>
+        </ol>
+
+        <h2>第5条（コンテンツの権利）</h2>
+        <ol>
+            <li>ユーザーが本アプリに投稿した写真、テキスト等のコンテンツ（以下、「投稿データ」といいます。）の著作権は、当該ユーザーまたは当該ユーザーに利用を許諾した第三者に留保されます。</li>
+            <li>ユーザーは、本アプリ内でのサービス提供および本アプリの普及・宣伝等の目的の範囲内において、運営者が投稿データを無償で非独占的に使用、複製、改変、配布等をすることを許諾するものとします。</li>
+            <li>ユーザーは、投稿データについて、適法な権利を有していること、および第三者の権利を侵害していないことを運営者に対し表明し、保証するものとします。</li>
+        </ol>
+
+        <h2>第6条（本アプリの提供の停止等）</h2>
+        <p>運営者は、以下のいずれかの事由があると判断した場合、ユーザーに事前に通知することなく本アプリの全部または一部の提供を停止または中断することができるものとします。</p>
+        <ol>
+            <li>本アプリにかかるコンピュータシステムの保守点検または更新を行う場合</li>
+            <li>地震、落雷、火災、停電または天災などの不可抗力により、本アプリの提供が困難となった場合</li>
+            <li>通信回線等が事故により停止した場合</li>
+            <li>その他、運営者が本アプリの提供が困難と判断した場合</li>
+        </ol>
+
+        <h2>第7条（利用制限および登録抹消）</h2>
+        <p>運営者は、ユーザーが本規約のいずれかの条項に違反した場合、または運営者が本アプリの利用を適当でないと判断した場合には、事前の通知なく、ユーザーに対して本アプリの全部もしくは一部の利用を制限し、またはユーザーとしての登録を抹消することができるものとします。</p>
+
+        <h2>第8条（退会）</h2>
+        <p>ユーザーは、運営者の定める退会手続きにより、本アプリ内の設定画面から退会できるものとします。</p>
+
+        <h2>第9条（保証の否認および免責事項）</h2>
+        <ol>
+            <li>運営者は、本アプリに事実上または法律上の瑕疵（安全性、信頼性、正確性、その他の欠陥）がないことを明示的にも黙示的にも保証しません。</li>
+            <li>運営者は、運営者の故意または重過失に起因する場合を除き、本アプリに起因してユーザーに生じた損害について責任を負いません。ただし、消費者契約法の適用その他の理由により運営者の免責が認められない場合でも、運営者の責任は、運営者の過失（重過失を除きます。）による債務不履行または不法行為によりユーザーに生じた直接かつ通常の損害に限られるものとします。</li>
+            <li>運営者は、本アプリに関して、ユーザーと他のユーザーまたは第三者との間において生じた取引、連絡または紛争等について一切責任を負いません。</li>
+        </ol>
+
+        <h2>第10条（サービス内容の変更等）</h2>
+        <p>運営者は、ユーザーに通知することなく、本アプリの内容や仕様の変更、または本アプリの提供を中止・終了することができるものとし、これによってユーザーに生じた損害について一切の責任を負いません。</p>
+
+        <h2>第11条（利用規約の変更）</h2>
+        <p>変更後の規約は、本アプリ内での掲示またはアップデート通知によりユーザーへ周知します。周知後に本アプリを継続利用した場合、変更後の規約に同意したものとみなします。</p>
+
+        <h2>第12条（個人情報の取扱い）</h2>
+        <p>本アプリの利用によって取得する個人情報の取り扱いについては、別途定める「プライバシーポリシー」に従い適切に取り扱うものとします。</p>
+
+        <h2>第13条（分離可能性）</h2>
+        <p>本規約のいずれかの条項またはその一部が、法令等により無効または執行不能と判断された場合であっても、本規約の残りの規定は、継続して完全に効力を有するものとします。</p>
+
+        <h2>第14条（準拠法・裁判管轄）</h2>
+        <ol>
+            <li>本規約の解釈にあたっては、日本法を準拠法とします。</li>
+            <li>本アプリに関して紛争が生じた場合には、新潟地方裁判所または新潟簡易裁判所を第一審の専属的合意管轄裁判所とします。</li>
+        </ol>
+
+        <div class="contact">
+            <p><strong>お問い合わせ先</strong><br>
+            本アプリに関するお問い合わせは、以下の窓口までご連絡ください。<br>
+            V EFFECT開発チーム：V.EFFECT.developer@gmail.com</p>
+        </div>
+    </div>
+
+    <!-- ==================== ENGLISH CONTENT ==================== -->
+    <div class="lang-en">
+        <h1>V EFFECT Terms of Service</h1>
+        <p class="meta">Effective Date: April 16, 2026&nbsp;&nbsp;&nbsp;&nbsp;Last Updated: April 16, 2026</p>
+
+        <p>These Terms of Service (hereinafter referred to as the "Terms") govern the terms and conditions for using the mobile application "V EFFECT" (hereinafter referred to as the "App"). Please read these Terms carefully before installing or using the App.</p>
+
+        <h2>Article 1 (Applicability)</h2>
+        <p>These Terms shall apply to all relations between the user (hereinafter referred to as the "User" or "you") and the developer/operator (hereinafter referred to as the "Operator," "we," "us," or "our") regarding the use of the App.</p>
+
+        <h2>Article 2 (User Registration and Account Management)</h2>
+        <ol>
+            <li>Any person wishing to use the App must agree to these Terms and register for an account in accordance with the method prescribed by the Operator.</li>
+            <li>Users shall be responsible for appropriately managing and safeguarding their account credentials (including usernames and passwords). Users must not permit any third party to use their account, nor may they lease, transfer, change the name of, or sell their account to any third party.</li>
+            <li>Any damages or liability arising from inadequate management of account credentials, errors in use, or unauthorized use by a third party shall be borne entirely by the User, and the Operator shall assume no responsibility for such damages.</li>
+            <li>The App is intended for users who are 13 years of age or older. Persons under the age of 13 are not permitted to use the App.</li>
+        </ol>
+
+        <h2>Article 3 (Service Description)</h2>
+        <p>The App is a positive-reinforcement social networking service (SNS) designed to support personal growth and maintain motivation, primarily providing the following features:</p>
+        <ul>
+            <li>Sharing the process of daily efforts accompanied by photographs.</li>
+            <li>Visualizing self-growth (streak features).</li>
+            <li>A lock feature (guarded-by-post mechanism) where only users who have made their own daily post can view the posts of other users within a limited community (such as friends).</li>
+            <li>Sending praise and positive feedback to other users' posts.</li>
+        </ul>
+
+        <h2>Article 4 (Prohibited Activities)</h2>
+        <p>When using the App, Users must not engage in any of the following activities:</p>
+        <ol>
+            <li>Any act that violates, or facilitates the violation of, applicable laws, regulations, court judgments, decisions or orders, or legally binding administrative measures.</li>
+            <li>Acts contrary to public order or standards of decency (public morals).</li>
+            <li>Acts that infringe upon the copyrights, trademarks, or other intellectual property rights, image rights (portrait rights), privacy rights, reputation, or other rights or interests of the Operator, other users, or any third party.</li>
+            <li>Posting or transmitting content containing violent, obscene, or discriminatory expressions, or content that causes discomfort or offense to other users, contrary to the purpose of the App.</li>
+            <li>Acts aimed at meeting unfamiliar third parties (non-acquaintance dating or encounters).</li>
+            <li>Acts that impose an excessive load on the features, network, or systems of the App, or intentionally exploiting bugs, glitches, or system vulnerabilities (including the unauthorized use of cheat tools or exploits).</li>
+            <li>Impersonating the Operator, another user, or any third party.</li>
+            <li>Harvesting, collecting, or accumulating other users' personal information without their prior consent.</li>
+            <li>Any other acts deemed inappropriate by the Operator.</li>
+        </ol>
+
+        <h2>Article 5 (Rights to Content)</h2>
+        <ol>
+            <li>Copyright and other intellectual property rights in and to the photographs, text, and other content posted by the User on the App (hereinafter referred to as "Posted Data") shall remain with the User or the third party who licensed it to the User.</li>
+            <li>The User hereby grants the Operator a royalty-free, non-exclusive, worldwide, sublicensable license to use, reproduce, modify, adapt, publish, translate, distribute, and display the Posted Data, solely within the scope of providing, improving, promoting, and advertising the App.</li>
+            <li>The User represents and warrants to the Operator that they possess all necessary legal rights to the Posted Data and that the Posted Data does not infringe upon the rights of any third party.</li>
+        </ol>
+
+        <h2>Article 6 (Suspension of the App)</h2>
+        <p>The Operator may suspend or interrupt the provision of all or part of the App without prior notice to Users if the Operator determines that any of the following circumstances apply:</p>
+        <ol>
+            <li>When performing maintenance, inspections, or updates of the computer systems related to the App.</li>
+            <li>When the provision of the App becomes difficult due to force majeure, including but not limited to earthquakes, lightning, fires, power outages, or natural disasters.</li>
+            <li>When telecommunication lines or services are suspended due to accidents or network disruptions.</li>
+            <li>In any other case where the Operator deems it difficult to provide the App.</li>
+        </ol>
+
+        <h2>Article 7 (Use Restrictions and De-registration)</h2>
+        <p>If a User violates any provision of these Terms, or if the Operator deems the User's use of the App to be inappropriate, the Operator may, without prior notice, restrict the User's use of all or part of the App, or terminate the User's registration.</p>
+
+        <h2>Article 8 (Account Deletion / Withdrawal)</h2>
+        <p>Users may delete their account and withdraw from the App at any time by following the account deletion procedures designated by the Operator within the settings screen of the App.</p>
+
+        <h2>Article 9 (Disclaimer of Warranties and Limitation of Liability)</h2>
+        <ol>
+            <li>The Operator makes no warranties, express or implied, regarding the App, including but not limited to any warranty that the App is free from factual or legal defects (including safety, reliability, accuracy, completeness, or security vulnerabilities).</li>
+            <li>Except in cases of willful misconduct or gross negligence by the Operator, the Operator shall not be liable for any damages incurred by the User arising out of or in connection with the use of the App. Even if the Operator's disclaimer of liability is not permitted under the Consumer Contract Act of Japan or other applicable laws, the Operator's liability for damages caused by its negligence (excluding gross negligence) for breach of contract or tort shall be limited to direct and ordinary damages actually incurred by the User.</li>
+            <li>The Operator shall assume no responsibility or liability for any transactions, communications, or disputes that may arise between the User and other users or third parties in connection with the App.</li>
+        </ol>
+
+        <h2>Article 10 (Modification or Termination of Services)</h2>
+        <p>The Operator reserves the right to modify, suspend, or terminate the contents, specifications, or provision of the App at any time without prior notice to the Users, and shall not be liable for any damages incurred by Users as a result of such modifications, suspension, or termination.</p>
+
+        <h2>Article 11 (Amendments to the Terms)</h2>
+        <p>The Operator may amend these Terms at any time. The amended Terms shall be made known to Users through postings within the App or update notifications. By continuing to use the App after such notification has been made, the User shall be deemed to have agreed to the amended Terms.</p>
+
+        <h2>Article 12 (Handling of Personal Information)</h2>
+        <p>Personal information acquired through the use of the App shall be handled appropriately in accordance with our separate Privacy Policy.</p>
+
+        <h2>Article 13 (Severability)</h2>
+        <p>If any provision of these Terms or any part thereof is held to be invalid or unenforceable under applicable laws, the remaining provisions of these Terms shall continue in full force and effect.</p>
+
+        <h2>Article 14 (Governing Law and Jurisdiction)</h2>
+        <ol>
+            <li>These Terms shall be governed by and construed in accordance with the laws of Japan.</li>
+            <li>Any dispute arising out of or in connection with the App shall be subject to the exclusive jurisdiction of the Niigata District Court or the Niigata Summary Court as the court of first instance.</li>
+        </ol>
+
+        <div class="contact">
+            <p><strong>Contact Information</strong><br>
+            For inquiries regarding the App, please contact:<br>
+            <strong>V EFFECT Development Team:</strong> V.EFFECT.developer@gmail.com</p>
+        </div>
+    </div>
+
+    <!-- Script for Dynamic Language Switching -->
+    <script>
+        function setLanguage(lang) {
+            document.documentElement.setAttribute('lang', lang);
+            localStorage.setItem('v-effect-lang', lang);
+            
+            // Update active class on buttons
+            document.querySelectorAll('.lang-switcher button').forEach(btn => {
+                btn.classList.toggle('active', btn.id === `btn-${lang}`);
+            });
+
+            // Update title dynamically based on selected language
+            if (lang === 'ja') {
+                document.title = "利用規約 - V EFFECT";
+            } else {
+                document.title = "Terms of Service - V EFFECT";
+            }
+        }
+
+        // Automatic language detection on load
+        (function() {
+            const savedLang = localStorage.getItem('v-effect-lang');
+            let lang = 'ja';
+            if (savedLang) {
+                lang = savedLang;
+            } else {
+                const browserLang = navigator.language || navigator.userLanguage;
+                if (browserLang && !browserLang.startsWith('ja')) {
+                    lang = 'en';
+                }
+            }
+            setLanguage(lang);
+        })();
+    </script>
 </body>
 </html>

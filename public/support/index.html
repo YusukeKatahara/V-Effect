@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,6 +17,7 @@
             padding: 20px;
             display: flex;
             justify-content: center;
+            position: relative;
         }
         .container {
             max-width: 600px;
@@ -26,6 +27,7 @@
         }
         .header {
             margin-bottom: 28px;
+            margin-right: 80px;
         }
         .header h1 {
             font-size: 22px;
@@ -208,44 +210,101 @@
             color: #444444;
             text-align: center;
         }
+
+        /* Language switcher styles */
+        .lang-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 13px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            background: #1A1A1A;
+            padding: 4px 8px;
+            border-radius: 20px;
+            border: 1px solid #333333;
+        }
+        .lang-switcher button {
+            background: none;
+            border: none;
+            color: #666666;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .lang-switcher button:hover {
+            color: #FFFFFF;
+        }
+        .lang-switcher button.active {
+            color: #FFFFFF;
+            background-color: #E53935;
+        }
+        .lang-switcher span {
+            color: #333333;
+        }
+
+        /* Visibility control based on html[lang] */
+        html[lang="ja"] .lang-en { display: none !important; }
+        html[lang="en"] .lang-ja { display: none !important; }
     </style>
 </head>
 <body>
+    <!-- Language Switcher -->
+    <div class="lang-switcher">
+        <button onclick="setLanguage('ja')" id="btn-ja">JP</button>
+        <span>|</span>
+        <button onclick="setLanguage('en')" id="btn-en">EN</button>
+    </div>
+
     <div class="container">
         <div class="header">
-            <h1>お問い合わせ</h1>
-            <p>V EFFECTに関するご質問・ご意見をお送りください。</p>
+            <h1 class="lang-ja">お問い合わせ</h1>
+            <h1 class="lang-en">Contact Us</h1>
+            <p class="lang-ja">V EFFECTに関するご質問・ご意見をお送りください。</p>
+            <p class="lang-en">Got questions or feedback about V EFFECT? We’d love to hear from you.</p>
         </div>
 
         <div class="form-card">
             <form id="contact-form">
                 <div class="field">
-                    <label for="category">カテゴリ<span class="required-badge">*</span></label>
+                    <label for="category">
+                        <span class="lang-ja">カテゴリ<span class="required-badge">*</span></span>
+                        <span class="lang-en">Category<span class="required-badge">*</span></span>
+                    </label>
                     <div class="select-wrapper">
                         <select id="category" name="category">
-                            <option value="" disabled selected>選択してください</option>
-                            <option value="バグ報告">バグ報告</option>
-                            <option value="機能要望">機能要望</option>
-                            <option value="アカウント関連">アカウント関連</option>
-                            <option value="その他">その他</option>
+                            <!-- Populated dynamically by JS based on language -->
                         </select>
                     </div>
                     <div class="error-msg" id="category-error">カテゴリを選択してください。</div>
                 </div>
 
                 <div class="field">
-                    <label for="name">お名前<span class="optional-badge">（任意）</span></label>
+                    <label for="name">
+                        <span class="lang-ja">お名前<span class="optional-badge">（任意）</span></span>
+                        <span class="lang-en">Name<span class="optional-badge">(Optional)</span></span>
+                    </label>
                     <input type="text" id="name" name="name" placeholder="例：山田 太郎" maxlength="50">
                 </div>
 
                 <div class="field">
-                    <label for="email">メールアドレス<span class="required-badge">*</span></label>
+                    <label for="email">
+                        <span class="lang-ja">メールアドレス<span class="required-badge">*</span></span>
+                        <span class="lang-en">Email Address<span class="required-badge">*</span></span>
+                    </label>
                     <input type="email" id="email" name="email" placeholder="例：example@gmail.com">
                     <div class="error-msg" id="email-error">有効なメールアドレスを入力してください。</div>
                 </div>
 
                 <div class="field">
-                    <label for="message">お問い合わせ内容<span class="required-badge">*</span></label>
+                    <label for="message">
+                        <span class="lang-ja">お問い合わせ内容<span class="required-badge">*</span></span>
+                        <span class="lang-en">Message<span class="required-badge">*</span></span>
+                    </label>
                     <textarea id="message" name="message" placeholder="できるだけ詳しくご記入ください。" maxlength="2000"></textarea>
                     <div class="char-count"><span id="char-count">0</span> / 2000</div>
                     <div class="error-msg" id="message-error">お問い合わせ内容を入力してください。</div>
@@ -257,13 +316,17 @@
 
             <div class="success-view" id="success-view">
                 <div class="success-icon">✅</div>
-                <h2>送信しました</h2>
-                <p>お問い合わせいただきありがとうございます。<br>通常 2〜3 営業日以内にご返信いたします。</p>
+                <h2 class="lang-ja">送信しました</h2>
+                <h2 class="lang-en">Message Sent!</h2>
+                <p class="lang-ja">お問い合わせいただきありがとうございます。<br>通常 2〜3 営業日以内にご返信いたします。</p>
+                <p class="lang-en">Thanks for reaching out!<br>We’ll get back to you within 2–3 business days.</p>
             </div>
         </div>
 
         <div class="alt-contact">
-            メールでのお問い合わせ：<a href="mailto:V.EFFECT.developer@gmail.com">V.EFFECT.developer@gmail.com</a>
+            <span class="lang-ja">メールでのお問い合わせ：</span>
+            <span class="lang-en">Or email us at: </span>
+            <a href="mailto:V.EFFECT.developer@gmail.com">V.EFFECT.developer@gmail.com</a>
         </div>
 
         <div class="footer">
@@ -278,6 +341,112 @@
 
     <script>
         const db = firebase.firestore();
+        let currentLang = 'ja';
+
+        // 多言語リソース定義
+        const i18n = {
+            ja: {
+                title: "V EFFECT - お問い合わせ",
+                categoryDefault: "選択してください",
+                namePlaceholder: "例：山田 太郎",
+                emailPlaceholder: "例：example@gmail.com",
+                messagePlaceholder: "できるだけ詳しくご記入ください。",
+                submitBtn: "送信する",
+                submitBtnSending: "送信中...",
+                emailError: "有効なメールアドレスを入力してください。",
+                categoryError: "カテゴリを選択してください。",
+                messageError: "お問い合わせ内容を入力してください。",
+                failMessage: "送信に失敗しました。しばらく経ってから再度お試しください。"
+            },
+            en: {
+                title: "Contact Us - V EFFECT",
+                categoryDefault: "Select a category",
+                namePlaceholder: "e.g., John Doe",
+                emailPlaceholder: "e.g., example@gmail.com",
+                messagePlaceholder: "Tell us more about your question or issue...",
+                submitBtn: "Send Message",
+                submitBtnSending: "Sending...",
+                emailError: "Please enter a valid email address.",
+                categoryError: "Please select a category.",
+                messageError: "Please enter your message.",
+                failMessage: "Failed to send. Please try again in a few moments."
+            }
+        };
+
+        // 言語設定とUI切り替え処理
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.setAttribute('lang', lang);
+            localStorage.setItem('v-effect-lang', lang);
+            
+            // トグルのボタン表示更新
+            document.querySelectorAll('.lang-switcher button').forEach(btn => {
+                btn.classList.toggle('active', btn.id === `btn-${lang}`);
+            });
+
+            // プレースホルダー等の変更
+            const t = i18n[lang];
+            document.title = t.title;
+            document.getElementById('name').placeholder = t.namePlaceholder;
+            document.getElementById('email').placeholder = t.emailPlaceholder;
+            document.getElementById('message').placeholder = t.messagePlaceholder;
+            
+            // ボタンが「送信中...」などでなければ通常テキストへ
+            const submitBtn = document.getElementById('submit-btn');
+            if (submitBtn.textContent !== i18n.ja.submitBtnSending && submitBtn.textContent !== i18n.en.submitBtnSending) {
+                submitBtn.textContent = t.submitBtn;
+            }
+
+            // エラー表示テキストの更新
+            document.getElementById('category-error').textContent = t.categoryError;
+            document.getElementById('email-error').textContent = t.emailError;
+            document.getElementById('message-error').textContent = t.messageError;
+
+            // カテゴリのセレクトボックスの再構築
+            const categorySelect = document.getElementById('category');
+            const selectedValue = categorySelect.value;
+            
+            categorySelect.innerHTML = '';
+            
+            // 初期状態用のダミーオプション
+            const defOpt = document.createElement('option');
+            defOpt.value = "";
+            defOpt.disabled = true;
+            defOpt.selected = !selectedValue;
+            defOpt.textContent = t.categoryDefault;
+            categorySelect.appendChild(defOpt);
+            
+            // 選択肢
+            const opts = [
+                { value: 'バグ報告', ja: 'バグ報告', en: 'Bug Report' },
+                { value: '機能要望', ja: '機能要望', en: 'Feature Request' },
+                { value: 'アカウント関連', ja: 'アカウント関連', en: 'Account Issue' },
+                { value: 'その他', ja: 'その他', en: 'Other' }
+            ];
+            
+            opts.forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt.value; // 管理用の値は従来の日本語値を維持し、Firestore側のルールを壊さない
+                o.selected = (selectedValue === opt.value);
+                o.textContent = lang === 'ja' ? opt.ja : opt.en;
+                categorySelect.appendChild(o);
+            });
+        }
+
+        // 初期言語判定
+        (function() {
+            const savedLang = localStorage.getItem('v-effect-lang');
+            let lang = 'ja';
+            if (savedLang) {
+                lang = savedLang;
+            } else {
+                const browserLang = navigator.language || navigator.userLanguage;
+                if (browserLang && !browserLang.startsWith('ja')) {
+                    lang = 'en';
+                }
+            }
+            setLanguage(lang);
+        })();
 
         // 文字数カウンター
         const messageEl = document.getElementById('message');
@@ -318,8 +487,9 @@
 
             const submitBtn = document.getElementById('submit-btn');
             const formError = document.getElementById('form-error');
+            
             submitBtn.disabled = true;
-            submitBtn.textContent = '送信中...';
+            submitBtn.textContent = i18n[currentLang].submitBtnSending;
             formError.style.display = 'none';
 
             try {
@@ -330,16 +500,17 @@
                     message: message,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     userAgent: navigator.userAgent,
+                    submitLang: currentLang, // どちらの言語から送信されたかも記録
                 });
 
                 document.getElementById('contact-form').style.display = 'none';
                 document.getElementById('success-view').style.display = 'block';
             } catch (err) {
                 console.error('送信エラー:', err);
-                formError.textContent = '送信に失敗しました。しばらく経ってから再度お試しください。';
+                formError.textContent = i18n[currentLang].failMessage;
                 formError.style.display = 'block';
                 submitBtn.disabled = false;
-                submitBtn.textContent = '送信する';
+                submitBtn.textContent = i18n[currentLang].submitBtn;
             }
         });
     </script>
