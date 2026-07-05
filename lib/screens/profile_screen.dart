@@ -887,10 +887,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         },
                         child: Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           decoration: BoxDecoration(
                             color: AppColors.bgElevated,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: AppColors.accentGold, width: 1.5),
                             boxShadow: [
                               BoxShadow(
@@ -1205,7 +1205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: AppColors.bgSurface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.border),
         ),
         child: Row(
@@ -1342,59 +1342,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: AppColors.bgElevated,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: AppColors.accentGold.withValues(alpha: 0.3),
-            width: 1,
+            color: AppColors.accentGold,
+            width: 1.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.isDark
+                  ? Colors.transparent
+                  : AppColors.accentGold.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.accentGold.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.star_rounded,
-                color: AppColors.accentGold,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'WEEKLY REVIEW 🎉',
+                    'WEEKLY REVIEW',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.accentGold.withValues(alpha: 0.8),
+                      color: AppColors.accentGold,
                       letterSpacing: 1.0,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     '今週の振り返りをもう一度見る',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.pureWhite,
+                    style: GoogleFonts.notoSansJp(
+                      fontSize: 14,
+                      color: AppColors.white,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios_rounded,
-              color: Colors.white30,
+              color: AppColors.white.withValues(alpha: 0.3),
               size: 14,
             ),
           ],

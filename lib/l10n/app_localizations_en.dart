@@ -548,6 +548,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editProfileUserIdAlphanumeric => 'Only letters, numbers, and underscores';
 
   @override
+  String get editProfileInstagramIdAlphanumeric => 'Only letters, numbers, underscores, and dots';
+
+  @override
   String get editProfileUserIdAlreadyUsed => 'This user ID is already taken';
 
   @override

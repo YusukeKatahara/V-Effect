@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../config/app_colors.dart';
-import '../services/friend_service.dart';
 import '../models/friend_request.dart';
-import '../services/user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../widgets/notification_prompt_sheet.dart';

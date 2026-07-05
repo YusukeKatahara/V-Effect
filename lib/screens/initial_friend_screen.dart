@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
-import '../services/analytics_service.dart';
 import '../services/friend_service.dart';
 import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';

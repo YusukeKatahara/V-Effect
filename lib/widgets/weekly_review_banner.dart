@@ -46,32 +46,32 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // パルス発光エフェクト
-            AnimatedBuilder(
-              animation: _pulseAnimation,
-              builder: (context, child) {
-                return Container(
-                  height: 64,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.accentGold.withValues(alpha: 0.2 * _pulseAnimation.value),
-                        blurRadius: 20 * _pulseAnimation.value,
-                        spreadRadius: 2 * _pulseAnimation.value,
-                      ),
-                    ],
-                  ),
-                );
-              },
+            // パルス発光エフェクト (Positioned.fillで本体サイズに自動追随)
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (context, child) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.accentGold.withValues(alpha: 0.2 * _pulseAnimation.value),
+                          blurRadius: 20 * _pulseAnimation.value,
+                          spreadRadius: 2 * _pulseAnimation.value,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
             
             // 本体
             Container(
-              height: 64,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 gradient: LinearGradient(
                   colors: AppColors.isDark
                       ? const [
@@ -92,24 +92,6 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
               ),
               child: Row(
                 children: [
-                  // アイコン
-                  Container(
-                     width: 40,
-                     height: 40,
-                     decoration: BoxDecoration(
-                       color: AppColors.accentGold.withValues(
-                         alpha: AppColors.isDark ? 0.1 : 0.15,
-                       ),
-                       shape: BoxShape.circle,
-                     ),
-                    child: Icon(
-                      Icons.star_rounded,
-                      color: AppColors.accentGold,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  
                   // テキスト
                   Expanded(
                     child: Column(
@@ -117,7 +99,7 @@ class _WeeklyReviewBannerState extends State<WeeklyReviewBanner>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'WEEKLY REVIEW 🎉',
+                          'WEEKLY REVIEW',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,

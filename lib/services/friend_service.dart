@@ -1,9 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:kana_kit/kana_kit.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_request.dart';
-import '../models/app_notification.dart';
 import '../models/app_user.dart';
 import 'analytics_service.dart';
 import 'block_service.dart';

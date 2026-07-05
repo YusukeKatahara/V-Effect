@@ -11,8 +11,8 @@ import '../config/routes.dart';
 import '../models/dev_blog_post.dart';
 import '../providers/dev_blog_provider.dart';
 import '../providers/language_provider.dart';
-import '../services/dev_blog_service.dart';
 import '../providers/service_providers.dart';
+import '../widgets/branded_loading.dart';
 
 class BlogPostDetailScreen extends ConsumerStatefulWidget {
   const BlogPostDetailScreen({super.key});
@@ -53,7 +53,7 @@ class _BlogPostDetailScreenState extends ConsumerState<BlogPostDetailScreen> {
         stream: ref.read(devBlogServiceProvider).getPost(_postId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting && _initialPost == null) {
-            return Center(child: CircularProgressIndicator(color: AppColors.accentGold));
+            return const BrandedFullPageLoading();
           }
           
           final post = snapshot.data ?? _initialPost;

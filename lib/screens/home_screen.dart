@@ -16,8 +16,6 @@ import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
-import '../services/analytics_service.dart';
-import '../services/block_service.dart';
 import '../services/sound_service.dart';
 import '../providers/service_providers.dart';
 import '../utils/ad_helper.dart';
@@ -42,6 +40,10 @@ import 'home/components/floating_flames_layer.dart';
 import 'home/components/dopamine_emoji_explosion_layer.dart';
 import 'home/components/bgm_indicator.dart';
 import '../widgets/frictionless_page_scroll_physics.dart';
+import 'home/components/swipe_guide_overlay.dart';
+import 'home/components/tooltip_tail_painter.dart';
+import 'home/components/home_error_body.dart';
+import 'home/components/new_posts_button.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final ValueChanged<bool>? onLoadingChanged;
@@ -118,7 +120,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   int _lastFocusedIndex = -1;
 
+  /// フィードがアンロックされているか（今日投稿済み、または投稿アップロード中/成功状態）を判定するゲッター
+  bool get _isFeedUnlocked {
+    if (!mounted) return false;
+    final uploadState = ref.read(uploadProvider);
+    return _postedToday ||
+        uploadState.status == UploadStatus.uploading ||
+        uploadState.status == UploadStatus.success;
+  }
+
   void _playBgmForFocusedPost() async {
+    // フィードがロックされている場合はBGMを再生せず、再生中のものがあれば停止する
+    if (!_isFeedUnlocked) {
+      await _soundService.stopBgm();
+      return;
+    }
+
     final currentFocused = _focusedIndex;
     if (_feedItems.isEmpty || currentFocused < 0 || currentFocused >= _feedItems.length) return;
 
@@ -923,6 +940,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       // 今週の振り返りを既読（一度開いた）状態にする
       await markWeeklyReviewAsRead(ref);
 
+      if (!mounted) return;
+
       Navigator.push(
 
         context,
@@ -1100,6 +1119,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final homeAsync = ref.watch(homeDataProvider);
     final uploadState = ref.watch(uploadProvider);
 
+    // ── 投稿が完了してロック解除（または状態変更）された瞬間にBGMの再生・停止を同期する ──
+    ref.listen<UploadState>(uploadProvider, (previous, next) {
+      final wasUnlocked = _postedToday ||
+          previous?.status == UploadStatus.uploading ||
+          previous?.status == UploadStatus.success;
+      final isUnlocked = _postedToday ||
+          next.status == UploadStatus.uploading ||
+          next.status == UploadStatus.success;
+      
+      if (wasUnlocked != isUnlocked) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _playBgmForFocusedPost();
+        });
+      }
+    });
+
+    ref.listen<AsyncValue<HomeData>>(homeDataProvider, (previous, next) {
+      final prevUpload = ref.read(uploadProvider);
+      final wasUnlocked = (previous?.valueOrNull?.postedToday ?? false) ||
+          prevUpload.status == UploadStatus.uploading ||
+          prevUpload.status == UploadStatus.success;
+          
+      final isUnlocked = (next.valueOrNull?.postedToday ?? false) ||
+          prevUpload.status == UploadStatus.uploading ||
+          prevUpload.status == UploadStatus.success;
+      
+      if (wasUnlocked != isUnlocked) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _playBgmForFocusedPost();
+        });
+      }
+    });
+
     // ── UIスレッドでの実行を保証し、ローカル状態を同期 (データがある場合のみ) ──
     homeAsync.whenData((homeData) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1242,10 +1294,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             }
           }
         }
+        final oldLength = _feedItems.length;
         _feedItems = newItems;
+        final newLength = _feedItems.length;
         
-        // リフレッシュ要求があれば先頭へジャンプ
-        if (_needsRefreshJump && _feedItems.isNotEmpty) {
+        // 1. リフレッシュ要求（手動プル）がある場合
+        // 2. または、ユーザーが先頭にいて裏でデータ枚数が変わった場合（コールドスタート時など）
+        // -> 無限スクロールの余り計算ズレを防ぐため、強制的に新しい先頭へジャンプさせる
+        if ((_needsRefreshJump || (isTopPage && oldLength != newLength)) && _feedItems.isNotEmpty) {
           _needsRefreshJump = false;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _pageController.hasClients) {
@@ -1305,7 +1361,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             // 初回ロード: まだ一度もデータを受信していない
             homeAsync.when(
               loading: () => HomeSkeletonBody(titleBar: _buildTitleBar()),
-              error: (err, stack) => _buildErrorBody(err),
+              error: (err, stack) => HomeErrorBody(
+                error: err,
+                onRetry: () => ref.invalidate(homeDataProvider),
+              ),
               data: (_) => _buildMainContent(uploadState),
             ),
           ] else ...[
@@ -1353,7 +1412,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               right: 0,
               child: Align(
                 alignment: Alignment.topCenter,
-                child: _buildNewPostsButton(),
+                child: NewPostsButton(
+                  onTap: () {
+                    if (_pageController.hasClients && _feedItems.isNotEmpty) {
+                      setState(() {
+                        _showNewPostsButton = false;
+                      });
+                      final targetIndex = 100000 - (100000 % _feedItems.length);
+                      _pageController.animateToPage(
+                        targetIndex,
+                        duration: const Duration(milliseconds: 600),
+                        curve: Curves.easeInOutCubic,
+                      );
+                    }
+                  },
+                ),
               ),
             ),
         ],
@@ -1392,78 +1465,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     : _buildCardStack()),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildErrorBody(Object err) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, color: AppColors.accentGold, size: 48),
-          const SizedBox(height: 16),
-          Text(AppLocalizations.of(context)!.homeErrorOccurred, style: GoogleFonts.outfit(color: AppColors.white)),
-          const SizedBox(height: 8),
-          Text('$err', style: TextStyle(color: AppColors.grey50, fontSize: 12)),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.grey10,
-              foregroundColor: AppColors.white,
-            ),
-            onPressed: () => ref.invalidate(homeDataProvider),
-            child: Text(AppLocalizations.of(context)!.homeRetry),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNewPostsButton() {
-    return GestureDetector(
-      onTap: () {
-        if (_pageController.hasClients && _feedItems.isNotEmpty) {
-          setState(() {
-            _showNewPostsButton = false;
-          });
-          final targetIndex = 100000 - (100000 % _feedItems.length);
-          _pageController.animateToPage(
-            targetIndex,
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOutCubic,
-          );
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.accentGold.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.black.withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.arrow_upward_rounded, color: AppColors.black, size: 16),
-            const SizedBox(width: 6),
-            Text(
-              AppLocalizations.of(context)!.homeNewPostsAvailable,
-              style: GoogleFonts.outfit(
-                color: AppColors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1822,7 +1823,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                         width: 12,
                                         height: 8,
                                         child: CustomPaint(
-                                          painter: _TooltipTailPainter(color: AppColors.accentGold),
+                                          painter: TooltipTailPainter(color: AppColors.accentGold),
                                         ),
                                       ),
                                     ],
@@ -1915,43 +1916,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
             // ── Swipe Guide Tutorial UI ──
             if (_showSwipeGuide && _feedItems.length > 1)
-              IgnorePointer(
-                child: SizedBox(
-                  width: finalCardWidth + 64, // カードの左右端の少し外側に配置
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      AnimatedBuilder(
-                        animation: _swipeGuideTranslation,
-                        builder: (context, child) {
-                          return Transform.translate(
-                            offset: Offset(-_swipeGuideTranslation.value, 0),
-                            child: child,
-                          );
-                        },
-                        child: Icon(
-                          Icons.chevron_left_rounded,
-                          color: AppColors.accentGold.withValues(alpha: 0.7),
-                          size: 40,
-                        ),
-                      ),
-                      AnimatedBuilder(
-                        animation: _swipeGuideTranslation,
-                        builder: (context, child) {
-                          return Transform.translate(
-                            offset: Offset(_swipeGuideTranslation.value, 0),
-                            child: child,
-                          );
-                        },
-                        child: Icon(
-                          Icons.chevron_right_rounded,
-                          color: AppColors.accentGold.withValues(alpha: 0.7),
-                          size: 40,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              SwipeGuideOverlay(
+                cardWidth: finalCardWidth,
+                translationAnimation: _swipeGuideTranslation,
               ),
           ],
         ),
@@ -2144,24 +2111,3 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 }
 
-// ────────────────────────────────────────────
-// Tooltip Tail Painter
-// ────────────────────────────────────────────
-class _TooltipTailPainter extends CustomPainter {
-  final Color color;
-  _TooltipTailPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

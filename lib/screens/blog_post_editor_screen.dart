@@ -11,7 +11,6 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/dev_blog_post.dart';
 import '../models/season.dart';
-import '../services/dev_blog_service.dart';
 import '../providers/service_providers.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/v_effect_header.dart';

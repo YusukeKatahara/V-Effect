@@ -1,13 +1,6 @@
-import 'dart:async';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 
 import '../config/app_colors.dart';
 import '../models/post.dart';
@@ -16,6 +9,7 @@ import 'share_preview_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
+import '../widgets/branded_loading.dart';
 
 /// 今週の振り返りをVウォール形式で表示する画面
 class WeeklyReviewScreen extends ConsumerStatefulWidget {
@@ -46,7 +40,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
   bool _isDataInitialized = false;
 
   final GlobalKey _summaryKey = GlobalKey();
-  bool _isSharing = false;
+  final bool _isSharing = false;
 
   @override
   void initState() {
@@ -171,7 +165,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     if (!_isDataInitialized) {
       final reviewAsync = ref.watch(weeklyReviewProvider);
       return reviewAsync.when(
-        loading: () => Scaffold(backgroundColor: AppColors.bgBase, body: Center(child: CircularProgressIndicator())),
+        loading: () => const BrandedFullPageLoading(),
         error: (err, stack) => Scaffold(
           backgroundColor: AppColors.bgBase,
           body: Center(child: Text(AppLocalizations.of(context)!.weeklyReviewLoadError(err), style: TextStyle(color: AppColors.white))),
@@ -190,7 +184,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
               _precacheImages();
             }
           });
-          return Scaffold(backgroundColor: AppColors.bgBase, body: Center(child: CircularProgressIndicator()));
+          return const BrandedFullPageLoading();
         },
       );
     }

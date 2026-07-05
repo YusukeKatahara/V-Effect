@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_colors.dart';
 
 /// 骨組み（スケルトン）表示用の、アニメーション付きプレースホルダーウィジェット
 ///
@@ -68,11 +69,17 @@ class _ShimmerContainerState extends State<ShimmerContainer>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: const [
-                Color(0xFF161616), // 基本の背景色（暗いグレー）
-                Color(0xFF262626), // 流れる光の色（少し明るいグレー）
-                Color(0xFF161616), // 基本の背景色
-              ],
+              colors: AppColors.isDark
+                  ? const [
+                      Color(0xFF161616), // 基本の背景色（暗いグレー）
+                      Color(0xFF262626), // 流れる光の色（少し明るいグレー）
+                      Color(0xFF161616), // 基本の背景色
+                    ]
+                  : const [
+                      Color(0xFFE8E8E8), // ライトモード基本色
+                      Color(0xFFF5F5F5), // ライトモード光の色
+                      Color(0xFFE8E8E8), // ライトモード基本色
+                    ],
               stops: const [0.3, 0.5, 0.7],
               transform: _SlidingGradientTransform(slidePercent: _controller.value),
             ),

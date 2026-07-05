@@ -6,7 +6,6 @@ import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../../../config/app_colors.dart';
 import '../../../models/post.dart';
-import '../../../services/sound_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/service_providers.dart';
 import '../../../widgets/reaction_avatars.dart';

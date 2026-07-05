@@ -4,8 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
-import '../services/analytics_service.dart';
-import '../services/user_service.dart';
 import '../widgets/premium_background.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/premium_icon_header.dart';

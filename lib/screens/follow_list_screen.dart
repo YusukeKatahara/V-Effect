@@ -8,6 +8,7 @@ import '../services/friend_service.dart';
 import '../providers/service_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/swipe_back_gate.dart';
+import '../widgets/shimmer_container.dart';
 
 /// フォロー中 / フォロワー 一覧画面
 ///
@@ -100,7 +101,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
         title: Text(_title, style: TextStyle(color: AppColors.textPrimary)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildShimmerList()
           : Column(
               children: [
                 if (_showPendingBanner) _buildPendingBanner(),
@@ -211,6 +212,34 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
       child: user.photoUrl == null
           ? Icon(Icons.person, color: AppColors.textMuted, size: 22)
           : null,
+    );
+  }
+
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      itemCount: 8,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              const ShimmerContainer.circular(size: 44),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const ShimmerContainer(width: 120, height: 16, borderRadius: 4),
+                    const SizedBox(height: 6),
+                    const ShimmerContainer(width: 80, height: 12, borderRadius: 4),
+                  ],
+                ),
+              ),
+              const ShimmerContainer(width: 16, height: 16, borderRadius: 4),
+            ],
+          ),
+        );
+      },
     );
   }
 }

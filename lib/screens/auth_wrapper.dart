@@ -5,8 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/routes.dart';
-import '../services/analytics_service.dart';
-import '../services/user_service.dart';
 import '../providers/service_providers.dart';
 import '../widgets/splash_loading.dart';
 import '../widgets/global_error_widget.dart';

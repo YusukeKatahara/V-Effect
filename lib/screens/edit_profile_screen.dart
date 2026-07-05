@@ -181,7 +181,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             (context) => AlertDialog(
               backgroundColor: AppColors.bgElevated,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
               title: Text(
                 AppLocalizations.of(context)!.editProfileConfirmTitle,
@@ -525,13 +525,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         const SizedBox(height: 16),
         InkWell(
           onTap: _showDatePickerBottomSheet,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
               color: AppColors.bgElevated,
               border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -557,13 +557,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         const SizedBox(height: 12),
         InkWell(
           onTap: _showGenderPickerBottomSheet,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
               color: AppColors.bgElevated,
               border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -731,7 +731,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       validator: (v) {
         if (v != null && v.trim().isNotEmpty) {
           if (!RegExp(r'^[a-zA-Z0-9_\.]+$').hasMatch(v.trim())) {
-            return '英数字、アンダースコア、ドットのみ使えます';
+            return AppLocalizations.of(context)!.editProfileInstagramIdAlphanumeric;
           }
         }
         return null;

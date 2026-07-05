@@ -1133,6 +1133,12 @@ abstract class AppLocalizations {
   /// **'英数字とアンダースコアのみ使えます'**
   String get editProfileUserIdAlphanumeric;
 
+  /// No description provided for @editProfileInstagramIdAlphanumeric.
+  ///
+  /// In ja, this message translates to:
+  /// **'英数字、アンダースコア、ドットのみ使えます'**
+  String get editProfileInstagramIdAlphanumeric;
+
   /// No description provided for @editProfileUserIdAlreadyUsed.
   ///
   /// In ja, this message translates to:

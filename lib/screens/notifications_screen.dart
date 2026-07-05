@@ -7,7 +7,6 @@ import '../models/app_user.dart';
 import '../models/app_notification.dart';
 import '../services/notification_service.dart';
 import '../services/friend_service.dart';
-import '../services/user_service.dart';
 import '../utils/date_helper.dart';
 import '../widgets/swipe_back_gate.dart';
 import '../widgets/shimmer_container.dart';
@@ -15,7 +14,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/service_providers.dart';
 import '../providers/dev_blog_provider.dart';
 import '../providers/language_provider.dart';
-import '../models/dev_blog_post.dart';
 
 /// 通知画面
 class NotificationsScreen extends ConsumerStatefulWidget {

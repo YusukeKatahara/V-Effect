@@ -227,6 +227,7 @@
   "editProfileUserIdRequired": "Please enter a user ID",
   "editProfileUserIdMinLength": "Must be at least 5 characters",
   "editProfileUserIdAlphanumeric": "Only letters, numbers, and underscores",
+  "editProfileInstagramIdAlphanumeric": "Only letters, numbers, underscores, and dots",
   "editProfileUserIdAlreadyUsed": "This user ID is already taken",
   "editProfileRestrictionMessage": "Your user ID cannot be changed for 90 days after the last change.\nPlease wait {days} more day(s).",
   "@editProfileRestrictionMessage": {

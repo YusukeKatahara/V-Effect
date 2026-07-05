@@ -6,6 +6,7 @@ import '../models/friend_request.dart';
 import '../providers/service_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/swipe_back_gate.dart';
+import '../widgets/shimmer_container.dart';
 
 /// 届いているフォロー申請一覧画面
 class PendingRequestsScreen extends ConsumerWidget {
@@ -31,7 +32,7 @@ class PendingRequestsScreen extends ConsumerWidget {
           stream: friendService.getReceivedRequests(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return _buildShimmerList();
             }
             final requests = snapshot.data ?? [];
             if (requests.isEmpty) {
@@ -56,6 +57,37 @@ class PendingRequestsScreen extends ConsumerWidget {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              const ShimmerContainer.circular(size: 44),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const ShimmerContainer(width: 120, height: 16, borderRadius: 4),
+                    const SizedBox(height: 6),
+                    const ShimmerContainer(width: 80, height: 12, borderRadius: 4),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const ShimmerContainer(width: 60, height: 28, borderRadius: 14),
+              const SizedBox(width: 8),
+              const ShimmerContainer(width: 60, height: 28, borderRadius: 14),
+            ],
+          ),
+        );
+      },
     );
   }
 }

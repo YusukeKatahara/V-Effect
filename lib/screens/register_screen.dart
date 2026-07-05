@@ -6,8 +6,6 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 
-import '../services/analytics_service.dart';
-import '../services/auth_service.dart';
 import '../services/push_notification_service.dart';
 import '../widgets/animated_v_logo.dart';
 import '../widgets/responsive_container.dart';

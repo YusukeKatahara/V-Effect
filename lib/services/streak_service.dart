@@ -1,10 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/app_user.dart';
 import '../utils/date_helper.dart';
-import 'notification_service.dart';
-import '../models/app_notification.dart';
 
 /// ストリーク（連続記録）に関するロジックを専門に担当するサービス
 class StreakService {

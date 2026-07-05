@@ -106,7 +106,7 @@ class PostService {
 
     // 開催期間内のシーズンタスクをメモリ上で抽出（endDateがない、または現在時刻より後）
     final activeSeasons = seasonsSnap.docs.map((doc) => Season.fromFirestore(doc)).where((s) {
-      return s.endDate == null || now.isBefore(s.endDate);
+      return now.isBefore(s.endDate);
     }).toList();
 
     // シーズンタスクを AppTask オブジェクトに変換

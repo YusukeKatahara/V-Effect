@@ -48,13 +48,25 @@ description: V EFFECT プロジェクトのコーディング規約。Dartコー
 
 ---
 
-### 4. Design System (デザインシステム)
+### 4. Design System & UI/UX Consistency (デザインシステムとUI/UXの一貫性)
+
+ブランド力を高め、ユーザーに洗練された一貫性のある体験（UX）を提供するため、以下のデザインルールを厳守してください。
 
 - **Absolute Monochrome + Gold Accent**:
-  - `AppColors.white`, `AppColors.black`, `AppColors.grey...` 以外の色は直接指定しない（エラー表示など例外を除く）。
-  - アクセントカラーとして `AppColors.accentGold` を効果的に使用する。
-- **Typography**: 
+  - `AppColors.white`, `AppColors.black`, `AppColors.grey...` 以外の色は直接指定しない（エラー表示などの例外を除く）。
+  - アクセントカラーとして `AppColors.accentGold` を効果的に使用し、アプリの「勝利（Victory）」や「プレミアム感」を演出する。
+- **Typography (タイポグラフィの統一)**:
   - `google_fonts` (Inter, Orbitron, Outfit 等) を使用し、システムのデフォルトフォントに依存しない。
+  - フォントファミリーの使い分け（例: 数値や英字タイトルには `Orbitron` や `Outfit`、通常の読みやすい文章には `Inter`）を統一する。
+- **Component Standardization (UIコンポーネントの共通化と再利用)**:
+  - ボタン（`PrimaryButton` や `GoldButton` など）、ダイアログ、テキスト入力フィールド、カード等の主要コンポーネントは、個別の画面でアドホックにスタイリングせず、共通パーツ（`lib/widgets/` 配下）を再利用する。
+  - 新規にカスタムUIを作成する際は、既存のUIとの類似性を担保し、形状・角丸（`BorderRadius`）・影（`BoxShadow`）のパラメータを一貫させる。
+- **Micro-Animations & Transitions (アニメーションの一貫性)**:
+  - 画面遷移（Transition）やボタン押下時のフィードバック、達成演出などのアニメーションは、イージングや速度を一貫させる（例: `Curves.easeOutExpo`, 200ms〜300ms）。
+  - ゴールドの光彩（Glow）やフェードインなどのプレミアム演出をルール化し、アプリ全体の「V EFFECT」としてのブランド体験を統一する。
+- **UX & Messaging Tone (メッセージングとフィードバックの一貫性)**:
+  - エラーメッセージや案内文は、ユーザーを責めないポジティブな表現（「エラーが発生しました」ではなく、親しみやすく丁寧なトーン）に統一する。
+  - 操作完了時（投稿完了、目標達成時）には、必ず「お祝い」や「承認」を想起させる気持ちの良いインタラクションや視覚的フィードバック（ゴールドアクセントの演出等）を提供する。
 
 ---
 

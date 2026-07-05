@@ -7,9 +7,7 @@ import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
-import '../services/block_service.dart';
 import '../services/friend_service.dart';
-import '../services/user_service.dart';
 import '../widgets/swipe_back_gate.dart';
 import '../widgets/full_screen_image_viewer.dart';
 import '../widgets/v_badge_widget.dart';

@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/service_providers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/shimmer_container.dart';
+import '../widgets/branded_loading.dart';
 
 class PastComparisonScreen extends ConsumerStatefulWidget {
   final List<AppTask> userTasks;
@@ -573,7 +574,7 @@ class _PastComparisonScreenState extends ConsumerState<PastComparisonScreen> wit
         ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: AppColors.accentGold))
+          ? const BrandedFullPageLoading()
           : _validTaskIds.isEmpty
               ? _buildEmptyState()
               : TabBarView(

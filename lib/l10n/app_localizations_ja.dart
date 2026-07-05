@@ -548,6 +548,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get editProfileUserIdAlphanumeric => '英数字とアンダースコアのみ使えます';
 
   @override
+  String get editProfileInstagramIdAlphanumeric => '英数字、アンダースコア、ドットのみ使えます';
+
+  @override
   String get editProfileUserIdAlreadyUsed => 'このユーザーIDは既に使われています';
 
   @override

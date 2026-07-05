@@ -11,9 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
-import '../widgets/post_success_dialog.dart';
 import '../widgets/swipe_to_post_button.dart';
-import '../services/post_service.dart';
 
 import '../services/music_api_service.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -26,7 +24,6 @@ import '../providers/home_provider.dart';
 import '../providers/upload_provider.dart';
 import '../providers/service_providers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../widgets/black_hole_loading_overlay.dart';
 import '../widgets/v_badge_widget.dart';
 import '../screens/home/components/bgm_indicator.dart';
 
