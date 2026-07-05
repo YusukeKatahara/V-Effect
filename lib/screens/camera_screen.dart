@@ -415,22 +415,27 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     if (_image == null) return;
     final taskName = _taskName ?? AppLocalizations.of(context)!.cameraScreenTaskDefault;
 
+    // ── キャプチャ処理の実行 ──
+    // ローディング状態（_isUploading = true）になってUIが再描画・非活性化される前に、
+    // 現在のプレビュー（ドラッグ＆ズームが適用されたもの）を確実にキャプチャします。
+    final rawBytes = await _capturePng();
+
     setState(() => _isUploading = true);
 
     try {
-      final rawBytes = await _capturePng() ?? await _image!.readAsBytes();
+      final finalRawBytes = rawBytes ?? await _image!.readAsBytes();
       final captionText = _captionController.text.trim();
 
       // 超高速ネイティブ圧縮：巨大なPNG（約2〜4MB）を軽量JPEG（約200KB）へ変換
       final compressedBytes = await FlutterImageCompress.compressWithList(
-        rawBytes,
+        finalRawBytes,
         minWidth: 1080,
         minHeight: 1920,
         quality: 80,
         format: CompressFormat.jpeg,
       );
 
-      final finalBytes = compressedBytes.isNotEmpty ? compressedBytes : rawBytes;
+      final finalBytes = compressedBytes.isNotEmpty ? compressedBytes : finalRawBytes;
 
       // バックグラウンドで非同期にアップロードを開始
       ref.read(uploadProvider.notifier).startUpload(
