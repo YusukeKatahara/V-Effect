@@ -343,7 +343,7 @@ class _CategoryChip extends StatelessWidget {
         border: Border.all(color: AppColors.grey30, width: 0.5),
       ),
       child: Text(
-        category.label,
+        category.label(context),
         style: GoogleFonts.outfit(
           fontSize: 12,
           color: AppColors.grey70,

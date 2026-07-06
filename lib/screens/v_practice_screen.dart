@@ -271,7 +271,7 @@ class _CategoryBadge extends StatelessWidget {
         border: Border.all(color: AppColors.grey30, width: 0.5),
       ),
       child: Text(
-        category.label,
+        category.label(context),
         style: GoogleFonts.outfit(
           fontSize: 11,
           color: AppColors.grey70,

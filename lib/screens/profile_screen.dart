@@ -1377,7 +1377,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '今週の振り返りをもう一度見る',
+                    AppLocalizations.of(context)!.weeklyReviewReplay,
                     style: GoogleFonts.notoSansJp(
                       fontSize: 14,
                       color: AppColors.white,

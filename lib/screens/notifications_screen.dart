@@ -861,7 +861,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                   border: Border.all(color: AppColors.grey20, width: 0.5),
                                 ),
                                 child: Text(
-                                  post.category.label,
+                                  post.category.label(context),
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: AppColors.grey70,

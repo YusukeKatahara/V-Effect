@@ -112,6 +112,7 @@
   "weeklyReviewStatVFire": "Total VFIRE",
   "weeklyReviewStatReactions": "Reactions",
   "weeklyReviewNoPosts": "No posts this week",
+  "weeklyReviewReplay": "Replay this week's review",
   "authWrapperConnecting": "Taking a moment to connect...",
   "authWrapperRetry": "Retry",
   "firestoreReadError": "Firestore error: {error}",

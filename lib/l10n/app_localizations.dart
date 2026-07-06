@@ -683,6 +683,12 @@ abstract class AppLocalizations {
   /// **'今週の投稿はまだありません'**
   String get weeklyReviewNoPosts;
 
+  /// No description provided for @weeklyReviewReplay.
+  ///
+  /// In ja, this message translates to:
+  /// **'今週の振り返りをもう一度見る'**
+  String get weeklyReviewReplay;
+
   /// No description provided for @authWrapperConnecting.
   ///
   /// In ja, this message translates to:

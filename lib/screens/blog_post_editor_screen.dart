@@ -756,7 +756,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
                   ),
                 ),
                 child: Text(
-                  cat.label,
+                  cat.label(context),
                   style: GoogleFonts.outfit(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

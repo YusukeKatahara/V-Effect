@@ -112,6 +112,7 @@
   "weeklyReviewStatVFire": "累計VFIRE",
   "weeklyReviewStatReactions": "リアクション",
   "weeklyReviewNoPosts": "今週の投稿はまだありません",
+  "weeklyReviewReplay": "今週の振り返りをもう一度見る",
   "authWrapperConnecting": "接続に時間がかかっています...",
   "authWrapperRetry": "再試行",
   "firestoreReadError": "Firestore読み込みエラー: {error}",

@@ -7,6 +7,39 @@ import '../../../config/app_colors.dart';
 // （週間トレンドのタスクを表示し、タップで追加できる）
 // ---────────────────────────────────────────────
 
+// ---タスク名の日本語から英語への翻訳辞書
+const Map<String, String> _taskNameTranslationMap = {
+  '筋トレ': 'Workout',
+  '感謝': 'Gratitude',
+  '早起き': 'Early Rising',
+  'プログラミング': 'Coding',
+  '研究': 'Research',
+  '開発': 'Development',
+  'ポケモン': 'Pokémon',
+  'ゲーム': 'Gaming',
+  'ランク戦': 'Ranked Match',
+  '計画': 'Planning',
+  'セルフケア': 'Self-care',
+  '読書': 'Reading',
+  '勉強': 'Studying',
+  '英語': 'English Study',
+  '瞑想': 'Meditation',
+  'ランニング': 'Running',
+  '散歩': 'Walking',
+  'ストレッチ': 'Stretching',
+  'ヨガ': 'Yoga',
+  '日記': 'Journaling',
+  '片付け': 'Cleaning',
+  '掃除': 'Cleaning',
+  '自炊': 'Cooking',
+  '水分補給': 'Hydration',
+  '休養': 'Rest',
+  '睡眠': 'Sleep',
+  'ウォーキング': 'Walking',
+  '創作': 'Creative Work',
+  '仕事': 'Work',
+};
+
 /// トレンドタスクのボトムシートを表示する関数
 void showTrendingTasksBottomSheet(
   BuildContext context, {
@@ -69,10 +102,13 @@ void showTrendingTasksBottomSheet(
                         separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final trend = trendingTasks[index];
-                          final name = trend['name'] as String? ?? '';
-                          final count = (trend['count'] as num?)?.toInt() ?? 0;
-                          if (name.isEmpty) return const SizedBox.shrink();
+                          final rawName = trend['name'] as String? ?? '';
+                          if (rawName.isEmpty) return const SizedBox.shrink();
 
+                          final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+                          final name = isEnglish ? (_taskNameTranslationMap[rawName] ?? rawName) : rawName;
+
+                          final count = (trend['count'] as num?)?.toInt() ?? 0;
                           final percentage = totalCount > 0 ? (count / totalCount * 100).toStringAsFixed(1) : '0.0';
 
                           return InkWell(

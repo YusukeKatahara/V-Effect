@@ -307,6 +307,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weeklyReviewNoPosts => 'No posts this week';
 
   @override
+  String get weeklyReviewReplay => 'Replay this week\'s review';
+
+  @override
   String get authWrapperConnecting => 'Taking a moment to connect...';
 
   @override

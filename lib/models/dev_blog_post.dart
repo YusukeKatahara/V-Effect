@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum BlogCategory {
@@ -8,18 +8,20 @@ enum BlogCategory {
   thanks,
   seasonTask;
 
-  String get label {
+  String label(BuildContext context) {
+    final locale = Localizations.localeOf(context).languageCode;
+    final isJa = locale == 'ja';
     switch (this) {
       case BlogCategory.progress:
-        return '開発進捗';
+        return isJa ? '開発進捗' : 'Dev Progress';
       case BlogCategory.concept:
-        return '新構想';
+        return isJa ? '新構想' : 'Concept';
       case BlogCategory.howto:
-        return '使い方';
+        return isJa ? 'ヒント' : 'Tips';
       case BlogCategory.thanks:
-        return '感謝';
+        return isJa ? '感謝' : 'Thanks';
       case BlogCategory.seasonTask:
-        return 'シーズンタスク';
+        return isJa ? 'シーズンタスク' : 'Season Task';
     }
   }
 }

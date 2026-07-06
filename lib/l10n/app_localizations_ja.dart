@@ -307,6 +307,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get weeklyReviewNoPosts => '今週の投稿はまだありません';
 
   @override
+  String get weeklyReviewReplay => '今週の振り返りをもう一度見る';
+
+  @override
   String get authWrapperConnecting => '接続に時間がかかっています...';
 
   @override
