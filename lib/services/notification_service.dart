@@ -39,7 +39,20 @@ class NotificationService {
     String? relatedId,
     bool sendPush = true,
   }) async {
-    final content = NotificationMessages.build(type, params);
+    String language = 'ja';
+    try {
+      final userDoc = await _db.collection('users').doc(toUid).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        if (userData != null && userData['language'] != null) {
+          language = userData['language'].toString();
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch receiver language setting: $e');
+    }
+
+    final content = NotificationMessages.build(type, params, language);
     final notification = AppNotification(
       id: '',
       toUid: toUid,

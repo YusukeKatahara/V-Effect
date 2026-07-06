@@ -18,8 +18,8 @@ class NotificationContent {
 abstract class NotificationMessages {
   static final _random = Random();
 
-  /// テンプレート定義
-  static final _templates = {
+  /// テンプレート定義 (日本語)
+  static final _templatesJa = {
     // ── ヒーロータスクリマインダー ──
     NotificationType.taskReminder: [
       _Template(
@@ -32,14 +32,13 @@ abstract class NotificationMessages {
       ),
       _Template(
         title: 'V Alert',
-        body: '「時間をかけることを恐れてはいけないよ。それは、いちばん洗練されたかたちでの復讐なんだ」 - 村上春樹',
+        body: '「時間をかけることを恐れてはいけないよ。それは、いちばん洗練されたかたちでの復讐んだ」 - 村上春樹',
       ),
       _Template(
         title: 'V Alert',
         body: '「貪欲であれ、愚かであれ」 - Steve Jobs',
       ),
     ],
-
 
     // ── リアクション受信 ──
     NotificationType.reactionReceived: [
@@ -48,8 +47,37 @@ abstract class NotificationMessages {
         body: '{username}さんがあなたの投稿で{count}回、激しい炎を燃やしてます!!',
       ),
     ],
+  };
 
+  /// テンプレート定義 (英語)
+  static final _templatesEn = {
+    // ── ヒーロータスクリマインダー ──
+    NotificationType.taskReminder: [
+      _Template(
+        title: 'V Alert',
+        body: '“Genius is one percent inspiration and ninety-nine percent perspiration.” - Albert Einstein',
+      ),
+      _Template(
+        title: 'V Alert',
+        body: '“I don\'t give up. I\'d have to be dead or completely incapacitated.” - Elon Musk',
+      ),
+      _Template(
+        title: 'V Alert',
+        body: '“Don\'t look at me, I\'m just a novelist.” - Haruki Murakami',
+      ),
+      _Template(
+        title: 'V Alert',
+        body: '“Stay hungry. Stay foolish.” - Steve Jobs',
+      ),
+    ],
 
+    // ── リアクション受信 ──
+    NotificationType.reactionReceived: [
+      _Template(
+        title: '🔥 Blazing Fire!',
+        body: '{username} set your post ablaze with {count} fire reactions!!',
+      ),
+    ],
   };
 
 
@@ -57,9 +85,10 @@ abstract class NotificationMessages {
   static NotificationContent build(
     NotificationType type, [
     Map<String, String> params = const {},
+    String language = 'ja',
   ]) {
-
-    final templates = _templates[type];
+    final templatesMap = (language == 'en') ? _templatesEn : _templatesJa;
+    final templates = templatesMap[type];
     if (templates == null || templates.isEmpty) {
       return NotificationContent(title: type.name, body: '');
     }
