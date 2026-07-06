@@ -11,12 +11,14 @@ class GuardedStateLayer extends StatefulWidget {
   final String? backgroundImageUrl;
   final List<Map<String, dynamic>> postedFriends;
   final VoidCallback? onRefresh;
+  final bool isUnlocked;
 
   const GuardedStateLayer({
     super.key,
     this.backgroundImageUrl,
     required this.postedFriends,
     this.onRefresh,
+    this.isUnlocked = false,
   });
 
   @override
@@ -24,6 +26,61 @@ class GuardedStateLayer extends StatefulWidget {
 }
 
 class _GuardedStateLayerState extends State<GuardedStateLayer> {
+  Widget _buildFriendAvatars() {
+    // 5人以上の場合は、4つのアバターと「+N」サークルを合わせた最大5個の要素を表示します。
+    final showOverflow = widget.postedFriends.length >= 5;
+    final displayCount = showOverflow ? 5 : widget.postedFriends.length;
+    return SizedBox(
+      height: 32,
+      width: (24.0 * displayCount) + 8,
+      child: Stack(
+        children: [
+          for (int i = 0; i < displayCount; i++)
+            Positioned(
+              left: i * 20.0,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.black,
+                    width: 2,
+                  ),
+                ),
+                child: (showOverflow && i == 4)
+                    ? CircleAvatar(
+                        radius: 14,
+                        backgroundColor: AppColors.grey30,
+                        child: Text(
+                          '+${widget.postedFriends.length - 4}',
+                          style: GoogleFonts.outfit(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.white,
+                          ),
+                        ),
+                      )
+                    : CircleAvatar(
+                        radius: 14,
+                        backgroundColor: AppColors.grey20,
+                        backgroundImage: widget.postedFriends[i]['photoUrl'] != null
+                            ? CachedNetworkImageProvider(widget.postedFriends[i]['photoUrl'])
+                            : null,
+                        child: widget.postedFriends[i]['photoUrl'] == null
+                            ? Text(
+                                (widget.postedFriends[i]['username'] as String).characters.isNotEmpty 
+                                    ? (widget.postedFriends[i]['username'] as String).characters.first.toUpperCase() 
+                                    : '?',
+                                style: const TextStyle(fontSize: 10),
+                              )
+                            : null,
+                      ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -52,7 +109,10 @@ class _GuardedStateLayerState extends State<GuardedStateLayer> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               RefreshRingButton(
-                icon: Icons.lock_outline_rounded,
+                icon: widget.isUnlocked
+                    ? Icons.lock_open_rounded
+                    : Icons.lock_outline_rounded,
+                isUnlocked: widget.isUnlocked,
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -72,60 +132,7 @@ class _GuardedStateLayerState extends State<GuardedStateLayer> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    () {
-                      // 5人以上の場合は、4つのアバターと「+N」サークルを合わせた最大5個の要素を表示します。
-                      final showOverflow = widget.postedFriends.length >= 5;
-                      final displayCount = showOverflow ? 5 : widget.postedFriends.length;
-                      return SizedBox(
-                        height: 32,
-                        width: (24.0 * displayCount) + 8,
-                        child: Stack(
-                          children: [
-                            for (int i = 0; i < displayCount; i++)
-                              Positioned(
-                                left: i * 20.0,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.black,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: (showOverflow && i == 4)
-                                      ? CircleAvatar(
-                                          radius: 14,
-                                          backgroundColor: AppColors.grey30,
-                                          child: Text(
-                                            '+${widget.postedFriends.length - 4}',
-                                            style: GoogleFonts.outfit(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.white,
-                                            ),
-                                          ),
-                                        )
-                                      : CircleAvatar(
-                                          radius: 14,
-                                          backgroundColor: AppColors.grey20,
-                                          backgroundImage: widget.postedFriends[i]['photoUrl'] != null
-                                              ? CachedNetworkImageProvider(widget.postedFriends[i]['photoUrl'])
-                                              : null,
-                                          child: widget.postedFriends[i]['photoUrl'] == null
-                                              ? Text(
-                                                  (widget.postedFriends[i]['username'] as String).characters.isNotEmpty 
-                                                      ? (widget.postedFriends[i]['username'] as String).characters.first.toUpperCase() 
-                                                      : '?',
-                                                  style: const TextStyle(fontSize: 10),
-                                                )
-                                              : null,
-                                        ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    }(),
+                    _buildFriendAvatars(),
                     const SizedBox(width: 8),
                     Text(
                       AppLocalizations.of(context)!.homeFriendPostsTitle,

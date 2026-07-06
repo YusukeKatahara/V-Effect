@@ -59,6 +59,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late final PostService _postService;
   late final SoundService _soundService; // BGM制御用サービス（アンマウント時のクラッシュ防止のため保持）
   bool _postedToday = false;
+  bool _isUnlockInitiated = false; // 解錠アニメーション（ボタン回転）を開始したかどうか
+  bool _isUnlockedAnimated = false; // 実際にUIでガード解除演出を実行したかどうか
+  bool _pendingUnlockAnimation = false; // 別タブで投稿完了し、ホーム遷移時に演出を実行すべきフラグ
   bool _friendFeedLogged = false; // friend_feed_viewed をフィード初回ロード時に1回だけ送るためのガード
   List<dynamic> _feedItems = [];
   final Set<String> _viewedPostIds = {}; // 閲覧済みポストのID
@@ -196,7 +199,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 220),
     );
-    // _pulseController と _shakeController は _GuardedStateLayer 内に移動
 
     final initialPage = 10000;
     _pageController = PageController(initialPage: initialPage)
@@ -415,11 +417,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
 
+  Future<void> _handleUnlockDetected() async {
+    final bool isCurrentTabHome = MainShell.activeTabIndex.value == 0;
+    if (isCurrentTabHome) {
+      // ホーム画面表示中にアンロックされた場合、その場でアニメーションを順番に行う
+      setState(() {
+        _isUnlockInitiated = true; // 1. 解錠演出開始（矢印回転＋解錠アイコン）
+      });
+      
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+
+      setState(() {
+        _isUnlockedAnimated = true; // 2. フィード開示
+        _pendingUnlockAnimation = false;
+      });
+      HapticFeedback.heavyImpact(); // 開示のインパクト
+    } else {
+      _pendingUnlockAnimation = true;
+      // 表示されるまでは両フラグとも false のまま維持
+    }
+  }
+
   void _onTabChanged() {
     if (!mounted) return;
     if (MainShell.activeTabIndex.value == 0) {
       // コンパスタブに戻ってきたらBGMを再開
       _playBgmForFocusedPost();
+
+      // 他のタブで投稿が完了していて、まだガード解除演出を行っていない場合は遅延実行する
+      if (_pendingUnlockAnimation) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await Future.delayed(const Duration(milliseconds: 300));
+          if (!mounted || !_pendingUnlockAnimation) return;
+
+          setState(() {
+            _isUnlockInitiated = true; // 1. 解錠演出開始（矢印回転＋解錠アイコン）
+          });
+          
+          // 2. 解錠演出（800ms）が終わるのを待ってからフィードを開示
+          await Future.delayed(const Duration(milliseconds: 800));
+          if (!mounted || !_pendingUnlockAnimation) return;
+
+          setState(() {
+            _isUnlockedAnimated = true;
+            _pendingUnlockAnimation = false;
+          });
+          HapticFeedback.heavyImpact(); // 演出実行時に強めのバイブレーションで効果を高める
+        });
+      }
     }
   }
 
@@ -1119,7 +1165,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final homeAsync = ref.watch(homeDataProvider);
     final uploadState = ref.watch(uploadProvider);
 
-    // ── 投稿が完了してロック解除（または状態変更）された瞬間にBGMの再生・停止を同期する ──
     ref.listen<UploadState>(uploadProvider, (previous, next) {
       final wasUnlocked = _postedToday ||
           previous?.status == UploadStatus.uploading ||
@@ -1130,7 +1175,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       
       if (wasUnlocked != isUnlocked) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _playBgmForFocusedPost();
+          if (mounted) {
+            _playBgmForFocusedPost();
+            // ロックが解除された瞬間（未完了から完了へ移行した瞬間）に触覚フィードバックを実行
+            if (!wasUnlocked && isUnlocked) {
+              HapticFeedback.heavyImpact();
+              _handleUnlockDetected();
+            }
+          }
         });
       }
     });
@@ -1147,7 +1199,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       
       if (wasUnlocked != isUnlocked) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _playBgmForFocusedPost();
+          if (mounted) {
+            _playBgmForFocusedPost();
+            // ロックが解除された瞬間（未完了から完了へ移行した瞬間）に触覚フィードバックを実行
+            if (!wasUnlocked && isUnlocked) {
+              HapticFeedback.heavyImpact();
+              _handleUnlockDetected();
+            }
+          }
         });
       }
     });
@@ -1195,6 +1254,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         }
 
         _postedToday = homeData.postedToday;
+
+        // ── ガード解除アニメーションの同期処理 ──
+        final uploadState = ref.read(uploadProvider);
+        final isCurrentlyUnlocked = homeData.postedToday ||
+            uploadState.status == UploadStatus.uploading ||
+            uploadState.status == UploadStatus.success;
+
+        // 初回ロード時（_lastHomeData == null）のみ自動同期を許可
+        // これにより、起動中に新しく投稿された場合は listen 側の解錠演出（2段階）を必ず経由させる
+        if (_lastHomeData == null) {
+          _isUnlockInitiated = isCurrentlyUnlocked;
+          _isUnlockedAnimated = isCurrentlyUnlocked;
+        } else {
+          // 既に起動中の場合：
+          // もしロック状態に戻った（日付が変わったなど）場合は即座にフラグをリセットして再ロック
+          if (!isCurrentlyUnlocked) {
+            _isUnlockInitiated = false;
+            _isUnlockedAnimated = false;
+            _pendingUnlockAnimation = false;
+          }
+        }
+
         _postedFriends = homeData.postedFriends;
         _userNames = homeData.userNames;
         _userPhotos = homeData.userPhotos;
@@ -1438,12 +1519,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// ローカル状態変数を使ってメインコンテンツを構築する。
   /// プロバイダーの AsyncValue に依存しないため、リフレッシュ中もちらつかない。
   Widget _buildMainContent(UploadState uploadState) {
-    // 楽観的UIの適用: アップロード中(uploading)またはアップロード成功(success)状態であれば、
-    // まだサーバー上でpostedTodayが完了していなくても投稿済みとみなしてフィードを開示する。
-    final isPostedToday = _postedToday ||
-        uploadState.status == UploadStatus.uploading ||
-        uploadState.status == UploadStatus.success;
-
     return SafeArea(
       child: Column(
         children: [
@@ -1452,17 +1527,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           const FriendRequestBanner(),
           AnnouncementArea(onOpenWeeklyReview: _openWeeklyReview),
           Expanded(
-            child: !isPostedToday
-                ? GuardedStateLayer(
-                    backgroundImageUrl: _feedItems.whereType<Post>().isNotEmpty
-                        ? _feedItems.whereType<Post>().first.imageUrl
-                        : null,
-                    postedFriends: _postedFriends,
-                    onRefresh: () => ref.invalidate(homeDataProvider),
-                  )
-                : (_feedItems.isEmpty
-                    ? HomeEmptyState(onRefresh: () => ref.invalidate(homeDataProvider))
-                    : _buildCardStack()),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 800),
+              switchInCurve: Curves.easeInOutCubic,
+              switchOutCurve: Curves.easeInOutCubic,
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                // 消えゆくガードレイヤー (鍵マーク画面) は縮小させず、その場でフェードアウトさせる
+                final isEntering = child.key != const ValueKey('guarded_layer');
+
+                final fadeAnimation = CurvedAnimation(
+                  parent: animation,
+                  curve: const Interval(0.2, 1.0, curve: Curves.easeIn),
+                );
+
+                if (isEntering) {
+                  // 新しく入ってくる Widget（フィード）はズームイン＋フェードイン
+                  final scaleAnimation = Tween<double>(begin: 0.96, end: 1.0).animate(
+                    CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                  );
+                  return FadeTransition(
+                    opacity: fadeAnimation,
+                    child: ScaleTransition(
+                      scale: scaleAnimation,
+                      child: child,
+                    ),
+                  );
+                } else {
+                  // 消えていく Widget（ガードレイヤー）はその場でフェードアウト（縮小しない）
+                  return FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  );
+                }
+              },
+              child: !_isUnlockedAnimated
+                  ? GuardedStateLayer(
+                      key: const ValueKey('guarded_layer'),
+                      isUnlocked: _isUnlockInitiated,
+                      backgroundImageUrl: _feedItems.whereType<Post>().isNotEmpty
+                          ? _feedItems.whereType<Post>().first.imageUrl
+                          : null,
+                      postedFriends: _postedFriends,
+                      onRefresh: () => ref.invalidate(homeDataProvider),
+                    )
+                  : (_feedItems.isEmpty
+                      ? HomeEmptyState(
+                          key: const ValueKey('empty_state'),
+                          onRefresh: () => ref.invalidate(homeDataProvider),
+                        )
+                      : KeyedSubtree(
+                          key: const ValueKey('card_stack'),
+                          child: _buildCardStack(),
+                        )),
+            ),
           ),
         ],
       ),

@@ -92,7 +92,7 @@ class BgmIndicator extends StatelessWidget {
                   artist!,
                   style: GoogleFonts.notoSansJp(
                     fontSize: 10,
-                    color: AppColors.grey50,
+                    color: AppColors.pureWhite, // 背景画像の上でも見えやすくなるよう、タイトルと同じ白に統一
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

@@ -25,7 +25,7 @@ const REACTION_LOCK_STALE_MS = 5 * 60 * 1000;
  * 指定ユーザーへ FCM プッシュを1通送信する。
  * 受信者のマスタープッシュ設定を確認し、無効トークンは取得元から削除する。
  */
-async function sendPushToUser(toUid, title, body) {
+async function sendPushToUser(toUid, title, body, dataPayload = {}) {
   const db = getFirestore();
 
   // 受信者の公開情報を取得（プッシュ通知設定の確認用）
@@ -84,6 +84,14 @@ async function sendPushToUser(toUid, title, body) {
     unreadCount = 1;
   }
 
+  // FCMの仕様上、すべてのカスタムデータは文字列である必要があります
+  const stringData = {};
+  for (const [key, value] of Object.entries(dataPayload)) {
+    if (value !== undefined && value !== null) {
+      stringData[key] = String(value);
+    }
+  }
+
   // FCM メッセージを送信
   const message = {
     token: fcmToken,
@@ -91,6 +99,7 @@ async function sendPushToUser(toUid, title, body) {
       title: title,
       ...(body ? { body: body } : {}),
     },
+    ...(Object.keys(stringData).length > 0 ? { data: stringData } : {}),
     android: {
       priority: "high",
       notification: {
@@ -145,7 +154,7 @@ exports.sendPushNotification = onDocumentWritten(
     const after = event.data?.after?.data();
     if (!after) return; // 削除イベントは無視
 
-    const { toUid, title, body, sendPush, type } = after;
+    const { toUid, title, body, sendPush, type, relatedId, fromUid } = after;
     if (!toUid || !title) return;
 
     // フロントエンドで指定されたプッシュ送出フラグをチェック
@@ -155,10 +164,16 @@ exports.sendPushNotification = onDocumentWritten(
     const before = event.data?.before?.data();
     const isReaction = type === "reactionReceived";
 
+    const payload = {
+      type: type || "",
+      relatedId: relatedId || "",
+      fromUid: fromUid || "",
+    };
+
     // ── リアクション以外：従来通り「新規作成時のみ」即時送信 ──
     if (!isReaction) {
       if (before) return; // 更新（isRead 変更等）では送信しない
-      await sendPushToUser(toUid, title, body);
+      await sendPushToUser(toUid, title, body, payload);
       return;
     }
 
@@ -168,7 +183,7 @@ exports.sendPushNotification = onDocumentWritten(
     // 「初回連打分」はまとめて1通として送られる。同じ人が後で追加リアクション
     // してもプッシュは鳴らず、通知一覧が更新されるのみとなる。
     if (!before) {
-      await sendPushToUser(toUid, title, body);
+      await sendPushToUser(toUid, title, body, payload);
     }
   }
 );

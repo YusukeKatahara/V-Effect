@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/block_service.dart';
 import '../services/post_service.dart';
+import '../utils/date_helper.dart';
 
 /// ホーム画面に表示する主要なデータを一括管理・提供するProvider
 class HomeData {
@@ -195,20 +196,76 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
   final cacheKey = 'homeData_$myUid';
 
   final isLoaded = ref.read(homeDataLoadedProvider);
+  final now = DateTime.now();
+  final todayStr = DateHelper.toDateString(now);
 
   // 1. まずローカルキャッシュから即座に表示（ゼロ・ディレイ起動）
   // 2026ベストプラクティス：再フェッチ時はすでに最新データがメモリ上にあるため、古いキャッシュの読み込みをスキップして表示の巻き戻りを防ぐ
+  // 【改善】日付が変わっている場合は、すでにロード済みであっても、Firestoreからのロード完了を待つ間に古いデータが表示され続けないよう、
+  // キャッシュを補正した状態（本日の日付依存データをクリア）を一旦 yield します。
+  
+  HomeData? initialData;
+  bool isDateChanged = false;
+
+  final cachedDate = prefs.getString('${cacheKey}_date');
+  if (cachedDate != todayStr) {
+    isDateChanged = true;
+  }
+
   if (!isLoaded) {
     final cachedStr = prefs.getString(cacheKey);
     if (cachedStr != null) {
       try {
         final cachedJson = jsonDecode(cachedStr) as Map<String, dynamic>;
-        final cachedData = HomeData.fromJson(cachedJson);
-        yield cachedData;
+        initialData = HomeData.fromJson(cachedJson);
       } catch (e) {
         debugPrint('HomeData cache decode error: $e');
       }
     }
+  } else if (isDateChanged) {
+    // 既にロード済みだが日付が変わっている場合は、日付依存データをクリアした一時データを表示するため、キャッシュから再度読み込む
+    final cachedStr = prefs.getString(cacheKey);
+    if (cachedStr != null) {
+      try {
+        final cachedJson = jsonDecode(cachedStr) as Map<String, dynamic>;
+        initialData = HomeData.fromJson(cachedJson);
+      } catch (e) {
+        debugPrint('HomeData cache decode error: $e');
+      }
+    }
+  }
+
+  if (initialData != null) {
+    if (isDateChanged) {
+      // 日付が変わっている場合は、日付依存のデータをリセットして表示のフラッシュを防ぐ
+      final resetTasks = initialData.tasks.map((task) {
+        if (task.completedAt != null) {
+          final cat = task.completedAt!;
+          final isToday = cat.year == now.year && cat.month == now.month && cat.day == now.day;
+          if (!isToday) {
+            return task.copyWith(completedAt: null);
+          }
+        }
+        return task;
+      }).toList();
+
+      initialData = HomeData(
+        streak: initialData.streak,
+        postedToday: false,
+        isAllTasksCompleted: false,
+        username: initialData.username,
+        tasks: resetTasks,
+        followingUids: initialData.followingUids,
+        feedPosts: const [],
+        postedFriends: const [],
+        userNames: initialData.userNames,
+        userPhotos: initialData.userPhotos,
+        userStreaks: initialData.userStreaks,
+        userBadgeUrls: initialData.userBadgeUrls,
+        userBadgeAnimations: initialData.userBadgeAnimations,
+      );
+    }
+    yield initialData;
   }
   
   // 2. 裏でFirestoreから最新データを取得
@@ -301,6 +358,7 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
 
   // 3. 取得した最新データをキャッシュに保存し、UIへ反映
   prefs.setString(cacheKey, jsonEncode(latestData.toJson()));
+  prefs.setString('${cacheKey}_date', todayStr);
   ref.read(homeDataLoadedProvider.notifier).state = true; // ロード完了フラグを設定
   yield latestData;
 });

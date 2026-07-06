@@ -6,8 +6,14 @@ import '../../config/app_colors.dart';
 class RefreshRingButton extends StatefulWidget {
   final IconData icon;
   final VoidCallback? onTap;
+  final bool isUnlocked;
 
-  const RefreshRingButton({super.key, required this.icon, this.onTap});
+  const RefreshRingButton({
+    super.key,
+    required this.icon,
+    this.onTap,
+    this.isUnlocked = false,
+  });
 
   @override
   State<RefreshRingButton> createState() => _RefreshRingButtonState();
@@ -28,8 +34,33 @@ class _RefreshRingButtonState extends State<RefreshRingButton>
 
     _spinController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 800), // 回転速度を 800ms に最適化
     );
+
+    // マウントされた時点で解錠状態の場合は安全に自動回転をトリガー
+    if (widget.isUnlocked) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _triggerUnlockAnimation();
+        }
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(RefreshRingButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 外部から解錠状態への切り替えがトリガーされた場合、自動で回転演出を開始
+    if (!oldWidget.isUnlocked && widget.isUnlocked) {
+      _triggerUnlockAnimation();
+    }
+  }
+
+  void _triggerUnlockAnimation() {
+    HapticFeedback.mediumImpact(); // 鍵が開く「カチッ」とした感触
+    _spinController.forward(from: 0).then((_) {
+      HapticFeedback.lightImpact();
+    });
   }
 
   @override
@@ -58,11 +89,29 @@ class _RefreshRingButtonState extends State<RefreshRingButton>
           animation: Listenable.merge([_pulseController, _spinController]),
           builder: (context, child) {
             final spinAngle =
-                Curves.easeInOut.transform(_spinController.value) * 2 * pi;
+                Curves.fastOutSlowIn.transform(_spinController.value) * 2 * pi;
+
+            // _pulseController (2秒ループ) を用いた鼓動スケール (1.0 〜 1.04) の計算
+            final pulseScale = 1.0 + (sin(_pulseController.value * 2 * pi) * 0.04);
 
             return Stack(
               alignment: Alignment.center,
               children: [
+                // 外側に広がるゴールドのパルス（波紋）エフェクト
+                Opacity(
+                  opacity: (1.0 - _pulseController.value) * 0.4,
+                  child: Container(
+                    width: 76 + (_pulseController.value * 32),
+                    height: 76 + (_pulseController.value * 32),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.accentGold,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
                 Transform.rotate(
                   angle: spinAngle,
                   child: CustomPaint(
@@ -72,7 +121,11 @@ class _RefreshRingButtonState extends State<RefreshRingButton>
                     ),
                   ),
                 ),
-                child!,
+                // 中央の炎ボタン本体を優しく鼓動させる
+                Transform.scale(
+                  scale: pulseScale,
+                  child: child!,
+                ),
               ],
             );
           },

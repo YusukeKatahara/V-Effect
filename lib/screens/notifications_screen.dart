@@ -31,6 +31,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   final Set<String> _initialUnreadIds = {};
   bool _hasMarkedRead = false;
   final Map<String, bool> _followingStatusCache = {};
+  /// 楽観的UIアップデート（サーバー処理を待たずにUIを切り替える手法）のために、
+  /// 処理中の通知IDを一時的に保持するキャッシュ
+  final Set<String> _optimisticProcessedIds = {};
 
   Future<bool> _checkIsFollowing(String targetUid) async {
     if (_followingStatusCache.containsKey(targetUid)) {
@@ -271,7 +274,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       return;
     }
 
-    setState(() => _isProcessing = true);
+    // 楽観的UIアップデート: サーバーからの応答を待たずにUI側で即座に「処理済み」扱いにする
+    setState(() {
+      _optimisticProcessedIds.add(notif.id);
+      // 承認（accept）した場合は即座に「フォロー中」にするためのキャッシュも更新する
+      if (accept && notif.fromUid != null) {
+        _followingStatusCache[notif.fromUid!] = true;
+      }
+    });
+
     try {
       final request = await _friendService.getRequestById(notif.relatedId!);
       
@@ -296,13 +307,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       }
     } catch (e) {
       debugPrint('承認エラー: $e');
+      // エラー発生時のロールバック処理: ローカルの楽観的キャッシュを元の状態に戻す
+      setState(() {
+        _optimisticProcessedIds.remove(notif.id);
+        if (accept && notif.fromUid != null) {
+          _followingStatusCache.remove(notif.fromUid!);
+        }
+      });
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.notificationsApproveFailed)));
       }
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -356,7 +372,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
   Widget _buildFriendRequestTrailing(AppNotification notif) {
-    if (notif.isProcessed) {
+    final isProcessed = notif.isProcessed || _optimisticProcessedIds.contains(notif.id);
+    if (isProcessed) {
       return FutureBuilder<bool>(
         future: _checkIsFollowing(notif.fromUid!),
         builder: (context, snapshot) {
@@ -427,7 +444,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ],
       );
     }
-    return const SizedBox.shrink();
   }
 
   Widget _buildSeasonTaskTrailing(AppNotification notif) {
@@ -534,6 +550,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 }
 
                 final notifications = snapshot.data ?? [];
+
+                // データベース上で実際に処理済みになったものは、楽観的キャッシュから削除してクリーンアップする
+                for (final n in notifications) {
+                  if (n.isProcessed) {
+                    _optimisticProcessedIds.remove(n.id);
+                  }
+                }
 
                 // データ受信時に一度だけ既読処理を行う（初期の未読状態をキャッシュ）
                 if (!_hasMarkedRead && notifications.isNotEmpty) {

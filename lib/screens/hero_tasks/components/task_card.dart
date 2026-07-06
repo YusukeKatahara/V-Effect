@@ -526,7 +526,7 @@ class TaskCardState extends ConsumerState<TaskCard> {
                               Text(
                                 currentPost.bgmArtist!,
                                 style: TextStyle(
-                                  color: isCompleted ? Colors.white70 : AppColors.grey50,
+                                  color: isCompleted ? AppColors.pureWhite : AppColors.white, // 背景画像の上でも見えやすくなるよう、タイトルと同じ白に統一
                                   fontSize: 10,
                                 ),
                                 maxLines: 1,
@@ -612,7 +612,7 @@ class TaskCardState extends ConsumerState<TaskCard> {
                               Text(
                                 currentPost.bgmArtist!,
                                 style: const TextStyle(
-                                  color: Colors.white70,
+                                  color: AppColors.pureWhite, // 背景画像の上でも見えやすくなるよう、タイトルと同じ白に統一
                                   fontSize: 10,
                                 ),
                                 maxLines: 1,
