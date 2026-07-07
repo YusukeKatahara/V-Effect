@@ -209,6 +209,19 @@ html:lang(en) .hero h1 {
     font-size: 13px;
 }
 
+/* Web版アプリへのリンク(ゴールドのアウトラインボタン) */
+.store-button--web {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold-soft);
+    box-shadow: none;
+}
+
+.store-button--web:hover {
+    background: var(--gold-glow);
+    box-shadow: 0 6px 20px var(--gold-glow);
+}
+
 /* ---------- デバイスフレーム ---------- */
 .device {
     border: 1px solid var(--gold-soft);

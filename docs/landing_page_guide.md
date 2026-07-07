@@ -12,7 +12,7 @@
 | 公開URL | https://veffect.web.app (日本語) / https://veffect.web.app/en/ (英語) |
 | ホスティング | Firebase Hosting(プロジェクト `veffect`、`firebase.json` の `hosting.public = "public"`) |
 | 技術方式 | 静的 HTML + CSS。ビルドツール・フレームワーク・JS なし |
-| デプロイ | firebase CLI 手動(CI なし)。**必ず `--only hosting`**(理由は §7) |
+| デプロイ | firebase CLI 手動(CI なし)。**必ず `--only hosting:lp`**(理由は §7。2026-07-07 からマルチサイト構成: `lp` = LP / `app` = Web版アプリ https://veffect-app.web.app) |
 | 多言語 | 2ページ静的方式。`/` = 日本語(メイン市場)、`/en/` = 英語。JS切替や自動リダイレクトは不採用(hreflang / OGPクローラ対応のため) |
 
 ## 2. ファイル構成
@@ -100,6 +100,7 @@ python tool/generate_lp_images.py
 
 - App Store: 日本語ページは `https://apps.apple.com/jp/app/v-effect/id6763709764`、英語ページは `/jp/` なし(地域自動判定)
 - **Google Play は未公開**。「近日公開 / Coming soon」の非リンクチップ(`.store-chip`)で表現し、URLは書かない。公開されたら `.store-button` を複製して Play バッジに差し替える(日英2ページ × ヒーロー/CTA の計4箇所)
+- **Web版アプリ**: `https://veffect-app.web.app/` へのリンク(`.store-button--web`、ゴールドアウトライン)を App Store バッジの隣に配置(日英2ページ × ヒーロー/CTA の計4箇所。文言:「ブラウザで使う」/ "Open in Browser")
 
 ## 6. 検証手順
 
@@ -125,11 +126,13 @@ firebase emulators:start --only hosting
 # 1) プレビューチャネル(7日で自動失効。URLが発行されるので実機確認に使う)
 firebase hosting:channel:deploy lp-renewal --expires 7d
 
-# 2) 本番
-firebase deploy --only hosting
+# 2) 本番(LP のみ)
+firebase deploy --only hosting:lp
 ```
 
 > ⚠️ **`firebase deploy`(全体デプロイ)は禁止**。本番にのみ存在するソース未管理の Cloud Functions(孤児関数)があり、全体デプロイは途中で中断する。hosting 限定を厳守すること。
+>
+> ⚠️ 2026-07-07 からマルチサイト構成。`--only hosting`(ターゲット未指定)だと **LP と Web版アプリ(veffect-app.web.app、`build/web`)の両方**がデプロイされる。Web版のビルドが古い状態で巻き込みデプロイしないよう、LP だけなら必ず `hosting:lp` を指定する。Web版アプリのデプロイ手順はメモリー/コミット履歴の Web 対応を参照(`flutter build web --release` → `--only hosting:app`)。
 
 デプロイ後の確認:
 
