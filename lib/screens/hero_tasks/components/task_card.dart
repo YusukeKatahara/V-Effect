@@ -251,19 +251,22 @@ class TaskCardState extends ConsumerState<TaskCard> {
 
     final bool isSeason = item.isSeason;
 
+    // ダークテーマでは黒背景に奥のカードが溶けて見えなくなるため、
+    // 奥のカード（depth > 0）のボーダーを明るめに立たせて輪郭を出す
+    final bool isDarkTheme = AppColors.isDark;
     final borderColor = isCompleted
         ? (isTop
             ? (postCount >= 2 ? AppColors.accentGold : AppColors.accentGold.withValues(alpha: 0.8))
-            : tierColor.withValues(alpha: 0.1))
+            : tierColor.withValues(alpha: isDarkTheme ? 0.3 : 0.1))
         : (isSeason
-            ? (isTop ? AppColors.accentGold.withValues(alpha: 0.6) : AppColors.accentGold.withValues(alpha: 0.2))
+            ? (isTop ? AppColors.accentGold.withValues(alpha: 0.6) : AppColors.accentGold.withValues(alpha: isDarkTheme ? 0.35 : 0.2))
             : (isTop
                 ? AppColors.pureWhite.withValues(alpha: 0.12)
-                : AppColors.pureWhite.withValues(alpha: 0.05)));
+                : AppColors.pureWhite.withValues(alpha: isDarkTheme ? 0.18 : 0.05)));
 
-    final borderWidth = isCompleted 
-        ? (isTop ? (postCount >= 2 ? 2.5 : 1.5) : 0.5) 
-        : (isSeason && isTop ? 1.5 : 0.8);
+    final borderWidth = isCompleted
+        ? (isTop ? (postCount >= 2 ? 2.5 : 1.5) : (isDarkTheme ? 1.0 : 0.5))
+        : (isSeason && isTop ? 1.5 : (isDarkTheme && !isTop ? 1.0 : 0.8));
 
     final blurRadius = isTop ? (postCount >= 2 ? 40.0 : 30.0) : 10.0;
 
@@ -277,9 +280,10 @@ class TaskCardState extends ConsumerState<TaskCard> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  bgColorTop.withValues(alpha: isTop ? 0.95 : 0.4),
-                  bgColorTop.withValues(alpha: isTop ? 0.65 : 0.3),
-                  bgColorBottom.withValues(alpha: isTop ? 0.85 : 0.2),
+                  // ダークテーマの奥カードは透過を弱め、黒背景から面を浮かせる
+                  bgColorTop.withValues(alpha: isTop ? 0.95 : (isDarkTheme ? 0.9 : 0.4)),
+                  bgColorTop.withValues(alpha: isTop ? 0.65 : (isDarkTheme ? 0.7 : 0.3)),
+                  bgColorBottom.withValues(alpha: isTop ? 0.85 : (isDarkTheme ? 0.8 : 0.2)),
                 ],
                 stops: const [0.0, 0.4, 1.0],
               ),
