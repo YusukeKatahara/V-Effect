@@ -32,16 +32,19 @@ class SoundService {
 
       // 端末のマナーモード状態を確認して初期状態を同期します。
       // デフォルトではミュート解除（音が鳴る状態）としますが、マナーモード中はミュートを優先します。
-      try {
-        final ringerStatus = await SoundMode.ringerModeStatus;
-        if (ringerStatus == RingerModeStatus.silent || ringerStatus == RingerModeStatus.vibrate) {
-          _isBgmMuted = true;
-        } else {
+      // sound_mode_advanced は Web 非対応のためスキップ（ミュート解除のまま）
+      if (!kIsWeb) {
+        try {
+          final ringerStatus = await SoundMode.ringerModeStatus;
+          if (ringerStatus == RingerModeStatus.silent || ringerStatus == RingerModeStatus.vibrate) {
+            _isBgmMuted = true;
+          } else {
+            _isBgmMuted = false;
+          }
+        } catch (e) {
+          debugPrint('Error getting ringer mode: $e');
           _isBgmMuted = false;
         }
-      } catch (e) {
-        debugPrint('Error getting ringer mode: $e');
-        _isBgmMuted = false;
       }
     } catch (e) {
       debugPrint('Error initializing sound service: $e');

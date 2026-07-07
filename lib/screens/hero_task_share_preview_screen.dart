@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -50,18 +51,28 @@ class _HeroTaskSharePreviewScreenState extends ConsumerState<HeroTaskSharePrevie
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
 
-      // 一時ディレクトリに保存
-      final directory = await getTemporaryDirectory();
-      final path = '${directory.path}/hero_task_share_${DateTime.now().millisecondsSinceEpoch}.png';
-      final file = File(path);
-      await file.writeAsBytes(pngBytes);
+      // 一時ディレクトリに保存（Web はファイル書き込み不可のため bytes を直接共有）
+      final XFile shareFile;
+      if (kIsWeb) {
+        shareFile = XFile.fromData(
+          pngBytes,
+          mimeType: 'image/png',
+          name: 'hero_task_share.png',
+        );
+      } else {
+        final directory = await getTemporaryDirectory();
+        final path = '${directory.path}/hero_task_share_${DateTime.now().millisecondsSinceEpoch}.png';
+        final file = File(path);
+        await file.writeAsBytes(pngBytes);
+        shareFile = XFile(path);
+      }
 
       if (!mounted) return;
 
       // share_plus を利用して画像ファイルと設定した共有文言を送信
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(path)],
+          files: [shareFile],
           text: l10n.heroTaskShareText(widget.currentStreak),
         ),
       );

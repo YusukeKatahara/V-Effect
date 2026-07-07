@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'push_notification_service.dart';
 import '../models/app_task.dart';
@@ -159,13 +159,28 @@ class UserService {
   }
 
   /// プロフィール画像をStorageにアップロードし、URLを返します
-  Future<String> uploadProfileImage(File imageFile) async {
+  /// Web では File が使えないため、XFile から bytes を読み putData でアップロードします
+  Future<String> uploadProfileImage(XFile imageFile) async {
     final uid = _auth.currentUser!.uid;
-    final fileExt = imageFile.path.split('.').last;
+    // Web の path は blob URL で拡張子が取れないため name から判定する
+    final name = imageFile.name.isNotEmpty ? imageFile.name : imageFile.path;
+    const contentTypes = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'webp': 'image/webp',
+      'gif': 'image/gif',
+      'heic': 'image/heic',
+    };
+    var fileExt = name.contains('.') ? name.split('.').last.toLowerCase() : 'jpg';
+    if (!contentTypes.containsKey(fileExt)) fileExt = 'jpg';
+    final contentType = imageFile.mimeType ?? contentTypes[fileExt]!;
     final path = 'profiles/$uid/avatar_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-    
+
+    final bytes = await imageFile.readAsBytes();
     final ref = FirebaseStorage.instance.ref().child(path);
-    final taskSnapshot = await ref.putFile(imageFile);
+    final taskSnapshot =
+        await ref.putData(bytes, SettableMetadata(contentType: contentType));
     return await taskSnapshot.ref.getDownloadURL();
   }
 

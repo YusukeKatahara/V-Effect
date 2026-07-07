@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:v_effect/providers/theme_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -53,7 +54,9 @@ void main() {
     // App Check: 改造クライアントや外部スクリプトからの直接 API 叩きを抑止する。
     // 失敗してもアプリ自体は動かしたいので catch して握りつぶす。
     // 本番では Android=Play Integrity / iOS=App Attest、デバッグ時はデバッグプロバイダーを使う。
-    if (Firebase.apps.isNotEmpty) {
+    // Web は ReCaptcha プロバイダーの Console 登録が必要なため未対応（App Check の
+    // enforcement を有効化する場合は Web 用に ReCaptchaV3Provider を設定すること）。
+    if (!kIsWeb && Firebase.apps.isNotEmpty) {
       try {
         await FirebaseAppCheck.instance.activate(
           providerAndroid: kDebugMode
@@ -109,6 +112,19 @@ void main() {
   });
 }
 
+/// Flutter Web はデフォルトでマウス/トラックパッドのドラッグによるスワイプが無効なため、
+/// 全デバイスでドラッグ操作（PageView のスワイプ等）を有効にする
+class AppScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.unknown,
+      };
+}
+
 /// アプリの初期化状態を管理するラッパー
 class AppInitializer extends StatefulWidget {
   final Widget child;
@@ -150,10 +166,13 @@ class _AppInitializerState extends State<AppInitializer> {
       });
 
       // 非UIブロック項目の初期化
-      try {
-        await MobileAds.instance.initialize();
-      } catch (e) {
-        debugPrint('AdMob初期化エラー: $e');
+      // AdMob (google_mobile_ads) は Web 非対応のため Web ではスキップ
+      if (!kIsWeb) {
+        try {
+          await MobileAds.instance.initialize();
+        } catch (e) {
+          debugPrint('AdMob初期化エラー: $e');
+        }
       }
       PushNotificationService().initialize().catchError((e) => debugPrint('通知初期化エラー: $e'));
       DeepLinkService().initialize().catchError((e) => debugPrint('DeepLink初期化エラー: $e'));
@@ -351,6 +370,7 @@ class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObse
     final lang = ref.watch(languageProvider);
     return MaterialApp(
       navigatorKey: VEffectApp.navigatorKey,
+      scrollBehavior: AppScrollBehavior(),
       title: 'V EFFECT',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

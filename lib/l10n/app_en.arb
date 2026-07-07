@@ -572,6 +572,7 @@
   "cameraScreenUploadFailed": "Post failed. Please try again.",
   "cameraScreenCaption": "Add a comment",
   "cameraScreenCameraLoading": "Starting camera...",
+  "cameraScreenCameraUnavailable": "Camera is unavailable\nPick a photo from the album button below",
   "cameraScreenPost": "Prove",
   "cameraScreenDragPinch": "Drag or pinch to reposition",
   "cameraMusicAdd": "Add Music",

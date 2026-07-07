@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
@@ -519,7 +520,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _requestTrackingAuthorization() async {
-    if (Platform.isIOS) {
+    if (!kIsWeb && Platform.isIOS) {
       try {
         final status = await AppTrackingTransparency.trackingAuthorizationStatus;
         if (status == TrackingStatus.notDetermined) {
@@ -1364,7 +1365,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
         final newItems = <dynamic>[];
         // 投稿数が3件以上ある場合に広告を挿入する（少人数での利用を考慮）
-        final bool shouldInsertAd = combinedPosts.length >= 3;
+        // google_mobile_ads は Web 非対応のため Web では広告枠を挿入しない
+        final bool shouldInsertAd = !kIsWeb && combinedPosts.length >= 3;
         for (int i = 0; i < combinedPosts.length; i++) {
           newItems.add(combinedPosts[i]);
           // 1枚目（インデックス0）の直後には入れず、2枚目（インデックス1）の直後に最初の広告を挿入。

@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/dev_blog_post.dart';
 
 class DevBlogService {
@@ -62,17 +62,34 @@ class DevBlogService {
     await _blogRef.doc(postId).delete();
   }
 
-  Future<String> uploadCoverImage(String postId, File imageFile) async {
+  // Web では File が使えないため、XFile から bytes を読み putData でアップロードする
+  Future<String> uploadCoverImage(String postId, XFile imageFile) async {
     final ref = _storage.ref('dev_blog/$postId/cover.jpg');
-    await ref.putFile(imageFile);
+    await ref.putData(
+      await imageFile.readAsBytes(),
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
     return await ref.getDownloadURL();
   }
 
-  Future<String> uploadBadgeImage(File imageFile) async {
+  Future<String> uploadBadgeImage(XFile imageFile) async {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final fileExt = imageFile.path.split('.').last;
+    // Web の path は blob URL で拡張子が取れないため name から判定する
+    final name = imageFile.name.isNotEmpty ? imageFile.name : imageFile.path;
+    const contentTypes = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'webp': 'image/webp',
+      'gif': 'image/gif',
+    };
+    var fileExt = name.contains('.') ? name.split('.').last.toLowerCase() : 'png';
+    if (!contentTypes.containsKey(fileExt)) fileExt = 'png';
     final ref = _storage.ref('badges/badge_$timestamp.$fileExt');
-    await ref.putFile(imageFile);
+    await ref.putData(
+      await imageFile.readAsBytes(),
+      SettableMetadata(contentType: contentTypes[fileExt]),
+    );
     return await ref.getDownloadURL();
   }
 

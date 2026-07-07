@@ -15,6 +15,7 @@ class WidgetService {
   bool _initialized = false;
 
   Future<void> initialize() async {
+    if (kIsWeb) return; // home_widget は Web 非対応
     if (_initialized) return;
     try {
       await HomeWidget.setAppGroupId(appGroupId);
@@ -26,6 +27,7 @@ class WidgetService {
 
   /// ウィジェットのデータを更新する
   Future<void> updateWidgetData() async {
+    if (kIsWeb) return; // home_widget は Web 非対応
     try {
       if (!_initialized) await initialize();
 

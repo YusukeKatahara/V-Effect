@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -35,7 +35,8 @@ class _OnboardingProfileSettingsScreenState
   late final UserService _userService;
   final _picker = ImagePicker();
 
-  File? _profileImage;
+  XFile? _profileImage;
+  Uint8List? _profileImageBytes; // Web でも表示できるようプレビューは bytes で保持
   bool _isSaving = false;
   bool _canProceed = false;
 
@@ -87,32 +88,48 @@ class _OnboardingProfileSettingsScreenState
       maxHeight: 512,
       imageQuality: 80,
     );
-    if (picked != null && !kIsWeb && mounted) {
-      final croppedFile = await ImageCropper().cropImage(
-        sourcePath: picked.path,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: AppLocalizations.of(context)!.onboardingProfileImageAdjust,
-            toolbarColor: AppColors.bgSurface,
-            toolbarWidgetColor: AppColors.textPrimary,
-            initAspectRatio: CropAspectRatioPreset.square,
-            lockAspectRatio: true,
-            hideBottomControls: true,
-            cropStyle: CropStyle.circle,
-          ),
-          IOSUiSettings(
-            title: AppLocalizations.of(context)!.onboardingProfileImageAdjust,
-            aspectRatioLockEnabled: true,
-            resetAspectRatioEnabled: false,
-            aspectRatioPickerButtonHidden: true,
-            cropStyle: CropStyle.circle,
-          ),
-        ],
-      );
+    if (picked == null || !mounted) return;
 
-      if (croppedFile != null && mounted) {
-        setState(() => _profileImage = File(croppedFile.path));
-      }
+    // Web では image_cropper の UI が使えないため、選択画像をそのまま利用する
+    if (kIsWeb) {
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _profileImage = picked;
+        _profileImageBytes = bytes;
+      });
+      return;
+    }
+
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: picked.path,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: AppLocalizations.of(context)!.onboardingProfileImageAdjust,
+          toolbarColor: AppColors.bgSurface,
+          toolbarWidgetColor: AppColors.textPrimary,
+          initAspectRatio: CropAspectRatioPreset.square,
+          lockAspectRatio: true,
+          hideBottomControls: true,
+          cropStyle: CropStyle.circle,
+        ),
+        IOSUiSettings(
+          title: AppLocalizations.of(context)!.onboardingProfileImageAdjust,
+          aspectRatioLockEnabled: true,
+          resetAspectRatioEnabled: false,
+          aspectRatioPickerButtonHidden: true,
+          cropStyle: CropStyle.circle,
+        ),
+      ],
+    );
+
+    if (croppedFile != null && mounted) {
+      final bytes = await croppedFile.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _profileImage = XFile(croppedFile.path);
+        _profileImageBytes = bytes;
+      });
     }
   }
 
@@ -274,8 +291,8 @@ class _OnboardingProfileSettingsScreenState
                         CircleAvatar(
                           radius: 52,
                           backgroundColor: AppColors.grey15,
-                          backgroundImage: _profileImage != null
-                              ? FileImage(_profileImage!)
+                          backgroundImage: _profileImageBytes != null
+                              ? MemoryImage(_profileImageBytes!)
                               : null,
                           child: _profileImage == null
                               ? Icon(

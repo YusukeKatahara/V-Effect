@@ -13,7 +13,7 @@ class LiveActivityService {
   /// [taskName] は現在実行中のタスクの名前です。
   /// [imageBytes] はアップロード対象の画像データです。
   static Future<void> startActivity(String taskName, Uint8List? imageBytes) async {
-    if (!Platform.isIOS) return; // iOS以外のプラットフォーム（Androidなど）では処理をスキップします
+    if (kIsWeb || !Platform.isIOS) return; // iOS以外のプラットフォーム（Web/Androidなど）では処理をスキップします
     try {
       await _channel.invokeMethod('startActivity', {
         'taskName': taskName,
@@ -33,7 +33,7 @@ class LiveActivityService {
   /// [status] は進捗状態を示す文字列です。
   /// [message] はユーザー向けに表示されるメッセージです。
   static Future<void> updateActivity(double progress, String status, String message) async {
-    if (!Platform.isIOS) return; // iOS以外のプラットフォーム（Androidなど）では処理をスキップします
+    if (kIsWeb || !Platform.isIOS) return; // iOS以外のプラットフォーム（Web/Androidなど）では処理をスキップします
     try {
       await _channel.invokeMethod('updateActivity', {
         'progress': progress,
@@ -49,7 +49,7 @@ class LiveActivityService {
   /// [status] は終了時の状態 (success, error など) です。
   /// [message] はユーザー向けに表示されるメッセージです。
   static Future<void> stopActivity(String status, String message) async {
-    if (!Platform.isIOS) return; // iOS以外のプラットフォーム（Androidなど）では処理をスキップします
+    if (kIsWeb || !Platform.isIOS) return; // iOS以外のプラットフォーム（Web/Androidなど）では処理をスキップします
     try {
       await _channel.invokeMethod('stopActivity', {
         'progress': status == 'success' ? 1.0 : 0.0,

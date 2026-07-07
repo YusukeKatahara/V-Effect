@@ -1,11 +1,11 @@
 {
-    "name": "v_effect",
-    "short_name": "v_effect",
+    "name": "V EFFECT",
+    "short_name": "V EFFECT",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#000000",
     "theme_color": "#000000",
-    "description": "A new Flutter project.",
+    "description": "毎日のヒーロータスクを写真で証明し、仲間と続ける習慣化アプリ",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

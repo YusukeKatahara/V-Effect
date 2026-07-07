@@ -1,5 +1,6 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -42,7 +43,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final UserService _userService;
 
   bool _isSaving = false;
-  File? _newProfileImage;
+  XFile? _newProfileImage;
+  Uint8List? _newProfileImageBytes; // Web でも表示できるようプレビューは bytes で保持
   String? _currentPhotoUrl;
   String? _equippedBadgeUrl;
   String? _equippedBadgeAnimation;
@@ -121,6 +123,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       imageQuality: 70,
     );
     if (pickedFile != null) {
+      // Web では image_cropper の UI が使えないため、選択画像をそのまま利用する
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        if (!mounted) return;
+        setState(() {
+          _newProfileImage = pickedFile;
+          _newProfileImageBytes = bytes;
+        });
+        return;
+      }
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: pickedFile.path,
         uiSettings: [
@@ -144,9 +156,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       );
 
       if (croppedFile != null) {
+        final bytes = await croppedFile.readAsBytes();
         if (!mounted) return;
         setState(() {
-          _newProfileImage = File(croppedFile.path);
+          _newProfileImage = XFile(croppedFile.path);
+          _newProfileImageBytes = bytes;
         });
       }
     }
@@ -639,8 +653,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 radius: 50,
                 backgroundColor: AppColors.bgElevated,
                 backgroundImage:
-                    _newProfileImage != null
-                        ? FileImage(_newProfileImage!) as ImageProvider
+                    _newProfileImageBytes != null
+                        ? MemoryImage(_newProfileImageBytes!) as ImageProvider
                         : (_currentPhotoUrl != null
                             ? ResizeImage(
                               CachedNetworkImageProvider(_currentPhotoUrl!),

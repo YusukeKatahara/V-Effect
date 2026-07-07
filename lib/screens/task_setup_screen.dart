@@ -1,6 +1,5 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -36,7 +35,8 @@ class _TaskSetupScreenState extends ConsumerState<TaskSetupScreen>
   late final Animation<double> _fadeAnimation;
 
   // プロフィール写真
-  File? _profileImage;
+  XFile? _profileImage;
+  Uint8List? _profileImageBytes; // Web でも表示できるようプレビューは bytes で保持
   final _picker = ImagePicker();
 
   // ヒーロータスク入力欄（最初は1つ）
@@ -94,7 +94,12 @@ class _TaskSetupScreenState extends ConsumerState<TaskSetupScreen>
       imageQuality: 80,
     );
     if (picked != null) {
-      setState(() => _profileImage = File(picked.path));
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _profileImage = picked;
+        _profileImageBytes = bytes;
+      });
     }
   }
 
@@ -142,7 +147,7 @@ class _TaskSetupScreenState extends ConsumerState<TaskSetupScreen>
     try {
       // プロフィール画像のアップロード
       String? photoUrl;
-      if (!kIsWeb && _profileImage != null) {
+      if (_profileImage != null) {
         photoUrl = await _uploadProfileImage();
       }
 
@@ -281,8 +286,8 @@ class _TaskSetupScreenState extends ConsumerState<TaskSetupScreen>
                                         radius: 56,
                                         backgroundColor: AppColors.bgElevated,
                                         backgroundImage:
-                                            _profileImage != null
-                                                ? FileImage(_profileImage!)
+                                            _profileImageBytes != null
+                                                ? MemoryImage(_profileImageBytes!)
                                                 : null,
                                         child:
                                             _profileImage == null

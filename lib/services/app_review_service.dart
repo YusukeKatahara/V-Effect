@@ -14,6 +14,7 @@ class AppReviewService {
   /// 
   /// 10日以上（すでに超えている既存ユーザー含む）に達した際に一度だけ表示します。
   Future<void> requestReviewIfNeeded(int currentStreak) async {
+    if (kIsWeb) return; // in_app_review は Web 非対応（ストアレビューはアプリのみ）
     try {
       final eligibleMilestone = _getEligibleMilestone(currentStreak);
       if (eligibleMilestone == -1) {

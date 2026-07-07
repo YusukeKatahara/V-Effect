@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -51,15 +52,26 @@ class _SharePreviewScreenState extends ConsumerState<SharePreviewScreen> {
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
 
-      final directory = await getTemporaryDirectory();
-      final path = '${directory.path}/v_effect_share_${DateTime.now().millisecondsSinceEpoch}.png';
-      final file = File(path);
-      await file.writeAsBytes(pngBytes);
+      // Web はファイル書き込み不可のため、メモリ上の bytes を直接共有する
+      final XFile shareFile;
+      if (kIsWeb) {
+        shareFile = XFile.fromData(
+          pngBytes,
+          mimeType: 'image/png',
+          name: 'v_effect_share.png',
+        );
+      } else {
+        final directory = await getTemporaryDirectory();
+        final path = '${directory.path}/v_effect_share_${DateTime.now().millisecondsSinceEpoch}.png';
+        final file = File(path);
+        await file.writeAsBytes(pngBytes);
+        shareFile = XFile(path);
+      }
 
       if (!mounted) return;
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(path)],
+          files: [shareFile],
           text: l10n.sharePreviewShareText(widget.postsCount, widget.currentStreak),
         ),
       );

@@ -572,6 +572,7 @@
   "cameraScreenUploadFailed": "投稿に失敗しました。もう一度お試しください。",
   "cameraScreenCaption": "コメントを追加",
   "cameraScreenCameraLoading": "カメラを起動中...",
+  "cameraScreenCameraUnavailable": "カメラを利用できません\n下のアルバムボタンから写真を選択してください",
   "cameraScreenPost": "証明する",
   "cameraScreenDragPinch": "ドラッグ・ピンチで位置調整",
   "cameraMusicAdd": "音楽を追加",

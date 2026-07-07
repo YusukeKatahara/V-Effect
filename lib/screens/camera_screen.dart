@@ -62,6 +62,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   CameraController? _cameraController;
   List<CameraDescription> _cameras = [];
   bool _isCameraReady = false;
+  bool _cameraUnavailable = false; // カメラ非搭載・権限拒否時（Web含む）はアルバム選択を案内
   bool _isCapturing = false; // シャッター連打防止
   int _currentCameraIndex = 0; // 0: 背面, 1: 前面
   FlashMode _flashMode = FlashMode.off; // フラッシュモード
@@ -150,6 +151,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       final allCameras = await availableCameras();
       if (allCameras.isEmpty) {
         debugPrint('CAMERA: No cameras available');
+        if (mounted) setState(() => _cameraUnavailable = true);
         return;
       }
 
@@ -166,6 +168,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
       if (_cameras.isEmpty) {
         debugPrint('CAMERA: No suitable cameras found');
+        if (mounted) setState(() => _cameraUnavailable = true);
         return;
       }
 
@@ -177,7 +180,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
       await _startCamera(_cameras[_currentCameraIndex]);
     } catch (e) {
+      // Web で権限拒否された場合などもここに入る
       debugPrint('CAMERA INIT ERROR: $e');
+      if (mounted) setState(() => _cameraUnavailable = true);
     } finally {
       _isInitializing = false;
     }
@@ -223,7 +228,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       debugPrint('CAMERA START ERROR: $e');
       // 万が一その他の初期化エラーが起きてもローディングから抜け出せるように配慮
       if (mounted) {
-        setState(() => _isCameraReady = true);
+        setState(() {
+          _isCameraReady = true;
+          _cameraUnavailable = true;
+        });
       }
     }
   }
@@ -343,7 +351,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
       // インカメラの場合、画像をミラー反転してプレビューと一致させる
       // （Instagram と同じ挙動: 見た通りの画像を保存）
-      if (_isFrontCamera) {
+      // Web はファイル書き込みができないためミラー処理をスキップする
+      if (!kIsWeb && _isFrontCamera) {
         photoPath = await _mirrorImage(photoPath);
       }
 
@@ -427,15 +436,21 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       final captionText = _captionController.text.trim();
 
       // 超高速ネイティブ圧縮：巨大なPNG（約2〜4MB）を軽量JPEG（約200KB）へ変換
-      final compressedBytes = await FlutterImageCompress.compressWithList(
-        finalRawBytes,
-        minWidth: 1080,
-        minHeight: 1920,
-        quality: 80,
-        format: CompressFormat.jpeg,
-      );
-
-      final finalBytes = compressedBytes.isNotEmpty ? compressedBytes : finalRawBytes;
+      // Web など圧縮が利用できない環境では元データのままアップロードする
+      Uint8List finalBytes;
+      try {
+        final compressedBytes = await FlutterImageCompress.compressWithList(
+          finalRawBytes,
+          minWidth: 1080,
+          minHeight: 1920,
+          quality: 80,
+          format: CompressFormat.jpeg,
+        );
+        finalBytes = compressedBytes.isNotEmpty ? compressedBytes : finalRawBytes;
+      } catch (e) {
+        debugPrint('画像圧縮エラー（未対応環境では元データを使用）: $e');
+        finalBytes = finalRawBytes;
+      }
 
       // バックグラウンドで非同期にアップロードを開始
       ref.read(uploadProvider.notifier).startUpload(
@@ -449,10 +464,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       );
 
       // 拡大調整・圧縮済みの画像データを一時ファイルとしてローカル（Temporary Directory: 一時フォルダ）に書き出し、演出用に使用する
-      final tempDir = await getTemporaryDirectory();
-      final tempPath = '${tempDir.path}/v_effect_post_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final tempFile = File(tempPath);
-      await tempFile.writeAsBytes(finalBytes);
+      // Web はファイル書き込み不可のため、元画像の blob URL をそのまま演出に使う
+      final String tempPath;
+      if (kIsWeb) {
+        tempPath = _image!.path;
+      } else {
+        final tempDir = await getTemporaryDirectory();
+        tempPath = '${tempDir.path}/v_effect_post_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final tempFile = File(tempPath);
+        await tempFile.writeAsBytes(finalBytes);
+      }
 
       // 現在の streak と今日投稿済みフラグを取得して、適切な楽観的結果を返して即座に画面を閉じる
       final homeData = ref.read(homeDataProvider).value;
@@ -821,7 +842,27 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   }
 
   /// カメラ読み込み中のプレースホルダー
+  /// カメラが使えない場合（Web の権限拒否・非搭載端末など）はアルバム選択を案内する
   Widget _buildCameraLoading() {
+    if (_cameraUnavailable) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.no_photography_outlined, size: 32, color: AppColors.grey50),
+            const SizedBox(height: 16),
+            Text(
+              AppLocalizations.of(context)!.cameraScreenCameraUnavailable,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.notoSansJp(
+                fontSize: 13,
+                color: AppColors.grey50,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,

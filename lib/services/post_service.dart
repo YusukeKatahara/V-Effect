@@ -302,13 +302,21 @@ class PostService {
     final uploadTask = ref.putData(imageBytes, SettableMetadata(contentType: 'image/jpeg'));
 
     // 🚀 サムネイル用画像の生成とアップロード (超軽量プレースホルダー)
-    final thumbBytes = await FlutterImageCompress.compressWithList(
-      imageBytes,
-      minWidth: 150,
-      minHeight: 266,
-      quality: 30,
-      format: CompressFormat.jpeg,
-    );
+    // Web など圧縮が利用できない環境では元画像をそのまま使う（投稿自体は成功させる）
+    Uint8List thumbBytes;
+    try {
+      thumbBytes = await FlutterImageCompress.compressWithList(
+        imageBytes,
+        minWidth: 150,
+        minHeight: 266,
+        quality: 30,
+        format: CompressFormat.jpeg,
+      );
+      if (thumbBytes.isEmpty) thumbBytes = imageBytes;
+    } catch (e) {
+      debugPrint('サムネイル圧縮エラー（未対応環境では元画像を使用）: $e');
+      thumbBytes = imageBytes;
+    }
     final thumbRef = _storage.ref().child('posts/$uid/post_thumb_$postId.jpg');
     final thumbUploadTask = thumbRef.putData(thumbBytes, SettableMetadata(contentType: 'image/jpeg'));
 

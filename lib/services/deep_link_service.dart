@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:home_widget/home_widget.dart';
 import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../main.dart';
@@ -29,11 +30,15 @@ class DeepLinkService {
       _queueOrHandleLink(uri);
     });
 
-    _widgetSubscription = HomeWidget.widgetClicked.listen((Uri? uri) {
-      if (uri != null) {
-        _queueOrHandleLink(uri);
-      }
-    });
+    // home_widget は Web 非対応。ストリームの listen は非同期エラーになり
+    // zone ハンドラーがアプリ全体をエラー画面にしてしまうため、必ずガードする
+    if (!kIsWeb) {
+      _widgetSubscription = HomeWidget.widgetClicked.listen((Uri? uri) {
+        if (uri != null) {
+          _queueOrHandleLink(uri);
+        }
+      });
+    }
 
     // 初期リンクも取得してキューに入れる
     final initialUri = await _appLinks.getInitialLink();
@@ -41,9 +46,11 @@ class DeepLinkService {
       _queueOrHandleLink(initialUri);
     }
 
-    final initialWidgetUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
-    if (initialWidgetUri != null) {
-      _queueOrHandleLink(initialWidgetUri);
+    if (!kIsWeb) {
+      final initialWidgetUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+      if (initialWidgetUri != null) {
+        _queueOrHandleLink(initialWidgetUri);
+      }
     }
   }
 

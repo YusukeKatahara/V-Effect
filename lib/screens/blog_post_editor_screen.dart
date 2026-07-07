@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -32,7 +32,8 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
   final _bodyFocusNode = FocusNode();
   BlogCategory _category = BlogCategory.progress;
   bool _isPinned = false;
-  File? _coverImageFile;
+  XFile? _coverImageFile;
+  Uint8List? _coverImageBytes; // Web でも表示できるようプレビューは bytes で保持
   String? _existingCoverUrl;
   bool _isSaving = false;
   bool _previewMode = false;
@@ -193,7 +194,12 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
     final picked =
         await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
     if (picked != null) {
-      setState(() => _coverImageFile = File(picked.path));
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _coverImageFile = picked;
+        _coverImageBytes = bytes;
+      });
     }
   }
 
@@ -448,8 +454,8 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
               borderRadius: BorderRadius.circular(14),
               child: AspectRatio(
                 aspectRatio: 3 / 2,
-                child: _coverImageFile != null
-                    ? Image.file(_coverImageFile!, fit: BoxFit.cover)
+                child: _coverImageBytes != null
+                    ? Image.memory(_coverImageBytes!, fit: BoxFit.cover)
                     : Image.network(_existingCoverUrl!, fit: BoxFit.cover),
               ),
             ),
@@ -641,7 +647,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
       if (!mounted) return;
       setState(() => _isSaving = true);
       try {
-        final url = await ref.read(devBlogServiceProvider).uploadBadgeImage(File(picked.path));
+        final url = await ref.read(devBlogServiceProvider).uploadBadgeImage(picked);
         if (!mounted) return;
         setState(() {
           _seasonBadgeImageUrlController.text = url;
@@ -677,8 +683,8 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (_coverImageFile != null)
-                  Image.file(_coverImageFile!, fit: BoxFit.cover)
+                if (_coverImageBytes != null)
+                  Image.memory(_coverImageBytes!, fit: BoxFit.cover)
                 else if (_existingCoverUrl != null)
                   Image.network(_existingCoverUrl!, fit: BoxFit.cover)
                 else
