@@ -3,249 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V EFFECT</title>
-    <meta name="description" content="1. あなたが習慣化したいことを決めよう。 2. 共に高め合える友達や大切な人を誘おう。 3. 自分が勝利したヒーロータスクを写真付きで証明しよう。">
-    
-    <!-- SEO & OGP -->
-    <meta property="og:title" content="V EFFECT">
-    <meta property="og:description" content="勝ち癖を身につける、新しい努力・勝利共有SNS">
+    <title>V EFFECT｜日々の努力を、仲間と共に。― 勝ち癖がつく習慣化・勝利共有SNS</title>
+    <meta name="description" content="毎朝ひとつの挑戦を宣言し、勝敗に白黒つける。達成の証明写真だけが流れる V FEED で仲間と高め合う、新しい習慣化SNS「V EFFECT」。iOS版配信中。">
+    <meta name="theme-color" content="#000000">
+    <link rel="canonical" href="https://veffect.web.app/">
+
+    <!-- hreflang -->
+    <link rel="alternate" hreflang="ja" href="https://veffect.web.app/">
+    <link rel="alternate" hreflang="en" href="https://veffect.web.app/en/">
+    <link rel="alternate" hreflang="x-default" href="https://veffect.web.app/">
+
+    <!-- OGP -->
+    <meta property="og:site_name" content="V EFFECT">
+    <meta property="og:title" content="V EFFECT｜日々の努力を、仲間と共に。">
+    <meta property="og:description" content="毎朝ひとつの挑戦を宣言し、勝敗に白黒つける。達成の証明写真だけが流れる V FEED で仲間と高め合う、新しい習慣化SNS。">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://veffect.web.app">
-    
-    <!-- Google Fonts -->
+    <meta property="og:url" content="https://veffect.web.app/">
+    <meta property="og:image" content="https://veffect.web.app/assets/img/ogp.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <!-- Icons -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/icon-192.png">
+    <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+JP:wght@300;400;700&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
-    
-    <style>
-        :root {
-            --bg-color: #000000;
-            --text-primary: #FFFFFF;
-            --text-secondary: #86868b; /* Apple-like gray */
-            --accent-gold: #D4AF37; /* Metallic gold */
-            --border-color: rgba(255, 255, 255, 0.1);
-            
-            --font-outfit: 'Outfit', 'Inter', 'Noto Sans JP', sans-serif;
-            --font-jp: 'Noto Sans JP', 'Inter', sans-serif;
-        }
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@800;900&display=swap" rel="stylesheet">
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    <link rel="stylesheet" href="/assets/css/lp.css">
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-family: var(--font-jp);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
+    <!-- 構造化データ -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "V EFFECT",
+        "operatingSystem": "iOS",
+        "applicationCategory": "LifestyleApplication",
+        "description": "毎朝ひとつの挑戦を宣言し、勝敗に白黒つける。達成の証明写真だけが流れる V FEED で仲間と高め合う習慣化SNS。",
+        "inLanguage": "ja",
+        "url": "https://veffect.web.app/",
+        "image": "https://veffect.web.app/assets/img/ogp.png",
+        "installUrl": "https://apps.apple.com/jp/app/v-effect/id6763709764",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "JPY"
         }
-
-        /* ヘッダー */
-        header {
-            width: 100%;
-            max-width: 800px;
-            padding: 40px 24px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .logo-text {
-            font-family: var(--font-outfit);
-            font-weight: 900;
-            font-size: 28px;
-            letter-spacing: 0.15em;
-            color: var(--text-primary);
-            text-align: center;
-        }
-
-        /* メインコンテンツ */
-        main {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            max-width: 640px;
-            padding: 20px 24px 60px;
-        }
-
-        /* Apple風ミニマルリスト */
-        .steps-container {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 40px;
-            margin-bottom: 60px;
-        }
-
-        .step-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 24px;
-            text-align: left;
-        }
-
-        .step-num {
-            font-family: var(--font-outfit);
-            font-size: 32px;
-            font-weight: 800;
-            color: var(--accent-gold);
-            line-height: 1;
-            min-width: 40px;
-        }
-
-        .step-text {
-            font-size: 17px;
-            font-weight: 400;
-            line-height: 1.6;
-            color: var(--text-primary);
-            letter-spacing: -0.01em;
-        }
-
-        /* ダウンロードセクション */
-        .download-section {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-        }
-
-        .store-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: #ffffff;
-            border-radius: 980px; /* Apple-like capsule button */
-            padding: 14px 32px;
-            color: #000000;
-            text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            font-weight: 700;
-            font-size: 15px;
-            box-shadow: 0 4px 12px rgba(255,255,255,0.1);
-        }
-
-        .store-button:hover {
-            transform: scale(1.03);
-            background: #f5f5f7;
-            box-shadow: 0 6px 20px rgba(255,255,255,0.15);
-        }
-
-        .store-button:active {
-            transform: scale(0.98);
-        }
-
-        .store-icon {
-            margin-right: 8px;
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
-        }
-
-        /* フッター */
-        footer {
-            width: 100%;
-            max-width: 800px;
-            padding: 40px 24px;
-            border-top: 1px solid var(--border-color);
-            text-align: center;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 32px;
-            margin-bottom: 16px;
-        }
-
-        .footer-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-
-        .footer-link:hover {
-            color: var(--text-primary);
-        }
-
-        .copyright {
-            margin-top: 8px;
-        }
-
-        /* レスポンシブ */
-        @media (max-width: 480px) {
-            .step-text {
-                font-size: 15px;
-            }
-            .step-num {
-                font-size: 28px;
-                min-width: 32px;
-            }
-            .steps-container {
-                gap: 32px;
-            }
-            header {
-                padding: 30px 24px;
-            }
-        }
-    </style>
+    }
+    </script>
 </head>
 <body>
 
     <!-- ヘッダー -->
-    <header>
-        <div class="logo-text">V EFFECT</div>
+    <header class="site-header">
+        <div class="container">
+            <a href="/" class="logo-text">V EFFECT</a>
+            <nav class="header-nav">
+                <a href="#features" class="nav-anchor">機能</a>
+                <a href="#how" class="nav-anchor">使い方</a>
+                <a href="#download" class="nav-anchor">ダウンロード</a>
+                <a href="/en/" class="lang-switch" lang="en" hreflang="en">EN</a>
+            </nav>
+        </div>
     </header>
 
-    <!-- メインコンテンツ -->
     <main>
-        <div class="steps-container">
-            <!-- STEP 1 -->
-            <div class="step-item">
-                <span class="step-num">1</span>
-                <p class="step-text">あなたが習慣化したいことを決めよう。</p>
+        <!-- ヒーロー -->
+        <section class="hero">
+            <div class="container">
+                <div class="hero-copy">
+                    <p class="hero-eyebrow">HABIT × VICTORY SNS</p>
+                    <h1>日々の努力を、<br>仲間と共に。</h1>
+                    <p class="hero-sub">毎朝ひとつの挑戦を宣言し、勝敗に白黒つける。達成の証明写真だけが流れる、新しい習慣化SNS「V EFFECT」。</p>
+                    <div class="store-row">
+                        <a href="https://apps.apple.com/jp/app/v-effect/id6763709764" class="store-button" target="_blank" rel="noopener noreferrer" id="app-store-download-btn">
+                            <svg class="store-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.82M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.22.67-2.94 1.51-.64.74-1.2 1.88-1.05 2.99 1.11.09 2.27-.58 3-1.44Z"/>
+                            </svg>
+                            <span>App Store からダウンロード</span>
+                        </a>
+                        <span class="store-chip">Google Play 近日公開</span>
+                    </div>
+                </div>
+                <div class="hero-visual device">
+                    <img src="/assets/img/screen-3.webp" width="720" height="1280" alt="V EFFECT のヒーロータスク画面。今日の挑戦「Work Out」を宣言している" fetchpriority="high">
+                </div>
             </div>
-            
-            <!-- STEP 2 -->
-            <div class="step-item">
-                <span class="step-num">2</span>
-                <p class="step-text">共に高め合える友達や大切な人を誘おう。</p>
-            </div>
-            
-            <!-- STEP 3 -->
-            <div class="step-item">
-                <span class="step-num">3</span>
-                <p class="step-text">「V FEED」に自分が勝利したヒーロータスク（読書、資格勉強、ワークアウト等）を写真付きで証明しよう。</p>
-            </div>
-        </div>
+        </section>
 
-        <!-- ダウンロード誘導 -->
-        <div class="download-section">
-            <a href="https://apps.apple.com/jp/app/v-effect/id6763709764" class="store-button" target="_blank" rel="noopener noreferrer" id="app-store-download-btn">
-                <svg class="store-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.82M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.22.67-2.94 1.51-.64.74-1.2 1.88-1.05 2.99 1.11.09 2.27-.58 3-1.44Z"/>
-                </svg>
-                <span>App Store からダウンロード</span>
-            </a>
-        </div>
+        <!-- 共感コピー帯 -->
+        <section class="empathy">
+            <div class="container">
+                <p class="em-question">なぜ、目標を立てても続かないのだろう。</p>
+                <p class="em-answer">意志が弱いからではありません。<br>仕組みが、なかっただけ。<br>V EFFECT は「宣言 × 証明 × 仲間」の仕組みで、<br><span class="gold">勝ち癖</span>を育てます。</p>
+            </div>
+        </section>
+
+        <!-- 機能紹介 -->
+        <section class="features" id="features">
+            <div class="container">
+                <div class="section-head">
+                    <p class="section-eyebrow">FEATURES</p>
+                    <h2 class="section-title">勝ち癖を育てる、4つの仕組み</h2>
+                </div>
+
+                <div class="feature-row">
+                    <div class="feature-copy">
+                        <p class="feature-eyebrow">HERO TASK</p>
+                        <h2>今日の努力を、<br>勝利に変える。</h2>
+                        <p>毎朝ひとつ、今日の挑戦を宣言。やり切ったら写真で証明して、その日の勝敗に白黒をつける。曖昧な「頑張ったつもり」は、もう終わりです。</p>
+                    </div>
+                    <div class="feature-visual device">
+                        <img src="/assets/img/screen-1.webp" width="720" height="1280" alt="V FEED に投稿されたワークアウトの証明写真。🔥リアクションが52件付いている" loading="lazy">
+                    </div>
+                </div>
+
+                <div class="feature-row">
+                    <div class="feature-copy">
+                        <p class="feature-eyebrow">V FEED</p>
+                        <h2>投稿するまで、<br>フレンドはロック。</h2>
+                        <p>仲間の達成は、自分が勝利を証明するまで見られない。流れるのは、言い訳のない証明写真だけ。🔥リアクションで努力を称え合う、高め合うためのタイムライン。</p>
+                    </div>
+                    <div class="feature-visual device">
+                        <img src="/assets/img/screen-2.webp" width="720" height="1280" alt="投稿するまで仲間のフィードがロックされている画面。「Victory を証明しましょう」と表示" loading="lazy">
+                    </div>
+                </div>
+
+                <div class="feature-row">
+                    <div class="feature-copy">
+                        <p class="feature-eyebrow">V STREAK</p>
+                        <h2>積み重ねるたび、<br>ランクが進化する。</h2>
+                        <p>勝利を続けるほどストリークが伸び、ランクが進化。たとえ途切れても大丈夫。あなたの歩みさえ止まらなければ、何度でも立て直せます。</p>
+                    </div>
+                    <div class="feature-visual device">
+                        <img src="/assets/img/screen-5.webp" width="720" height="1280" alt="V STREAK のランク画面。15日連続で GOLD ランク、PLATINUM まであと15日" loading="lazy">
+                    </div>
+                </div>
+
+                <div class="feature-row">
+                    <div class="feature-copy">
+                        <p class="feature-eyebrow">IDENTITY</p>
+                        <h2>習慣は、<br>アイデンティティになる。</h2>
+                        <p>積み重ねた勝利はプロフィールに刻まれ、あなたの称号になる。振り返るたびに、「続けられる自分」が当たり前になっていく。</p>
+                    </div>
+                    <div class="feature-visual device">
+                        <img src="/assets/img/screen-4.webp" width="720" height="1280" alt="V EFFECT のプロフィール画面。ストリーク25日とヒーロータスクの一覧" loading="lazy">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 使い方 3ステップ -->
+        <section class="how" id="how">
+            <div class="container">
+                <div class="section-head">
+                    <p class="section-eyebrow">HOW IT WORKS</p>
+                    <h2 class="section-title">はじめかたは、3ステップ</h2>
+                </div>
+                <div class="steps-grid">
+                    <div class="step-card">
+                        <p class="step-num">1</p>
+                        <p>あなたが習慣化したいことを決めよう。</p>
+                    </div>
+                    <div class="step-card">
+                        <p class="step-num">2</p>
+                        <p>共に高め合える友達や大切な人を誘おう。</p>
+                    </div>
+                    <div class="step-card">
+                        <p class="step-num">3</p>
+                        <p>「V FEED」に自分が勝利したヒーロータスク(読書、資格勉強、ワークアウト等)を写真付きで証明しよう。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ギャラリー -->
+        <section class="gallery">
+            <div class="section-head">
+                <p class="section-eyebrow">SCREENS</p>
+                <h2 class="section-title">アプリの世界を、のぞいてみる</h2>
+            </div>
+            <div class="gallery-track">
+                <div class="device"><img src="/assets/img/screen-3.webp" width="720" height="1280" alt="ヒーロータスクの宣言画面" loading="lazy"></div>
+                <div class="device"><img src="/assets/img/screen-1.webp" width="720" height="1280" alt="V FEED の証明写真投稿" loading="lazy"></div>
+                <div class="device"><img src="/assets/img/screen-2.webp" width="720" height="1280" alt="投稿までフレンドがロックされた画面" loading="lazy"></div>
+                <div class="device"><img src="/assets/img/screen-5.webp" width="720" height="1280" alt="V STREAK のランクアップ画面" loading="lazy"></div>
+                <div class="device"><img src="/assets/img/screen-4.webp" width="720" height="1280" alt="プロフィール画面" loading="lazy"></div>
+            </div>
+        </section>
+
+        <!-- 最終CTA -->
+        <section class="cta" id="download">
+            <div class="container">
+                <h2>今日から、自分に勝つ。</h2>
+                <p>ダウンロードは無料。最初のヒーロータスクを宣言しよう。</p>
+                <div class="store-row">
+                    <a href="https://apps.apple.com/jp/app/v-effect/id6763709764" class="store-button" target="_blank" rel="noopener noreferrer">
+                        <svg class="store-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.82M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.22.67-2.94 1.51-.64.74-1.2 1.88-1.05 2.99 1.11.09 2.27-.58 3-1.44Z"/>
+                        </svg>
+                        <span>App Store からダウンロード</span>
+                    </a>
+                    <span class="store-chip">Google Play 近日公開</span>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- フッター -->
-    <footer>
+    <footer class="site-footer">
         <div class="footer-links">
-            <a href="/support" class="footer-link">サポート</a>
-            <a href="/terms" class="footer-link">利用規約</a>
-            <a href="/privacy" class="footer-link">プライバシーポリシー</a>
+            <a href="/support">サポート</a>
+            <a href="/terms">利用規約</a>
+            <a href="/privacy">プライバシーポリシー</a>
+            <a href="/en/" lang="en" hreflang="en">English</a>
         </div>
         <div class="copyright">
             &copy; 2026 V EFFECT.
