@@ -123,6 +123,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   int _lastFocusedIndex = -1;
+  double _lastVolume = 1.0;
 
   /// フィードがアンロックされているか（今日投稿済み、または投稿アップロード中/成功状態）を判定するゲッター
   bool get _isFeedUnlocked {
@@ -216,7 +217,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             final double offset = (page - nearestPageIndex).abs();
             // 0.0(中心) -> 音量1.0, 0.5(中間) -> 音量0.0
             final double volume = (1.0 - (offset * 2.0)).clamp(0.0, 1.0);
-            _soundService.setBgmVolume(volume);
+            
+            // 負荷軽減：10%以上の変化があった場合、または端点(0.0, 1.0)に達した場合のみ通信を行う
+            if ((_lastVolume - volume).abs() > 0.1 || volume == 0.0 || volume == 1.0) {
+              if (_lastVolume != volume) {
+                _soundService.setBgmVolume(volume);
+                _lastVolume = volume;
+              }
+            }
 
             final currentFocused = _focusedIndex;
             if (currentFocused != _lastFocusedIndex) {
@@ -1760,7 +1768,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                               ],
                                             ),
                                             child: Text(
-                                              item.taskName,
+                                              (item.isSecret && item.userId != myUid)
+                                                  ? AppLocalizations.of(context)!.timelineSecretTaskLabel
+                                                  : item.taskName,
                                               style: GoogleFonts.outfit(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
@@ -2155,13 +2165,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             height: cardHeight,
             child: item is String && item == 'ad'
               ? () {
-                  // スワイプ座標のズレ幅を算出
-                  final double offset = (scrollPosition - globalIndex).abs();
-
                   // 広告のプレースホルダー描画：
                   // 遠くにある時やスワイプ中は、他のカードと同じく 3D 空間にカード枠だけを描画します。
                   // プラットフォームビューの二重マウントを避けるため nativeAd は null を渡します。
-                  final bool isStaticFocused = (globalIndex == _focusedGlobalIndex && offset < 0.01);
                   // 2026ベストプラクティス：描画中の非同期副作用（ロード処理）を排除。
                   // 広告ロードはスクロール終了時（_preloadAdsNearFocusedIndex）と
                   // ページ切り替え時（_onPageChanged）に安全に行われます。

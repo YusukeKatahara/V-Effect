@@ -56,7 +56,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   // ── BGM ──
   MusicItem? _selectedMusic;
   final AudioPlayer _audioPlayer = AudioPlayer();
-  bool _isPlayingPreview = false;
 
   // ── カメラ制御 ──
   CameraController? _cameraController;
@@ -680,16 +679,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     try {
       await _audioPlayer.stop();
       await _audioPlayer.play(UrlSource(url));
-      setState(() {
-        _isPlayingPreview = true;
-      });
-      _audioPlayer.onPlayerComplete.listen((_) {
-        if (mounted) {
-          setState(() {
-            _isPlayingPreview = false;
-          });
-        }
-      });
     } catch (e) {
       debugPrint('Audio Play Error: $e');
     }
@@ -697,11 +686,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   Future<void> _stopPreviewAudio() async {
     await _audioPlayer.stop();
-    if (mounted) {
-      setState(() {
-        _isPlayingPreview = false;
-      });
-    }
   }
 
   void _showMusicBottomSheet() {

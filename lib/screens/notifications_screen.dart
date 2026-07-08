@@ -27,7 +27,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   late NotificationService _notificationService;
   late FriendService _friendService;
   late final Stream<List<AppNotification>> _notificationsStream;
-  bool _isProcessing = false;
   final Set<String> _initialUnreadIds = {};
   bool _hasMarkedRead = false;
   final Map<String, bool> _followingStatusCache = {};
@@ -49,7 +48,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   Future<void> _followBack(String targetUid) async {
-    setState(() => _isProcessing = true);
     try {
       await _friendService.followUser(targetUid);
       setState(() {
@@ -66,8 +64,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           SnackBar(content: Text(AppLocalizations.of(context)!.notificationsFollowFailed)),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -325,7 +321,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Future<void> _handleSeasonTaskDetails(AppNotification notif) async {
     if (notif.relatedId == null) return;
     
-    setState(() => _isProcessing = true);
     try {
       // 🚀 【動的マージ対応】シーズンタスクを処理済み（非表示）にマークします
       await ref.read(userServiceProvider).markSeasonTaskAsProcessed(notif.relatedId!);
@@ -341,36 +336,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       }
     } catch (e) {
       debugPrint('Season Task Details Process Error: $e');
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  Widget _buildCompactButton({
-    required String label,
-    required VoidCallback onPressed,
-    required bool isPrimary,
-  }) {
-    return ElevatedButton(
-      onPressed: _isProcessing ? null : onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isPrimary ? AppColors.white : Colors.transparent,
-        foregroundColor: isPrimary ? AppColors.black : AppColors.textSecondary,
-        elevation: 0,
-        minimumSize: const Size(80, 32),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        side:
-            isPrimary
-                ? BorderSide.none
-                : BorderSide(color: AppColors.grey10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
   Widget _buildFriendRequestTrailing(AppNotification notif) {
     final isProcessed = notif.isProcessed || _optimisticProcessedIds.contains(notif.id);
     if (isProcessed) {

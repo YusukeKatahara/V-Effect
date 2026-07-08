@@ -10,6 +10,7 @@ class AppTask {
   final bool isSeason; // シーズンタスクかどうか
   final String? seasonId; // シーズンのID
   final DateTime? completedAt;
+  final bool isSecret; // 秘密の特訓（非公開）かどうか
 
   // ── フィールド名定数 ──
   static const String fieldId = 'id';
@@ -19,6 +20,7 @@ class AppTask {
   static const String fieldIsSeason = 'isSeason';
   static const String fieldSeasonId = 'seasonId';
   static const String fieldCompletedAt = 'completedAt';
+  static const String fieldIsSecret = 'isSecret';
 
   const AppTask({
     this.id = '', // 後方互換性のためデフォルト値を空文字にします
@@ -29,6 +31,7 @@ class AppTask {
     this.isSeason = false,
     this.seasonId,
     this.completedAt,
+    this.isSecret = false,
   });
 
   Map<String, dynamic> toFirestore() {
@@ -41,12 +44,13 @@ class AppTask {
       fieldIsSeason: isSeason,
       if (seasonId != null) fieldSeasonId: seasonId,
       fieldCompletedAt: completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+      fieldIsSecret: isSecret,
     };
   }
 
   factory AppTask.fromFirestore(dynamic data) {
     if (data is String) {
-      return AppTask(id: '', title: data, isOneTime: false, isSeason: false);
+      return AppTask(id: '', title: data, isOneTime: false, isSeason: false, isSecret: false);
     }
     
     try {
@@ -59,10 +63,11 @@ class AppTask {
         isSeason: map[fieldIsSeason] == true,
         seasonId: map[fieldSeasonId]?.toString(),
         completedAt: (map[fieldCompletedAt] as Timestamp?)?.toDate(),
+        isSecret: map[fieldIsSecret] == true,
       );
     } catch (e) {
       debugPrint('Error parsing AppTask: $e');
-      return const AppTask(id: '', title: 'Error loading task', isOneTime: false, isSeason: false);
+      return const AppTask(id: '', title: 'Error loading task', isOneTime: false, isSeason: false, isSecret: false);
     }
   }
 
@@ -76,6 +81,7 @@ class AppTask {
     bool? isSeason,
     String? seasonId,
     DateTime? completedAt,
+    bool? isSecret,
   }) {
     return AppTask(
       id: id ?? this.id,
@@ -86,6 +92,7 @@ class AppTask {
       isSeason: isSeason ?? this.isSeason,
       seasonId: seasonId ?? this.seasonId,
       completedAt: completedAt ?? this.completedAt,
+      isSecret: isSecret ?? this.isSecret,
     );
   }
 }

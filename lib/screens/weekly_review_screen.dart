@@ -40,7 +40,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
   bool _isDataInitialized = false;
 
   final GlobalKey _summaryKey = GlobalKey();
-  final bool _isSharing = false;
 
   @override
   void initState() {

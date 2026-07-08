@@ -27,6 +27,7 @@ class Post {
   final String? bgmTitle; // 曲名
   final String? bgmArtist; // アーティスト名
   final String? bgmArtworkUrl; // アートワークURL
+  final bool isSecret; // シークレットタスクの投稿かどうか
 
   // ── フィールド名定数 ──
   static const String fieldUserId = 'userId';
@@ -44,6 +45,7 @@ class Post {
   static const String fieldBgmTitle = 'bgmTitle';
   static const String fieldBgmArtist = 'bgmArtist';
   static const String fieldBgmArtworkUrl = 'bgmArtworkUrl';
+  static const String fieldIsSecret = 'isSecret';
 
   const Post({
     required this.id,
@@ -62,6 +64,7 @@ class Post {
     this.bgmTitle,
     this.bgmArtist,
     this.bgmArtworkUrl,
+    this.isSecret = false,
   });
 
   /// Firestore の DocumentSnapshot からモデルを生成します
@@ -126,6 +129,7 @@ class Post {
       bgmTitle: data[fieldBgmTitle],
       bgmArtist: data[fieldBgmArtist],
       bgmArtworkUrl: data[fieldBgmArtworkUrl],
+      isSecret: data[fieldIsSecret] == true,
     );
   }
 
@@ -149,7 +153,8 @@ class Post {
           bgmUrl == other.bgmUrl &&
           bgmTitle == other.bgmTitle &&
           bgmArtist == other.bgmArtist &&
-          bgmArtworkUrl == other.bgmArtworkUrl;
+          bgmArtworkUrl == other.bgmArtworkUrl &&
+          isSecret == other.isSecret;
 
   @override
   int get hashCode =>
@@ -168,7 +173,8 @@ class Post {
       bgmUrl.hashCode ^
       bgmTitle.hashCode ^
       bgmArtist.hashCode ^
-      bgmArtworkUrl.hashCode;
+      bgmArtworkUrl.hashCode ^
+      isSecret.hashCode;
 
   bool _listEquals(List? a, List? b) {
     if (a == null) return b == null;
@@ -206,6 +212,7 @@ class Post {
       fieldBgmTitle: bgmTitle,
       fieldBgmArtist: bgmArtist,
       fieldBgmArtworkUrl: bgmArtworkUrl,
+      fieldIsSecret: isSecret,
     };
   }
 
@@ -241,6 +248,7 @@ class Post {
     String? bgmTitle,
     String? bgmArtist,
     String? bgmArtworkUrl,
+    bool? isSecret,
   }) {
     return Post(
       id: id ?? this.id,
@@ -259,6 +267,7 @@ class Post {
       bgmTitle: bgmTitle ?? this.bgmTitle,
       bgmArtist: bgmArtist ?? this.bgmArtist,
       bgmArtworkUrl: bgmArtworkUrl ?? this.bgmArtworkUrl,
+      isSecret: isSecret ?? this.isSecret,
     );
   }
 

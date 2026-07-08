@@ -987,7 +987,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            _user!.tasks[i].title,
+                            _user!.tasks[i].isSecret
+                                ? AppLocalizations.of(context)!.timelineSecretTaskLabel
+                                : _user!.tasks[i].title,
                             style: TextStyle(
                               fontSize: 15,
                               color: AppColors.textPrimary,

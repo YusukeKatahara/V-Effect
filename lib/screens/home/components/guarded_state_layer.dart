@@ -89,16 +89,21 @@ class _GuardedStateLayerState extends State<GuardedStateLayer> {
         if (widget.backgroundImageUrl != null)
           Positioned.fill(
             child: RepaintBoundary(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                child: Opacity(
-                  opacity: 0.4,
-                  child: CachedNetworkImage(
-                    imageUrl: widget.backgroundImageUrl!,
-                    fit: BoxFit.cover,
-                    memCacheWidth: 400,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: CachedNetworkImage(
+                      imageUrl: widget.backgroundImageUrl!,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 400,
+                    ),
                   ),
-                ),
+                  Container(
+                    color: Colors.black.withValues(alpha: 0.7),
+                  ),
+                ],
               ),
             ),
           ),

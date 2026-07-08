@@ -1336,6 +1336,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenOneTimeTaskTitle => '完了から24時間後に自動削除されます';
 
   @override
+  String get profileScreenSecretTaskTitle => 'シークレットタスク';
+
+  @override
+  String get profileScreenSecretTaskSubtitle => '友達のタイムラインでは写真がぼかされ、タスク名が非表示になります';
+
+  @override
+  String get timelineSecretTaskLabel => 'シークレットタスク';
+
+  @override
   String get profileScreenHabitTipsTitle => '習慣化のコツ';
 
   @override

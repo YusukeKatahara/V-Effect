@@ -239,6 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final triggerController = TextEditingController();
 
     bool isOneTime = false;
+    bool isSecret = false;
 
     // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -342,6 +343,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                           contentPadding: EdgeInsets.zero,
                         ),
+                        const SizedBox(height: 4),
+                        SwitchListTile(
+                          visualDensity: VisualDensity.compact,
+                          title: Text(
+                            AppLocalizations.of(context)!.profileScreenSecretTaskTitle,
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 13,
+                            ),
+                          ),
+                          subtitle: Text(
+                            AppLocalizations.of(context)!.profileScreenSecretTaskSubtitle,
+                            style: TextStyle(
+                              color: AppColors.grey50,
+                              fontSize: 10,
+                            ),
+                          ),
+                          value: isSecret,
+                          activeColor: AppColors.accentGold,
+                          onChanged: (val) {
+                            setModalState(() => isSecret = val);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
                         const SizedBox(height: 12),
                         // --- 操作ボタン（キャンセル・追加） ---
                         Row(
@@ -356,10 +381,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(width: 8),
                             TextButton(
-                              onPressed: () => Navigator.pop(ctx, {
+                             onPressed: () => Navigator.pop(ctx, {
                                 'title': controller.text,
                                 'trigger': triggerController.text,
                                 'isOneTime': isOneTime,
+                                'isSecret': isSecret,
                               }),
                               child: Text(
                                 AppLocalizations.of(context)!.profileScreenAddTask,
@@ -388,6 +414,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         isOneTime: result['isOneTime'] as bool,
         isSeason: isDebugSeason,
         seasonId: isDebugSeason ? 'debug_season_test' : null,
+        isSecret: result['isSecret'] as bool? ?? false,
       );
 
       final updatedTasks = List<AppTask>.from(_user!.tasks);
@@ -409,6 +436,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final triggerController = TextEditingController(text: task.trigger);
 
     bool isOneTime = task.isOneTime;
+    bool isSecret = task.isSecret;
 
     // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -512,6 +540,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                           contentPadding: EdgeInsets.zero,
                         ),
+                        const SizedBox(height: 4),
+                        SwitchListTile(
+                          visualDensity: VisualDensity.compact,
+                          title: Text(
+                            AppLocalizations.of(context)!.profileScreenSecretTaskTitle,
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 13,
+                            ),
+                          ),
+                          subtitle: Text(
+                            AppLocalizations.of(context)!.profileScreenSecretTaskSubtitle,
+                            style: TextStyle(
+                              color: AppColors.grey50,
+                              fontSize: 10,
+                            ),
+                          ),
+                          value: isSecret,
+                          activeColor: AppColors.accentGold,
+                          onChanged: (val) {
+                            setModalState(() => isSecret = val);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
                         const SizedBox(height: 12),
                         // --- 操作ボタン（キャンセル・保存） ---
                         Row(
@@ -526,10 +578,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(width: 8),
                             TextButton(
-                              onPressed: () => Navigator.pop(ctx, {
+                             onPressed: () => Navigator.pop(ctx, {
                                 'title': controller.text,
                                 'trigger': triggerController.text,
                                 'isOneTime': isOneTime,
+                                'isSecret': isSecret,
                               }),
                               child: Text(
                                 AppLocalizations.of(context)!.profileScreenSaveTask,
@@ -557,6 +610,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         trigger: newTrigger,
         clearTrigger: newTrigger == null,
         isOneTime: result['isOneTime'] as bool,
+        isSecret: result['isSecret'] as bool? ?? false,
       );
       await _userService.updateProfile(tasks: updatedTasks);
       

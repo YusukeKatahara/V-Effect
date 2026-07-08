@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -71,7 +72,7 @@ class _PastComparisonScreenState extends ConsumerState<PastComparisonScreen> wit
   final Set<String> _draggedPostIds = {}; // 同一ドラッグ中に処理済みのポストIDを保持
   final Map<String, GlobalKey> _postKeys = {}; // 各ポストの位置検出用GlobalKey
   final Map<String, ScrollController> _scrollControllers = {}; // 各タブ用のスクロールコントローラー
-  Timer? _autoScrollTimer; // オートスクロール用タイマー
+  Ticker? _autoScrollTicker; // オートスクロール用Ticker
 
   @override
   void initState() {
@@ -105,7 +106,8 @@ class _PastComparisonScreenState extends ConsumerState<PastComparisonScreen> wit
     for (final controller in _scrollControllers.values) {
       controller.dispose();
     }
-    _autoScrollTimer?.cancel();
+    _autoScrollTicker?.stop();
+    _autoScrollTicker?.dispose();
     super.dispose();
   }
 
@@ -694,8 +696,9 @@ class _PastComparisonScreenState extends ConsumerState<PastComparisonScreen> wit
   }
 
   void _startAutoScroll(ScrollController controller, double direction) {
-    _autoScrollTimer?.cancel();
-    _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+    _autoScrollTicker?.stop();
+    _autoScrollTicker?.dispose();
+    _autoScrollTicker = createTicker((elapsed) {
       if (!controller.hasClients) return;
       final newOffset = controller.offset + direction * 10;
       final maxScroll = controller.position.maxScrollExtent;
@@ -705,17 +708,19 @@ class _PastComparisonScreenState extends ConsumerState<PastComparisonScreen> wit
         controller.jumpTo(newOffset);
       } else if (newOffset > maxScroll) {
         controller.jumpTo(maxScroll);
-        _autoScrollTimer?.cancel();
+        _stopAutoScroll();
       } else if (newOffset < minScroll) {
         controller.jumpTo(minScroll);
-        _autoScrollTimer?.cancel();
+        _stopAutoScroll();
       }
     });
+    _autoScrollTicker?.start();
   }
 
   void _stopAutoScroll() {
-    _autoScrollTimer?.cancel();
-    _autoScrollTimer = null;
+    _autoScrollTicker?.stop();
+    _autoScrollTicker?.dispose();
+    _autoScrollTicker = null;
   }
 
   void _handleScaleEnd() {

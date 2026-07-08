@@ -1376,6 +1376,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Auto-deleted 24 hours after completion';
 
   @override
+  String get profileScreenSecretTaskTitle => 'Secret Task';
+
+  @override
+  String get profileScreenSecretTaskSubtitle => 'Blurs the photo and hides the task title on friends\' timelines';
+
+  @override
+  String get timelineSecretTaskLabel => 'Secret Task';
+
+  @override
   String get profileScreenHabitTipsTitle => 'Habit-Building Tips';
 
   @override

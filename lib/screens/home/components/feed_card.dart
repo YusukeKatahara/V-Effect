@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../config/app_colors.dart';
 import '../../../models/post.dart';
+import '../../../models/quote.dart';
 import '../../../widgets/v_badge_widget.dart';
 
 /// フィード画面に表示される各投稿のカード型UIコンポーネント。
@@ -39,6 +40,17 @@ class FeedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSecretPost = post.isSecret;
+    
+    final locale = Localizations.localeOf(context).languageCode;
+    final quotes = Quote.getQuotes(locale);
+    final quoteIndex = isSecretPost && quotes.isNotEmpty ? (post.id.hashCode.abs() % quotes.length) : 0;
+    final randomQuote = isSecretPost && quotes.isNotEmpty ? quotes[quoteIndex] : null;
+    final quoteText = randomQuote != null
+        ? (locale == 'en' ? '“${randomQuote.text}”' : '「${randomQuote.text}」')
+        : '';
+    final quoteAuthor = randomQuote != null ? '- ${randomQuote.author}' : '';
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -68,44 +80,56 @@ class FeedCard extends StatelessWidget {
             RepaintBoundary(
               child: post.imageUrl != null
                   ? SizedBox.expand(
-                      child: CachedNetworkImage(
-                        imageUrl: post.imageUrl!,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        memCacheWidth: 1080,
-                        memCacheHeight: 1920,
-                        placeholder: (ctx, url) => post.thumbnailUrl != null
-                            ? Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  CachedNetworkImage(
-                                    imageUrl: post.thumbnailUrl!,
-                                    fit: BoxFit.cover,
-                                    memCacheWidth: 150,
-                                  ),
-                                  BackdropFilter(
-                                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                                    child: Container(color: Colors.black.withValues(alpha: 0.1)),
-                                  ),
-                                ],
-                              )
-                            : Container(
-                                color: AppColors.grey10,
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.accentGold,
-                                    strokeWidth: 2,
-                                  ),
+                      child: isSecretPost
+                          ? ImageFiltered(
+                              imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                              child: CachedNetworkImage(
+                                imageUrl: post.thumbnailUrl ?? post.imageUrl!,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.center,
+                                memCacheWidth: 150,
+                                placeholder: (ctx, url) => Container(color: AppColors.grey10),
+                                errorWidget: (ctx, url, error) => Container(color: AppColors.grey10),
+                              ),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: post.imageUrl!,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
+                              memCacheWidth: 1080,
+                              memCacheHeight: 1920,
+                              placeholder: (ctx, url) => post.thumbnailUrl != null
+                                  ? Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        CachedNetworkImage(
+                                          imageUrl: post.thumbnailUrl!,
+                                          fit: BoxFit.cover,
+                                          memCacheWidth: 150,
+                                        ),
+                                        BackdropFilter(
+                                          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                                          child: Container(color: Colors.black.withValues(alpha: 0.1)),
+                                        ),
+                                      ],
+                                    )
+                                  : Container(
+                                      color: AppColors.grey10,
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          color: AppColors.accentGold,
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    ),
+                              errorWidget: (ctx, url, error) => Center(
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: AppColors.grey30,
+                                  size: 40,
                                 ),
                               ),
-                        errorWidget: (ctx, url, error) => Center(
-                          child: Icon(
-                            Icons.broken_image,
-                            color: AppColors.grey30,
-                            size: 40,
-                          ),
-                        ),
-                      ),
+                            ),
                     )
                   : Container(
                       color: AppColors.grey10,
@@ -118,6 +142,112 @@ class FeedCard extends StatelessWidget {
                       ),
                     ),
             ),
+
+            // シークレットタスク用のブランドロゴオーバーレイ
+            if (isSecretPost)
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.accentGold.withValues(alpha: 0.3),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: AppColors.accentGold.withValues(alpha: 0.6),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/icon/splash_logo.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (randomQuote != null) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(
+                          quoteText,
+                          textAlign: TextAlign.center,
+                          style: locale == 'ja'
+                              ? GoogleFonts.notoSansJp(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.pureWhite,
+                                  height: 1.5,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withValues(alpha: 0.8),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                )
+                              : GoogleFonts.outfit(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.pureWhite,
+                                  height: 1.5,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withValues(alpha: 0.8),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        quoteAuthor,
+                        textAlign: TextAlign.center,
+                        style: locale == 'ja'
+                            ? GoogleFonts.notoSansJp(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.accentGold.withValues(alpha: 0.9),
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withValues(alpha: 0.8),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              )
+                            : GoogleFonts.outfit(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.accentGold.withValues(alpha: 0.9),
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withValues(alpha: 0.8),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
 
             // 三点リーダーボタン
             Positioned(
@@ -221,7 +351,7 @@ class FeedCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        if (post.caption != null && post.caption!.isNotEmpty) ...[
+                        if (post.caption != null && post.caption!.isNotEmpty && !isSecretPost) ...[
                           const SizedBox(height: 8),
                           // Caption (no tap handler — not a profile link)
                           Text(

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'app_notification.dart';
+import 'quote.dart';
 
 /// 通知メッセージのタイトルと本文のペア
 class NotificationContent {
@@ -20,26 +21,6 @@ abstract class NotificationMessages {
 
   /// テンプレート定義 (日本語)
   static final _templatesJa = {
-    // ── ヒーロータスクリマインダー ──
-    NotificationType.taskReminder: [
-      _Template(
-        title: 'V Alert',
-        body: '「天才とは努力する凡才のことである」 - Albert Einstein',
-      ),
-      _Template(
-        title: 'V Alert',
-        body: '「楽観的？悲観的？そんなことは知らん。やる。やり遂げる。必ずやり遂げると神に誓うんだ」 - Elon Musk',
-      ),
-      _Template(
-        title: 'V Alert',
-        body: '「時間をかけることを恐れてはいけないよ。それは、いちばん洗練されたかたちでの復讐んだ」 - 村上春樹',
-      ),
-      _Template(
-        title: 'V Alert',
-        body: '「貪欲であれ、愚かであれ」 - Steve Jobs',
-      ),
-    ],
-
     // ── リアクション受信 ──
     NotificationType.reactionReceived: [
       _Template(
@@ -51,26 +32,6 @@ abstract class NotificationMessages {
 
   /// テンプレート定義 (英語)
   static final _templatesEn = {
-    // ── ヒーロータスクリマインダー ──
-    NotificationType.taskReminder: [
-      _Template(
-        title: 'V Alert',
-        body: '“Genius is one percent inspiration and ninety-nine percent perspiration.” - Albert Einstein',
-      ),
-      _Template(
-        title: 'V Alert',
-        body: '“I don\'t give up. I\'d have to be dead or completely incapacitated.” - Elon Musk',
-      ),
-      _Template(
-        title: 'V Alert',
-        body: '“Don\'t look at me, I\'m just a novelist.” - Haruki Murakami',
-      ),
-      _Template(
-        title: 'V Alert',
-        body: '“Stay hungry. Stay foolish.” - Steve Jobs',
-      ),
-    ],
-
     // ── リアクション受信 ──
     NotificationType.reactionReceived: [
       _Template(
@@ -87,6 +48,17 @@ abstract class NotificationMessages {
     Map<String, String> params = const {},
     String language = 'ja',
   ]) {
+    if (type == NotificationType.taskReminder) {
+      final randomQuote = Quote.getRandomQuote(language);
+      final formattedBody = language == 'en'
+          ? '“${randomQuote.text}” - ${randomQuote.author}'
+          : '「${randomQuote.text}」 - ${randomQuote.author}';
+      return NotificationContent(
+        title: 'V Alert',
+        body: formattedBody,
+      );
+    }
+
     final templatesMap = (language == 'en') ? _templatesEn : _templatesJa;
     final templates = templatesMap[type];
     if (templates == null || templates.isEmpty) {

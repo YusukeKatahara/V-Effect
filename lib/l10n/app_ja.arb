@@ -566,6 +566,9 @@
   "profileScreenTaskNameHint": "タスク名",
 
   "profileScreenOneTimeTaskTitle": "完了から24時間後に自動削除されます",
+  "profileScreenSecretTaskTitle": "シークレットタスク",
+  "profileScreenSecretTaskSubtitle": "友達のタイムラインでは写真がぼかされ、タスク名が非表示になります",
+  "timelineSecretTaskLabel": "シークレットタスク",
   "profileScreenHabitTipsTitle": "習慣化のコツ",
   "profileScreenHabitTipsClose": "閉じる",
   "cameraScreenTaskDefault": "今日のヒーロータスク",

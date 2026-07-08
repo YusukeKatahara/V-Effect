@@ -566,6 +566,9 @@
   "profileScreenTaskNameHint": "Task name (e.g. Reading)",
 
   "profileScreenOneTimeTaskTitle": "Auto-deleted 24 hours after completion",
+  "profileScreenSecretTaskTitle": "Secret Task",
+  "profileScreenSecretTaskSubtitle": "Blurs the photo and hides the task title on friends' timelines",
+  "timelineSecretTaskLabel": "Secret Task",
   "profileScreenHabitTipsTitle": "Habit-Building Tips",
   "profileScreenHabitTipsClose": "Close",
   "cameraScreenTaskDefault": "Today's Hero Task",

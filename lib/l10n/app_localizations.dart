@@ -2630,6 +2630,24 @@ abstract class AppLocalizations {
   /// **'完了から24時間後に自動削除されます'**
   String get profileScreenOneTimeTaskTitle;
 
+  /// No description provided for @profileScreenSecretTaskTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'シークレットタスク'**
+  String get profileScreenSecretTaskTitle;
+
+  /// No description provided for @profileScreenSecretTaskSubtitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'友達のタイムラインでは写真がぼかされ、タスク名が非表示になります'**
+  String get profileScreenSecretTaskSubtitle;
+
+  /// No description provided for @timelineSecretTaskLabel.
+  ///
+  /// In ja, this message translates to:
+  /// **'シークレットタスク'**
+  String get timelineSecretTaskLabel;
+
   /// No description provided for @profileScreenHabitTipsTitle.
   ///
   /// In ja, this message translates to:

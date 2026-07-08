@@ -11,7 +11,6 @@ import '../models/app_notification.dart';
 import '../utils/date_helper.dart';
 import 'analytics_service.dart';
 import 'streak_service.dart';
-import 'notification_service.dart';
 import 'push_notification_service.dart';
 import '../models/app_task.dart';
 import '../models/season.dart';
@@ -35,7 +34,6 @@ class PostService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final StreakService _streakService = StreakService.instance;
-  final NotificationService _notificationService = NotificationService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
 
   CollectionReference<Post> get _postsRef =>
@@ -321,10 +319,7 @@ class PostService {
     final thumbUploadTask = thumbRef.putData(thumbBytes, SettableMetadata(contentType: 'image/jpeg'));
 
     // 🚀 【爆速化 1】Storageのアップロードと並列で、Firestoreからユーザー情報を事前フェッチ
-    final fetchDataFuture = Future.wait([
-      _db.collection('users').doc(uid).get(),
-      _db.collection('users').doc(uid).collection('private').doc('data').get(),
-    ]);
+    final fetchDataFuture = _db.collection('users').doc(uid).get();
 
     // 両方の完了を同時に待つことで、シーケンシャルな待ち時間を劇的に削減
     final results = await Future.wait<dynamic>([
@@ -333,9 +328,7 @@ class PostService {
       fetchDataFuture,
     ]);
 
-    final fetchResults = results[2] as List<DocumentSnapshot>;
-    final userSnap = fetchResults[0];
-    final userPrivateSnap = fetchResults[1];
+    final userSnap = results[2] as DocumentSnapshot;
 
     final imageUrl = await ref.getDownloadURL();
     final thumbnailUrl = await thumbRef.getDownloadURL();
@@ -368,9 +361,11 @@ class PostService {
         .toList();
 
     String? matchedTaskId;
+    bool isSecretTask = false;
     for (final t in tasks) {
       if (t.title == taskName) {
         matchedTaskId = t.id;
+        isSecretTask = t.isSecret;
         break;
       }
     }
@@ -392,6 +387,7 @@ class PostService {
       bgmTitle: bgmTitle,
       bgmArtist: bgmArtist,
       bgmArtworkUrl: bgmArtworkUrl,
+      isSecret: isSecretTask,
     );
     
     bool taskUpdated = false;
@@ -687,7 +683,6 @@ class PostService {
     String title;
     String body;
     bool sendPush = false;
-    int reactionCount = 1;
 
     // 相手の通知設定を確認
     final receiverSnap = await _db.collection('users').doc(postOwnerId).get();

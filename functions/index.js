@@ -957,6 +957,9 @@ exports.processPostNotifications = onTaskDispatched(
     // JSTの0:00をUTC時間に変換 (JST = UTC + 9)
     const startOfTodayUTC = new Date(startOfTodayJST.getTime() - 9 * 60 * 60 * 1000);
 
+    // 日本時間での今日の日付文字列を取得 (YYYY-MM-DD)
+    const todayString = `${jstNow.getFullYear()}-${String(jstNow.getMonth() + 1).padStart(2, '0')}-${String(jstNow.getDate()).padStart(2, '0')}`;
+
     const postsSnap = await db.collection("posts")
       .where("userId", "==", uid)
       .where("expiresAt", ">", new Date())

@@ -41,6 +41,7 @@ class _TaskSetupScreenState extends ConsumerState<TaskSetupScreen>
 
   // ヒーロータスク入力欄（最初は1つ）
   final List<TextEditingController> _taskCtrls = [TextEditingController()];
+  final List<bool> _isSecretList = [false];
 
   @override
   void initState() {
@@ -104,7 +105,10 @@ class _TaskSetupScreenState extends ConsumerState<TaskSetupScreen>
   }
 
   void _addTaskField() {
-    setState(() => _taskCtrls.add(TextEditingController()));
+    setState(() {
+      _taskCtrls.add(TextEditingController());
+      _isSecretList.add(false);
+    });
   }
 
   void _removeTaskField(int index) {
@@ -112,6 +116,7 @@ class _TaskSetupScreenState extends ConsumerState<TaskSetupScreen>
     setState(() {
       _taskCtrls[index].dispose();
       _taskCtrls.removeAt(index);
+      _isSecretList.removeAt(index);
     });
   }
 
@@ -129,12 +134,16 @@ class _TaskSetupScreenState extends ConsumerState<TaskSetupScreen>
   Future<void> _saveAndFinish() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final tasks =
-        _taskCtrls
-            .map((c) => c.text.trim())
-            .where((t) => t.isNotEmpty)
-            .map((t) => AppTask(title: t))
-            .toList();
+    final tasks = <AppTask>[];
+    for (int i = 0; i < _taskCtrls.length; i++) {
+      final title = _taskCtrls[i].text.trim();
+      if (title.isNotEmpty) {
+        tasks.add(AppTask(
+          title: title,
+          isSecret: _isSecretList[i],
+        ));
+      }
+    }
 
     if (tasks.isEmpty) {
       ScaffoldMessenger.of(
@@ -323,48 +332,76 @@ class _TaskSetupScreenState extends ConsumerState<TaskSetupScreen>
                                 ...List.generate(_taskCtrls.length, (index) {
                                   return Padding(
                                     padding: const EdgeInsets.only(bottom: 12),
-                                    child: Row(
+                                    child: Column(
                                       children: [
-                                        Container(
-                                          width: 28,
-                                          height: 28,
-                                          margin: const EdgeInsets.only(right: 8),
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            gradient: AppColors.primaryGradient,
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              '${index + 1}',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w700,
-                                                color: AppColors.black,
+                                        Row(
+                                          children: [
+                                            Container(
+                                              width: 28,
+                                              height: 28,
+                                              margin: const EdgeInsets.only(right: 8),
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                gradient: AppColors.primaryGradient,
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  '${index + 1}',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppColors.black,
+                                                  ),
+                                                ),
                                               ),
                                             ),
-                                          ),
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _taskCtrls[index],
+                                                style: TextStyle(
+                                                  color: AppColors.textPrimary,
+                                                ),
+                                                decoration: InputDecoration(
+                                                  labelText: AppLocalizations.of(context)!.taskSetupHeroTaskLabel(index + 1),
+                                                  hintText: AppLocalizations.of(context)!.hintTaskExample,
+                                                ),
+                                              ),
+                                            ),
+                                            if (_taskCtrls.length > 1)
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons.remove_circle_outline,
+                                                  color: AppColors.error,
+                                                ),
+                                                onPressed: () =>
+                                                    _removeTaskField(index),
+                                              ),
+                                          ],
                                         ),
-                                        Expanded(
-                                          child: TextFormField(
-                                            controller: _taskCtrls[index],
-                                            style: TextStyle(
-                                              color: AppColors.textPrimary,
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              '🤫 秘密の特訓',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: _isSecretList[index]
+                                                    ? AppColors.accentGold
+                                                    : AppColors.textSecondary,
+                                              ),
                                             ),
-                                            decoration: InputDecoration(
-                                              labelText: AppLocalizations.of(context)!.taskSetupHeroTaskLabel(index + 1),
-                                              hintText: AppLocalizations.of(context)!.hintTaskExample,
+                                            Switch(
+                                              value: _isSecretList[index],
+                                              activeColor: AppColors.accentGold,
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  _isSecretList[index] = val;
+                                                });
+                                              },
                                             ),
-                                          ),
+                                          ],
                                         ),
-                                        if (_taskCtrls.length > 1)
-                                          IconButton(
-                                            icon: Icon(
-                                              Icons.remove_circle_outline,
-                                              color: AppColors.error,
-                                            ),
-                                            onPressed: () =>
-                                                _removeTaskField(index),
-                                          ),
                                       ],
                                     ),
                                   );
