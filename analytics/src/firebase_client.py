@@ -51,6 +51,17 @@ class FirebaseClient:
         return result
 
     @classmethod
+    def fetch_all_posts(cls) -> list[dict]:
+        """投稿を全件取得する（Firestore読み取りコストに注意）。"""
+        docs = cls.db().collection("posts").stream()
+        result = []
+        for doc in docs:
+            data = doc.to_dict() or {}
+            data["post_id"] = doc.id
+            result.append(data)
+        return result
+
+    @classmethod
     def fetch_posts_since(cls, days: int = 90) -> list[dict]:
         """直近N日分の投稿のみ取得する。Firestore読み取りコスト削減のため全件取得を避ける。"""
         since = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)

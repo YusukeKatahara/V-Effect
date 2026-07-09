@@ -48,6 +48,9 @@ app.*.map.json
 google-services.json
 GoogleService-Info.plist
 firebase_options.dart
+# Firebase Admin SDK サービスアカウントキー（場所を問わず除外）
+*firebase_admin_key*.json
+*service_account*.json
 
 # Custom Ignore Logs
 *log*.txt
