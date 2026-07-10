@@ -21,6 +21,8 @@ class VPracticeScreen extends ConsumerStatefulWidget {
 }
 
 class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
+  BlogCategory? _selectedCategory; // 選択されたカテゴリ（nullは「すべて」）
+
   @override
   void initState() {
     super.initState();
@@ -70,18 +72,47 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
                     )
                   : null,
             ),
+            _buildCategoryFilter(context), // カテゴリ選択用の横スクロールチップス
             Expanded(
               child: postsAsync.when(
                 data: (allPosts) {
-                  final posts = isDev ? allPosts : allPosts.where((p) => !p.isDraft).toList();
-                  return posts.isEmpty
-                      ? const _EmptyState()
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                          itemCount: posts.length,
-                          itemBuilder: (context, i) =>
-                              _BlogCard(post: posts[i]),
-                        );
+                  // 1. 開発者以外の時に下書きを除外する
+                  var posts = isDev ? allPosts : allPosts.where((p) => !p.isDraft).toList();
+                  
+                  // 2. 選択中のカテゴリでフィルタリングする
+                  if (_selectedCategory != null) {
+                    posts = posts.where((p) => p.category == _selectedCategory).toList();
+                  }
+
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      // フェードと少しのスライド（下から上へ）を組み合わせたアニメーション
+                      final slideAnimation = Tween<Offset>(
+                        begin: const Offset(0.0, 0.05),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      ));
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: slideAnimation,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: posts.isEmpty
+                        ? _EmptyState(key: ValueKey('empty_${_selectedCategory?.name ?? "all"}'))
+                        : ListView.builder(
+                            key: ValueKey('list_${_selectedCategory?.name ?? "all"}'),
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                            itemCount: posts.length,
+                            itemBuilder: (context, i) =>
+                                _BlogCard(post: posts[i]),
+                          ),
+                  );
                 },
                 loading: () => Center(
                   child: CircularProgressIndicator(
@@ -98,6 +129,77 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// カテゴリ絞り込み用の横スクロール可能なチップスUIを構築します。
+  Widget _buildCategoryFilter(BuildContext context) {
+    // 「すべて（null）」と定義済みのカテゴリ一覧を並べます
+    final categories = [null, ...BlogCategory.values];
+    final l = AppLocalizations.of(context)!;
+
+    return Container(
+      height: 38,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: categories.map((cat) {
+            final isSelected = _selectedCategory == cat;
+            final String label = cat == null ? l.vPracticeCategoryAll : cat.label(context);
+
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () {
+                  if (_selectedCategory != cat) {
+                    setState(() {
+                      _selectedCategory = cat;
+                    });
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [AppColors.accentGold, AppColors.accentGoldLight],
+                          )
+                        : null,
+                    color: isSelected ? null : AppColors.grey10,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected ? Colors.transparent : AppColors.grey20,
+                      width: 0.5,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.accentGold.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            )
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    label,
+                    style: GoogleFonts.notoSansJp(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? AppColors.pureBlack : AppColors.grey50,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ),
     );
@@ -244,12 +346,8 @@ class _CoverPlaceholder extends StatelessWidget {
     switch (cat) {
       case BlogCategory.progress:
         return Icons.code_rounded;
-      case BlogCategory.concept:
-        return Icons.lightbulb_outline_rounded;
       case BlogCategory.howto:
         return Icons.menu_book_rounded;
-      case BlogCategory.thanks:
-        return Icons.favorite_outline_rounded;
       case BlogCategory.seasonTask:
         return Icons.star_border_rounded;
     }
@@ -284,7 +382,7 @@ class _CategoryBadge extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({super.key});
 
   @override
   Widget build(BuildContext context) {

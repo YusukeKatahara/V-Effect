@@ -266,7 +266,6 @@ class UserService {
     bool? reactionNotifications,
     bool? protectionNotifications,
     bool? vFireNotifications,
-    bool? streakCelebrationNotifications,
     bool? streakWarningNotifications,
     bool? isPrivateAccount,
   }) async {
@@ -278,7 +277,6 @@ class UserService {
     if (reactionNotifications != null) data[AppUser.fieldReactionNotifications] = reactionNotifications;
     if (protectionNotifications != null) data[AppUser.fieldProtectionNotifications] = protectionNotifications;
     if (vFireNotifications != null) data[AppUser.fieldVFireNotifications] = vFireNotifications;
-    if (streakCelebrationNotifications != null) data[AppUser.fieldStreakCelebrationNotifications] = streakCelebrationNotifications;
     if (streakWarningNotifications != null) data[AppUser.fieldStreakWarningNotifications] = streakWarningNotifications;
     if (isPrivateAccount != null) data[AppUser.fieldIsPrivateAccount] = isPrivateAccount;
 

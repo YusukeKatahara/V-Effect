@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 
 import '../config/app_colors.dart';
 import '../models/dev_blog_post.dart';
@@ -38,6 +39,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
   bool _isSaving = false;
   bool _previewMode = false;
   bool _isDraft = false;
+  DateTime? _publishAt;
 
   bool _isSeasonTask = false;
   final _seasonTaskNameController = TextEditingController();
@@ -62,6 +64,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
       _isPinned = arg.isPinned;
       _existingCoverUrl = arg.coverImageUrl;
       _isDraft = arg.isDraft;
+      _publishAt = arg.publishAt;
     }
   }
 
@@ -239,6 +242,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
           titleEn: titleEn.isNotEmpty ? titleEn : null,
           bodyEn: bodyEn.isNotEmpty ? bodyEn : null,
           isDraft: asDraft,
+          publishAt: _publishAt,
         );
         await ref.read(devBlogServiceProvider).createPost(post);
 
@@ -281,6 +285,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
           titleEn: titleEn.isNotEmpty ? titleEn : null,
           bodyEn: bodyEn.isNotEmpty ? bodyEn : null,
           isDraft: asDraft,
+          publishAt: _publishAt,
         );
         await ref.read(devBlogServiceProvider).updatePost(updated);
 
@@ -430,6 +435,8 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
           _buildBodyField(),
           const SizedBox(height: 16),
           _buildBodyEnField(),
+          const SizedBox(height: 24),
+          _buildPublishAtToggle(),
           const SizedBox(height: 24),
           _buildSeasonTaskToggle(),
           const SizedBox(height: 32),
@@ -1103,6 +1110,151 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
     }
     
     return _buildAdminBadgeOption(setStateModal, 'アップロード済', url);
+  }
+
+  Future<void> _pickPublishAt() async {
+    final initialDate = _publishAt ?? DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: AppColors.accentGold,
+              onPrimary: AppColors.black,
+              surface: AppColors.bgElevated,
+              onSurface: AppColors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate == null) return;
+
+    if (!mounted) return;
+
+    final initialTime = TimeOfDay.fromDateTime(initialDate);
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: AppColors.accentGold,
+              onPrimary: AppColors.black,
+              surface: AppColors.bgElevated,
+              onSurface: AppColors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedTime == null) return;
+
+    setState(() {
+      _publishAt = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    });
+  }
+
+  Widget _buildPublishAtToggle() {
+    final l = AppLocalizations.of(context)!;
+    final hasPublishAt = _publishAt != null;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.grey10,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasPublishAt ? AppColors.accentGold : AppColors.grey20,
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: _pickPublishAt,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: hasPublishAt
+                        ? AppColors.accentGold.withValues(alpha: 0.15)
+                        : AppColors.grey15,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.calendar_month_rounded,
+                    color: hasPublishAt ? AppColors.accentGold : AppColors.grey50,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.blogPostEditorSchedulePublish,
+                        style: GoogleFonts.notoSansJp(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: hasPublishAt ? AppColors.accentGold : AppColors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        hasPublishAt
+                            ? '${l.blogPostEditorPublishAtLabel}: ${DateFormat('yyyy/MM/dd HH:mm').format(_publishAt!)}'
+                            : l.blogPostEditorPublishAtHint,
+                        style: GoogleFonts.notoSansJp(
+                          fontSize: 12,
+                          color: AppColors.grey50,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasPublishAt)
+                  IconButton(
+                    icon: Icon(Icons.close_rounded, color: AppColors.grey50, size: 20),
+                    onPressed: () {
+                      setState(() {
+                        _publishAt = null;
+                      });
+                    },
+                  )
+                else
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: AppColors.grey50,
+                    size: 16,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildSeasonTaskToggle() {

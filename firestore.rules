@@ -206,7 +206,11 @@ service cloud.firestore {
     // 開発者判定は Auth UID ベース（userId 経由は廃止）
     // ────────────────────────────────────────
     match /dev_blog/{postId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && (
+        isDeveloper() ||
+        (resource.data.isDraft == false && 
+         (!('publishAt' in resource.data.keys()) || resource.data.publishAt == null || resource.data.publishAt < request.time))
+      );
       allow create, update, delete: if isDeveloper();
     }
 

@@ -20,9 +20,8 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
   bool _pushNotifications = true;
   bool _reactionNotifications = true;
   bool _vFireNotifications = true;
-  bool _protectionNotifications = true;
-  bool _streakCelebrationNotifications = true;
-  bool _streakWarningNotifications = true;
+  bool _protectionNotifications = false;
+  bool _streakWarningNotifications = false;
   bool _isLoading = true;
 
   @override
@@ -43,9 +42,8 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
               _pushNotifications = data['pushNotifications'] ?? true;
               _reactionNotifications = data['reactionNotifications'] ?? true;
               _vFireNotifications = data['vFireNotifications'] ?? true;
-              _protectionNotifications = data['protectionNotifications'] ?? true;
-              _streakCelebrationNotifications = data['streakCelebrationNotifications'] ?? true;
-              _streakWarningNotifications = data['streakWarningNotifications'] ?? true;
+              _protectionNotifications = data['protectionNotifications'] ?? false;
+              _streakWarningNotifications = data['streakWarningNotifications'] ?? false;
               _isLoading = false;
             });
           }
@@ -68,13 +66,11 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
           _reactionNotifications = value;
           _vFireNotifications = value;
           _protectionNotifications = value;
-          _streakCelebrationNotifications = value;
           _streakWarningNotifications = value;
           break;
         case 'reactionNotifications': _reactionNotifications = value; break;
         case 'vFireNotifications': _vFireNotifications = value; break;
         case 'protectionNotifications': _protectionNotifications = value; break;
-        case 'streakCelebrationNotifications': _streakCelebrationNotifications = value; break;
         case 'streakWarningNotifications': _streakWarningNotifications = value; break;
       }
     });
@@ -87,7 +83,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
           reactionNotifications: value,
           vFireNotifications: value,
           protectionNotifications: value,
-          streakCelebrationNotifications: value,
           streakWarningNotifications: value,
         );
       } else {
@@ -96,7 +91,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
           reactionNotifications: key == 'reactionNotifications' ? value : null,
           vFireNotifications: key == 'vFireNotifications' ? value : null,
           protectionNotifications: key == 'protectionNotifications' ? value : null,
-          streakCelebrationNotifications: key == 'streakCelebrationNotifications' ? value : null,
           streakWarningNotifications: key == 'streakWarningNotifications' ? value : null,
         );
       }
@@ -145,12 +139,6 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 AppLocalizations.of(context)!.notificationSettingsShieldDesc,
                 _protectionNotifications,
                 (v) => _updateSetting('protectionNotifications', v),
-              ),
-              _buildSwitch(
-                AppLocalizations.of(context)!.notificationSettingsStreakCelebration,
-                AppLocalizations.of(context)!.notificationSettingsStreakCelebrationDesc,
-                _streakCelebrationNotifications,
-                (v) => _updateSetting('streakCelebrationNotifications', v),
               ),
               _buildSwitch(
                 AppLocalizations.of(context)!.notificationSettingsStreakWarning,

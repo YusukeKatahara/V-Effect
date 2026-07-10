@@ -25,8 +25,10 @@ import 'widgets/global_error_widget.dart';
 import 'widgets/splash_loading.dart';
 import 'dart:async';
 import 'package:audio_session/audio_session.dart';
-import 'services/widget_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'services/force_update_service.dart';
+import 'screens/force_update_screen.dart';
+import 'services/widget_service.dart';
 void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
@@ -136,6 +138,7 @@ class AppInitializer extends StatefulWidget {
 
 class _AppInitializerState extends State<AppInitializer> {
   bool _isInitialized = false;
+  bool _needsForceUpdate = false;
   String? _error;
 
   @override
@@ -146,6 +149,19 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _initialize() async {
     try {
+      // 🚀 【強制アップデートチェック】
+      // セキュリティ上の重大な変更があった古いアプリバージョンをピンポイントでブロックします
+      await ForceUpdateService.instance.checkForceUpdate();
+      if (ForceUpdateService.instance.needsForceUpdate) {
+        if (mounted) {
+          setState(() {
+            _needsForceUpdate = true;
+            _isInitialized = true;
+          });
+        }
+        return;
+      }
+
       // ── アプリ全体のオーディオセッションを強固に設定 ──
       // UIの描画をブロックさせないため、非同期で実行します（Fire-and-forget）
       Future(() async {
@@ -212,6 +228,10 @@ class _AppInitializerState extends State<AppInitializer> {
 
     if (!_isInitialized) {
       return const SplashLoading();
+    }
+
+    if (_needsForceUpdate) {
+      return const ForceUpdateScreen();
     }
 
     return widget.child;

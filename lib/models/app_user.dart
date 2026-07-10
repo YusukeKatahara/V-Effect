@@ -78,7 +78,6 @@ class AppUser {
   static const String fieldMaxStreak = 'maxStreak';
   static const String fieldFriends = 'friends';
   static const String fieldBlockedUsers = 'blockedUsers';
-  static const String fieldStreakCelebrationNotifications = 'streakCelebrationNotifications';
   static const String fieldStreakWarningNotifications = 'streakWarningNotifications';
   static const String fieldOnboardingStep = 'onboardingStep';
 
@@ -107,7 +106,7 @@ class AppUser {
     this.pushNotifications = true,
     this.focusTimeNotifications = true,
     this.reactionNotifications = true,
-    this.protectionNotifications = true,
+    this.protectionNotifications = false,
     this.vFireNotifications = true,
     this.isPrivateAccount = false,
     this.equippedBadgeUrl,
@@ -184,7 +183,7 @@ class AppUser {
         pushNotifications: data[fieldPushNotifications] ?? true,
         focusTimeNotifications: data[fieldFocusTimeNotifications] ?? true,
         reactionNotifications: data[fieldReactionNotifications] ?? true,
-        protectionNotifications: data[fieldProtectionNotifications] ?? true,
+        protectionNotifications: data[fieldProtectionNotifications] ?? false,
         vFireNotifications: data[fieldVFireNotifications] ?? true,
         isPrivateAccount: data[fieldIsPrivateAccount] == true,
         equippedBadgeUrl: safeString(data[fieldEquippedBadgeUrl]),

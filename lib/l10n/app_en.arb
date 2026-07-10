@@ -209,8 +209,6 @@
   "notificationSettingsVFireDesc": "When your post receives a V FIRE",
   "notificationSettingsShield": "Enable Shield Notifications",
   "notificationSettingsShieldDesc": "When a shield protects your streak",
-  "notificationSettingsStreakCelebration": "Enable Streak Milestone Notifications",
-  "notificationSettingsStreakCelebrationDesc": "Milestones like 30 or 100 days",
   "notificationSettingsStreakWarning": "Enable Streak Risk Notifications",
   "notificationSettingsStreakWarningDesc": "Reminder if your task isn't done by evening",
   "notificationSettingsDebugTitle": "Developer Debug Tools",
@@ -461,6 +459,10 @@
   "blogPostEditorCodePlaceholder": "Enter code here",
   "blogPostEditorBadgeUploadSuccess": "Badge image uploaded",
   "blogPostEditorBadgeUploadFailed": "Upload failed",
+  "blogPostEditorSchedulePublish": "Schedule Publishing",
+  "blogPostEditorPublishAtLabel": "Publish Date & Time",
+  "blogPostEditorPublishAtHint": "Select Publish Date & Time",
+  "blogPostEditorClearSchedule": "Clear Schedule",
   "taskSetupTitle": "Hero Task Setup",
   "taskSetupSubtitle": "Customize your Hero Tasks and schedule",
   "taskSetupProfilePhoto": "Profile Photo",
@@ -888,6 +890,7 @@
   "vPracticeCreateBlog": "Create Blog Post",
   "vPracticeError": "An error occurred",
   "vPracticeNoNews": "No news yet",
+  "vPracticeCategoryAll": "All",
   "vPracticeBadgeIdRequired": "Please enter a badge ID (e.g. tester)",
   "vPracticeBadgeDistributed": "Badge \"{badgeUrl}\" distributed to all users!",
   "@vPracticeBadgeDistributed": {
@@ -950,5 +953,7 @@
   "blogPostEditorPublish": "Publish",
   "blogPostEditorSaveAndPublish": "Publish & Save",
   "blogPostEditorUpdateAndPublish": "Publish & Update",
-  "blogPostEditorRevertToDraft": "Revert to Draft"
+  "blogPostEditorRevertToDraft": "Revert to Draft",
+  "forceUpdateTitle": "Update Required",
+  "forceUpdateBtn": "Update"
 }

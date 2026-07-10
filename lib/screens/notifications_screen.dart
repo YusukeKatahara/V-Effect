@@ -10,6 +10,7 @@ import '../services/friend_service.dart';
 import '../utils/date_helper.dart';
 import '../widgets/swipe_back_gate.dart';
 import '../widgets/shimmer_container.dart';
+import '../widgets/streak_celebration_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/service_providers.dart';
 import '../providers/dev_blog_provider.dart';
@@ -600,7 +601,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                 : Colors.transparent,
                         child: InkWell(
                           onTap: () {
-                            if (notif.fromUid != null) {
+                            if (notif.type == NotificationType.streakCelebration ||
+                                notif.fromUid == 'system') {
+                              StreakCelebrationDialog.show(context, notif);
+                            } else if (notif.fromUid != null) {
                               Navigator.pushNamed(
                                 context,
                                 '/user-profile',
@@ -686,8 +690,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final body = notif.body;
     List<TextSpan> spans = [];
 
-    // 特定のキーワード（ユーザー名や「タスク名」など）を抽出してスタイルを分ける
-    final regExp = RegExp(r'([^\s「」]+(?:さん|くん|ちゃん)|「[^」]+」)');
+    RegExp regExp;
+    if (notif.type == NotificationType.streakCelebration) {
+      // ストリーク達成祝いの場合は「xx日連続達成」や「xx日」のみをゴールド強調にし、
+      // お茶目な「」内の長いメッセージはゴールドにせず通常のテキストで表示する
+      regExp = RegExp(r'(\d+日連続達成|\d+日)');
+    } else {
+      // 通常のキーワード（ユーザー名や「タスク名」など）を抽出してスタイルを分ける
+      regExp = RegExp(r'([^\s「」]+(?:さん|くん|ちゃん)|「[^」]+」)');
+    }
+
     int lastMatchEnd = 0;
 
     for (final match in regExp.allMatches(body)) {
@@ -705,7 +717,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         TextSpan(
           text: matchText,
           style: TextStyle(
-            color: isEntity ? AppColors.white : AppColors.accentGold,
+            color: (notif.type != NotificationType.streakCelebration && isEntity)
+                ? AppColors.white
+                : AppColors.accentGold,
             fontWeight: FontWeight.bold,
           ),
         ),

@@ -209,8 +209,6 @@
   "notificationSettingsVFireDesc": "投稿にV FIREが届いたとき",
   "notificationSettingsShield": "保護シールド通知を許可",
   "notificationSettingsShieldDesc": "シールドによるストリーク維持のお知らせ",
-  "notificationSettingsStreakCelebration": "ストリーク達成祝いを許可",
-  "notificationSettingsStreakCelebrationDesc": "30日や100日などの大きな節目のお知らせ",
   "notificationSettingsStreakWarning": "ストリーク危機通知を許可",
   "notificationSettingsStreakWarningDesc": "夜になってもタスクが完了していない時のリマインダー",
   "notificationSettingsDebugTitle": "開発者向けデバッグ機能",
@@ -461,6 +459,10 @@
   "blogPostEditorCodePlaceholder": "コードをここに入力",
   "blogPostEditorBadgeUploadSuccess": "バッジ画像をアップロードしました",
   "blogPostEditorBadgeUploadFailed": "アップロードに失敗しました",
+  "blogPostEditorSchedulePublish": "予約投稿を設定する",
+  "blogPostEditorPublishAtLabel": "公開日時",
+  "blogPostEditorPublishAtHint": "公開日時を選択",
+  "blogPostEditorClearSchedule": "予約を解除",
   "taskSetupTitle": "ヒーロータスク設定",
   "taskSetupSubtitle": "ヒーロータスクとスケジュールをカスタマイズしましょう",
   "taskSetupProfilePhoto": "プロフィール写真",
@@ -888,6 +890,7 @@
   "vPracticeCreateBlog": "ブログ記事を作成",
   "vPracticeError": "エラーが発生しました",
   "vPracticeNoNews": "お知らせはまだありません",
+  "vPracticeCategoryAll": "すべて",
   "vPracticeBadgeIdRequired": "バッジID（または tester など）を入力してください",
   "vPracticeBadgeDistributed": "全ユーザーにバッジ「{badgeUrl}」を配布・装備させました！",
   "@vPracticeBadgeDistributed": {
@@ -950,5 +953,7 @@
   "blogPostEditorPublish": "公開する",
   "blogPostEditorSaveAndPublish": "公開して保存",
   "blogPostEditorUpdateAndPublish": "公開して更新",
-  "blogPostEditorRevertToDraft": "下書きに戻す"
+  "blogPostEditorRevertToDraft": "下書きに戻す",
+  "forceUpdateTitle": "アップデートが必要です",
+  "forceUpdateBtn": "アップデートする"
 }

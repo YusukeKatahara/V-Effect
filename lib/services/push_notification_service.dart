@@ -548,7 +548,7 @@ class PushNotificationService {
 
         final protections = (data['streakProtections'] as num?)?.toInt() ?? 0;
         final lastPostedDate = data['lastPostedDate'] as String?;
-        final allowProtection = data['protectionNotifications'] ?? true;
+        final allowProtection = data['protectionNotifications'] ?? false;
 
         if (allowProtection) {
           await scheduleProtectionAlert(protections, lastPostedDate);

@@ -3,9 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum BlogCategory {
   progress,
-  concept,
   howto,
-  thanks,
   seasonTask;
 
   String label(BuildContext context) {
@@ -13,13 +11,9 @@ enum BlogCategory {
     final isJa = locale == 'ja';
     switch (this) {
       case BlogCategory.progress:
-        return isJa ? '開発進捗' : 'Dev Progress';
-      case BlogCategory.concept:
-        return isJa ? '新構想' : 'Concept';
+        return isJa ? '運営' : 'Official';
       case BlogCategory.howto:
         return isJa ? 'ヒント' : 'Tips';
-      case BlogCategory.thanks:
-        return isJa ? '感謝' : 'Thanks';
       case BlogCategory.seasonTask:
         return isJa ? 'シーズンタスク' : 'Season Task';
     }
@@ -41,6 +35,7 @@ class DevBlogPost {
     this.titleEn,
     this.bodyEn,
     this.isDraft = false,
+    this.publishAt,
   });
 
   final String id;
@@ -56,6 +51,7 @@ class DevBlogPost {
   final String? titleEn;
   final String? bodyEn;
   final bool isDraft;
+  final DateTime? publishAt;
 
   // ── フィールド名定数 ──
   static const String fieldTitle = 'title';
@@ -70,6 +66,7 @@ class DevBlogPost {
   static const String fieldTitleEn = 'titleEn';
   static const String fieldBodyEn = 'bodyEn';
   static const String fieldIsDraft = 'isDraft';
+  static const String fieldPublishAt = 'publishAt';
 
   static DevBlogPost fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>?;
@@ -95,6 +92,7 @@ class DevBlogPost {
         titleEn: data[fieldTitleEn]?.toString(),
         bodyEn: data[fieldBodyEn]?.toString(),
         isDraft: data[fieldIsDraft] == true,
+        publishAt: (data[fieldPublishAt] as Timestamp?)?.toDate(),
       );
     } catch (e) {
       debugPrint('Error parsing DevBlogPost $id: $e');
@@ -109,6 +107,7 @@ class DevBlogPost {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         isDraft: false,
+        publishAt: null,
       );
     }
   }
@@ -126,6 +125,7 @@ class DevBlogPost {
         fieldTitleEn: titleEn,
         fieldBodyEn: bodyEn,
         fieldIsDraft: isDraft,
+        fieldPublishAt: publishAt != null ? Timestamp.fromDate(publishAt!) : null,
       };
 
   DevBlogPost copyWith({
@@ -138,6 +138,7 @@ class DevBlogPost {
     String? titleEn,
     String? bodyEn,
     bool? isDraft,
+    Object? publishAt = const Object(),
   }) {
     return DevBlogPost(
       id: id,
@@ -153,6 +154,7 @@ class DevBlogPost {
       titleEn: titleEn ?? this.titleEn,
       bodyEn: bodyEn ?? this.bodyEn,
       isDraft: isDraft ?? this.isDraft,
+      publishAt: publishAt == const Object() ? this.publishAt : (publishAt as DateTime?),
     );
   }
 }

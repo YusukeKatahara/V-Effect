@@ -1,0 +1,22 @@
+{
+  "parameters": {
+    "minimum_version": {
+      "defaultValue": {
+        "value": "1.0.0"
+      },
+      "valueType": "STRING"
+    },
+    "force_update_enabled": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "valueType": "BOOLEAN"
+    },
+    "force_update_message": {
+      "defaultValue": {
+        "value": "新しいバージョンが利用可能です。セキュリティ向上のため、アプリのアップデートをお願いいたします。"
+      },
+      "valueType": "STRING"
+    }
+  }
+}

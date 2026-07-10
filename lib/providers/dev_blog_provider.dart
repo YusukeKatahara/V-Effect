@@ -11,7 +11,16 @@ final blogPostsProvider = StreamProvider<List<DevBlogPost>>((ref) {
 final publishedBlogPostsProvider = Provider<AsyncValue<List<DevBlogPost>>>((ref) {
   final postsAsync = ref.watch(blogPostsProvider);
   return postsAsync.when(
-    data: (posts) => AsyncValue.data(posts.where((p) => !p.isDraft).toList()),
+    data: (posts) {
+      final now = DateTime.now();
+      return AsyncValue.data(
+        posts.where((p) {
+          if (p.isDraft) return false;
+          if (p.publishAt != null && p.publishAt!.isAfter(now)) return false;
+          return true;
+        }).toList(),
+      );
+    },
     loading: () => const AsyncValue.loading(),
     error: (err, stack) => AsyncValue.error(err, stack),
   );
