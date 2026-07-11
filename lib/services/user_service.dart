@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'push_notification_service.dart';
 import '../models/app_task.dart';
 import '../models/app_user.dart';
+import '../models/season.dart';
 
 /// ユーザープロフィール・ヒーロータスク設定の読み書きを担当するサービス
 class UserService {
@@ -419,6 +420,71 @@ class UserService {
     } finally {
       // ロックの確実な解放
       _migratingUids.remove(uid);
+    }
+  }
+
+  /// 期限切れになったシーズンタスクを通常タスク（デイリータスク）に自動変換するマイグレーション処理
+  Future<void> migrateSeasonTasks(AppUser user) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final now = DateTime.now();
+      // 1. 現在有効なシーズン一覧を取得
+      final seasonsSnap = await _db
+          .collection('seasons')
+          .where('startDate', isLessThanOrEqualTo: now)
+          .get()
+          .timeout(const Duration(seconds: 6));
+
+      // 開催期間中のシーズンタイトル一覧を抽出
+      final activeSeasonTitles = seasonsSnap.docs
+          .map((doc) => Season.fromFirestore(doc))
+          .where((s) => now.isBefore(s.endDate))
+          .map((s) => s.taskName)
+          .toSet();
+
+      // 2. ユーザーのタスクリストを走査して期限切れシーズンタスクを特定し、通常タスクに変換
+      final updatedTasks = <AppTask>[];
+      bool didModify = false;
+
+      for (final task in user.tasks) {
+        if (task.isSeason && !activeSeasonTitles.contains(task.title)) {
+          // 期限切れシーズンタスクを発見
+          // すでに同名の通常タスクが存在するかチェックし、重複を防ぐ
+          final hasDuplicate = updatedTasks.any((t) => !t.isSeason && t.title == task.title);
+          if (hasDuplicate) {
+            // 重複する場合は、単に古いシーズンタスクを削除する（追加しない）
+            didModify = true;
+            debugPrint('期限切れシーズンタスク「${task.title}」を重複のため削除しました');
+          } else {
+            // 重複しない場合は、通常タスクに変換して追加
+            updatedTasks.add(task.copyWith(
+              isSeason: false,
+              seasonId: null,
+            ));
+            didModify = true;
+            debugPrint('期限切れシーズンタスク「${task.title}」を通常タスクに変換しました');
+          }
+        } else {
+          // 通常タスク、現在アクティブなシーズンタスク、またはデバッグ用シーズンタスク
+          // すでに updatedTasks に同名かつ同タイプのタスクがある場合は重複として追加しない（増殖バグの完全防止）
+          final isDuplicate = updatedTasks.any((t) => t.title == task.title && t.isSeason == task.isSeason);
+          if (isDuplicate) {
+            didModify = true;
+            debugPrint('重複タスク「${task.title}」(isSeason: ${task.isSeason}) を削除しました');
+          } else {
+            updatedTasks.add(task);
+          }
+        }
+      }
+
+      // 3. 変更があった場合のみFirestoreに同期保存
+      if (didModify) {
+        await updateProfile(tasks: updatedTasks);
+      }
+    } catch (e) {
+      debugPrint('Season tasks migration error: $e');
     }
   }
 }

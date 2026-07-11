@@ -127,12 +127,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // 過去の投稿数のマイグレーションチェック（非同期）
       final userDoc = await _db.collection('users').doc(uid).get();
+      AppUser? loadedUser;
       if (userDoc.exists) {
-        final rawUser = AppUser.fromFirestore(userDoc);
-        if (!rawUser.totalPostsMigrated || rawUser.totalPosts == -1) {
+        loadedUser = AppUser.fromFirestore(userDoc);
+        if (!loadedUser.totalPostsMigrated || loadedUser.totalPosts == -1) {
           _userService.migrateTotalPosts(uid);
         }
       }
+
+      final processedIds = loadedUser?.processedSeasonTaskIds ?? [];
 
       // 🚀 現在開催中のシーズンタスクを Firestore から取得
       final now = DateTime.now();
@@ -142,23 +145,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       var activeSeasons = seasonsSnap.docs
           .map((doc) => Season.fromFirestore(doc))
-          .where((s) => now.isBefore(s.endDate))
+          .where((s) => now.isBefore(s.endDate) && !processedIds.contains(s.id))
           .toList();
-
-      // 💡 検証・デバッグ環境での日付超過対策: アクティブなシーズンが0件の場合、メモリ上でテスト用のシーズンを作成して追加します
-      if (activeSeasons.isEmpty) {
-        final dummySeasonId = 'debug_season_test';
-        final dummySeason = Season(
-          id: dummySeasonId,
-          taskName: '感謝を伝える', // 重複を避ける一般的なシーズンタスク名
-          requiredPostsCount: 12,
-          startDate: now.subtract(const Duration(days: 7)),
-          endDate: now.add(const Duration(days: 365)), // 1年後まで有効
-          hintTitle: '感謝を伝えるヒント💡',
-          hintBody: '毎日1回、周囲の人や出来事に感謝して、言葉や記録に残してみましょう！',
-        );
-        activeSeasons.add(dummySeason);
-      }
 
       final seasonTasks = activeSeasons.map((s) => AppTask(
         title: s.taskName,
@@ -171,6 +159,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (doc.exists && mounted) {
         final rawUser = AppUser.fromFirestore(doc);
+
+        // 期限切れシーズンタスクを通常タスクに自動移行するマイグレーション
+        await _userService.migrateSeasonTasks(rawUser);
+
         // ワンタイムタスクの期限切れチェックと削除
         await _checkAndCleanupOneTimeTasks(rawUser);
 
@@ -715,6 +707,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (confirmed == true) {
+      final task = _user!.tasks[index];
+      // シーズンタスクを手動で削除した場合は、自動復活を防ぐために処理済み（スキップ）として記録
+      if (task.isSeason && task.seasonId != null) {
+        await _userService.markSeasonTaskAsProcessed(task.seasonId!);
+      }
+
       final updatedTasks = List<AppTask>.from(_user!.tasks)..removeAt(index);
       if (updatedTasks.length != _user!.tasks.length) {
         await _userService.updateProfile(tasks: updatedTasks);

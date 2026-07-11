@@ -14,6 +14,7 @@ import 'streak_service.dart';
 import 'push_notification_service.dart';
 import '../models/app_task.dart';
 import '../models/season.dart';
+import '../models/app_user.dart';
 import 'widget_service.dart';
 
 /// 投稿の作成・取得・リアクションを担当するサービス
@@ -102,10 +103,17 @@ class PostService {
         .map((item) => AppTask.fromFirestore(item))
         .toList();
 
-    // 開催期間内のシーズンタスクをメモリ上で抽出（endDateがない、または現在時刻より後）
-    final activeSeasons = seasonsSnap.docs.map((doc) => Season.fromFirestore(doc)).where((s) {
-      return now.isBefore(s.endDate);
-    }).toList();
+    // 処理済み（削除・完了など）にマークしたシーズンIDを取得
+    final processedIds = (data[AppUser.fieldProcessedSeasonTaskIds] as List?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
+
+    // 開催期間内のシーズンタスクをメモリ上で抽出（endDateがない、または現在時刻より後、かつ処理済みでないもの）
+    final activeSeasons = seasonsSnap.docs
+        .map((doc) => Season.fromFirestore(doc))
+        .where((s) => now.isBefore(s.endDate) && !processedIds.contains(s.id))
+        .toList();
 
     // シーズンタスクを AppTask オブジェクトに変換
     final seasonTasks = activeSeasons.map((s) => AppTask(

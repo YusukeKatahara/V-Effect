@@ -72,6 +72,8 @@ final heroTasksDataProvider = FutureProvider.autoDispose<HeroTasksData>((ref) as
   AppUser? appUser;
   if (userSnap.exists) {
     appUser = AppUser.fromFirestore(userSnap);
+    // 期限切れシーズンタスクを通常タスクに自動移行
+    await userService.migrateSeasonTasks(appUser);
     await userService.cleanupExpiredTasks(appUser);
     
     // クリーンアップされた可能性があるので、取得済みの allTasks からフィルタリングして即時反映する

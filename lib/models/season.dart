@@ -57,18 +57,40 @@ class Season {
   }
 
   factory Season.fromMap(String id, Map<String, dynamic> data) {
+    // 💡 キーの揺れ（末尾スペースや大文字小文字）を許容して値を取得するヘルパー関数
+    T? getValue<T>(String key) {
+      if (data.containsKey(key)) {
+        try {
+          return data[key] as T?;
+        } catch (_) {}
+      }
+      for (final k in data.keys) {
+        if (k.trim().toLowerCase() == key.toLowerCase()) {
+          try {
+            return data[k] as T?;
+          } catch (_) {}
+        }
+      }
+      return null;
+    }
+
     try {
+      final taskNameVal = getValue<dynamic>(fieldTaskName)?.toString() ?? '';
+      final startDateVal = getValue<Timestamp>(fieldStartDate);
+      final endDateVal = getValue<Timestamp>(fieldEndDate);
+
       return Season(
         id: id,
-        taskName: data[fieldTaskName]?.toString() ?? '',
-        startDate: (data[fieldStartDate] as Timestamp?)?.toDate() ?? DateTime.now(),
-        endDate: (data[fieldEndDate] as Timestamp?)?.toDate() ?? DateTime.now(),
-        requiredPostsCount: (data[fieldRequiredPostsCount] as num?)?.toInt() ?? 12,
-        hintTitle: data[fieldHintTitle]?.toString(),
-        hintBody: data[fieldHintBody]?.toString(),
-        relatedBlogId: data[fieldRelatedBlogId]?.toString(),
-        badgeImageUrl: data[fieldBadgeImageUrl]?.toString(),
-        badgeAnimation: data[fieldBadgeAnimation]?.toString() ?? 'none',
+        taskName: taskNameVal,
+        // 💡 取得・パース失敗時、DateTime.now() ではなく過去の確定日を設定（自動復活バグの根本防止）
+        startDate: startDateVal?.toDate() ?? DateTime(1970, 1, 1),
+        endDate: endDateVal?.toDate() ?? DateTime(1970, 1, 1),
+        requiredPostsCount: (getValue<num>(fieldRequiredPostsCount))?.toInt() ?? 12,
+        hintTitle: getValue<dynamic>(fieldHintTitle)?.toString(),
+        hintBody: getValue<dynamic>(fieldHintBody)?.toString(),
+        relatedBlogId: getValue<dynamic>(fieldRelatedBlogId)?.toString(),
+        badgeImageUrl: getValue<dynamic>(fieldBadgeImageUrl)?.toString(),
+        badgeAnimation: getValue<dynamic>(fieldBadgeAnimation)?.toString() ?? 'none',
       );
     } catch (e) {
       debugPrint('Error parsing Season $id: $e');
