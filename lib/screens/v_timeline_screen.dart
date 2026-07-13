@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart'; // kIsWeb 用
@@ -17,7 +18,6 @@ import '../widgets/native_ad_card.dart';
 import '../widgets/frictionless_page_scroll_physics.dart';
 import '../utils/ad_helper.dart';
 import 'home/components/floating_flames_layer.dart';
-import 'home/components/dopamine_emoji_explosion_layer.dart';
 import 'home/components/feed_card.dart';
 
 /// 全体公開（Vタイムライン）用の投稿を配信するStreamProvider
@@ -41,7 +41,6 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
 
   final PageController _pageController = PageController(initialPage: 100000);
   final GlobalKey<FloatingFlamesLayerState> _flamesKey = GlobalKey<FloatingFlamesLayerState>();
-  final GlobalKey<DopamineEmojiExplosionLayerState> _explosionKey = GlobalKey<DopamineEmojiExplosionLayerState>();
 
   List<dynamic> _feedItems = []; // Post または 'ad'
   int _focusedGlobalIndex = 100000;
@@ -64,6 +63,10 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
   final Map<String, int> _pendingFlameCounts = {};
   final Map<String, Timer> _flameDebounceTimers = {};
   final Map<String, int> _localFlameIncrements = {};
+
+  // VFIRE コンボ状態・デバウンス
+  int _comboCount = 0;
+  Timer? _comboResetTimer;
 
   // BGM再生アニメーション
   late final AnimationController _bumpController;
@@ -99,6 +102,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
     _pageController.dispose();
     _bumpController.dispose();
     _adRefreshTimer?.cancel();
+    _comboResetTimer?.cancel();
     for (final ad in _nativeAds.values) {
       ad.dispose();
     }
@@ -238,7 +242,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
   // ── BGM再生 ──
   void _playBgmForFocusedPost() {
     if (_feedItems.isEmpty) return;
-    final actualIndex = (_focusedGlobalIndex % _feedItems.length + _feedItems.length) % _feedItems.length;
+    final actualIndex = (_focusedGlobalIndex % _feedItems.length + _focusedGlobalIndex) % _feedItems.length;
     final item = _feedItems[actualIndex];
 
     if (item is Post && item.bgmUrl != null) {
@@ -281,15 +285,56 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
     }
   }
 
-  // ── VFIREリアクション処理（炎ボタン） ──
+  // ── VFIREリアクション処理（炎ボタン連打＆コンボ演出） ──
   void _onFlameReaction(Post post) {
-    HapticFeedback.lightImpact();
+    final isVFlash = Random().nextInt(100) == 0;
 
-    // 炎の浮遊エフェクトを発火
-    _flamesKey.currentState?.addFlame();
+    if (isVFlash) {
+      HapticFeedback.heavyImpact();
+      _flamesKey.currentState?.addFlame(
+        color: AppColors.accentGold,
+        glowColor: AppColors.accentGoldLight,
+        size: 60.0,
+      );
+    } else {
+      // --- VFIRE コンボ処理（タップ毎の音階上昇＆コンボ色変化） ---
+      _comboResetTimer?.cancel();
+      _comboCount++;
+      _comboResetTimer = Timer(const Duration(milliseconds: 1500), () {
+        if (mounted) {
+          setState(() => _comboCount = 0);
+        }
+      });
 
-    // ドーパミンエフェクト
-    _explosionKey.currentState?.explode('🔥');
+      Color flameColor;
+      Color glowColor;
+      double soundPitch;
+
+      if (_comboCount <= 9) {
+        flameColor = AppColors.accentGold;
+        glowColor = AppColors.accentGoldLight;
+        HapticFeedback.lightImpact();
+      } else if (_comboCount <= 19) {
+        flameColor = const Color(0xFF00E5FF);
+        glowColor = const Color(0xFF80DEEA);
+        HapticFeedback.mediumImpact();
+      } else {
+        // 20以降は虹色グラデーション風変化
+        final hue = ((_comboCount - 20) * 20.0) % 360.0;
+        flameColor = HSLColor.fromAHSL(1.0, hue, 1.0, 0.6).toColor();
+        glowColor = HSLColor.fromAHSL(1.0, hue, 1.0, 0.8).toColor();
+        HapticFeedback.heavyImpact();
+      }
+
+      // タップごとにピッチを段階的に上げる (Max 2.0)
+      soundPitch = (1.0 + (_comboCount * 0.02)).clamp(1.0, 2.0);
+
+      _flamesKey.currentState?.addFlame(
+        color: flameColor,
+        glowColor: glowColor,
+      );
+      _soundService.playFireTapSound(playbackRate: soundPitch);
+    }
 
     setState(() {
       _localFlameIncrements[post.id] = (_localFlameIncrements[post.id] ?? 0) + 1;
@@ -625,16 +670,6 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
               Positioned.fill(
                 child: IgnorePointer(
                   child: FloatingFlamesLayer(key: _flamesKey),
-                ),
-              ),
-
-              // ドーパミン爆発レイヤー
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DopamineEmojiExplosionLayer(
-                    key: _explosionKey,
-                    bottomOffset: MediaQuery.paddingOf(context).bottom + 120.0,
-                  ),
                 ),
               ),
 
