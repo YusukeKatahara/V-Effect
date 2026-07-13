@@ -14,6 +14,7 @@ import '../services/post_service.dart';
 import '../services/sound_service.dart';
 import '../widgets/v_effect_header.dart';
 import '../widgets/native_ad_card.dart';
+import '../widgets/frictionless_page_scroll_physics.dart';
 import '../utils/ad_helper.dart';
 import 'home/components/floating_flames_layer.dart';
 import 'home/components/dopamine_emoji_explosion_layer.dart';
@@ -26,7 +27,7 @@ final vTimelinePostsProvider = StreamProvider.autoDispose<List<Post>>((ref) {
 });
 
 /// 推薦ユーザー限定のパブリックVタイムライン画面
-/// 自分が未投稿でも、推薦ユーザーが全体公開した努力ログをぼかし制限なしで閲覧可能
+/// Vフィード（HomeScreen）と同様の 3D/2D レイヤードカードスタック横スワイプUIUXを採用
 class VTimelineScreen extends ConsumerStatefulWidget {
   const VTimelineScreen({super.key});
 
@@ -38,12 +39,14 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
   late final PostService _postService;
   late final SoundService _soundService;
 
-  final PageController _pageController = PageController(viewportFraction: 0.85);
+  final PageController _pageController = PageController(initialPage: 100000);
   final GlobalKey<FloatingFlamesLayerState> _flamesKey = GlobalKey<FloatingFlamesLayerState>();
   final GlobalKey<DopamineEmojiExplosionLayerState> _explosionKey = GlobalKey<DopamineEmojiExplosionLayerState>();
 
   List<dynamic> _feedItems = []; // Post または 'ad'
   int _focusedGlobalIndex = 100000;
+  double _scrollPos = 100000.0;
+  bool _isScrolling = false;
   bool _loadingProfiles = true;
 
   // ユーザープロフィールのマッピング情報キャッシュ
@@ -76,17 +79,17 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
       duration: const Duration(milliseconds: 300),
     );
 
-    // PageViewの初期インデックスを設定
+    // PageControllerのドラッグ（スクロール位置）変更を監視
     _pageController.addListener(() {
       if (_pageController.hasClients) {
-        final page = _pageController.page ?? 100000.0;
-        final index = page.round();
-        if (index != _focusedGlobalIndex) {
-          setState(() {
+        setState(() {
+          _scrollPos = _pageController.page ?? 100000.0;
+          final index = _scrollPos.round();
+          if (index != _focusedGlobalIndex) {
             _focusedGlobalIndex = index;
-          });
-          _onFocusedIndexChanged(index);
-        }
+            _onFocusedIndexChanged(index);
+          }
+        });
       }
     });
   }
@@ -133,14 +136,13 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
     }
   }
 
-  // ── フィードアイテムの構築（広告挿入） ──
+  // ── フィードアイテムの構築（広告スロット挿入） ──
   void _setupFeedItems(List<Post> posts) {
     final newItems = <dynamic>[];
     final bool shouldInsertAd = !kIsWeb && posts.length >= 3;
 
     for (int i = 0; i < posts.length; i++) {
       newItems.add(posts[i]);
-      // 2枚目(インデックス1)の直後に広告、その後は5投稿ごとに広告
       if (shouldInsertAd) {
         if (i == 1 || (i > 1 && (i - 1) % 5 == 0)) {
           newItems.add('ad');
@@ -152,7 +154,6 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
       setState(() {
         _feedItems = newItems;
       });
-      // 初回ロード完了時は、初期表示位置のプリキャッシュとBGM再生
       if (newItems.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _precacheInitialFeed();
@@ -332,6 +333,99 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
     });
   }
 
+  // ── 3D/2D カードスタック描画用ソート順計算 ──
+  List<int> _sortedCardIndices(double scrollPosition) {
+    if (_feedItems.isEmpty) return [];
+    final indices = List.generate(_feedItems.length, (i) => i);
+    indices.sort((a, b) {
+      final halfLength = _feedItems.length / 2.0;
+
+      double distA = (a - scrollPosition) % _feedItems.length;
+      if (distA > halfLength) distA -= _feedItems.length;
+      if (distA < -halfLength) distA += _feedItems.length;
+      final depthA = distA.abs();
+
+      double distB = (b - scrollPosition) % _feedItems.length;
+      if (distB > halfLength) distB -= _feedItems.length;
+      if (distB < -halfLength) distB += _feedItems.length;
+      final depthB = distB.abs();
+
+      return depthB.compareTo(depthA);
+    });
+    return indices;
+  }
+
+  // ── 3D/2D スタックカード Widget の生成 ──
+  Widget _buildStackedCard({
+    required int index,
+    required double cardWidth,
+    required double cardHeight,
+    required double scrollPosition,
+  }) {
+    if (_feedItems.isEmpty) return const SizedBox.shrink();
+    final halfLength = _feedItems.length / 2.0;
+    double relativePos = (index - scrollPosition) % _feedItems.length;
+    if (relativePos > halfLength) relativePos -= _feedItems.length;
+    if (relativePos < -halfLength) relativePos += _feedItems.length;
+
+    final int globalIndex = (scrollPosition + relativePos).round();
+    final double smoothDepth = relativePos.abs();
+
+    if (smoothDepth > 3) return const SizedBox.shrink(); // 描画パフォーマンス最適化
+
+    final double scale = (1.0 - smoothDepth * 0.05).clamp(0.8, 1.0);
+    final double offsetY = smoothDepth * -20.0;
+    final double offsetX = relativePos * cardWidth * 1.2;
+    final double dimAlpha = (smoothDepth * 0.2).clamp(0.0, 0.6);
+    final double rotateZ = relativePos * 0.1;
+
+    final item = _feedItems[index];
+
+    final matrix = Matrix4.identity();
+    if (item is! String || item != 'ad') {
+      matrix.setEntry(3, 2, 0.001); // 遠近感を追加
+      matrix.rotateZ(rotateZ);
+      matrix.scale(scale);
+    }
+
+    return Transform.translate(
+      offset: Offset(offsetX, offsetY),
+      child: Transform(
+        alignment: Alignment.center,
+        transform: matrix,
+        child: RepaintBoundary(
+          child: SizedBox(
+            width: cardWidth,
+            height: cardHeight,
+            child: item is String && item == 'ad'
+                ? NativeAdCard(
+                    dimAlpha: dimAlpha,
+                    isTop: globalIndex == _focusedGlobalIndex,
+                    nativeAd: null, // 二重マウント防止のため背面はプレースホルダー
+                    isAdLoaded: _adLoadStatus[globalIndex] == true,
+                    isAdLoadFailed: _adLoadStatus[globalIndex] == false,
+                  )
+                : IgnorePointer(
+                    // 背面の3D描画用は前面のタッチPageViewがジェスチャを奪うためタッチ不可にする
+                    child: FeedCard(
+                      post: item,
+                      username: _userNames[item.userId] ?? 'User',
+                      userPhotoUrl: _userPhotos[item.userId],
+                      userBadgeUrl: _userBadgeUrls[item.userId],
+                      userBadgeAnimation: _userBadgeAnimations[item.userId],
+                      dimAlpha: dimAlpha,
+                      onReaction: ({emoji}) {}, // タップ無効のためコールバック空
+                      isTop: globalIndex == _focusedGlobalIndex,
+                      tierColor: AppColors.accentGold,
+                      reactionCountNotifier: ValueNotifier(item.reactionCount + (_localFlameIncrements[item.id] ?? 0)),
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final postsAsync = ref.watch(vTimelinePostsProvider);
@@ -406,81 +500,120 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
                       final maxCardHeight = (constraints.maxHeight - 40).clamp(0.0, cardHeight);
                       final finalCardWidth = maxCardHeight * (9 / 16);
 
-                      return NotificationListener<ScrollNotification>(
-                        onNotification: (notification) {
-                          if (notification is ScrollStartNotification) {
-                            _preloadAdsNearFocusedIndex();
-                          } else if (notification is ScrollEndNotification) {
-                            _preloadAdsNearFocusedIndex();
-                          }
-                          return false;
-                        },
-                        child: PageView.builder(
-                          controller: _pageController,
-                          scrollDirection: Axis.vertical,
-                          onPageChanged: _onPageChanged,
-                          itemCount: _feedItems.length,
-                          itemBuilder: (context, index) {
-                            final item = _feedItems[index];
+                      return GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          clipBehavior: Clip.none,
+                          children: [
+                            // 1. 背面の 3D カードスタック（X/Y/Z/スケール変形）
+                            for (final i in _sortedCardIndices(_scrollPos))
+                              _buildStackedCard(
+                                index: i,
+                                cardWidth: finalCardWidth,
+                                cardHeight: maxCardHeight,
+                                scrollPosition: _scrollPos,
+                              ),
 
-                            if (item is String && item == 'ad') {
-                              return Center(
-                                child: SizedBox(
-                                  width: finalCardWidth,
-                                  height: maxCardHeight,
-                                  child: NativeAdCard(
-                                    dimAlpha: 0.0,
-                                    isTop: index == _focusedGlobalIndex,
-                                    nativeAd: _nativeAds[index],
-                                    isAdLoaded: _adLoadStatus[index] == true,
-                                    isAdLoadFailed: _adLoadStatus[index] == false,
-                                  ),
-                                ),
-                              );
-                            }
+                            // 2. 前面の透明な横スワイプ PageView.builder (FrictionlessPageScrollPhysics 適用)
+                            Positioned.fill(
+                              child: NotificationListener<ScrollNotification>(
+                                onNotification: (notification) {
+                                  if (notification is ScrollStartNotification) {
+                                    if (!_isScrolling) {
+                                      setState(() => _isScrolling = true);
+                                    }
+                                    _preloadAdsNearFocusedIndex();
+                                  } else if (notification is ScrollEndNotification) {
+                                    if (_isScrolling) {
+                                      setState(() => _isScrolling = false);
+                                    }
+                                    _preloadAdsNearFocusedIndex();
+                                  }
+                                  return false;
+                                },
+                                child: PageView.builder(
+                                  controller: _pageController,
+                                  physics: const FrictionlessPageScrollPhysics(),
+                                  onPageChanged: _onPageChanged,
+                                  itemBuilder: (context, index) {
+                                    final actualIndex = (index % _feedItems.length + _feedItems.length) % _feedItems.length;
+                                    final item = _feedItems[actualIndex];
 
-                            if (item is Post) {
-                              final username = _userNames[item.userId] ?? 'User';
-                              final photoUrl = _userPhotos[item.userId];
-                              final badgeUrl = _userBadgeUrls[item.userId];
-                              final badgeAnimation = _userBadgeAnimations[item.userId];
-
-                              final currentLocalInc = _localFlameIncrements[item.id] ?? 0;
-                              final displayReactionCount = item.reactionCount + currentLocalInc;
-
-                              return Center(
-                                child: SizedBox(
-                                  width: finalCardWidth,
-                                  height: maxCardHeight,
-                                  child: FeedCard(
-                                    post: item,
-                                    username: username,
-                                    userPhotoUrl: photoUrl,
-                                    userBadgeUrl: badgeUrl,
-                                    userBadgeAnimation: badgeAnimation,
-                                    dimAlpha: index == _focusedGlobalIndex ? 0.0 : 0.4,
-                                    onReaction: ({emoji}) => _onFlameReaction(item),
-                                    isTop: index == _focusedGlobalIndex,
-                                    tierColor: AppColors.accentGold,
-                                    reactionCountNotifier: ValueNotifier(displayReactionCount),
-                                    onProfileTap: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        AppRoutes.userProfile,
-                                        arguments: {
-                                          'uid': item.userId,
-                                          'username': username,
-                                          'photoUrl': photoUrl,
-                                        },
+                                    // 広告用透明スロット：AbsorbPointerを用いてタッチ調整
+                                    if (item is String && item == 'ad') {
+                                      return Center(
+                                        child: SizedBox(
+                                          width: finalCardWidth,
+                                          height: maxCardHeight,
+                                          child: AbsorbPointer(
+                                            absorbing: _isScrolling,
+                                            child: NativeAdCard(
+                                              dimAlpha: 0.0,
+                                              isTop: actualIndex == _focusedGlobalIndex % _feedItems.length,
+                                              nativeAd: _nativeAds[index],
+                                              isAdLoaded: _adLoadStatus[index] == true,
+                                              isAdLoadFailed: _adLoadStatus[index] == false,
+                                            ),
+                                          ),
+                                        ),
                                       );
-                                    },
-                                  ),
-                                ),
-                              );
-                            }
+                                    }
 
-                            return const SizedBox.shrink();
-                          },
+                                    // 投稿用透明スロット：タップジェスチャの検出レイヤー
+                                    if (item is Post) {
+                                      final username = _userNames[item.userId] ?? 'User';
+                                      final photoUrl = _userPhotos[item.userId];
+
+                                      return Center(
+                                        child: SizedBox(
+                                          width: finalCardWidth,
+                                          height: maxCardHeight,
+                                          child: Stack(
+                                            children: [
+                                              // 写真エリアタップ（VFIREリアクション）
+                                              Positioned(
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 180,
+                                                child: GestureDetector(
+                                                  behavior: HitTestBehavior.opaque,
+                                                  onTap: () => _onFlameReaction(item),
+                                                ),
+                                              ),
+                                              // 左下ユーザーアバタータップ（プロフィール遷移）
+                                              Positioned(
+                                                left: 20,
+                                                bottom: 20,
+                                                child: GestureDetector(
+                                                  behavior: HitTestBehavior.opaque,
+                                                  onTap: () {
+                                                    Navigator.pushNamed(
+                                                      context,
+                                                      AppRoutes.userProfile,
+                                                      arguments: {
+                                                        'uid': item.userId,
+                                                        'username': username,
+                                                        'photoUrl': photoUrl,
+                                                      },
+                                                    );
+                                                  },
+                                                  child: const SizedBox(width: 150, height: 60),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }
+
+                                    return const SizedBox.shrink();
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },
