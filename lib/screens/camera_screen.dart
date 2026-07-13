@@ -506,7 +506,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    final homeData = ref.watch(homeDataProvider).value;
     final taskName = _taskName;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
@@ -571,32 +570,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                           ),
                         ),
                       ),
-                      if (ref.watch(isDeveloperProvider).value == true || homeData?.isRecommended == true)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-                          child: Theme(
-                            data: ThemeData(
-                              unselectedWidgetColor: AppColors.grey50,
-                            ),
-                            child: CheckboxListTile(
-                              title: Text(
-                                'Vタイムライン（全体公開）にも投稿する',
-                                style: GoogleFonts.notoSansJp(color: AppColors.pureWhite, fontSize: 13),
-                              ),
-                              value: _postToPublicTimeline,
-                              onChanged: (val) {
-                                setState(() {
-                                  _postToPublicTimeline = val ?? false;
-                                });
-                              },
-                              activeColor: AppColors.accentGold,
-                              checkColor: AppColors.pureBlack,
-                              controlAffinity: ListTileControlAffinity.leading,
-                              contentPadding: EdgeInsets.zero,
-                              dense: true,
-                            ),
-                          ),
-                        ),
                       _buildPostBottomBar(),
                     ],
                   ),
@@ -611,6 +584,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   Widget _buildHeader(String? taskName) {
     // 写真撮影済みの場合はフラッシュボタンを非表示にする
     final showFlash = _image == null;
+    final homeData = ref.watch(homeDataProvider).value;
+    final isDeveloper = ref.watch(isDeveloperProvider).value == true;
+    final isRecommended = homeData?.isRecommended == true;
+    final showPublicToggle = isDeveloper || isRecommended;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -677,24 +654,54 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               ),
             )
           else if (!showFlash)
-            // 撮影済みの場合は音符アイコンを表示
-            GestureDetector(
-              onTap: _showMusicBottomSheet,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _selectedMusic != null
-                      ? AppColors.accentGold.withValues(alpha: 0.2)
-                      : AppColors.pureWhite.withValues(alpha: 0.1),
+            // 撮影済みの場合は全体公開トグルボタン 🌏 と BGM選択ボタン ♪ を並べて表示
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showPublicToggle)
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      setState(() {
+                        _postToPublicTimeline = !_postToPublicTimeline;
+                      });
+                    },
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _postToPublicTimeline
+                            ? AppColors.accentGold.withValues(alpha: 0.2)
+                            : AppColors.pureWhite.withValues(alpha: 0.1),
+                      ),
+                      child: Icon(
+                        Icons.public_rounded,
+                        color: _postToPublicTimeline ? AppColors.accentGold : AppColors.pureWhite,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                if (showPublicToggle) const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _showMusicBottomSheet,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _selectedMusic != null
+                          ? AppColors.accentGold.withValues(alpha: 0.2)
+                          : AppColors.pureWhite.withValues(alpha: 0.1),
+                    ),
+                    child: Icon(
+                      Icons.music_note_rounded,
+                      color: _selectedMusic != null ? AppColors.accentGold : AppColors.pureWhite,
+                      size: 24,
+                    ),
+                  ),
                 ),
-                child: Icon(
-                  Icons.music_note_rounded,
-                  color: _selectedMusic != null ? AppColors.accentGold : AppColors.pureWhite,
-                  size: 24,
-                ),
-              ),
+              ],
             )
           else
             const SizedBox(width: 44), // バランス用
