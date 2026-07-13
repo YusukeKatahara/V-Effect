@@ -367,7 +367,10 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: VEffectHeader(key: UniqueKey()),
+                  child: SafeArea(
+                    bottom: false,
+                    child: VEffectHeader(key: UniqueKey()),
+                  ),
                 ),
               ],
             ),
@@ -395,7 +398,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
               // メインカードフィード（ヘッダー分の余白を下げる）
               Positioned.fill(
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 60),
+                  padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top + 60),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final cardWidth = constraints.maxWidth * 0.85;
@@ -507,7 +510,10 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
                 top: 0,
                 left: 0,
                 right: 0,
-                child: VEffectHeader(key: UniqueKey()),
+                child: SafeArea(
+                  bottom: false,
+                  child: VEffectHeader(key: UniqueKey()),
+                ),
               ),
             ],
           ),
