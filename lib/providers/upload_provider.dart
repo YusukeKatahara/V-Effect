@@ -28,6 +28,7 @@ class UploadState {
   final String? bgmTitle;
   final String? bgmArtist;
   final String? bgmArtworkUrl;
+  final bool isPublic;
 
   UploadState({
     required this.status,
@@ -40,6 +41,7 @@ class UploadState {
     this.bgmTitle,
     this.bgmArtist,
     this.bgmArtworkUrl,
+    this.isPublic = false,
   });
 
   UploadState copyWith({
@@ -53,6 +55,7 @@ class UploadState {
     String? bgmTitle,
     String? bgmArtist,
     String? bgmArtworkUrl,
+    bool? isPublic,
   }) {
     return UploadState(
       status: status ?? this.status,
@@ -65,6 +68,7 @@ class UploadState {
       bgmTitle: bgmTitle ?? this.bgmTitle,
       bgmArtist: bgmArtist ?? this.bgmArtist,
       bgmArtworkUrl: bgmArtworkUrl ?? this.bgmArtworkUrl,
+      isPublic: isPublic ?? this.isPublic,
     );
   }
 }
@@ -85,6 +89,7 @@ class UploadNotifier extends StateNotifier<UploadState> {
     String? bgmTitle,
     String? bgmArtist,
     String? bgmArtworkUrl,
+    bool isPublic = false,
   }) async {
     _dummyProgressTimer?.cancel();
     state = UploadState(
@@ -97,6 +102,7 @@ class UploadNotifier extends StateNotifier<UploadState> {
       bgmTitle: bgmTitle,
       bgmArtist: bgmArtist,
       bgmArtworkUrl: bgmArtworkUrl,
+      isPublic: isPublic,
     );
 
     await _executeUpload();
@@ -160,6 +166,7 @@ class UploadNotifier extends StateNotifier<UploadState> {
         bgmTitle: state.bgmTitle,
         bgmArtist: state.bgmArtist,
         bgmArtworkUrl: state.bgmArtworkUrl,
+        isPublic: state.isPublic,
       );
 
       _dummyProgressTimer?.cancel();

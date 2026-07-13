@@ -15,6 +15,7 @@ import '../services/sound_service.dart';
 import '../services/streak_service.dart';
 import '../services/user_service.dart';
 import '../services/widget_service.dart';
+import '../services/role_model_service.dart';
 
 /// ──────────────────────────────────────────────
 /// サービス層の Riverpod Provider 定義
@@ -99,3 +100,9 @@ final pushNotificationServiceProvider = Provider<PushNotificationService>(
 final widgetServiceProvider = Provider<WidgetService>(
   (ref) => WidgetService.instance,
 );
+
+/// ロールモデル機能のデータ処理・登録管理
+final roleModelServiceProvider = Provider<RoleModelService>(
+  (ref) => RoleModelService.instance,
+);
+

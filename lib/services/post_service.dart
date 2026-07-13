@@ -97,6 +97,7 @@ class PostService {
     final data = snap.data() as Map<String, dynamic>;
 
     final lastPostedDate = data['lastPostedDate'] as String?;
+    final isRecommended = data['isRecommended'] == true;
     
     // Firestore（ファイアストア：データベース）からユーザー自身のタスクをロード
     final userTasks = (data['tasks'] as List? ?? [])
@@ -172,6 +173,7 @@ class PostService {
       })(),
       'lastPostedDate': lastPostedDate,
       'postedTasksToday': postedPostsToday,
+      'isRecommended': isRecommended,
     };
   }
 
@@ -294,6 +296,7 @@ class PostService {
     String? bgmTitle,
     String? bgmArtist,
     String? bgmArtworkUrl,
+    bool isPublic = false,
   }) async {
     final uid = _auth.currentUser!.uid;
 
@@ -396,6 +399,7 @@ class PostService {
       bgmArtist: bgmArtist,
       bgmArtworkUrl: bgmArtworkUrl,
       isSecret: isSecretTask,
+      isPublic: isPublic,
     );
     
     bool taskUpdated = false;
@@ -1074,5 +1078,18 @@ class PostService {
     }
     await batch.commit();
     _updateController.add(null);
+  }
+
+  /// 全体公開（Vタイムライン）用の投稿一覧をリアルタイム購読（Stream）します
+  Stream<List<Post>> getPublicPostsStream() {
+    return _postsRef
+        .where('isPublic', isEqualTo: true)
+        .where('expiresAt', isGreaterThan: Timestamp.now())
+        .snapshots()
+        .map((snap) {
+          final posts = snap.docs.map((doc) => doc.data()).toList()
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return posts;
+        });
   }
 }

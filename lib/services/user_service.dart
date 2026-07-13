@@ -9,6 +9,7 @@ import 'push_notification_service.dart';
 import '../models/app_task.dart';
 import '../models/app_user.dart';
 import '../models/season.dart';
+import 'dev_blog_service.dart';
 
 /// ユーザープロフィール・ヒーロータスク設定の読み書きを担当するサービス
 class UserService {
@@ -486,5 +487,23 @@ class UserService {
     } catch (e) {
       debugPrint('Season tasks migration error: $e');
     }
+  }
+
+  /// 指定されたユーザーを推薦ユーザー（isRecommended）に設定、または解除します
+  /// ※ 実行者が開発者（管理者）であるかを確認します
+  Future<void> toggleUserRecommendation(String targetUid, bool recommend) async {
+    final myUid = _auth.currentUser?.uid;
+    if (myUid == null) throw Exception('ログインしていません。');
+
+    // 開発者権限のチェック
+    final isDev = await DevBlogService.instance.isDeveloper();
+    if (!isDev) {
+      throw Exception('開発者権限がありません。');
+    }
+
+    // 指定されたユーザーの isRecommended を更新
+    await _db.collection('users').doc(targetUid).update({
+      AppUser.fieldIsRecommended: recommend,
+    });
   }
 }

@@ -24,6 +24,7 @@ class HomeData {
   final Map<String, int> userStreaks; // userId -> streak
   final Map<String, String?> userBadgeUrls; // userId -> badgeUrl
   final Map<String, String?> userBadgeAnimations; // userId -> badgeAnimation
+  final bool isRecommended;
 
   HomeData({
     required this.streak,
@@ -39,6 +40,7 @@ class HomeData {
     required this.userStreaks,
     required this.userBadgeUrls,
     required this.userBadgeAnimations,
+    required this.isRecommended,
   });
 
   @override
@@ -58,7 +60,8 @@ class HomeData {
           _mapEquals(userPhotos, other.userPhotos) &&
           _mapEquals(userStreaks, other.userStreaks) &&
           _mapEquals(userBadgeUrls, other.userBadgeUrls) &&
-          _mapEquals(userBadgeAnimations, other.userBadgeAnimations);
+          _mapEquals(userBadgeAnimations, other.userBadgeAnimations) &&
+          isRecommended == other.isRecommended;
 
   @override
   int get hashCode =>
@@ -74,7 +77,8 @@ class HomeData {
       userPhotos.hashCode ^
       userStreaks.hashCode ^
       userBadgeUrls.hashCode ^
-      userBadgeAnimations.hashCode;
+      userBadgeAnimations.hashCode ^
+      isRecommended.hashCode;
 
   bool _listEquals(List? a, List? b) {
     if (a == null) return b == null;
@@ -135,6 +139,7 @@ class HomeData {
       'userStreaks': userStreaks,
       'userBadgeUrls': userBadgeUrls,
       'userBadgeAnimations': userBadgeAnimations,
+      'isRecommended': isRecommended,
     };
   }
 
@@ -179,6 +184,7 @@ class HomeData {
       userStreaks: Map<String, int>.from(json['userStreaks'] ?? {}),
       userBadgeUrls: Map<String, String?>.from(json['userBadgeUrls'] ?? {}),
       userBadgeAnimations: Map<String, String?>.from(json['userBadgeAnimations'] ?? {}),
+      isRecommended: json['isRecommended'] as bool? ?? false,
     );
   }
 }
@@ -269,6 +275,7 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
         userStreaks: initialData.userStreaks,
         userBadgeUrls: initialData.userBadgeUrls,
         userBadgeAnimations: initialData.userBadgeAnimations,
+        isRecommended: initialData.isRecommended,
       );
     }
     yield initialData;
@@ -360,6 +367,7 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
     userStreaks: streaks,
     userBadgeUrls: badgeUrls,
     userBadgeAnimations: badgeAnimations,
+    isRecommended: homeDataMap['isRecommended'] as bool? ?? false,
   );
 
   // 3. 取得した最新データをキャッシュに保存し、UIへ反映

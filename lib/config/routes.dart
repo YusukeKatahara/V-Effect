@@ -13,6 +13,7 @@ import '../screens/follow_list_screen.dart';
 import '../screens/pending_requests_screen.dart';
 import '../screens/user_profile_screen.dart';
 import '../screens/v_practice_screen.dart';
+import '../screens/v_timeline_screen.dart';
 
 import '../screens/initial_friend_screen.dart';
 import '../screens/onboarding/v_effect_screen.dart';
@@ -29,6 +30,9 @@ import '../screens/security_settings_screen.dart';
 import '../screens/blog_post_detail_screen.dart';
 import '../screens/blog_post_editor_screen.dart';
 import '../screens/display_settings_screen.dart';
+import '../screens/role_model/role_model_list_screen.dart';
+import '../screens/role_model/role_model_activity_screen.dart';
+
 
 
 /// アプリ全体のルート（画面の住所）定義
@@ -63,6 +67,10 @@ class AppRoutes {
   static const String onboardingProfile     = '/onboarding/profile';
   static const String onboardingFirstQuest  = '/onboarding/first-quest';
   static const String displaySettings       = '/display-settings';
+  static const String roleModels            = '/role-models';
+  static const String roleModelActivity     = '/role-model-activity';
+  static const String vTimeline             = '/v-timeline';
+
 
   static Map<String, WidgetBuilder> get routes => {
         wrapper: (context) => const AuthWrapper(),
@@ -100,5 +108,8 @@ class AppRoutes {
         onboardingVEffect: (context) => const VEffectScreen(),
         onboardingProfile: (context) => const OnboardingProfileSettingsScreen(),
         onboardingFirstQuest: (context) => const FirstVQuestScreen(),
+        roleModels: (context) => const RoleModelListScreen(),
+        roleModelActivity: (context) => const RoleModelActivityScreen(),
+        vTimeline: (context) => const VTimelineScreen(),
       };
 }

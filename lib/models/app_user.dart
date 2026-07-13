@@ -38,6 +38,7 @@ class AppUser {
   final String? instagramId;
   final List<String> processedSeasonTaskIds;
   final bool totalPostsMigrated;
+  final bool isRecommended;
 
   // ── フィールド名定数 ──
   static const String fieldUid = 'uid';
@@ -75,6 +76,7 @@ class AppUser {
   static const String fieldInstagramId = 'instagramId';
   static const String fieldProcessedSeasonTaskIds = 'processedSeasonTaskIds';
   static const String fieldTotalPostsMigrated = 'totalPostsMigrated';
+  static const String fieldIsRecommended = 'isRecommended';
   static const String fieldMaxStreak = 'maxStreak';
   static const String fieldFriends = 'friends';
   static const String fieldBlockedUsers = 'blockedUsers';
@@ -115,6 +117,7 @@ class AppUser {
     this.instagramId,
     this.processedSeasonTaskIds = const [],
     this.totalPostsMigrated = false,
+    this.isRecommended = false,
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -192,6 +195,7 @@ class AppUser {
         instagramId: safeString(data[fieldInstagramId]),
         processedSeasonTaskIds: (data[fieldProcessedSeasonTaskIds] as List?)?.map((e) => e.toString()).toList() ?? [],
         totalPostsMigrated: data[fieldTotalPostsMigrated] == true,
+        isRecommended: data[fieldIsRecommended] == true,
       );
     } catch (e) {
       debugPrint('Error parsing AppUser $id: $e');
@@ -234,6 +238,7 @@ class AppUser {
       fieldInstagramId: instagramId,
       fieldProcessedSeasonTaskIds: processedSeasonTaskIds,
       fieldTotalPostsMigrated: totalPostsMigrated,
+      fieldIsRecommended: isRecommended,
     };
   }
 
@@ -272,6 +277,7 @@ class AppUser {
     String? instagramId,
     List<String>? processedSeasonTaskIds,
     bool? totalPostsMigrated,
+    bool? isRecommended,
   }) {
     return AppUser(
       uid: uid ?? this.uid,
@@ -307,6 +313,7 @@ class AppUser {
       instagramId: instagramId ?? this.instagramId,
       processedSeasonTaskIds: processedSeasonTaskIds ?? this.processedSeasonTaskIds,
       totalPostsMigrated: totalPostsMigrated ?? this.totalPostsMigrated,
+      isRecommended: isRecommended ?? this.isRecommended,
     );
   }
 }

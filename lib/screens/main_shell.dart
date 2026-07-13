@@ -11,6 +11,7 @@ import '../services/sound_service.dart';
 import '../providers/service_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'home_screen.dart';
+import 'v_timeline_screen.dart';
 import 'profile_screen.dart';
 import 'hero_tasks_screen.dart';
 
@@ -115,6 +116,7 @@ class _MainShellState extends ConsumerState<MainShell> {
         });
       },
     ),
+    const VTimelineScreen(),
     const HeroTasksScreen(),
     const ProfileScreen(),
   ];
@@ -222,11 +224,18 @@ class _MainShellState extends ConsumerState<MainShell> {
                       onTap: () => _onTap(0),
                     ),
 
+                    // V Timeline (Public)
+                    _SpatialNavItem(
+                      icon: Icons.public_rounded,
+                      isActive: _currentIndex == 1,
+                      onTap: () => _onTap(1),
+                    ),
+
                     // Hero Tasks
                     _SpatialNavItem(
                       icon: Icons.whatshot_rounded,
-                      isActive: _currentIndex == 1,
-                      onTap: () => _onTap(1),
+                      isActive: _currentIndex == 2,
+                      onTap: () => _onTap(2),
                     ),
 
                     // Profile
@@ -236,8 +245,8 @@ class _MainShellState extends ConsumerState<MainShell> {
                         final hasRequests = snapshot.hasData && snapshot.data!.isNotEmpty;
                         return _SpatialNavItem(
                           icon: Icons.person_rounded,
-                          isActive: _currentIndex == 2,
-                          onTap: () => _onTap(2),
+                          isActive: _currentIndex == 3,
+                          onTap: () => _onTap(3),
                           hasBadge: hasRequests,
                         );
                       },

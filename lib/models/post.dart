@@ -28,6 +28,7 @@ class Post {
   final String? bgmArtist; // アーティスト名
   final String? bgmArtworkUrl; // アートワークURL
   final bool isSecret; // シークレットタスクの投稿かどうか
+  final bool isPublic; // 全体公開のタイムラインへ投稿されたかどうか
 
   // ── フィールド名定数 ──
   static const String fieldUserId = 'userId';
@@ -46,6 +47,7 @@ class Post {
   static const String fieldBgmArtist = 'bgmArtist';
   static const String fieldBgmArtworkUrl = 'bgmArtworkUrl';
   static const String fieldIsSecret = 'isSecret';
+  static const String fieldIsPublic = 'isPublic';
 
   const Post({
     required this.id,
@@ -65,6 +67,7 @@ class Post {
     this.bgmArtist,
     this.bgmArtworkUrl,
     this.isSecret = false,
+    this.isPublic = false,
   });
 
   /// Firestore の DocumentSnapshot からモデルを生成します
@@ -130,6 +133,7 @@ class Post {
       bgmArtist: data[fieldBgmArtist],
       bgmArtworkUrl: data[fieldBgmArtworkUrl],
       isSecret: data[fieldIsSecret] == true,
+      isPublic: data[fieldIsPublic] == true,
     );
   }
 
@@ -213,6 +217,7 @@ class Post {
       fieldBgmArtist: bgmArtist,
       fieldBgmArtworkUrl: bgmArtworkUrl,
       fieldIsSecret: isSecret,
+      fieldIsPublic: isPublic,
     };
   }
 
@@ -249,6 +254,7 @@ class Post {
     String? bgmArtist,
     String? bgmArtworkUrl,
     bool? isSecret,
+    bool? isPublic,
   }) {
     return Post(
       id: id ?? this.id,
@@ -268,6 +274,7 @@ class Post {
       bgmArtist: bgmArtist ?? this.bgmArtist,
       bgmArtworkUrl: bgmArtworkUrl ?? this.bgmArtworkUrl,
       isSecret: isSecret ?? this.isSecret,
+      isPublic: isPublic ?? this.isPublic,
     );
   }
 

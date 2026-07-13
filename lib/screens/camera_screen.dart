@@ -23,6 +23,7 @@ import 'package:path_provider/path_provider.dart';
 import '../providers/home_provider.dart';
 import '../providers/upload_provider.dart';
 import '../providers/service_providers.dart';
+import '../providers/dev_blog_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/v_badge_widget.dart';
 import '../screens/home/components/bgm_indicator.dart';
@@ -49,6 +50,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   XFile? _image;
   bool _isUploading = false;
   bool _isPosted = false; // ── 投稿完了フラグ（離脱ログ判定用） ──
+  bool _postToPublicTimeline = false; // ── 全体公開投稿フラグ ──
   final TextEditingController _captionController = TextEditingController();
   final GlobalKey _boundaryKey = GlobalKey();
   final TransformationController _transformationController = TransformationController();
@@ -460,6 +462,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         bgmTitle: _selectedMusic?.title,
         bgmArtist: _selectedMusic?.artist,
         bgmArtworkUrl: _selectedMusic?.artworkUrl,
+        isPublic: _postToPublicTimeline,
       );
 
       // 拡大調整・圧縮済みの画像データを一時ファイルとしてローカル（Temporary Directory: 一時フォルダ）に書き出し、演出用に使用する
@@ -503,6 +506,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
+    final homeData = ref.watch(homeDataProvider).value;
     final taskName = _taskName;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
@@ -567,6 +571,32 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                           ),
                         ),
                       ),
+                      if (ref.watch(isDeveloperProvider).value == true || homeData?.isRecommended == true)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                          child: Theme(
+                            data: ThemeData(
+                              unselectedWidgetColor: AppColors.grey50,
+                            ),
+                            child: CheckboxListTile(
+                              title: Text(
+                                'Vタイムライン（全体公開）にも投稿する',
+                                style: GoogleFonts.notoSansJp(color: AppColors.pureWhite, fontSize: 13),
+                              ),
+                              value: _postToPublicTimeline,
+                              onChanged: (val) {
+                                setState(() {
+                                  _postToPublicTimeline = val ?? false;
+                                });
+                              },
+                              activeColor: AppColors.accentGold,
+                              checkColor: AppColors.pureBlack,
+                              controlAffinity: ListTileControlAffinity.leading,
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                            ),
+                          ),
+                        ),
                       _buildPostBottomBar(),
                     ],
                   ),
