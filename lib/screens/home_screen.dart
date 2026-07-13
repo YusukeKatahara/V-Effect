@@ -97,6 +97,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   int _comboCount = 0;
   Timer? _comboResetTimer;
 
+  // ── VFIRE 長押しオート連打用 ──
+  // Timer（タイマー：時間制御や一定周期の定期実行を行うDartの標準クラス）を使用して、
+  // 長押しされている間、一定間隔（100ミリ秒）ごとに炎を連打送信します。
+  Timer? _flameAutoFireTimer;
+
   // ── Card Swiping ──
   // ── Card Swiping (Performance: Using AnimatedBuilder instead of setState) ──
   late final PageController _pageController;
@@ -309,6 +314,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // 画面破棄時に未送信のVFIREをすべて強制送信 (Flush)
     _flushAllPendingFlames();
     _comboResetTimer?.cancel();
+    _flameAutoFireTimer?.cancel(); // 画面を離れる際にオート連打タイマーを確実に停止させます（メモリリーク防止）
     _swipeGuideController.dispose();
     super.dispose();
   }
@@ -792,6 +798,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     // 飛んでいる間は少し大きく（手前に来る）
     return 1.0 + sin(progress * pi) * 0.3;
+  }
+
+  // ── VFIRE 長押しオート連打処理 ──
+  
+  /// 長押しが開始されたときに、タイマーを起動して自動連打を開始します。
+  /// [index] は現在表示しているカードのインデックス（順番）です。
+  void _startFlameAutoFire(int index) {
+    // すでにタイマーが動いている場合は重複して起動しないようにガード（安全処理）します。
+    if (_flameAutoFireTimer != null) return;
+    
+    // 長押しした瞬間に、まず最初の1回目のリアクションを即時に送ります。
+    _sendReaction(index);
+    
+    // Timer.periodic（タイマー・ピリオディック：指定された時間間隔で処理を繰り返す仕組み）
+    // を使用して、100ミリ秒（0.1秒）ごとに VFIRE を追加します。
+    _flameAutoFireTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _sendReaction(index);
+    });
+  }
+
+  /// 長押しが離された、またはキャンセルされたときにタイマーを停止します。
+  void _stopFlameAutoFire() {
+    _flameAutoFireTimer?.cancel(); // 動いているタイマーを停止します。
+    _flameAutoFireTimer = null;    // 変数を空（null）に戻してリセットします。
   }
 
   Future<void> _sendReaction(int index, {String? emoji}) async {
@@ -2030,6 +2060,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () => _sendReaction(actualIndex),
+                              // ── 長押し（ロングプレス）ジェスチャーの追加 ──
+                              // 長押しが開始された瞬間にタイマーを起動し、オート連打を開始します。
+                              onLongPressStart: (_) => _startFlameAutoFire(actualIndex),
+                              // 指をボタンから離したときに連打タイマーを停止します。
+                              onLongPressEnd: (_) => _stopFlameAutoFire(),
+                              // スワイプ等の他のジェスチャーによって操作が中断されたときにも連打を停止させます。
+                              onLongPressCancel: () => _stopFlameAutoFire(),
                             ),
                           ),
 

@@ -68,6 +68,11 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
   int _comboCount = 0;
   Timer? _comboResetTimer;
 
+  // ── VFIRE 長押しオート連打用 ──
+  // Timer（タイマー：時間制御や一定周期の定期実行を行うDartの標準クラス）を使用して、
+  // 長押しされている間、一定間隔（100ミリ秒）ごとに炎を連打送信します。
+  Timer? _flameAutoFireTimer;
+
   // BGM再生アニメーション
   late final AnimationController _bumpController;
 
@@ -103,6 +108,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
     _bumpController.dispose();
     _adRefreshTimer?.cancel();
     _comboResetTimer?.cancel();
+    _flameAutoFireTimer?.cancel(); // 画面破棄時に長押し連打用のタイマーを確実に停止します（メモリリーク防止）
     for (final ad in _nativeAds.values) {
       ad.dispose();
     }
@@ -283,6 +289,30 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
         precacheImage(CachedNetworkImageProvider(item.imageUrl!), context);
       }
     }
+  }
+
+  // ── VFIRE 長押しオート連打処理 ──
+  
+  /// 長押しが開始されたときに、タイマーを起動して自動連打を開始します。
+  /// [post] はリアクション対象の投稿データです。
+  void _startFlameAutoFire(Post post) {
+    // すでにタイマーが動いている場合は、重複して処理が回らないようにガード（安全処理）します。
+    if (_flameAutoFireTimer != null) return;
+    
+    // 長押しした瞬間に、まず最初の1回目のリアクションを即時に送ります。
+    _onFlameReaction(post);
+    
+    // Timer.periodic（タイマー・ピリオディック：指定された時間間隔で処理を繰り返す仕組み）
+    // を使用して、100ミリ秒（0.1秒）ごとに連打処理を実行します。
+    _flameAutoFireTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      _onFlameReaction(post);
+    });
+  }
+
+  /// 長押しが離された、またはキャンセルされたときにタイマーを停止します。
+  void _stopFlameAutoFire() {
+    _flameAutoFireTimer?.cancel(); // 動いているタイマーを停止します。
+    _flameAutoFireTimer = null;    // 変数を空（null）に戻してリセットします。
   }
 
   // ── VFIREリアクション処理（炎ボタン連打＆コンボ演出） ──
@@ -508,7 +538,14 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
                   right: 0,
                   child: SafeArea(
                     bottom: false,
-                    child: VEffectHeader(key: UniqueKey()),
+                    child: VEffectHeader(
+                      key: UniqueKey(),
+                      leading: IconButton(
+                        icon: Icon(Icons.search_rounded, color: AppColors.white, size: 22),
+                        onPressed: () => Navigator.pushNamed(context, '/search'),
+                      ),
+                      trailing: const NotificationBellIcon(),
+                    ),
                   ),
                 ),
               ],
@@ -625,6 +662,13 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
                                                 child: GestureDetector(
                                                   behavior: HitTestBehavior.opaque,
                                                   onTap: () => _onFlameReaction(item),
+                                                  // ── 長押し（ロングプレス）ジェスチャーの追加 ──
+                                                  // 写真エリアを長押ししたときに自動連打タイマーを開始します。
+                                                  onLongPressStart: (_) => _startFlameAutoFire(item),
+                                                  // 指を離したときに自動連打タイマーを停止します。
+                                                  onLongPressEnd: (_) => _stopFlameAutoFire(),
+                                                  // スワイプなどで操作がキャンセルされた際にも安全にタイマーを停止します。
+                                                  onLongPressCancel: () => _stopFlameAutoFire(),
                                                 ),
                                               ),
                                               // 左下ユーザーアバタータップ（プロフィール遷移）
@@ -680,7 +724,14 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
                 right: 0,
                 child: SafeArea(
                   bottom: false,
-                  child: VEffectHeader(key: UniqueKey()),
+                  child: VEffectHeader(
+                    key: UniqueKey(),
+                    leading: IconButton(
+                      icon: Icon(Icons.search_rounded, color: AppColors.white, size: 22),
+                      onPressed: () => Navigator.pushNamed(context, '/search'),
+                    ),
+                    trailing: const NotificationBellIcon(),
+                  ),
                 ),
               ),
             ],
