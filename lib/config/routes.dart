@@ -30,8 +30,6 @@ import '../screens/security_settings_screen.dart';
 import '../screens/blog_post_detail_screen.dart';
 import '../screens/blog_post_editor_screen.dart';
 import '../screens/display_settings_screen.dart';
-import '../screens/role_model/role_model_list_screen.dart';
-import '../screens/role_model/role_model_activity_screen.dart';
 
 
 
@@ -67,8 +65,6 @@ class AppRoutes {
   static const String onboardingProfile     = '/onboarding/profile';
   static const String onboardingFirstQuest  = '/onboarding/first-quest';
   static const String displaySettings       = '/display-settings';
-  static const String roleModels            = '/role-models';
-  static const String roleModelActivity     = '/role-model-activity';
   static const String vTimeline             = '/v-timeline';
 
 
@@ -108,8 +104,6 @@ class AppRoutes {
         onboardingVEffect: (context) => const VEffectScreen(),
         onboardingProfile: (context) => const OnboardingProfileSettingsScreen(),
         onboardingFirstQuest: (context) => const FirstVQuestScreen(),
-        roleModels: (context) => const RoleModelListScreen(),
-        roleModelActivity: (context) => const RoleModelActivityScreen(),
         vTimeline: (context) => const VTimelineScreen(),
       };
 }

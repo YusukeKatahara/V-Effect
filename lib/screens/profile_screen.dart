@@ -24,7 +24,6 @@ import '../widgets/shimmer_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/weekly_review_provider.dart';
 import 'weekly_review_screen.dart';
-import '../config/routes.dart';
 
 
 // ---── コンポーネントのインポート ──
@@ -974,49 +973,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-                  // ---── ロールモデル一覧ボタン ──────────────────────────
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    sliver: SliverToBoxAdapter(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, AppRoutes.roleModels);
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          decoration: BoxDecoration(
-                            color: AppColors.bgElevated,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.primary, width: 1.5),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.isDark
-                                    ? Colors.transparent
-                                    : AppColors.primary.withValues(alpha: 0.08),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'ロールモデル一覧',
-                                style: GoogleFonts.notoSansJp(
-                                  color: AppColors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                   
                   // ---── 既読時の今週の振り返りバナー（週末のみ表示） ──
                   Consumer(
