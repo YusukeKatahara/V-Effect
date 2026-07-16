@@ -48,6 +48,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
   bool _loading = true;
   List<HeroTaskItem> _taskItems = [];
   late final SoundService _soundService; // BGM制御用サービス（アンマウント時のクラッシュ防止のため保持）
+  DateTime? _lastPausedTime; // バックグラウンド移行時の時刻（アプリ復帰時の経過時間判定用）
 
   // ── Card Expansion ──
   int? _expandedIndex; // 長押しで拡大中のカードインデックス
@@ -57,6 +58,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
   String _myUsername = 'V';
   String? _myBadgeUrl;
   String? _myBadgeAnimation;
+  bool _isRecommended = false;
 
   // ── Sublimation ──
   late final AnimationController _sublimationController;
@@ -249,8 +251,17 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       _soundService.stopBgm();
+      _lastPausedTime ??= DateTime.now();
     } else if (state == AppLifecycleState.resumed) {
       // 復帰時に自動で鳴らさない
+      if (_lastPausedTime != null) {
+        final elapsed = DateTime.now().difference(_lastPausedTime!);
+        _lastPausedTime = null; // リセット
+        if (elapsed.inSeconds >= 30) {
+          // 30秒以上のバックグラウンド経過があった場合はデータを最新化（再ロード）する
+          ref.invalidate(heroTasksDataProvider);
+        }
+      }
     }
   }
 
@@ -294,6 +305,66 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
       } catch (e) {
         debugPrint('Delete post error: $e');
         if (mounted) setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _togglePostPublicStatus(Post post) async {
+    final bool currentStatus = post.isPublic;
+    final String title = currentStatus
+        ? AppLocalizations.of(context)!.heroTasksUnpublishConfirmTitle
+        : AppLocalizations.of(context)!.heroTasksPublishConfirmTitle;
+    final String desc = currentStatus
+        ? AppLocalizations.of(context)!.heroTasksUnpublishConfirmDesc
+        : AppLocalizations.of(context)!.heroTasksPublishConfirmDesc;
+    final String buttonText = currentStatus
+        ? AppLocalizations.of(context)!.heroTasksUnpublishButton
+        : AppLocalizations.of(context)!.heroTasksPublishButton;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgElevated,
+        title: Text(title, style: TextStyle(color: AppColors.white)),
+        content: Text(desc),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(AppLocalizations.of(context)!.editProfilePickerCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              buttonText,
+              style: TextStyle(
+                color: currentStatus ? AppColors.white : AppColors.accentGold,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _loading = true);
+      try {
+        await ref.read(postServiceProvider).updatePostPublicStatus(post.id, !currentStatus);
+        ref.invalidate(heroTasksDataProvider);
+      } catch (e) {
+        debugPrint('Toggle post public status error: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _loading = false);
+        }
       }
     }
   }
@@ -485,6 +556,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
       _myUsername = data.myUsername;
       _myBadgeUrl = data.myBadgeUrl;
       _myBadgeAnimation = data.myBadgeAnimation;
+      _isRecommended = data.isRecommended;
       _loading = false;
       
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -509,6 +581,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
               _myUsername = data.myUsername;
               _myBadgeUrl = data.myBadgeUrl;
               _myBadgeAnimation = data.myBadgeAnimation;
+              _isRecommended = data.isRecommended;
               _loading = false;
             });
             widget.onLoadingChanged?.call(false);
@@ -715,6 +788,8 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
             _taskItems.isNotEmpty ? _taskItems[_focusedIndex] : null;
         final isCompleted = focusedTask?.isCompleted ?? false;
         final tierColor = _getTierColor(_streak);
+        final currentUid = ref.watch(userServiceProvider).currentUid;
+        final isMyPost = focusedTask?.latestPost?.userId == currentUid;
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -806,7 +881,34 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                     ),
                   ),
                 ),
-                if (isCompleted && _expandedIndex == _focusedIndex)
+                if (isCompleted && _expandedIndex == _focusedIndex && isMyPost) ...[
+                  if (_isRecommended)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: IconButton(
+                            onPressed: () {
+                              if (focusedTask?.latestPost != null) {
+                                _togglePostPublicStatus(focusedTask!.latestPost!);
+                              }
+                            },
+                            icon: Icon(
+                              Icons.public,
+                              color: (focusedTask?.latestPost?.isPublic ?? false)
+                                  ? AppColors.accentGold
+                                  : AppColors.white,
+                              size: 18,
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                    ),
                   Positioned(
                     right: 0,
                     top: 0,
@@ -858,6 +960,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                       ],
                     ),
                   ),
+                ],
               ],
             ),
           ),

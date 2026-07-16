@@ -936,6 +936,19 @@ class PostService {
     return allPosts;
   }
 
+  /// 投稿の公開ステータス（isPublic）を更新します
+  Future<void> updatePostPublicStatus(String postId, bool isPublic) async {
+    try {
+      await _db.collection('posts').doc(postId).update({
+        'isPublic': isPublic,
+      });
+      _updateController.add(null);
+    } catch (e) {
+      debugPrint('updatePostPublicStatus error: $e');
+      rethrow;
+    }
+  }
+
   /// 投稿を削除します
   Future<void> deletePost(String postId) async {
     final postSnap = await _db.collection('posts').doc(postId).get();

@@ -13,6 +13,8 @@
 		<string>applinks:v-effect.app</string>
 		<string>applinks:veffect.web.app</string>
 		<string>applinks:veffect.firebaseapp.com</string>
+		<string>applinks:v-effect.com</string>
+		<string>applinks:veffect-app.web.app</string>
 	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>

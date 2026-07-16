@@ -40,6 +40,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _usernameCtrl;
   late TextEditingController _userIdCtrl;
   late TextEditingController _instagramIdCtrl;
+  late TextEditingController _websiteUrlCtrl;
   late final UserService _userService;
 
   bool _isSaving = false;
@@ -76,6 +77,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _usernameCtrl = TextEditingController(text: widget.user.username);
     _userIdCtrl = TextEditingController(text: widget.user.userId);
     _instagramIdCtrl = TextEditingController(text: widget.user.instagramId ?? '');
+    _websiteUrlCtrl = TextEditingController(text: widget.user.websiteUrl ?? '');
     _currentPhotoUrl = widget.user.photoUrl;
     _equippedBadgeUrl = widget.user.equippedBadgeUrl;
     _equippedBadgeAnimation = widget.user.equippedBadgeAnimation;
@@ -110,6 +112,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _usernameCtrl.dispose();
     _userIdCtrl.dispose();
     _instagramIdCtrl.dispose();
+    _websiteUrlCtrl.dispose();
     super.dispose();
   }
 
@@ -172,6 +175,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final newUserId = _userIdCtrl.text.trim();
     final newUsername = _usernameCtrl.text.trim();
     final newInstagramId = _instagramIdCtrl.text.trim();
+    String newWebsiteUrl = _websiteUrlCtrl.text.trim();
+    if (newWebsiteUrl.isNotEmpty) {
+      if (!newWebsiteUrl.startsWith('http://') && !newWebsiteUrl.startsWith('https://')) {
+        newWebsiteUrl = 'https://$newWebsiteUrl';
+      }
+    }
 
 
     bool isRestrictedFieldsChanged = false;
@@ -261,6 +270,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         equippedBadgeUrl: _equippedBadgeUrl,
         equippedBadgeAnimation: _equippedBadgeAnimation,
         instagramId: newInstagramId,
+        websiteUrl: newWebsiteUrl,
       );
 
       if (mounted) {
@@ -345,6 +355,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               _buildPersonalInfoFields(),
                               const SizedBox(height: 16),
                               _buildInstagramIdField(),
+                              const SizedBox(height: 16),
+                              _buildWebsiteUrlField(),
                               const SizedBox(height: 32),
 
                               // Section: Preferences
@@ -746,6 +758,27 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         if (v != null && v.trim().isNotEmpty) {
           if (!RegExp(r'^[a-zA-Z0-9_\.]+$').hasMatch(v.trim())) {
             return AppLocalizations.of(context)!.editProfileInstagramIdAlphanumeric;
+          }
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildWebsiteUrlField() {
+    return TextFormField(
+      controller: _websiteUrlCtrl,
+      style: TextStyle(color: AppColors.textPrimary),
+      decoration: InputDecoration(
+        labelText: AppLocalizations.of(context)!.editProfileWebsiteUrlLabel,
+        hintText: 'example.com',
+        prefixIcon: Icon(FontAwesomeIcons.link, color: AppColors.textMuted, size: 18),
+      ),
+      validator: (v) {
+        if (v != null && v.trim().isNotEmpty) {
+          final trimmed = v.trim();
+          if (!trimmed.contains('.')) {
+            return AppLocalizations.of(context)!.editProfileWebsiteUrlInvalid;
           }
         }
         return null;

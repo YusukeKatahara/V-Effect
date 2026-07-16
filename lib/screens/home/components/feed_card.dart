@@ -6,6 +6,8 @@ import '../../../config/app_colors.dart';
 import '../../../models/post.dart';
 import '../../../models/quote.dart';
 import '../../../widgets/v_badge_widget.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../providers/vfire_provider.dart';
 
 /// フィード画面に表示される各投稿のカード型UIコンポーネント。
 class FeedCard extends StatelessWidget {
@@ -22,7 +24,6 @@ class FeedCard extends StatelessWidget {
     required this.tierColor,
     this.onProfileTap,
     this.onOptionsTap,
-    this.reactionCountNotifier,
   });
 
   final Post post;
@@ -36,7 +37,6 @@ class FeedCard extends StatelessWidget {
   final Color tierColor;
   final VoidCallback? onProfileTap;
   final VoidCallback? onOptionsTap;
-  final ValueNotifier<int>? reactionCountNotifier;
 
   @override
   Widget build(BuildContext context) {
@@ -412,9 +412,10 @@ class FeedCard extends StatelessWidget {
                             const SizedBox(height: 8), // 基準値
                             SizedBox(
                               height: 16, // 高さを固定して中心を安定させる
-                              child: ValueListenableBuilder<int>(
-                                valueListenable: reactionCountNotifier ?? ValueNotifier(post.reactionCount),
-                                builder: (context, count, _) {
+                              child: Consumer(
+                                builder: (context, ref, _) {
+                                  final localInc = ref.watch(vfireProvider.select((state) => state.localIncrements[post.id] ?? 0));
+                                  final count = post.reactionCount + localInc;
                                   return Text(
                                     '$count',
                                     style: GoogleFonts.outfit(

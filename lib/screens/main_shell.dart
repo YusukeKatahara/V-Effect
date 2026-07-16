@@ -135,7 +135,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     final bool isTablet = mq.size.width > 600;
-    final double extraBottom = isTablet ? 80 : 30;
+    final double extraBottom = isTablet ? 70 : 20; // ピルバー縮小に合わせて、背後コンテンツの下部セーフエリアパディングも調整 (iPad: 70, iPhone: 20)
 
     return Scaffold(
       backgroundColor: AppColors.black,
@@ -165,10 +165,10 @@ class _MainShellState extends ConsumerState<MainShell> {
       top: false,
       child: Center(
         child: Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          height: 60,
+          margin: const EdgeInsets.only(bottom: 8), // 下部マージンを縮小 (プランC)
+          height: 48, // 全体の高さを 60 から 48 にスリム化 (プランA)
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(24), // 高さ48pxに合わせた角丸 (半円状にするため高さの半分の24pxに設定)
             border: Border.all(
               color: AppColors.isDark
                   ? AppColors.white.withValues(alpha: 0.12)
@@ -187,11 +187,11 @@ class _MainShellState extends ConsumerState<MainShell> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(24), // 角丸を24pxに統一
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 4), // 左右パディングの微調整
                 decoration: BoxDecoration(
                   color: AppColors.isDark
                       ? AppColors.white.withValues(alpha: 0.06)
@@ -284,48 +284,42 @@ class _SpatialNavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), // タップ有効領域（当たり判定）を広く維持しつつ余白を調整
+        child: Center(
+          widthFactor: 1.0,
+          heightFactor: 1.0,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              AnimatedScale(
+                scale: isActive ? 1.15 : 1.0, // アクティブ時に拡大するスムーズなアニメーション効果 (プランB)
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                child: Icon(
                   icon,
-                  size: 22,
+                  size: 20, // 基準のアイコンサイズを20に変更 (アクティブ時は23相当に拡大)
                   color: isActive
                       ? AppColors.white
                       : (AppColors.isDark ? AppColors.grey30 : AppColors.grey50),
                 ),
-                if (hasBadge)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: AppColors.error,
-                        shape: BoxShape.circle,
-                      ),
+              ),
+              if (hasBadge)
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    width: 7, // バーの縮小に合わせてバッジのサイズもわずかに縮小 (8 -> 7)
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
                     ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: isActive ? 3 : 0,
-              height: 3,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.white,
-              ),
-            ),
-          ],
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -548,6 +548,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editProfileInstagramIdAlphanumeric => 'Only letters, numbers, underscores, and dots';
 
   @override
+  String get editProfileWebsiteUrlInvalid => 'Please enter a valid URL';
+
+  @override
+  String get editProfileWebsiteUrlLabel => 'Website';
+
+  @override
   String get editProfileUserIdAlreadyUsed => 'This user ID is already taken';
 
   @override
@@ -2147,4 +2153,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get forceUpdateBtn => 'Update';
+
+  @override
+  String get taskReminderTitle => '🔔 Reminder Time (Optional)';
+
+  @override
+  String get taskReminderNone => 'None';
+
+  @override
+  String get taskReminderMorning => 'Morning 8:00';
+
+  @override
+  String get taskReminderNoon => 'Noon 12:00';
+
+  @override
+  String get taskReminderNight => 'Night 21:00';
+
+  @override
+  String get taskReminderCustom => 'Custom';
+
+  @override
+  String get taskReminderPickerTitle => 'Select Time';
+
+  @override
+  String get heroTasksPublishConfirmTitle => 'Make Public?';
+
+  @override
+  String get heroTasksPublishConfirmDesc => 'Do you want to publish this post to the V Timeline?';
+
+  @override
+  String get heroTasksPublishButton => 'Publish';
+
+  @override
+  String get heroTasksUnpublishConfirmTitle => 'Make Private?';
+
+  @override
+  String get heroTasksUnpublishConfirmDesc => 'Do you want to remove this post from the V Timeline?';
+
+  @override
+  String get heroTasksUnpublishButton => 'Make Private';
 }

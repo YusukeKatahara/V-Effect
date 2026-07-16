@@ -93,3 +93,26 @@ description: V EFFECT プロジェクトのコーディング規約。Dartコー
   - 入力フォーム等のコンテンツは `CustomScrollView` と `SliverList` を用いて、中身の自然な高さで配置する。
 - **アクションボタンの下部固定**:
   - 「完了」「次へ」などの主要アクションボタンは、`SliverFillRemaining(hasScrollBody: false)` の中に配置し、余白があれば画面最下部に固定、画面が小さければコンテンツの最後に自然に続くようにする。
+
+---
+
+### 7. Responsive & Multi-Device Layout (マルチデバイス・レスポンシブ対応)
+
+異なるデバイスの画面サイズやアスペクト比、キーボードの開閉によって画面が崩れないよう、以下のレイアウト規約を厳守してください。
+
+- **大画面での横幅制限 (`ResponsiveContainer` の使用)**:
+  - ログイン画面、登録画面、プロフィール編集画面などのフォームや設定画面において、大画面（iPadやデスクトップ）でコンテンツが横に伸びすぎないよう、[ResponsiveContainer](file:///Users/rennlikeu/development/V-Effect/lib/widgets/responsive_container.dart) を使用して最大幅（デフォルト 480px）を制限し、中央に寄せる。
+
+- **安全領域の確保 (`SafeArea`)**:
+  - デバイス上部のノッチやカメラの切り欠き、下部のホームバーなどのシステムUIとアプリの操作要素が重ならないよう、Scaffold の内側やヘッダー部分で `SafeArea` を適切に配置する。
+
+- **比率固定のカードUI設計 (`LayoutBuilder` の活用)**:
+  - タイムラインのようにアスペクト比（例: 9:16）を維持したカードを表示する場合、固定の width/height は使用しない。
+  - `LayoutBuilder` で得られる親の制約（`constraints.maxWidth` / `constraints.maxHeight`）を基に比率計算を行い、さらに `clamp` などを用いて画面からはみ出さないように上限高さを算出して逆算した幅（`finalCardWidth` 等）を使用する。
+
+- **キーボード表示時のオーバーフロー防止**:
+  - テキスト入力フォームを持つすべての画面では、キーボード表示時にレイアウト崩れエラー（黄黒のストライプ模様）が発生しないよう、`SingleChildScrollView` または `CustomScrollView` でスクロール可能にする。
+
+- **タブレット等での動的ナビゲーション高さ調整**:
+  - ボトムナビゲーション周辺のパディングは、`MediaQuery.of(context).size.width` に応じてタブレットとスマホで適切な余白量に動的に切り替える（例: `isTablet ? 80 : 30`）。
+

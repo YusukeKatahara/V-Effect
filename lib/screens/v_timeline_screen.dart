@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart'; // kIsWeb 用
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/vfire_provider.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -19,6 +20,10 @@ import '../widgets/frictionless_page_scroll_physics.dart';
 import '../utils/ad_helper.dart';
 import 'home/components/floating_flames_layer.dart';
 import 'home/components/feed_card.dart';
+import 'home/components/bgm_indicator.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:v_effect/l10n/app_localizations.dart';
+import '../widgets/home/home_skeleton_body.dart';
 
 /// 全体公開（Vタイムライン）用の投稿を配信するStreamProvider
 final vTimelinePostsProvider = StreamProvider.autoDispose<List<Post>>((ref) {
@@ -59,10 +64,6 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
   final Map<int, bool> _adLoadStatus = {}; // true: loaded, false: failed
   Timer? _adRefreshTimer;
 
-  // VFIRE リアクション処理用
-  final Map<String, int> _pendingFlameCounts = {};
-  final Map<String, Timer> _flameDebounceTimers = {};
-  final Map<String, int> _localFlameIncrements = {};
 
   // VFIRE コンボ状態・デバウンス
   int _comboCount = 0;
@@ -112,9 +113,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
     for (final ad in _nativeAds.values) {
       ad.dispose();
     }
-    for (final timer in _flameDebounceTimers.values) {
-      timer.cancel();
-    }
+
     super.dispose();
   }
 
@@ -366,46 +365,8 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
       _soundService.playFireTapSound(playbackRate: soundPitch);
     }
 
-    setState(() {
-      _localFlameIncrements[post.id] = (_localFlameIncrements[post.id] ?? 0) + 1;
-    });
-
-    // 送信デバウンス処理
-    _pendingFlameCounts[post.id] = (_pendingFlameCounts[post.id] ?? 0) + 1;
-    _flameDebounceTimers[post.id]?.cancel();
-    _flameDebounceTimers[post.id] = Timer(const Duration(milliseconds: 500), () async {
-      final countToSend = _pendingFlameCounts[post.id] ?? 0;
-      _pendingFlameCounts.remove(post.id);
-      _flameDebounceTimers.remove(post.id);
-
-      if (countToSend > 0) {
-        try {
-          await _postService.incrementFlameCount(
-            post.id,
-            countToSend,
-            targetUid: post.userId,
-            targetTaskName: post.taskName,
-            triggerUpdateStream: false,
-          );
-
-          if (mounted) {
-            setState(() {
-              final current = _localFlameIncrements[post.id] ?? 0;
-              _localFlameIncrements[post.id] = (current - countToSend).clamp(0, 100000);
-              
-              _feedItems = _feedItems.map((item) {
-                if (item is Post && item.id == post.id) {
-                  return item.copyWith(reactionCount: item.reactionCount + countToSend);
-                }
-                return item;
-              }).toList();
-            });
-          }
-        } catch (e) {
-          debugPrint('Flame sync error: $e');
-        }
-      }
-    });
+    // グローバルなVFIREプロバイダーへ通知して同期処理を委譲
+    ref.read(vfireProvider.notifier).increment(post);
   }
 
   // ── 3D/2D カードスタック描画用ソート順計算 ──
@@ -492,7 +453,8 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
                       onReaction: ({emoji}) {}, // タップ無効のためコールバック空
                       isTop: globalIndex == _focusedGlobalIndex,
                       tierColor: AppColors.accentGold,
-                      reactionCountNotifier: ValueNotifier(item.reactionCount + (_localFlameIncrements[item.id] ?? 0)),
+                      // reactionCountNotifier はFeedCard内部でVFireProviderから取得するように変更
+                      onOptionsTap: () => _showPostOptions(item),
                     ),
                   ),
           ),
@@ -508,7 +470,16 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
     return postsAsync.when(
       loading: () => Scaffold(
         backgroundColor: AppColors.black,
-        body: Center(child: CircularProgressIndicator(color: AppColors.accentGold)),
+        body: HomeSkeletonBody(
+          titleBar: VEffectHeader(
+            key: UniqueKey(),
+            leading: IconButton(
+              icon: Icon(Icons.search_rounded, color: AppColors.white, size: 22),
+              onPressed: () {},
+            ),
+            trailing: const SizedBox(width: 48),
+          ),
+        ),
       ),
       error: (err, stack) => Scaffold(
         backgroundColor: AppColors.black,
@@ -563,7 +534,16 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
         if (_loadingProfiles) {
           return Scaffold(
             backgroundColor: AppColors.black,
-            body: Center(child: CircularProgressIndicator(color: AppColors.accentGold)),
+            body: HomeSkeletonBody(
+              titleBar: VEffectHeader(
+                key: UniqueKey(),
+                leading: IconButton(
+                  icon: Icon(Icons.search_rounded, color: AppColors.white, size: 22),
+                  onPressed: () {},
+                ),
+                trailing: const SizedBox(width: 48),
+              ),
+            ),
           );
         }
 
@@ -658,7 +638,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
                                                 top: 0,
                                                 left: 0,
                                                 right: 0,
-                                                bottom: 180,
+                                                bottom: 80,
                                                 child: GestureDetector(
                                                   behavior: HitTestBehavior.opaque,
                                                   onTap: () => _onFlameReaction(item),
@@ -669,6 +649,97 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
                                                   onLongPressEnd: (_) => _stopFlameAutoFire(),
                                                   // スワイプなどで操作がキャンセルされた際にも安全にタイマーを停止します。
                                                   onLongPressCancel: () => _stopFlameAutoFire(),
+                                                ),
+                                              ),
+                                              // 三点リーダーのタップ領域（オーバーレイ側でキャッチしてVFIRE誤爆を防ぐ）
+                                              Positioned(
+                                                top: 4,
+                                                right: 0,
+                                                width: 64, // タップしやすいように少し広めに
+                                                height: 64,
+                                                child: GestureDetector(
+                                                  behavior: HitTestBehavior.opaque,
+                                                  onTap: () {
+                                                    _showPostOptions(item);
+                                                  },
+                                                ),
+                                              ),
+                                              // [New] タスク名と時間情報、BGMを最前面のオーバーレイに配置
+                                              Positioned(
+                                                top: 24,
+                                                left: 20,
+                                                right: 60, // 右上のメニューボタンと重ならないように制限
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Row(
+                                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                                      children: [
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.black.withValues(alpha: 0.7),
+                                                            borderRadius: BorderRadius.circular(12),
+                                                            border: Border.all(
+                                                              color: Colors.white.withValues(alpha: 0.1),
+                                                              width: 0.5,
+                                                            ),
+                                                            boxShadow: [
+                                                              BoxShadow(
+                                                                color: Colors.black.withValues(alpha: 0.3),
+                                                                blurRadius: 10,
+                                                                offset: const Offset(0, 4),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          child: Text(
+                                                            (item.isSecret && item.userId != FirebaseAuth.instance.currentUser?.uid)
+                                                                ? AppLocalizations.of(context)!.timelineSecretTaskLabel
+                                                                : item.taskName,
+                                                            style: GoogleFonts.outfit(
+                                                              fontSize: 12,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: AppColors.pureWhite,
+                                                              letterSpacing: 1,
+                                                            ),
+                                                            maxLines: 1,
+                                                            overflow: TextOverflow.ellipsis,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        Text(
+                                                          _formatPostTime(item.createdAt, context),
+                                                          style: GoogleFonts.outfit(
+                                                            fontSize: 12,
+                                                            fontWeight: FontWeight.w600,
+                                                            color: AppColors.pureWhite.withValues(alpha: 0.8),
+                                                            shadows: [
+                                                              Shadow(
+                                                                color: Colors.black.withValues(alpha: 0.5),
+                                                                blurRadius: 6,
+                                                                offset: const Offset(0, 2),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    if (item.bgmTitle != null) ...[
+                                                      const SizedBox(height: 8),
+                                                      BgmIndicator(
+                                                        title: item.bgmTitle!,
+                                                        artist: item.bgmArtist,
+                                                        url: item.bgmUrl,
+                                                        artworkUrl: item.bgmArtworkUrl,
+                                                        isMuted: _soundService.isBgmMuted,
+                                                        onMuteToggle: () async {
+                                                          await _soundService.toggleBgmMute(item.bgmUrl);
+                                                          setState(() {});
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ],
                                                 ),
                                               ),
                                               // 左下ユーザーアバタータップ（プロフィール遷移）
@@ -737,6 +808,153 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
             ],
           ),
         );
+      },
+    );
+  }
+
+  String _formatPostTime(DateTime createdAt, BuildContext context) {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+
+    if (difference.inMinutes < 1) {
+      return AppLocalizations.of(context)!.timeNow;
+    } else if (difference.inHours < 1) {
+      return AppLocalizations.of(context)!.timeMinutesAgo(difference.inMinutes);
+    } else if (difference.inDays < 1) {
+      return AppLocalizations.of(context)!.timeHoursAgo(difference.inHours);
+    } else {
+      return AppLocalizations.of(context)!.timeDaysAgo(difference.inDays);
+    }
+  }
+
+  void _showPostOptions(Post post) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.grey30,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Icon(Icons.block_rounded, color: AppColors.textPrimary),
+              title: Text(AppLocalizations.of(context)!.homeBlockUser, style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmBlock(post.userId);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.report_problem_rounded, color: AppColors.error),
+              title: Text(AppLocalizations.of(context)!.homeReportPost, style: TextStyle(color: AppColors.error)),
+              onTap: () {
+                Navigator.pop(context);
+                _showReportDialog(post);
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmBlock(String targetUid) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSurface,
+        title: Text(AppLocalizations.of(context)!.homeBlockConfirmTitle, style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(AppLocalizations.of(context)!.homeBlockConfirmDesc, style: TextStyle(color: AppColors.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(context)!.homeBlockConfirmCancel, style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await ref.read(blockServiceProvider).blockUser(targetUid);
+                // タイムラインのデータをリフレッシュ
+                ref.invalidate(vTimelinePostsProvider);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(AppLocalizations.of(context)!.homeBlockSuccess)),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(AppLocalizations.of(context)!.homeBlockFailed)),
+                  );
+                }
+              }
+            },
+            child: Text(AppLocalizations.of(context)!.homeBlockButton, style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportDialog(Post post) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSurface,
+        title: Text(AppLocalizations.of(context)!.homeReportTitle, style: TextStyle(color: AppColors.textPrimary)),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _reportOption(ctx, post, AppLocalizations.of(context)!.homeReportSpam, 'spam'),
+            _reportOption(ctx, post, AppLocalizations.of(context)!.homeReportHarassment, 'harassment'),
+            _reportOption(ctx, post, AppLocalizations.of(context)!.homeReportInappropriate, 'inappropriate'),
+            _reportOption(ctx, post, AppLocalizations.of(context)!.homeReportOther, 'other'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(context)!.homeReportCancel, style: TextStyle(color: AppColors.textSecondary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reportOption(BuildContext ctx, Post post, String label, String reason) {
+    return ListTile(
+      title: Text(label, style: TextStyle(color: AppColors.textPrimary)),
+      onTap: () async {
+        Navigator.pop(ctx);
+        try {
+          await ref.read(blockServiceProvider).reportPost(post.id, post.userId, reason);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context)!.homeReportSuccess)),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(AppLocalizations.of(context)!.homeReportFailed)),
+            );
+          }
+        }
       },
     );
   }

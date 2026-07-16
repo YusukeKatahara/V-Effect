@@ -1133,6 +1133,18 @@ abstract class AppLocalizations {
   /// **'英数字、アンダースコア、ドットのみ使えます'**
   String get editProfileInstagramIdAlphanumeric;
 
+  /// No description provided for @editProfileWebsiteUrlInvalid.
+  ///
+  /// In ja, this message translates to:
+  /// **'有効なURLを入力してください'**
+  String get editProfileWebsiteUrlInvalid;
+
+  /// No description provided for @editProfileWebsiteUrlLabel.
+  ///
+  /// In ja, this message translates to:
+  /// **'ウェブサイト'**
+  String get editProfileWebsiteUrlLabel;
+
   /// No description provided for @editProfileUserIdAlreadyUsed.
   ///
   /// In ja, this message translates to:
@@ -4174,6 +4186,84 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'アップデートする'**
   String get forceUpdateBtn;
+
+  /// No description provided for @taskReminderTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'🔔 リマインダー時間 (任意)'**
+  String get taskReminderTitle;
+
+  /// No description provided for @taskReminderNone.
+  ///
+  /// In ja, this message translates to:
+  /// **'なし'**
+  String get taskReminderNone;
+
+  /// No description provided for @taskReminderMorning.
+  ///
+  /// In ja, this message translates to:
+  /// **'朝 8:00'**
+  String get taskReminderMorning;
+
+  /// No description provided for @taskReminderNoon.
+  ///
+  /// In ja, this message translates to:
+  /// **'昼 12:00'**
+  String get taskReminderNoon;
+
+  /// No description provided for @taskReminderNight.
+  ///
+  /// In ja, this message translates to:
+  /// **'夜 21:00'**
+  String get taskReminderNight;
+
+  /// No description provided for @taskReminderCustom.
+  ///
+  /// In ja, this message translates to:
+  /// **'カスタム'**
+  String get taskReminderCustom;
+
+  /// No description provided for @taskReminderPickerTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'時間の選択'**
+  String get taskReminderPickerTitle;
+
+  /// No description provided for @heroTasksPublishConfirmTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'全体公開にしますか？'**
+  String get heroTasksPublishConfirmTitle;
+
+  /// No description provided for @heroTasksPublishConfirmDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'この投稿をVタイムライン（全体公開）に公開しますか？'**
+  String get heroTasksPublishConfirmDesc;
+
+  /// No description provided for @heroTasksPublishButton.
+  ///
+  /// In ja, this message translates to:
+  /// **'公開する'**
+  String get heroTasksPublishButton;
+
+  /// No description provided for @heroTasksUnpublishConfirmTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'非公開に戻しますか？'**
+  String get heroTasksUnpublishConfirmTitle;
+
+  /// No description provided for @heroTasksUnpublishConfirmDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'この投稿をVタイムラインから非公開に戻しますか？'**
+  String get heroTasksUnpublishConfirmDesc;
+
+  /// No description provided for @heroTasksUnpublishButton.
+  ///
+  /// In ja, this message translates to:
+  /// **'非公開にする'**
+  String get heroTasksUnpublishButton;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

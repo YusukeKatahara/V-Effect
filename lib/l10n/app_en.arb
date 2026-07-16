@@ -227,6 +227,8 @@
   "editProfileUserIdMinLength": "Must be at least 5 characters",
   "editProfileUserIdAlphanumeric": "Only letters, numbers, and underscores",
   "editProfileInstagramIdAlphanumeric": "Only letters, numbers, underscores, and dots",
+  "editProfileWebsiteUrlInvalid": "Please enter a valid URL",
+  "editProfileWebsiteUrlLabel": "Website",
   "editProfileUserIdAlreadyUsed": "This user ID is already taken",
   "editProfileRestrictionMessage": "Your user ID cannot be changed for 90 days after the last change.\nPlease wait {days} more day(s).",
   "@editProfileRestrictionMessage": {
@@ -955,5 +957,18 @@
   "blogPostEditorUpdateAndPublish": "Publish & Update",
   "blogPostEditorRevertToDraft": "Revert to Draft",
   "forceUpdateTitle": "Update Required",
-  "forceUpdateBtn": "Update"
+  "forceUpdateBtn": "Update",
+  "taskReminderTitle": "🔔 Reminder Time (Optional)",
+  "taskReminderNone": "None",
+  "taskReminderMorning": "Morning 8:00",
+  "taskReminderNoon": "Noon 12:00",
+  "taskReminderNight": "Night 21:00",
+  "taskReminderCustom": "Custom",
+  "taskReminderPickerTitle": "Select Time",
+  "heroTasksPublishConfirmTitle": "Make Public?",
+  "heroTasksPublishConfirmDesc": "Do you want to publish this post to the V Timeline?",
+  "heroTasksPublishButton": "Publish",
+  "heroTasksUnpublishConfirmTitle": "Make Private?",
+  "heroTasksUnpublishConfirmDesc": "Do you want to remove this post from the V Timeline?",
+  "heroTasksUnpublishButton": "Make Private"
 }

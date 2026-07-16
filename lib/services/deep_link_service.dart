@@ -80,12 +80,18 @@ class DeepLinkService {
     final uriString = uri.toString();
     debugPrint('Incoming deep link: $uriString');
 
-    // プロフィールURL（/u/{userId}）のハンドリング
-    if (uri.host == 'veffect.web.app') {
+    // プロフィールURL（/u/{userId} や /@userId）のハンドリング
+    if (uri.host == 'veffect.web.app' || uri.host == 'v-effect.com' || uri.host == 'veffect-app.web.app') {
       final segments = uri.pathSegments;
-      if (segments.length >= 2 && segments[0] == 'u') {
-        await _handleUserProfileLink(Uri.decodeComponent(segments[1]));
-        return;
+      if (segments.isNotEmpty) {
+        if (segments.length >= 2 && segments[0] == 'u') {
+          await _handleUserProfileLink(Uri.decodeComponent(segments[1]));
+          return;
+        } else if (segments[0].startsWith('@')) {
+          final userId = segments[0].substring(1);
+          await _handleUserProfileLink(Uri.decodeComponent(userId));
+          return;
+        }
       }
     }
 

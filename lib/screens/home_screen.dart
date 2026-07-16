@@ -27,6 +27,7 @@ import '../widgets/home/friend_request_banner.dart';
 import '../widgets/home/announcement_area.dart';
 import '../widgets/home/home_empty_state.dart';
 import 'weekly_review_screen.dart';
+import '../providers/vfire_provider.dart';
 import '../providers/weekly_review_provider.dart';
 import '../services/migration_service.dart';
 
@@ -85,13 +86,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   String? _lastFeedTopPostId; // 前回のフィードの先頭投稿ID
 
 
-  // ── VFIRE デバウンス用 ──
-  final Map<String, Timer> _flameDebounceTimers = {};
-  final Map<String, int> _pendingFlameCounts = {};
-  // 送信済みだがサーバーからまだ返ってきていない増分を保持（表示上の即時性を確保）
-  final Map<String, int> _localFlameIncrements = {};
-  // パフォーマンス最適化: 個別の投稿のリアクション数をリビルドなしで更新するためのNotifier
-  final Map<String, ValueNotifier<int>> _flameNotifiers = {};
+
 
   // ── VFIRE コンボ状態 ──
   int _comboCount = 0;
@@ -311,8 +306,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _reactionMenuController.dispose();
     _shuffleController.dispose();
     _spreadController.dispose();
-    // 画面破棄時に未送信のVFIREをすべて強制送信 (Flush)
-    _flushAllPendingFlames();
     _comboResetTimer?.cancel();
     _flameAutoFireTimer?.cancel(); // 画面を離れる際にオート連打タイマーを確実に停止させます（メモリリーク防止）
     _swipeGuideController.dispose();
@@ -546,35 +539,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         debugPrint('ATT Request Error: $e');
       }
     }
-  }
-
-  void _flushAllPendingFlames() {
-    for (final timer in _flameDebounceTimers.values) {
-      timer.cancel();
-    }
-    _flameDebounceTimers.clear();
-
-    _pendingFlameCounts.forEach((postId, count) {
-      if (count > 0) {
-        // メモリ上の _feedItems から対象投稿を解決（追加 Firestore Read はしない）
-        final post = _feedItems.firstWhere(
-          (item) => item is Post && item.id == postId,
-          orElse: () => null,
-        );
-        // バックグラウンドで送信（dispose中のためawaitしない）
-        _postService
-            .incrementFlameCount(
-          postId,
-          count,
-          targetUid: post is Post ? post.userId : '',
-          targetTaskName: post is Post ? post.taskName : '',
-        )
-            .catchError((e) {
-          debugPrint('Flush flame sync error: $e');
-        });
-      }
-    });
-    _pendingFlameCounts.clear();
   }
 
   Future<void> _initSwipeGuide() async {
@@ -843,13 +807,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final isVFlash = emoji == null && Random().nextInt(100) == 0;
     
-    // VFIREの場合、全画面のsetStateを避けてNotifier経由で極小範囲のみ更新
+    // VFIREの場合、Notifier経由で極小範囲のみ更新
     if (emoji == null) {
-      final notifier = _flameNotifiers[post.id];
-      if (notifier != null) {
-        notifier.value++;
-      }
-      _localFlameIncrements[post.id] = (_localFlameIncrements[post.id] ?? 0) + 1;
+      ref.read(vfireProvider.notifier).increment(post);
     } else {
       // 絵文字は1回きりなので、安全にsetStateで全体反映
       setState(() {
@@ -924,7 +884,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     }
 
-    // 2. 通信処理
+    // 2. 絵文字の通信処理
     if (emoji != null) {
       // 絵文字は即座に送信
       // ※ updateStream が自動的にhomeDataProviderをソフトリフレッシュするため
@@ -937,69 +897,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           targetUid: post.userId,
           targetTaskName: post.taskName,
         );
+
+        // ローカルキャッシュ（SharedPreferences）も即座に更新して再起動時のちらつきを防ぐ
+        await updateHomeDataCacheWithReaction(
+          myUid,
+          post.id,
+          emoji: emoji,
+        );
       } catch (e) {
         debugPrint('Emoji reaction error: $e');
       } finally {
         _cleanupReactionLock(post.id);
       }
-    } else {
-      // VFIRE はデバウンス（連打が止まってから500msで同期）
-      // 投稿ごとに独立してカウントとタイマーを管理する
-      _pendingFlameCounts[post.id] = (_pendingFlameCounts[post.id] ?? 0) + 1;
-
-      _flameDebounceTimers[post.id]?.cancel();
-      _flameDebounceTimers[post.id] = Timer(const Duration(milliseconds: 500), () async {
-        final countToSend = _pendingFlameCounts[post.id] ?? 0;
-
-        // バッファをリセット
-        _pendingFlameCounts.remove(post.id);
-        _flameDebounceTimers.remove(post.id);
-
-        if (countToSend > 0) {
-          try {
-            await _postService.incrementFlameCount(
-              post.id,
-              countToSend,
-              targetUid: post.userId,
-              targetTaskName: post.taskName,
-              triggerUpdateStream: false, // 2026ベストプラクティス：自分自身の送信時は無駄な再フェッチを避ける
-            );
-
-            // 同期成功後、ローカル増分から送信分を差し引き、メモリ上の _feedItems を直接更新
-            if (mounted) {
-              setState(() {
-                final current = _localFlameIncrements[post.id] ?? 0;
-                _localFlameIncrements[post.id] = (current - countToSend).clamp(0, 100000);
-                
-                // メモリ上のキャッシュと同期
-                _feedItems = _feedItems.map((item) {
-                  if (item is Post && item.id == post.id) {
-                    return item.copyWith(
-                      reactionCount: item.reactionCount + countToSend,
-                    );
-                  }
-                  return item;
-                }).toList();
-              });
-            }
-          } catch (e) {
-            debugPrint('Flame sync error: $e');
-            // 2026ベストプラクティス：例外発生時のロールバック処理
-            if (mounted) {
-              setState(() {
-                // 送信失敗した分をローカル増分から引き、ValueNotifier も元の値へロールバックする
-                final current = _localFlameIncrements[post.id] ?? 0;
-                _localFlameIncrements[post.id] = (current - countToSend).clamp(0, 100000);
-                
-                final notifier = _flameNotifiers[post.id];
-                if (notifier != null) {
-                  notifier.value = (notifier.value - countToSend).clamp(0, 100000);
-                }
-              });
-            }
-          }
-        }
-      });
     }
   }
 
@@ -1328,20 +1237,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         final List<String> idsToRemove = [];
 
         for (final fetchedPost in homeData.feedPosts) {
-          // サーバーから取得したデータに、ローカルでまだ同期中の増分を上乗せする
-          final localInc = _localFlameIncrements[fetchedPost.id] ?? 0;
-          final totalCount = fetchedPost.reactionCount + localInc;
-
-          // Notifierの更新または生成
-          if (_flameNotifiers.containsKey(fetchedPost.id)) {
-            _flameNotifiers[fetchedPost.id]!.value = totalCount;
-          } else {
-            _flameNotifiers[fetchedPost.id] = ValueNotifier(totalCount);
-          }
-
-          final displayedPost = fetchedPost.copyWith(
-            reactionCount: totalCount,
-          );
+          // FeedCardがグローバルな vfireProvider をwatchするため、
+          // ここでの localInc 加算と _flameNotifiers の更新は不要になりました。
+          final displayedPost = fetchedPost;
 
           if (_reactingPostIds.contains(displayedPost.id)) {
             final existingLocal = _feedItems.firstWhere(
@@ -2235,7 +2133,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     onReaction: ({emoji}) => _sendReaction(index, emoji: emoji),
                     isTop: index == _focusedIndex,
                     tierColor: tierColor,
-                    reactionCountNotifier: _flameNotifiers[post.id],
+                    // reactionCountNotifier: _flameNotifiers[post.id], は削除
                     onOptionsTap: () => _showPostOptions(post),
                     onProfileTap: () {
                       Navigator.pushNamed(

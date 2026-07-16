@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:firebase_auth/firebase_auth.dart';
@@ -232,6 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     bool isOneTime = false;
     bool isSecret = false;
+    String? selectedReminderTime;
 
     // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -309,7 +311,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        _buildHabitPreviewForDialog(triggerController, controller),
+                                                _buildHabitPreviewForDialog(triggerController, controller),
+                        const SizedBox(height: 12),
+                        // --- リマインダー時間（プリセット＋カスタム） ---
+                        Text(
+                          AppLocalizations.of(context)!.taskReminderTitle,
+                          style: TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              ...[
+                                {'label': AppLocalizations.of(context)!.taskReminderNone, 'value': null},
+                                {'label': AppLocalizations.of(context)!.taskReminderMorning, 'value': '08:00'},
+                                {'label': AppLocalizations.of(context)!.taskReminderNoon, 'value': '12:00'},
+                                {'label': AppLocalizations.of(context)!.taskReminderNight, 'value': '21:00'},
+                              ].map((p) {
+                                final label = p['label'] as String;
+                                final value = p['value'];
+                                final isSelected = selectedReminderTime == value;
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: ChoiceChip(
+                                    label: Text(label),
+                                    selected: isSelected,
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        setModalState(() {
+                                          selectedReminderTime = value;
+                                        });
+                                      }
+                                    },
+                                    labelStyle: TextStyle(
+                                      color: isSelected ? Colors.black : Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    selectedColor: AppColors.accentGold,
+                                    backgroundColor: AppColors.grey20,
+                                    showCheckmark: false,
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                  ),
+                                );
+                              }),
+                              ChoiceChip(
+                                label: Text(
+                                  (selectedReminderTime != null &&
+                                          selectedReminderTime != '08:00' &&
+                                          selectedReminderTime != '12:00' &&
+                                          selectedReminderTime != '21:00')
+                                      ? '⏱️ $selectedReminderTime'
+                                      : '⏱️ ${AppLocalizations.of(context)!.taskReminderCustom}',
+                                ),
+                                selected: (selectedReminderTime != null &&
+                                    selectedReminderTime != '08:00' &&
+                                    selectedReminderTime != '12:00' &&
+                                    selectedReminderTime != '21:00'),
+                                onSelected: (selected) async {
+                                  _showReminderTimePicker(
+                                    context: context,
+                                    currentReminderTime: selectedReminderTime,
+                                    onTimeSelected: (formattedTime) {
+                                      setModalState(() {
+                                        selectedReminderTime = formattedTime;
+                                      });
+                                    },
+                                  );
+                                },
+                                labelStyle: TextStyle(
+                                  color: (selectedReminderTime != null &&
+                                          selectedReminderTime != '08:00' &&
+                                          selectedReminderTime != '12:00' &&
+                                          selectedReminderTime != '21:00')
+                                      ? Colors.black
+                                      : Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                selectedColor: AppColors.accentGold,
+                                backgroundColor: AppColors.grey20,
+                                showCheckmark: false,
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              ),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         // --- 単発タスク切り替えスイッチ ---
                         SwitchListTile(
@@ -378,6 +467,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 'trigger': triggerController.text,
                                 'isOneTime': isOneTime,
                                 'isSecret': isSecret,
+                                'reminderTime': selectedReminderTime,
                               }),
                               child: Text(
                                 AppLocalizations.of(context)!.profileScreenAddTask,
@@ -407,6 +497,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         isSeason: isDebugSeason,
         seasonId: isDebugSeason ? 'debug_season_test' : null,
         isSecret: result['isSecret'] as bool? ?? false,
+        reminderTime: result['reminderTime'] as String?,
       );
 
       final updatedTasks = List<AppTask>.from(_user!.tasks);
@@ -429,6 +520,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     bool isOneTime = task.isOneTime;
     bool isSecret = task.isSecret;
+    String? selectedReminderTime = task.reminderTime;
 
     // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -507,6 +599,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 8),
                         _buildHabitPreviewForDialog(triggerController, controller),
+                        const SizedBox(height: 12),
+                        // --- リマインダー時間（プリセット＋カスタム） ---
+                        Text(
+                          AppLocalizations.of(context)!.taskReminderTitle,
+                          style: TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              ...[
+                                {'label': AppLocalizations.of(context)!.taskReminderNone, 'value': null},
+                                {'label': AppLocalizations.of(context)!.taskReminderMorning, 'value': '08:00'},
+                                {'label': AppLocalizations.of(context)!.taskReminderNoon, 'value': '12:00'},
+                                {'label': AppLocalizations.of(context)!.taskReminderNight, 'value': '21:00'},
+                              ].map((p) {
+                                final label = p['label'] as String;
+                                final value = p['value'];
+                                final isSelected = selectedReminderTime == value;
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: ChoiceChip(
+                                    label: Text(label),
+                                    selected: isSelected,
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        setModalState(() {
+                                          selectedReminderTime = value;
+                                        });
+                                      }
+                                    },
+                                    labelStyle: TextStyle(
+                                      color: isSelected ? Colors.black : Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    selectedColor: AppColors.accentGold,
+                                    backgroundColor: AppColors.grey20,
+                                    showCheckmark: false,
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                  ),
+                                );
+                              }),
+                              ChoiceChip(
+                                label: Text(
+                                  (selectedReminderTime != null &&
+                                          selectedReminderTime != '08:00' &&
+                                          selectedReminderTime != '12:00' &&
+                                          selectedReminderTime != '21:00')
+                                      ? '⏱️ $selectedReminderTime'
+                                      : '⏱️ ${AppLocalizations.of(context)!.taskReminderCustom}',
+                                ),
+                                selected: (selectedReminderTime != null &&
+                                    selectedReminderTime != '08:00' &&
+                                    selectedReminderTime != '12:00' &&
+                                    selectedReminderTime != '21:00'),
+                                onSelected: (selected) async {
+                                  _showReminderTimePicker(
+                                    context: context,
+                                    currentReminderTime: selectedReminderTime,
+                                    onTimeSelected: (formattedTime) {
+                                      setModalState(() {
+                                        selectedReminderTime = formattedTime;
+                                      });
+                                    },
+                                  );
+                                },
+                                labelStyle: TextStyle(
+                                  color: (selectedReminderTime != null &&
+                                          selectedReminderTime != '08:00' &&
+                                          selectedReminderTime != '12:00' &&
+                                          selectedReminderTime != '21:00')
+                                      ? Colors.black
+                                      : Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                selectedColor: AppColors.accentGold,
+                                backgroundColor: AppColors.grey20,
+                                showCheckmark: false,
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              ),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         // --- 単発タスク切り替えスイッチ ---
                         SwitchListTile(
@@ -575,6 +754,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 'trigger': triggerController.text,
                                 'isOneTime': isOneTime,
                                 'isSecret': isSecret,
+                                'reminderTime': selectedReminderTime,
                               }),
                               child: Text(
                                 AppLocalizations.of(context)!.profileScreenSaveTask,
@@ -597,12 +777,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updatedTasks = List<AppTask>.from(_user!.tasks);
       final newTrigger = result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim();
 
+      final newReminderTime = result['reminderTime'] as String?;
       updatedTasks[index] = task.copyWith(
         title: newTitle,
         trigger: newTrigger,
         clearTrigger: newTrigger == null,
         isOneTime: result['isOneTime'] as bool,
         isSecret: result['isSecret'] as bool? ?? false,
+        reminderTime: newReminderTime,
+        clearReminderTime: newReminderTime == null,
       );
       await _userService.updateProfile(tasks: updatedTasks);
       
@@ -1448,6 +1631,111 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showReminderTimePicker({
+    required BuildContext context,
+    required String? currentReminderTime,
+    required void Function(String) onTimeSelected,
+  }) {
+    DateTime initialDateTime = DateTime.now();
+    if (currentReminderTime != null && currentReminderTime.contains(':')) {
+      try {
+        final parts = currentReminderTime.split(':');
+        final hour = int.parse(parts[0]);
+        final minute = int.parse(parts[1]);
+        final now = DateTime.now();
+        initialDateTime = DateTime(now.year, now.month, now.day, hour, minute);
+      } catch (_) {
+        final now = DateTime.now();
+        initialDateTime = DateTime(now.year, now.month, now.day, 12, 0);
+      }
+    } else {
+      final now = DateTime.now();
+      initialDateTime = DateTime(now.year, now.month, now.day, 12, 0);
+    }
+
+    DateTime tempDateTime = initialDateTime;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          height: 300,
+          padding: const EdgeInsets.only(top: 6.0),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        child: Text(
+                          AppLocalizations.of(context)!.editProfilePickerCancel,
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      Text(
+                        AppLocalizations.of(context)!.taskReminderPickerTitle,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      TextButton(
+                        child: Text(
+                          AppLocalizations.of(context)!.editProfilePickerDone,
+                          style: TextStyle(
+                            color: AppColors.accentGold,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onPressed: () {
+                          final formattedHour = tempDateTime.hour.toString().padLeft(2, '0');
+                          final formattedMinute = tempDateTime.minute.toString().padLeft(2, '0');
+                          onTimeSelected('$formattedHour:$formattedMinute');
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoTheme(
+                    data: CupertinoThemeData(
+                      brightness: Brightness.dark,
+                      textTheme: CupertinoTextThemeData(
+                        dateTimePickerTextStyle: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 22,
+                        ),
+                      ),
+                    ),
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.time,
+                      initialDateTime: initialDateTime,
+                      use24hFormat: MediaQuery.of(context).alwaysUse24HourFormat,
+                      onDateTimeChanged: (DateTime newDateTime) {
+                        tempDateTime = newDateTime;
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

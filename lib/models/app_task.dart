@@ -11,6 +11,7 @@ class AppTask {
   final String? seasonId; // シーズンのID
   final DateTime? completedAt;
   final bool isSecret; // 秘密の特訓（非公開）かどうか
+  final String? reminderTime; // 個別のリマインダー時間 (HH:mm 形式)
 
   // ── フィールド名定数 ──
   static const String fieldId = 'id';
@@ -21,6 +22,7 @@ class AppTask {
   static const String fieldSeasonId = 'seasonId';
   static const String fieldCompletedAt = 'completedAt';
   static const String fieldIsSecret = 'isSecret';
+  static const String fieldReminderTime = 'reminderTime';
 
   const AppTask({
     this.id = '', // 後方互換性のためデフォルト値を空文字にします
@@ -32,6 +34,7 @@ class AppTask {
     this.seasonId,
     this.completedAt,
     this.isSecret = false,
+    this.reminderTime,
   });
 
   Map<String, dynamic> toFirestore() {
@@ -45,6 +48,7 @@ class AppTask {
       if (seasonId != null) fieldSeasonId: seasonId,
       fieldCompletedAt: completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       fieldIsSecret: isSecret,
+      if (reminderTime != null) fieldReminderTime: reminderTime,
     };
   }
 
@@ -64,6 +68,7 @@ class AppTask {
         seasonId: map[fieldSeasonId]?.toString(),
         completedAt: (map[fieldCompletedAt] as Timestamp?)?.toDate(),
         isSecret: map[fieldIsSecret] == true,
+        reminderTime: map[fieldReminderTime]?.toString(),
       );
     } catch (e) {
       debugPrint('Error parsing AppTask: $e');
@@ -82,6 +87,8 @@ class AppTask {
     String? seasonId,
     DateTime? completedAt,
     bool? isSecret,
+    String? reminderTime,
+    bool clearReminderTime = false,
   }) {
     return AppTask(
       id: id ?? this.id,
@@ -93,6 +100,7 @@ class AppTask {
       seasonId: seasonId ?? this.seasonId,
       completedAt: completedAt ?? this.completedAt,
       isSecret: isSecret ?? this.isSecret,
+      reminderTime: clearReminderTime ? null : (reminderTime ?? this.reminderTime),
     );
   }
 }

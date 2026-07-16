@@ -36,6 +36,7 @@ class AppUser {
   final String? equippedBadgeAnimation;
   final List<String> ownedBadges;
   final String? instagramId;
+  final String? websiteUrl;
   final List<String> processedSeasonTaskIds;
   final bool totalPostsMigrated;
   final bool isRecommended;
@@ -74,6 +75,7 @@ class AppUser {
   static const String fieldEquippedBadgeAnimation = 'equippedBadgeAnimation';
   static const String fieldOwnedBadges = 'ownedBadges';
   static const String fieldInstagramId = 'instagramId';
+  static const String fieldWebsiteUrl = 'websiteUrl';
   static const String fieldProcessedSeasonTaskIds = 'processedSeasonTaskIds';
   static const String fieldTotalPostsMigrated = 'totalPostsMigrated';
   static const String fieldIsRecommended = 'isRecommended';
@@ -115,6 +117,7 @@ class AppUser {
     this.equippedBadgeAnimation,
     this.ownedBadges = const [],
     this.instagramId,
+    this.websiteUrl,
     this.processedSeasonTaskIds = const [],
     this.totalPostsMigrated = false,
     this.isRecommended = false,
@@ -193,6 +196,7 @@ class AppUser {
         equippedBadgeAnimation: safeString(data[fieldEquippedBadgeAnimation]),
         ownedBadges: (data[fieldOwnedBadges] as List?)?.map((e) => e.toString()).toList() ?? [],
         instagramId: safeString(data[fieldInstagramId]),
+        websiteUrl: safeString(data[fieldWebsiteUrl]),
         processedSeasonTaskIds: (data[fieldProcessedSeasonTaskIds] as List?)?.map((e) => e.toString()).toList() ?? [],
         totalPostsMigrated: data[fieldTotalPostsMigrated] == true,
         isRecommended: data[fieldIsRecommended] == true,
@@ -236,6 +240,7 @@ class AppUser {
       fieldEquippedBadgeAnimation: equippedBadgeAnimation,
       fieldOwnedBadges: ownedBadges,
       fieldInstagramId: instagramId,
+      fieldWebsiteUrl: websiteUrl,
       fieldProcessedSeasonTaskIds: processedSeasonTaskIds,
       fieldTotalPostsMigrated: totalPostsMigrated,
       fieldIsRecommended: isRecommended,
@@ -275,6 +280,7 @@ class AppUser {
     String? equippedBadgeAnimation,
     List<String>? ownedBadges,
     String? instagramId,
+    String? websiteUrl,
     List<String>? processedSeasonTaskIds,
     bool? totalPostsMigrated,
     bool? isRecommended,
@@ -311,6 +317,7 @@ class AppUser {
       equippedBadgeAnimation: equippedBadgeAnimation ?? this.equippedBadgeAnimation,
       ownedBadges: ownedBadges ?? this.ownedBadges,
       instagramId: instagramId ?? this.instagramId,
+      websiteUrl: websiteUrl ?? this.websiteUrl,
       processedSeasonTaskIds: processedSeasonTaskIds ?? this.processedSeasonTaskIds,
       totalPostsMigrated: totalPostsMigrated ?? this.totalPostsMigrated,
       isRecommended: isRecommended ?? this.isRecommended,

@@ -23,6 +23,7 @@ import 'services/post_service.dart';
 import 'utils/date_helper.dart';
 import 'widgets/global_error_widget.dart';
 import 'widgets/splash_loading.dart';
+import 'widgets/web_profile_wrapper.dart';
 import 'dart:async';
 import 'package:audio_session/audio_session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -408,6 +409,17 @@ class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObse
       locale: Locale(lang),
       initialRoute: widget.initialRoute,
       routes: AppRoutes.routes,
+      onGenerateRoute: (settings) {
+        final name = settings.name ?? '';
+        if (name.startsWith('/@')) {
+          final username = name.substring(2);
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (context) => WebProfileWrapper(username: username),
+          );
+        }
+        return null;
+      },
       navigatorObservers: [AnalyticsService.instance.observer],
       builder: (context, child) {
         return AppInitializer(

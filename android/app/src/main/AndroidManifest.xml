@@ -36,7 +36,7 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Firebase Auth のパスワードリセットリンクをアプリで受け取るためのディープリンク -->
+            <!-- Firebase Auth & プロフィール共有リンク等のディープリンク設定 -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
@@ -44,6 +44,9 @@
                 <data android:scheme="https" android:host="veffect.firebaseapp.com"/>
                 <data android:scheme="https" android:host="v-effect.firebaseapp.com"/>
                 <data android:scheme="https" android:host="v-effect.app"/>
+                <data android:scheme="https" android:host="v-effect.com"/>
+                <data android:scheme="https" android:host="veffect.web.app"/>
+                <data android:scheme="https" android:host="veffect-app.web.app"/>
             </intent-filter>
             <!-- Custom scheme for home widget interaction -->
             <intent-filter>

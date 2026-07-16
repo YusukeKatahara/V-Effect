@@ -51,6 +51,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   bool _isUploading = false;
   bool _isPosted = false; // ── 投稿完了フラグ（離脱ログ判定用） ──
   bool _postToPublicTimeline = false; // ── 全体公開投稿フラグ ──
+  double _publicIconScale = 1.0; // ── 地球アイコンのスケールアニメーション用 ──
   final TextEditingController _captionController = TextEditingController();
   final GlobalKey _boundaryKey = GlobalKey();
   final TransformationController _transformationController = TransformationController();
@@ -395,6 +396,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       _image = null;
       _captionController.clear();
       _selectedMusic = null;
+      _postToPublicTimeline = false;
+      _publicIconScale = 1.0;
     });
     await _stopPreviewAudio();
     // カメラが破棄されている場合は再初期化
@@ -591,121 +594,142 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: Row(
-        children: [
-          if (_image == null)
-            IconButton(
-              icon: Icon(Icons.close, color: AppColors.pureWhite),
-              onPressed: () => Navigator.pop(context),
-            )
-          else
-            GestureDetector(
-              onTap: _isUploading ? null : _retake,
-              child: Container(
-                width: 44,
-                height: 44,
-                margin: const EdgeInsets.only(left: 8),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white12,
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: const Icon(Icons.refresh_rounded,
-                    color: Colors.white70, size: 22),
-              ),
-            ),
-          const Spacer(),
-          if (taskName != null)
-            Expanded(
-              flex: 3,
-              child: Text(
-                taskName,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.notoSansJp(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.pureWhite,
-                ),
-              ),
-            ),
-          const Spacer(),
-          // フラッシュ切替ボタン（カメラ表示中のみ）
-          if (showFlash)
-            GestureDetector(
-              onTap: _toggleFlash,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _flashMode != FlashMode.off
-                      ? AppColors.accentGold.withValues(alpha: 0.2)
-                      : Colors.transparent,
-                ),
-                child: Icon(
-                  _flashIcon,
-                  color: _flashMode != FlashMode.off
-                      ? AppColors.accentGold
-                      : AppColors.pureWhite,
-                  size: 24,
-                ),
-              ),
-            )
-          else if (!showFlash)
-            // 撮影済みの場合は全体公開トグルボタン 🌏 と BGM選択ボタン ♪ を並べて表示
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (showPublicToggle)
-                  GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      setState(() {
-                        _postToPublicTimeline = !_postToPublicTimeline;
-                      });
-                    },
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _postToPublicTimeline
-                            ? AppColors.accentGold.withValues(alpha: 0.2)
-                            : AppColors.pureWhite.withValues(alpha: 0.1),
-                      ),
-                      child: Icon(
-                        Icons.public_rounded,
-                        color: _postToPublicTimeline ? AppColors.accentGold : AppColors.pureWhite,
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                if (showPublicToggle) const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _showMusicBottomSheet,
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _selectedMusic != null
-                          ? AppColors.accentGold.withValues(alpha: 0.2)
-                          : AppColors.pureWhite.withValues(alpha: 0.1),
-                    ),
-                    child: Icon(
-                      Icons.music_note_rounded,
-                      color: _selectedMusic != null ? AppColors.accentGold : AppColors.pureWhite,
-                      size: 24,
-                    ),
+      child: SizedBox(
+        height: 44, // ── 高さを固定し、Stack内部のセンタリング基準を揃える ──
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // ── 中央: タスク名（左右のボタンと被らないようにセーフエリアマージンを設定） ──
+            if (taskName != null)
+              Positioned(
+                left: 100,
+                right: 100,
+                child: Text(
+                  taskName,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.pureWhite,
                   ),
                 ),
-              ],
-            )
-          else
-            const SizedBox(width: 44), // バランス用
-        ],
+              ),
+
+            // ── 左側: 閉じるボタン または 撮り直しボタン ──
+            Positioned(
+              left: 8,
+              child: _image == null
+                  ? IconButton(
+                      icon: Icon(Icons.close, color: AppColors.pureWhite),
+                      onPressed: () => Navigator.pop(context),
+                    )
+                  : GestureDetector(
+                      onTap: _isUploading ? null : _retake,
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white12,
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: const Icon(Icons.refresh_rounded,
+                            color: Colors.white70, size: 22),
+                      ),
+                    ),
+            ),
+
+            // ── 右側: アクションボタン（フラッシュ または 地球トグル＆BGM） ──
+            Positioned(
+              right: 8,
+              child: showFlash
+                  ? GestureDetector(
+                      onTap: _toggleFlash,
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _flashMode != FlashMode.off
+                              ? AppColors.accentGold.withValues(alpha: 0.2)
+                              : Colors.transparent,
+                        ),
+                        child: Icon(
+                          _flashIcon,
+                          color: _flashMode != FlashMode.off
+                              ? AppColors.accentGold
+                              : AppColors.pureWhite,
+                          size: 24,
+                        ),
+                      ),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (showPublicToggle) ...[
+                          GestureDetector(
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              setState(() {
+                                _postToPublicTimeline = !_postToPublicTimeline;
+                                _publicIconScale = 1.3; // ぷるんと大きくなるトリガー
+                              });
+                              Future.delayed(const Duration(milliseconds: 150), () {
+                                if (mounted) {
+                                  setState(() {
+                                    _publicIconScale = 1.0;
+                                  });
+                                }
+                              });
+                            },
+                            child: AnimatedScale(
+                              scale: _publicIconScale,
+                              duration: const Duration(milliseconds: 150),
+                              curve: Curves.easeOutBack, // 弾むスプリング効果
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _postToPublicTimeline
+                                      ? AppColors.accentGold.withValues(alpha: 0.2)
+                                      : AppColors.pureWhite.withValues(alpha: 0.1),
+                                ),
+                                child: Icon(
+                                  Icons.public_rounded,
+                                  color: _postToPublicTimeline ? AppColors.accentGold : AppColors.pureWhite,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        GestureDetector(
+                          onTap: _showMusicBottomSheet,
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _selectedMusic != null
+                                  ? AppColors.accentGold.withValues(alpha: 0.2)
+                                  : AppColors.pureWhite.withValues(alpha: 0.1),
+                            ),
+                            child: Icon(
+                              Icons.music_note_rounded,
+                              color: _selectedMusic != null ? AppColors.accentGold : AppColors.pureWhite,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1148,6 +1172,46 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                                   ],
                                 ),
                               ),
+                              if (_postToPublicTimeline) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentGold.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: AppColors.accentGold.withValues(alpha: 0.6),
+                                      width: 0.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.accentGold.withValues(alpha: 0.1),
+                                        blurRadius: 6,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.public_rounded,
+                                        color: AppColors.accentGold,
+                                        size: 11,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '全体公開',
+                                        style: GoogleFonts.notoSansJp(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.accentGold,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                           if (_selectedMusic != null) ...[

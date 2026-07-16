@@ -227,6 +227,8 @@
   "editProfileUserIdMinLength": "5文字以上で入力してください",
   "editProfileUserIdAlphanumeric": "英数字とアンダースコアのみ使えます",
   "editProfileInstagramIdAlphanumeric": "英数字、アンダースコア、ドットのみ使えます",
+  "editProfileWebsiteUrlInvalid": "有効なURLを入力してください",
+  "editProfileWebsiteUrlLabel": "ウェブサイト",
   "editProfileUserIdAlreadyUsed": "このユーザーIDは既に使われています",
   "editProfileRestrictionMessage": "ユーザーIDは前回の変更から90日間変更できません。\nあと {days} 日お待ちください。",
   "@editProfileRestrictionMessage": {
@@ -955,5 +957,18 @@
   "blogPostEditorUpdateAndPublish": "公開して更新",
   "blogPostEditorRevertToDraft": "下書きに戻す",
   "forceUpdateTitle": "アップデートが必要です",
-  "forceUpdateBtn": "アップデートする"
+  "forceUpdateBtn": "アップデートする",
+  "taskReminderTitle": "🔔 リマインダー時間 (任意)",
+  "taskReminderNone": "なし",
+  "taskReminderMorning": "朝 8:00",
+  "taskReminderNoon": "昼 12:00",
+  "taskReminderNight": "夜 21:00",
+  "taskReminderCustom": "カスタム",
+  "taskReminderPickerTitle": "時間の選択",
+  "heroTasksPublishConfirmTitle": "全体公開にしますか？",
+  "heroTasksPublishConfirmDesc": "この投稿をVタイムライン（全体公開）に公開しますか？",
+  "heroTasksPublishButton": "公開する",
+  "heroTasksUnpublishConfirmTitle": "非公開に戻しますか？",
+  "heroTasksUnpublishConfirmDesc": "この投稿をVタイムラインから非公開に戻しますか？",
+  "heroTasksUnpublishButton": "非公開にする"
 }

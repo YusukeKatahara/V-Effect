@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../config/app_colors.dart';
 import '../../../models/app_user.dart';
 import '../../../widgets/v_badge_widget.dart';
@@ -94,6 +96,26 @@ class ProfileHeaderSection extends StatelessWidget {
                             ),
                           ),
                         ],
+                        if (user.websiteUrl != null && user.websiteUrl!.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              final webUri = Uri.parse(user.websiteUrl!);
+                              try {
+                                if (await canLaunchUrl(webUri)) {
+                                  await launchUrl(webUri, mode: LaunchMode.externalApplication);
+                                }
+                              } catch (e) {
+                                debugPrint('Could not launch website: $e');
+                              }
+                            },
+                            child: FaIcon(
+                              FontAwesomeIcons.link,
+                              color: AppColors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 2),
@@ -108,7 +130,7 @@ class ProfileHeaderSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              // ---QRコードボタン
+              // ---オプションボタン (3点リーダー)
               Container(
                 decoration: BoxDecoration(
                   color: AppColors.grey15.withValues(alpha: 0.5),
@@ -120,12 +142,11 @@ class ProfileHeaderSection extends StatelessWidget {
                 ),
                 child: IconButton(
                   icon: Icon(
-                    Icons.qr_code,
+                    Icons.more_horiz,
                     color: AppColors.textPrimary,
                     size: 26,
                   ),
-                  tooltip: AppLocalizations.of(context)!.profileScreenQrTooltip,
-                  onPressed: onQrPressed,
+                  onPressed: () => _showMoreOptions(context),
                 ),
               ),
             ],
@@ -158,14 +179,14 @@ class ProfileHeaderSection extends StatelessWidget {
                             user.following.length,
                             onTap:
                                 () => Navigator.pushNamed(
-                                  context,
-                                  '/follow-list',
-                                  arguments: {
-                                    'uid': uid,
-                                    'isFollowing': true,
-                                    'title': AppLocalizations.of(context)!.profileScreenFollowingTitle,
-                                  },
-                                ),
+                                   context,
+                                   '/follow-list',
+                                   arguments: {
+                                     'uid': uid,
+                                     'isFollowing': true,
+                                     'title': AppLocalizations.of(context)!.profileScreenFollowingTitle,
+                                   },
+                                 ),
                           ),
                         ),
                         VerticalDivider(
@@ -180,14 +201,14 @@ class ProfileHeaderSection extends StatelessWidget {
                             user.followers.length,
                             onTap:
                                 () => Navigator.pushNamed(
-                                  context,
-                                  '/follow-list',
-                                  arguments: {
-                                    'uid': uid,
-                                    'isFollowing': false,
-                                    'title': AppLocalizations.of(context)!.profileScreenFollowersTitle,
-                                  },
-                                ),
+                                   context,
+                                   '/follow-list',
+                                   arguments: {
+                                     'uid': uid,
+                                     'isFollowing': false,
+                                     'title': AppLocalizations.of(context)!.profileScreenFollowersTitle,
+                                   },
+                                 ),
                           ),
                         ),
                         VerticalDivider(
@@ -211,6 +232,78 @@ class ProfileHeaderSection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showMoreOptions(BuildContext context) {
+    final profileUrl = 'https://v-effect.com/@${user.userId}';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.bgSurface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.grey50,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Icon(Icons.ios_share, color: AppColors.textPrimary),
+                  title: Text(
+                    'シェア',
+                    style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    SharePlus.instance.share(ShareParams(text: profileUrl));
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.copy, color: AppColors.textPrimary),
+                  title: Text(
+                    'URLをコピー',
+                    style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Clipboard.setData(ClipboardData(text: profileUrl));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('URLをコピーしました')),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.qr_code, color: AppColors.textPrimary),
+                  title: Text(
+                    'QRコードを表示',
+                    style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onQrPressed();
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

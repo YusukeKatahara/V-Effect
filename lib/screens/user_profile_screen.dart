@@ -686,6 +686,28 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       ),
                     ),
                   ],
+                  if (_user != null &&
+                      _user!.websiteUrl != null &&
+                      _user!.websiteUrl!.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () async {
+                        final webUri = Uri.parse(_user!.websiteUrl!);
+                        try {
+                          if (await canLaunchUrl(webUri)) {
+                            await launchUrl(webUri, mode: LaunchMode.externalApplication);
+                          }
+                        } catch (e) {
+                          debugPrint('Could not launch website: $e');
+                        }
+                      },
+                      child: FaIcon(
+                        FontAwesomeIcons.link,
+                        color: AppColors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 2),

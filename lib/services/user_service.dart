@@ -141,6 +141,9 @@ class UserService {
 
     await batch.commit();
 
+    // タスクが変更された場合、HeroTasksScreen（炎画面）など購読者に通知
+    _updateController.add(null);
+
     // 保護スケジュールを更新
     await PushNotificationService().restoreProtectionAlertSchedule();
   }
@@ -198,9 +201,28 @@ class UserService {
     String? equippedBadgeUrl,
     String? equippedBadgeAnimation,
     String? instagramId,
+    String? websiteUrl,
   }) async {
     final uid = _auth.currentUser!.uid;
     final batch = _db.batch();
+
+    // 前回のタスク情報をFirestoreから取得して、通知の追加・変更・削除を判定
+    List<AppTask>? oldTasks;
+    if (tasks != null) {
+      try {
+        final snap = await _db.collection('users').doc(uid).get();
+        if (snap.exists) {
+          final oldTasksData = snap.data()?['tasks'] as List<dynamic>?;
+          if (oldTasksData != null) {
+            oldTasks = oldTasksData.map((d) => AppTask.fromFirestore(d)).toList();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching old tasks for reminder sync: $e');
+      }
+      // 前回タスク情報が取得できなかった、または存在しなかった場合は空配列でフォールバック
+      oldTasks ??= const [];
+    }
 
     // 公開情報の更新
     final publicData = <String, dynamic>{};
@@ -229,6 +251,9 @@ class UserService {
     if (instagramId != null) {
       publicData[AppUser.fieldInstagramId] = instagramId.isEmpty ? null : instagramId;
     }
+    if (websiteUrl != null) {
+      publicData[AppUser.fieldWebsiteUrl] = websiteUrl.isEmpty ? null : websiteUrl;
+    }
 
     if (publicData.isNotEmpty) {
       batch.set(
@@ -252,6 +277,36 @@ class UserService {
     }
 
     await batch.commit();
+
+    // タスクのリマインダー通知を同期
+    if (tasks != null && oldTasks != null) {
+      final tasksWithIds = _ensureTaskIds(tasks);
+      final pushService = PushNotificationService();
+
+      // 1. 削除されたか、reminderTime が変更・削除された古いタスクの通知をキャンセル
+      for (final oldTask in oldTasks) {
+        if (oldTask.id.isNotEmpty && oldTask.reminderTime != null) {
+          final newTask = tasksWithIds.firstWhere((t) => t.id == oldTask.id, orElse: () => const AppTask(title: '', id: ''));
+          if (newTask.id.isEmpty || newTask.reminderTime != oldTask.reminderTime) {
+            await pushService.cancelDailyTaskReminder(oldTask.id);
+          }
+        }
+      }
+
+      // 2. 新しく追加されたか、reminderTime が変更・追加されたタスクの通知をスケジュール
+      for (final newTask in tasksWithIds) {
+        if (newTask.id.isNotEmpty && newTask.reminderTime != null) {
+          final oldTask = oldTasks.firstWhere((t) => t.id == newTask.id, orElse: () => const AppTask(title: '', id: ''));
+          if (oldTask.id.isEmpty || oldTask.reminderTime != newTask.reminderTime) {
+            await pushService.scheduleDailyTaskReminder(
+              taskId: newTask.id,
+              taskTitle: newTask.title,
+              reminderTime: newTask.reminderTime!,
+            );
+          }
+        }
+      }
+    }
 
     // 保護スケジュールを更新
     await PushNotificationService().restoreProtectionAlertSchedule();

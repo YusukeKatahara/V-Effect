@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -20,6 +21,7 @@ class HeroTasksData {
   final String myUsername;
   final String? myBadgeUrl;
   final String? myBadgeAnimation;
+  final bool isRecommended;
 
   HeroTasksData({
     required this.streak,
@@ -31,17 +33,53 @@ class HeroTasksData {
     required this.myUsername,
     this.myBadgeUrl,
     this.myBadgeAnimation,
+    this.isRecommended = false,
   });
 }
 
 /// データの更新通知ストリームを監視し、イベントが流れてきたらこのプロバイダーをトリガーする
-final heroTasksUpdateProvider = StreamProvider.autoDispose<void>((ref) async* {
-  // PostService と UserService の更新イベントストリームを統合して監視
-  final postStream = PostService.instance.updateStream;
-  final userStream = UserService.instance.updateStream;
+final heroTasksUpdateProvider = StreamProvider.autoDispose<void>((ref) {
+  // StreamController（ストリームコントローラー：データの流れを制御・中継するクラス）を作成し、
+  // 複数のストリーム（情報の流れ）を1つにまとめます。
+  final controller = StreamController<void>.broadcast();
 
-  yield* postStream;
-  yield* userStream;
+  // 1. 投稿関連（PostService）の更新イベントを購読（サブスクライブ）
+  final postSubscription = PostService.instance.updateStream.listen(
+    (_) {
+      if (!controller.isClosed) {
+        controller.add(null); // 更新があったことを通知
+      }
+    },
+    onError: (err) {
+      if (!controller.isClosed) {
+        controller.addError(err);
+      }
+    },
+  );
+
+  // 2. ユーザー情報関連（UserService）の更新イベントを購読（サブスクライブ）
+  final userSubscription = UserService.instance.updateStream.listen(
+    (_) {
+      if (!controller.isClosed) {
+        controller.add(null); // 更新があったことを通知
+      }
+    },
+    onError: (err) {
+      if (!controller.isClosed) {
+        controller.addError(err);
+      }
+    },
+  );
+
+  // プロバイダーが破棄（アンマウント）された時に、メモリリーク（メモリ解放漏れ）を防ぐため
+  // 購読の解除（キャンセル）とコントローラーのクローズを確実に行います。
+  ref.onDispose(() {
+    postSubscription.cancel();
+    userSubscription.cancel();
+    controller.close();
+  });
+
+  return controller.stream;
 });
 
 /// 炎画面のデータを非同期でロードし、メモリ上にキャッシュするプロバイダー
@@ -166,5 +204,6 @@ final heroTasksDataProvider = FutureProvider.autoDispose<HeroTasksData>((ref) as
     myUsername: myUsername,
     myBadgeUrl: myBadgeUrl,
     myBadgeAnimation: myBadgeAnimation,
+    isRecommended: appUser?.isRecommended ?? false,
   );
 });

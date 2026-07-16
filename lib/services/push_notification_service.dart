@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -100,6 +101,9 @@ class PushNotificationService {
 
     // 保護アラートのスケジュールを復元（既ログインユーザー向け）
     await restoreProtectionAlertSchedule();
+
+    // タスク別の毎日リマインダー通知を復元
+    await restoreDailyTaskReminders();
 
     _initialized = true;
   }
@@ -225,6 +229,7 @@ class PushNotificationService {
         settings.authorizationStatus == AuthorizationStatus.provisional) {
       await saveFcmToken();
       await restoreProtectionAlertSchedule();
+      await restoreDailyTaskReminders();
     }
   }
 
@@ -559,6 +564,159 @@ class PushNotificationService {
       }
     } catch (e) {
       debugPrint('保護アラートスケジュール復元エラー: $e');
+    }
+  }
+
+  /// すべてのタスクの毎日リマインダー通知を復元（再スケジュール）します。
+  /// アプリ起動時や通知権限が変更された際に呼び出します。
+  Future<void> restoreDailyTaskReminders() async {
+    if (kIsWeb) return;
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      // iOS では、通知許可が得られていない状態でローカル通知をスケジュールすると
+      // OS の通知許可ダイアログが自動的に表示されてしまうフリクションを防ぐため、
+      // 許可ステータスを確認し、許可されていない場合は処理をスキップします。
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final settings = await FirebaseMessaging.instance.getNotificationSettings();
+        if (settings.authorizationStatus != AuthorizationStatus.authorized &&
+            settings.authorizationStatus != AuthorizationStatus.provisional) {
+          debugPrint('タスクリマインダースケジュール復元スキップ: iOSで通知許可が得られていません');
+          return;
+        }
+      }
+
+      final publicSnap = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (publicSnap.exists) {
+        final data = publicSnap.data();
+        if (data != null) {
+          final tasksData = data['tasks'] as List<dynamic>?;
+          if (tasksData != null) {
+            for (final taskMap in tasksData) {
+              if (taskMap is Map<String, dynamic>) {
+                final taskId = taskMap['id'] as String? ?? '';
+                final taskTitle = taskMap['title'] as String? ?? '';
+                final reminderTime = taskMap['reminderTime'] as String?;
+                
+                if (taskId.isNotEmpty && reminderTime != null) {
+                  await scheduleDailyTaskReminder(
+                    taskId: taskId,
+                    taskTitle: taskTitle,
+                    reminderTime: reminderTime,
+                  );
+                }
+              }
+            }
+            debugPrint('タスクリマインダースケジュール復元完了: ${tasksData.length}件のタスクを走査');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('タスクリマインダースケジュール復元エラー: $e');
+    }
+  }
+
+  /// タスクの毎日リマインダー通知をスケジュールします。
+  /// [taskIdHashCode] を ID として使用し、指定された時刻（例: "08:00"）に毎日繰り返し通知します。
+  Future<void> scheduleDailyTaskReminder({
+    required String taskId,
+    required String taskTitle,
+    required String reminderTime, // "HH:mm" フォーマット
+  }) async {
+    if (kIsWeb) return;
+
+    try {
+      final parts = reminderTime.split(':');
+      if (parts.length != 2) return;
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+
+      final now = tz.TZDateTime.now(tz.local);
+      var scheduledDate = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        hour,
+        minute,
+      );
+
+      // 設定時刻が過去の場合、翌日の設定とする
+      if (scheduledDate.isBefore(now)) {
+        scheduledDate = scheduledDate.add(const Duration(days: 1));
+      }
+
+      // タスクIDのハッシュコードを通知IDとする（一意でかつ整数）
+      final notificationId = taskId.hashCode.abs() % 1000000;
+
+      // 行動心理学に基づいた通知メッセージをランダム（1:1）で決定
+      final random = math.Random();
+      final isSmallStep = random.nextBool();
+
+      // 端末のシステム言語を取得
+      final isJapanese = PlatformDispatcher.instance.locale.languageCode == 'ja';
+
+      final String title;
+      final String body;
+
+      if (isJapanese) {
+        if (isSmallStep) {
+          title = 'まずは1分だけ！';
+          body = '「$taskTitle」を少しだけ始めてみよう。最初の一歩が一番大切です！';
+        } else {
+          title = '約束の時間です ⏱️';
+          body = '時間になりました！「$taskTitle」を開始して、今日のクエストを達成しよう！';
+        }
+      } else {
+        if (isSmallStep) {
+          title = 'Just 1 minute!';
+          body = 'Let\'s start "$taskTitle" for a bit. The first step is the most important!';
+        } else {
+          title = 'It\'s time! ⏱️';
+          body = 'Time is up! Start "$taskTitle" to complete today\'s quest!';
+        }
+      }
+
+      await _localNotifications.zonedSchedule(
+        notificationId,
+        title,
+        body,
+        scheduledDate,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channel.id,
+            _channel.name,
+            channelDescription: _channel.description,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time, // 毎日この時刻にマッチさせてリピート
+      );
+      debugPrint('Daily task reminder scheduled: id=$notificationId at $reminderTime, title="$title"');
+    } catch (e) {
+      debugPrint('Error scheduling daily task reminder: $e');
+    }
+  }
+
+  /// 指定したタスクの毎日リマインダー通知をキャンセルします。
+  Future<void> cancelDailyTaskReminder(String taskId) async {
+    if (kIsWeb) return;
+    try {
+      final notificationId = taskId.hashCode.abs() % 1000000;
+      await _localNotifications.cancel(notificationId);
+      debugPrint('Daily task reminder cancelled: id=$notificationId');
+    } catch (e) {
+      debugPrint('Error cancelling daily task reminder: $e');
     }
   }
 }

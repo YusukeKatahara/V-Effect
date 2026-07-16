@@ -13,6 +13,7 @@ import 'auto_size_text.dart';
 import 'hero_task_item.dart';
 import 'pulse_camera_button.dart';
 import '../../../providers/upload_provider.dart';
+import '../../../providers/vfire_provider.dart';
 
 class TaskCard extends ConsumerStatefulWidget {
   final HeroTaskItem item;
@@ -241,7 +242,8 @@ class TaskCardState extends ConsumerState<TaskCard> {
     final Set<String> totalEmojiReactedUserIds = {};
 
     for (final post in sortedPosts) {
-      totalReactionCount += post.reactionCount;
+      final localInc = ref.watch(vfireProvider.select((state) => state.localIncrements[post.id] ?? 0));
+      totalReactionCount += post.reactionCount + localInc;
       totalUserReactions.addAll(post.userReactions);
       totalEmojiReactedUserIds.addAll(post.emojiReactedUserIds);
     }

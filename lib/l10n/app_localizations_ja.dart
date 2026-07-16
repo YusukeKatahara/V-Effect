@@ -548,6 +548,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get editProfileInstagramIdAlphanumeric => '英数字、アンダースコア、ドットのみ使えます';
 
   @override
+  String get editProfileWebsiteUrlInvalid => '有効なURLを入力してください';
+
+  @override
+  String get editProfileWebsiteUrlLabel => 'ウェブサイト';
+
+  @override
   String get editProfileUserIdAlreadyUsed => 'このユーザーIDは既に使われています';
 
   @override
@@ -2147,4 +2153,43 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get forceUpdateBtn => 'アップデートする';
+
+  @override
+  String get taskReminderTitle => '🔔 リマインダー時間 (任意)';
+
+  @override
+  String get taskReminderNone => 'なし';
+
+  @override
+  String get taskReminderMorning => '朝 8:00';
+
+  @override
+  String get taskReminderNoon => '昼 12:00';
+
+  @override
+  String get taskReminderNight => '夜 21:00';
+
+  @override
+  String get taskReminderCustom => 'カスタム';
+
+  @override
+  String get taskReminderPickerTitle => '時間の選択';
+
+  @override
+  String get heroTasksPublishConfirmTitle => '全体公開にしますか？';
+
+  @override
+  String get heroTasksPublishConfirmDesc => 'この投稿をVタイムライン（全体公開）に公開しますか？';
+
+  @override
+  String get heroTasksPublishButton => '公開する';
+
+  @override
+  String get heroTasksUnpublishConfirmTitle => '非公開に戻しますか？';
+
+  @override
+  String get heroTasksUnpublishConfirmDesc => 'この投稿をVタイムラインから非公開に戻しますか？';
+
+  @override
+  String get heroTasksUnpublishButton => '非公開にする';
 }

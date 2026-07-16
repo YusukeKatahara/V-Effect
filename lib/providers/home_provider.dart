@@ -376,3 +376,63 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
   ref.read(homeDataLoadedProvider.notifier).state = true; // ロード完了フラグを設定
   yield latestData;
 });
+
+/// キャッシュ内の特定の投稿のリアクション情報を更新します
+Future<void> updateHomeDataCacheWithReaction(
+  String myUid,
+  String postId, {
+  String? emoji,
+  int? flameIncrement,
+}) async {
+  final prefs = await SharedPreferences.getInstance();
+  final cacheKey = 'homeData_$myUid';
+  final cachedStr = prefs.getString(cacheKey);
+  if (cachedStr == null) return;
+
+  try {
+    final cachedJson = jsonDecode(cachedStr) as Map<String, dynamic>;
+    final homeData = HomeData.fromJson(cachedJson);
+
+    final updatedFeedPosts = homeData.feedPosts.map((post) {
+      if (post.id == postId) {
+        if (emoji != null) {
+          final newUserReactions = Map<String, String>.from(post.userReactions);
+          newUserReactions[myUid] = emoji;
+          final updatedIds = List<String>.from(post.emojiReactedUserIds);
+          if (!updatedIds.contains(myUid)) updatedIds.add(myUid);
+          return post.copyWith(
+            userReactions: newUserReactions,
+            emojiReactedUserIds: updatedIds,
+          );
+        } else if (flameIncrement != null) {
+          return post.copyWith(
+            reactionCount: post.reactionCount + flameIncrement,
+          );
+        }
+      }
+      return post;
+    }).toList();
+
+    final updatedHomeData = HomeData(
+      streak: homeData.streak,
+      postedToday: homeData.postedToday,
+      isAllTasksCompleted: homeData.isAllTasksCompleted,
+      username: homeData.username,
+      tasks: homeData.tasks,
+      followingUids: homeData.followingUids,
+      feedPosts: updatedFeedPosts,
+      postedFriends: homeData.postedFriends,
+      userNames: homeData.userNames,
+      userPhotos: homeData.userPhotos,
+      userStreaks: homeData.userStreaks,
+      userBadgeUrls: homeData.userBadgeUrls,
+      userBadgeAnimations: homeData.userBadgeAnimations,
+      isRecommended: homeData.isRecommended,
+    );
+
+    await prefs.setString(cacheKey, jsonEncode(updatedHomeData.toJson()));
+  } catch (e) {
+    debugPrint('Failed to update HomeData cache with reaction: $e');
+  }
+}
+
