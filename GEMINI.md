@@ -20,6 +20,11 @@ This file provides context and instructions for the Gemini CLI. It imports exist
   1. `pubspec.yaml` のバージョン番号（およびビルド番号）を更新。
   2. `flutter pub get` を実行して依存関係を同期。
   3. `flutter build ios --config-only` コマンドを実行し、Xcode用のビルド構成ファイル（`Generated.xcconfig` など）に新しいバージョンを強制的に同期させる。
+  4. **iOS Target Validation (iOSターゲット検証)**: `project.pbxproj` の `IPHONEOS_DEPLOYMENT_TARGET` や `CreatedOnToolsVersion` が異常な値（例: `20.0` 以上など、存在しないiOSバージョン）になっていないかを検証すること。
+
+## iOS Build Target Guardrails (iOSビルドターゲットの監視ルール)
+
+- **Target Version Consistency**: AIエージェントがバージョンバンプやビルド設定の書き換えを行う際は、`project.pbxproj` のiOSバージョンを勝手に書き換えてはならない。もし `20.0` 以上の異常値を発見した場合は、自動的に `16.0`（および関連のツールバージョンは `1600` など）に修正すること。
 
 ## Build Error & Debugging (Efficiency)
 

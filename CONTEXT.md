@@ -7,15 +7,34 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-07-01
+- **Last Updated:** 2026-07-17
 - **Activeエージェント:** Antigravity (Idle)
-- **Current Task:** Scalable Daily Stats & Summarized Trends (Completed)
-- **Action:** Implemented createDailyTaskStats to summary posts at 1:50 JST, and refactored aggregateTrendingTasks at 2:00 JST to merge summaries (14 docs) instead of scanning posts.
+- **Current Task:** VFIRE Sync Bug Fix (Completed)
+- **Action:** Fixed `v_timeline_screen.dart`'s `_setupFeedItems` to correctly update the display list when Firestore stream receives updated reaction counts.
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-07-17 (Antigravity)
+- **Implement 404 JavaScript Redirect for User Profiles (404エラーページ経由のJavaScriptによるプロフィールURL転送の実装):**
+    - Firebase Hosting の仕様上、`firebase.json` での `/@:username` や `/@*` のようなサーバー側部分一致リダイレクトが正しく動作しなかったため、`redirects` ルールを削除しました。
+    - 代わりに [public/404.html](file:///Users/rennlikeu/development/V-Effect/public/404.html) を新規作成し、JavaScript によるクライアントサイド・リダイレクト（`window.location.replace`）を実装しました。
+    - `/@username` または `/u/userId` のアクセスで 404 エラーになった際、即座に Web アプリ（`https://veffect-app.web.app/`）の対応するパスへスムーズに転送し、無事プロフィールが表示されるように改善しました。
+
+- **Rebuild and Deploy Web App for Profiling Support (プロフィール表示サポートのためのWebアプリの再ビルドとデプロイ):**
+    - `flutter build web --release --base-href /` を実行し、最新の `WebProfileWrapper`（プロフィール表示用ラッパー）やルーティング設定を含む Web アプリをビルドしました。
+    - `npx -y firebase-tools@latest deploy --only hosting:app` にて、Webアプリ側ターゲット（`veffect-app`）へのデプロイを完了しました。
+    - `--base-href /` を指定してビルドしたことで、`/@username` などの下層パスに直接アクセスした際、アセットファイル（JSなどの静的ファイル）の読み込みエラーによる画面真っ白バグを完全に解消しました。
+
+- **Add URL Redirect for User Profiles (プロフィール共有URLのリダイレクト設定の追加):**
+    - [firebase.json](file:///Users/rennlikeu/development/V-Effect/firebase.json) にて、LPサイト側のホスティングターゲット（`target: "lp"`）に対し、ワイルドカード（`/@*` および `/u/*`）によるリダイレクト（自動転送）ルールを追加しました。
+    - これにより、ブラウザ（Safari等）からプロフィール共有URL（`https://v-effect.com/@rennlikeu`）に直接アクセスした際、404エラー（ページが見つからないエラー）にならず、Webアプリ（`https://veffect-app.web.app/`）上でプロフィールが正常に表示されるように改善しました。
+
+- **VFIRE Sync Bug Fix in VTimelineScreen (地球儀画面でのVFIRE数同期ズレ解消):**
+    - [v_timeline_screen.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/v_timeline_screen.dart) 内の `_setupFeedItems` を修正。投稿件数が同じ場合でも、リアクション数（VFIRE）の更新が正しく UI 側に適用されるようにしました。
+    - これにより、炎（Tasks）画面と地球儀（Timeline）画面間で VFIRE 数が不一致になる（あるいはタップ後に古い値に戻る）バグが完全に解決されました。
 
 ### 2026-07-01 (Antigravity)
 - **Scalable Daily Stats & Summarized Trends (日次確定サマリー方式によるデータスケール対策):**

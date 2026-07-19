@@ -169,6 +169,10 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
           _playBgmForFocusedPost();
         });
       }
+    } else {
+      // 投稿件数が同じであっても、リアクション数（VFIREカウント）などが更新されている可能性があるため、
+      // 無限リビルド（無限ループ）を避けるために setState は呼ばずに、_feedItems の中身を最新データに置き換えます。
+      _feedItems = newItems;
     }
   }
 
