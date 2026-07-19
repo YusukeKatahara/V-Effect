@@ -512,8 +512,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               _needsRefreshJump = false;
             }
           });
-          // 復帰時にフィードをリフレッシュ
+          // 復帰時にフィードをリフレッシュし、ローカル送信履歴もリセットします。
           ref.invalidate(homeDataProvider);
+          ref.read(vfireProvider.notifier).clearSynced();
         }
       }
 
@@ -664,6 +665,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
       ref.invalidate(homeDataProvider);
       await ref.read(homeDataProvider.future);
+
+      // 手動リフレッシュ成功後、メモリ上の確定済みローカル送信履歴をクリアして、
+      // 新しくロードされた Firestore の値に同期を一本化します。
+      ref.read(vfireProvider.notifier).clearSynced();
     } catch (e) {
       debugPrint('Refresh error: $e');
     } finally {

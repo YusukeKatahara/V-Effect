@@ -23,7 +23,6 @@ import 'package:path_provider/path_provider.dart';
 import '../providers/home_provider.dart';
 import '../providers/upload_provider.dart';
 import '../providers/service_providers.dart';
-import '../providers/dev_blog_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/v_badge_widget.dart';
 import '../screens/home/components/bgm_indicator.dart';
@@ -587,10 +586,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   Widget _buildHeader(String? taskName) {
     // 写真撮影済みの場合はフラッシュボタンを非表示にする
     final showFlash = _image == null;
-    final homeData = ref.watch(homeDataProvider).value;
-    final isDeveloper = ref.watch(isDeveloperProvider).value == true;
-    final isRecommended = homeData?.isRecommended == true;
-    final showPublicToggle = isDeveloper || isRecommended;
+    // 推薦ユーザー制限をなくし、全員が全体公開のトグルスイッチを表示・操作できるようにします。
+    const showPublicToggle = true;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),

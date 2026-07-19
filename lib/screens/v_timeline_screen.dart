@@ -24,6 +24,7 @@ import 'home/components/bgm_indicator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../widgets/home/home_skeleton_body.dart';
+import '../providers/dev_blog_provider.dart';
 
 /// 全体公開（Vタイムライン）用の投稿を配信するStreamProvider
 final vTimelinePostsProvider = StreamProvider.autoDispose<List<Post>>((ref) {
@@ -31,7 +32,7 @@ final vTimelinePostsProvider = StreamProvider.autoDispose<List<Post>>((ref) {
   return postService.getPublicPostsStream();
 });
 
-/// 推薦ユーザー限定のパブリックVタイムライン画面
+/// 全員が投稿可能なパブリックVタイムライン画面
 /// Vフィード（HomeScreen）と同様の 3D/2D レイヤードカードスタック横スワイプUIUXを採用
 class VTimelineScreen extends ConsumerStatefulWidget {
   const VTimelineScreen({super.key});
@@ -868,11 +869,73 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
                 _showReportDialog(post);
               },
             ),
+            if (ref.read(isDeveloperProvider).value == true) ...[
+              ListTile(
+                leading: Icon(Icons.visibility_off_rounded, color: AppColors.error),
+                title: Text('この投稿をVタイムラインから非公開にする', style: TextStyle(color: AppColors.error)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _unpublishPost(post);
+                },
+              ),
+            ],
             const SizedBox(height: 20),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _unpublishPost(Post post) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgSurface,
+        title: Text('非公開にしますか？', style: TextStyle(color: AppColors.textPrimary)),
+        content: Text('この投稿をVタイムライン（全体公開）から非公開に設定します。', style: TextStyle(color: AppColors.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(AppLocalizations.of(context)!.editProfilePickerCancel, style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              '非公開にする',
+              style: TextStyle(
+                color: AppColors.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ref.read(postServiceProvider).updatePostPublicStatus(post.id, false);
+        if (mounted) {
+          ref.invalidate(vTimelinePostsProvider);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('投稿を非公開にしました。'),
+              backgroundColor: AppColors.accentGold,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Unpublish post error: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
   }
 
   void _confirmBlock(String targetUid) {

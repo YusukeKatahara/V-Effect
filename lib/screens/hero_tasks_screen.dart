@@ -58,7 +58,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
   String _myUsername = 'V';
   String? _myBadgeUrl;
   String? _myBadgeAnimation;
-  bool _isRecommended = false;
+
 
   // ── Sublimation ──
   late final AnimationController _sublimationController;
@@ -556,7 +556,6 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
       _myUsername = data.myUsername;
       _myBadgeUrl = data.myBadgeUrl;
       _myBadgeAnimation = data.myBadgeAnimation;
-      _isRecommended = data.isRecommended;
       _loading = false;
       
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -581,7 +580,6 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
               _myUsername = data.myUsername;
               _myBadgeUrl = data.myBadgeUrl;
               _myBadgeAnimation = data.myBadgeAnimation;
-              _isRecommended = data.isRecommended;
               _loading = false;
             });
             widget.onLoadingChanged?.call(false);
@@ -882,33 +880,33 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                   ),
                 ),
                 if (isCompleted && _expandedIndex == _focusedIndex && isMyPost) ...[
-                  if (_isRecommended)
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      child: Center(
-                        child: SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: IconButton(
-                            onPressed: () {
-                              if (focusedTask?.latestPost != null) {
-                                _togglePostPublicStatus(focusedTask!.latestPost!);
-                              }
-                            },
-                            icon: Icon(
-                              Icons.public,
-                              color: (focusedTask?.latestPost?.isPublic ?? false)
-                                  ? AppColors.accentGold
-                                  : AppColors.white,
-                              size: 18,
-                            ),
-                            padding: EdgeInsets.zero,
+                  // 推薦ユーザー制限をなくし、全員が全体公開の切り替えを行えるように公開・非公開ボタンを表示します。
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: IconButton(
+                          onPressed: () {
+                            if (focusedTask?.latestPost != null) {
+                              _togglePostPublicStatus(focusedTask!.latestPost!);
+                            }
+                          },
+                          icon: Icon(
+                            Icons.public,
+                            color: (focusedTask?.latestPost?.isPublic ?? false)
+                                ? AppColors.accentGold
+                                : AppColors.white,
+                            size: 18,
                           ),
+                          padding: EdgeInsets.zero,
                         ),
                       ),
                     ),
+                  ),
                   Positioned(
                     right: 0,
                     top: 0,

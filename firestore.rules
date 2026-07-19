@@ -49,7 +49,7 @@ service cloud.firestore {
         isDeveloper()
       );
 
-      // プライベート情報（email, birthDate, gender, wakeUpTime, taskTime, fcmToken）
+      // プライベート情報（email, birthDate, gender, taskTime, fcmToken）
       // 自分だけが読み書きできます
       match /private/{docId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
@@ -252,12 +252,18 @@ service cloud.firestore {
 
       // 【仕様】リアクション数などの更新は誰でも（ログインユーザーなら）OK
       // また、本人の投稿であれば、マイグレーションのために taskId / taskName の更新を許可します。
+      // さらに、開発者（管理者）であれば、他人の投稿に対しても isPublic のみの更新を許可します（モデレーション用）。
       allow update: if request.auth != null && (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactionCount', 'emojiReactedUserIds', 'userReactions'])
         ||
         (
           resource.data.userId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['taskId', 'taskName', 'isPublic'])
+        )
+        ||
+        (
+          isDeveloper()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isPublic'])
         )
       );
 
@@ -267,18 +273,21 @@ service cloud.firestore {
       //   2. 他人の投稿: フォロー関係にあり、かつ expiresAt の条件を満たすもの。
       //      ※ クライアントの時計のズレ（now < request.time）による permission-denied を防ぐため、
       //        サーバー側の評価には1時間のバッファ (request.time - 1h) を設ける。
-      allow read: if request.auth != null && (
-        resource.data.userId == request.auth.uid
-        ||
-        (
-          resource.data.expiresAt > request.time - duration.value(1, 'h')
-          && (
-            resource.data.get('isPublic', false) == true
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('following', []).hasAny([resource.data.userId])
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('friends', []).hasAny([resource.data.userId])
-          )
-        )
-      );
+      // 1. 自分自身の投稿はいつでも読み取り可能（過去の履歴表示などのため）
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      // 2. 全体公開（isPublic == true）の投稿は、期限内であれば誰でも読み取り可能（Vタイムライン用）
+      allow read: if request.auth != null
+        && resource.data.get('isPublic', false) == true
+        && resource.data.expiresAt > request.time - duration.value(1, 'h');
+
+      // 3. フォロー中またはフレンドの投稿は、期限内であれば読み取り可能（Vフィード用）
+      allow read: if request.auth != null
+        && resource.data.expiresAt > request.time - duration.value(1, 'h')
+        && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('following', []).hasAny([resource.data.userId])
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('friends', []).hasAny([resource.data.userId])
+        );
     }
 
     // ────────────────────────────────────────

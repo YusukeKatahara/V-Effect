@@ -128,18 +128,7 @@ struct VEffectUploadLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    if let uiImage = thumbnailImage {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 27, height: 48)
-                            .cornerRadius(4)
-                            .clipped()
-                    } else {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 26))
-                            .foregroundColor(accentGold)
-                    }
+                    LiveActivityThumbnailView(thumbnailImage: thumbnailImage, accentGold: accentGold)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     Text("\(Int(context.state.progress * 100))%")
@@ -178,6 +167,26 @@ struct VEffectUploadLiveActivity: Widget {
                     .foregroundColor(context.state.status == "error" ? .red : accentGold)
             }
             .keylineTint(accentGold)
+        }
+    }
+}
+
+struct LiveActivityThumbnailView: View {
+    let thumbnailImage: UIImage?
+    let accentGold: Color
+
+    var body: some View {
+        if let uiImage = thumbnailImage {
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 27, height: 48)
+                .cornerRadius(4)
+                .clipped()
+        } else {
+            Image(systemName: "arrow.up.circle.fill")
+                .font(.system(size: 26))
+                .foregroundColor(accentGold)
         }
     }
 }

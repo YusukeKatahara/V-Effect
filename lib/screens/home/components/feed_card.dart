@@ -414,8 +414,7 @@ class FeedCard extends StatelessWidget {
                               height: 16, // 高さを固定して中心を安定させる
                               child: Consumer(
                                 builder: (context, ref, _) {
-                                  final localInc = ref.watch(vfireProvider.select((state) => state.localIncrements[post.id] ?? 0));
-                                  final count = post.reactionCount + localInc;
+                                  final count = ref.watch(vfireProvider.select((state) => state.getAdjustedReactionCount(post)));
                                   return Text(
                                     '$count',
                                     style: GoogleFonts.outfit(

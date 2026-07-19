@@ -112,7 +112,7 @@ class UserService {
   }
 
   /// ヒーロータスク設定を保存します（新規登録フロー Step2）
-  /// tasks は公開、wakeUpTime/taskTime は非公開
+  /// tasks は公開、taskTime は非公開
   Future<void> saveTaskSettings({
     required List<AppTask> tasks,
     String? photoUrl,

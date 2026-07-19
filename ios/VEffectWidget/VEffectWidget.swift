@@ -291,8 +291,9 @@ struct VEffectWidget: Widget {
     }
 }
 
-#Preview(as: .systemMedium) {
-    VEffectWidget()
-} timeline: {
-    VEffectEntry(date: .now, isCompleted: false, streakCount: 0, historyDates: ["2026-05-30", "2026-05-28", "2026-05-25"])
+struct VEffectWidget_Previews: PreviewProvider {
+    static var previews: some View {
+        VEffectWidgetEntryView(entry: VEffectEntry(date: Date(), isCompleted: false, streakCount: 0, historyDates: ["2026-05-30", "2026-05-28", "2026-05-25"]))
+            .previewContext(WidgetPreviewContext(family: .systemMedium))
+    }
 }

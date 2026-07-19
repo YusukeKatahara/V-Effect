@@ -242,8 +242,8 @@ class TaskCardState extends ConsumerState<TaskCard> {
     final Set<String> totalEmojiReactedUserIds = {};
 
     for (final post in sortedPosts) {
-      final localInc = ref.watch(vfireProvider.select((state) => state.localIncrements[post.id] ?? 0));
-      totalReactionCount += post.reactionCount + localInc;
+      final adjustedCount = ref.watch(vfireProvider.select((state) => state.getAdjustedReactionCount(post)));
+      totalReactionCount += adjustedCount;
       totalUserReactions.addAll(post.userReactions);
       totalEmojiReactedUserIds.addAll(post.emojiReactedUserIds);
     }

@@ -14,7 +14,6 @@ import '../widgets/v_badge_widget.dart';
 import '../widgets/shimmer_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/service_providers.dart';
-import '../providers/dev_blog_provider.dart';
 
 /// 他ユーザーのプロフィール閲覧画面
 ///
@@ -467,10 +466,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       if (_targetUid != _myUid) ...[
                         const SizedBox(height: 24),
                         _buildFollowButton(),
-                        if (ref.watch(isDeveloperProvider).value == true) ...[
-                          const SizedBox(height: 12),
-                          _buildRecommendedUserButton(),
-                        ],
+
                         if (_mutualCount > 0) ...[
                           const SizedBox(height: 16),
                           _buildMutualFollowSection(),
@@ -1036,56 +1032,5 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     );
   }
 
-  Widget _buildRecommendedUserButton() {
-    final bool isRec = _user?.isRecommended == true;
-    final String label = isRec ? '推薦ユーザーから解除' : '推薦ユーザーに設定';
-    final Color color = isRec ? AppColors.error : AppColors.accentGold;
 
-    return SizedBox(
-      width: double.infinity,
-      height: 48,
-      child: OutlinedButton(
-        onPressed: () => _toggleRecommendation(isRec),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: color,
-          side: BorderSide(color: color, width: 1.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            height: 1.1,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _toggleRecommendation(bool currentVal) async {
-    if (_targetUid == null) return;
-    try {
-      await ref.read(userServiceProvider).toggleUserRecommendation(_targetUid!, !currentVal);
-      if (mounted) {
-        setState(() {
-          if (_user != null) {
-            _user = _user!.copyWith(isRecommended: !currentVal);
-          }
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(!currentVal ? '推薦ユーザーに設定しました' : '推薦ユーザーから解除しました')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('設定の変更に失敗しました: $e')),
-        );
-      }
-    }
-  }
 }

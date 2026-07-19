@@ -8,17 +8,44 @@ import 'home_provider.dart';
 
 class VFireState {
   final Map<String, int> localIncrements;
+  // 各投稿の最後に送信された情報の記録: baseCount (送信前のサーバー値), sentCount (送信した数)
+  // これにより、非同期通信中やFirestoreからのライブ同期のタイムラグが発生している間も
+  // 数値の「巻き戻り（チラつき）」を防止します。
+  final Map<String, ({int baseCount, int sentCount})> lastSentCounts;
 
   VFireState({
     required this.localIncrements,
+    required this.lastSentCounts,
   });
 
   VFireState copyWith({
     Map<String, int>? localIncrements,
+    Map<String, ({int baseCount, int sentCount})>? lastSentCounts,
   }) {
     return VFireState(
       localIncrements: localIncrements ?? this.localIncrements,
+      lastSentCounts: lastSentCounts ?? this.lastSentCounts,
     );
+  }
+}
+
+extension VFireStateExtension on VFireState {
+  /// サーバーから取得した reactionCount とローカルの送信待ち/送信成功履歴を足し合わせ、
+  /// 同期遅れ（タイムラグ）を考慮した正しい表示用カウントを計算します。
+  int getAdjustedReactionCount(Post post) {
+    final localInc = localIncrements[post.id] ?? 0;
+    final lastSent = lastSentCounts[post.id];
+    
+    if (lastSent != null) {
+      // 期待される確定値 = 送信前のサーバー値 + 送信した数
+      final expectedCount = lastSent.baseCount + lastSent.sentCount;
+      if (post.reactionCount < expectedCount) {
+        // サーバーの値がまだ期待値に達していない場合、差分を補正値として加算
+        final syncLag = expectedCount - post.reactionCount;
+        return post.reactionCount + localInc + syncLag;
+      }
+    }
+    return post.reactionCount + localInc;
   }
 }
 
@@ -37,7 +64,7 @@ class VFireNotifier extends Notifier<VFireState> {
       _debounceTimers.clear();
       _pendingCounts.clear();
     });
-    return VFireState(localIncrements: {});
+    return VFireState(localIncrements: {}, lastSentCounts: {});
   }
 
   /// 投稿のVFIREボタンをタップしたときに呼ばれます。
@@ -86,10 +113,17 @@ class VFireNotifier extends Notifier<VFireState> {
             final latestLocalInc = state.localIncrements[post.id] ?? 0;
             final newInc = (latestLocalInc - countToSend).clamp(0, 100000);
             
+            // タップ開始時点（送信前）のサーバーの値を基準値とする
+            final baseCount = post.reactionCount;
+
             state = state.copyWith(
               localIncrements: {
                 ...state.localIncrements,
                 post.id: newInc,
+              },
+              lastSentCounts: {
+                ...state.lastSentCounts,
+                post.id: (baseCount: baseCount, sentCount: countToSend),
               },
             );
           }
@@ -98,6 +132,12 @@ class VFireNotifier extends Notifier<VFireState> {
         }
       }
     });
+  }
+
+  /// 手動リフレッシュやアプリ復帰時など、Firestoreのデータが強制的に最新化された際に、
+  /// メモリ上の送信履歴をクリアして最新データに一本化します。
+  void clearSynced() {
+    state = state.copyWith(lastSentCounts: {});
   }
 }
 
