@@ -1195,10 +1195,11 @@ exports.processPostNotifications = onTaskDispatched(
 
           const streakContent = getStreakNotification(language, currentStreak, username);
 
+          // ストリークお祝い時は、プッシュ通知の重複上書きを避けるためと金色UI適用のために type を streakCelebration に設定
           batch.set(streakNotifRef, {
             toUid: friendUid,
             fromUid: uid,
-            type: "friendTaskCompleted",
+            type: "streakCelebration",
             relatedId: postId,
             title: streakContent.title,
             body: streakContent.body,
@@ -1215,11 +1216,13 @@ exports.processPostNotifications = onTaskDispatched(
 
         let finalTitle = '';
         let finalBody = '';
+        let finalType = "friendTaskCompleted"; // 通常はフレンドタスク完了通知
 
         if (isMilestone) {
           const streakContent = getStreakNotification(language, currentStreak, username);
           finalTitle = streakContent.title;
           finalBody = streakContent.body;
+          finalType = "streakCelebration"; // ストリークお祝い時は type を streakCelebration に変更
         } else {
           const normalContent = getNormalNotification(language, todayPostCount, username);
           finalTitle = normalContent.title;
@@ -1229,7 +1232,7 @@ exports.processPostNotifications = onTaskDispatched(
         batch.set(notifRef, {
           toUid: friendUid,
           fromUid: uid,
-          type: "friendTaskCompleted",
+          type: finalType, // 動的に設定されたタイプを適用
           relatedId: postId,
           title: finalTitle,
           body: finalBody,
