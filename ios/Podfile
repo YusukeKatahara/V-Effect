@@ -61,9 +61,11 @@ post_install do |installer|
     project.targets.each do |target|
       target.build_configurations.each do |config|
         target_version = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
-        if target_version && target_version.to_f > 20.0
-          puts "\n[Guardrail] ⚠️ 警告: ターゲット '#{target.name}' (#{config.name}) の IPHONEOS_DEPLOYMENT_TARGET が異常値 '#{target_version}' になっています。'16.0' に自動修復します。"
-          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+        # VEffectWidget / VEffectWidgetExtensionターゲットはLive Activity (iOS 16.1+)を使用するため16.1が必要
+        default_version = (target.name == 'VEffectWidget' || target.name == 'VEffectWidgetExtension') ? '16.1' : '16.0'
+        if target_version && (target_version.to_f > 20.0 || target_version.to_f < default_version.to_f)
+          puts "\n[Guardrail] ⚠️ 警告: ターゲット '#{target.name}' (#{config.name}) の IPHONEOS_DEPLOYMENT_TARGET が異常値 '#{target_version}' になっています。'#{default_version}' に自動修復します。"
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = default_version
           changed = true
         end
       end
