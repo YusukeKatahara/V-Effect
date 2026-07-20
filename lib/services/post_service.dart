@@ -156,6 +156,8 @@ class PostService {
       lastPostedDate: lastPostedDate,
     );
 
+    final totalPosts = data['totalPosts'] as int? ?? 0;
+
     return {
       'streak': effectiveStreakData['streak'],
       'streakProtections': effectiveStreakData['streakProtections'],
@@ -174,6 +176,7 @@ class PostService {
       'lastPostedDate': lastPostedDate,
       'postedTasksToday': postedPostsToday,
       'isRecommended': isRecommended,
+      'totalPosts': totalPosts >= 0 ? totalPosts : 0,
     };
   }
 
@@ -738,11 +741,11 @@ class PostService {
             },
             {
               'title': '⚡️ V EFFECT 発動！',
-              'body': 'あなたの「$postTaskName」が、$myUsernameさんのモチベーションに火をつけました！',
+              'body': 'あなたの「$postTaskName」が、$myUsernameさんのモチベーションに火をつけました！$reactionCount回のV FIRE🔥',
             },
             {
               'title': '👏 スーパーヒーロー！',
-              'body': '$myUsernameさんから「$postTaskName」へ、$reactionCount回の称賛が届いています！',
+              'body': '$myUsernameさんから「$postTaskName」へ、$reactionCount回のV FIREが届いています！',
             },
           ];
           final selected = variations[random.nextInt(variations.length)];

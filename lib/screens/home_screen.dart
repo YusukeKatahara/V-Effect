@@ -1605,18 +1605,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       // PageView内では透明なスペーサーのみを返し、実体の広告は背面の固定レイヤーで描画します。
                       if (item is String && item == 'ad') {
                         final int globalIndex = index;
+                        // サブピクセルレンダリングによる表示はみ出し判定エラー（AdMob Validator）を防ぐため、
+                        // 広告の表示サイズを整数値に丸めます。
+                        final double roundedWidth = finalCardWidth.roundToDouble();
+                        final double roundedHeight = maxCardHeight.roundToDouble();
+
+                        // 広告エリアが極端に狭い（縦横100未満）場合は、アセットが完全にはみ出すため
+                        // 安全ガードとしてAdWidgetのマウントを行わずに自社プロモを表示させます。
+                        final bool isSizeValid = roundedWidth >= 100.0 && roundedHeight >= 100.0;
+
                         return Center(
                           child: SizedBox(
-                            width: finalCardWidth,
-                            height: maxCardHeight,
+                            width: roundedWidth,
+                            height: roundedHeight,
                             child: AbsorbPointer(
                               absorbing: _isScrolling, // スワイプ中のみ広告へのタッチ入力を遮断してガクつきを防ぐ
                               child: NativeAdCard(
                                 dimAlpha: 0.0,
                                 isTop: actualIndex == _focusedGlobalIndex % _feedItems.length,
-                                nativeAd: _nativeAds[globalIndex],
-                                isAdLoaded: _adLoadStatus[globalIndex] == true,
-                                isAdLoadFailed: _adLoadStatus[globalIndex] == false,
+                                nativeAd: isSizeValid ? _nativeAds[globalIndex] : null,
+                                isAdLoaded: isSizeValid && (_adLoadStatus[globalIndex] == true),
+                                isAdLoadFailed: !isSizeValid || (_adLoadStatus[globalIndex] == false),
                               ),
                             ),
                           ),
@@ -2101,8 +2110,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         },
         child: RepaintBoundary(
           child: SizedBox(
-            width: cardWidth,
-            height: cardHeight,
+            width: cardWidth.roundToDouble(),
+            height: cardHeight.roundToDouble(),
             child: item is String && item == 'ad'
               ? () {
                   // 広告のプレースホルダー描画：

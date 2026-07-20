@@ -55,6 +55,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   final GlobalKey _boundaryKey = GlobalKey();
   final TransformationController _transformationController = TransformationController();
 
+  // ── スタンプ（ステッカー）配置状態 ──
+  final List<StickerItem> _stickers = [];
+  StickerItem? _selectedSticker;
+
   // ── BGM ──
   MusicItem? _selectedMusic;
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -207,7 +211,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     try {
       await controller.initialize();
       // 初期化完了後、まだこのコントローラーが有効か確認
-      if (!mounted || _cameraController != controller) return;
+      // 画面がすでに破棄（アンマウント）されたか、別のカメラが起動した場合は、
+      // 不要になったコントローラーを即座に破棄（dispose）してカメラデバイスの解放とメモリリークを防ぎます。
+      if (!mounted || _cameraController != controller) {
+        controller.dispose();
+        return;
+      }
       
       // ズームレベルの初期化
       _minAvailableZoom = await controller.getMinZoomLevel();
@@ -359,8 +368,14 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
       // カメラでの撮影時はクロップ画面をスキップして直接プレビュー（Instagramライクな挙動）
       if (mounted) {
+        // 撮影に成功したため、プレビュー表示中は不要になったカメラコントローラーを破棄してカメラデバイスを解放します。
+        final oldController = _cameraController;
+        _cameraController = null;
+        oldController?.dispose();
+
         setState(() {
           _image = XFile(photoPath);
+          _isCameraReady = false; // カメラが破棄されたため、準備完了フラグも下ろします
         });
       }
     } catch (e) {
@@ -380,8 +395,14 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         imageQuality: 80,
       );
       if (photo != null && mounted) {
+        // アルバムからの画像選択に成功したため、不要になったカメラコントローラーを破棄してカメラデバイスを解放します。
+        final oldController = _cameraController;
+        _cameraController = null;
+        oldController?.dispose();
+
         setState(() {
           _image = XFile(photo.path);
+          _isCameraReady = false; // カメラが破棄されたため、準備完了フラグも下ろします
         });
       }
     } catch (e) {
@@ -586,8 +607,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   Widget _buildHeader(String? taskName) {
     // 写真撮影済みの場合はフラッシュボタンを非表示にする
     final showFlash = _image == null;
-    // 推薦ユーザー制限をなくし、全員が全体公開のトグルスイッチを表示・操作できるようにします。
-    const showPublicToggle = true;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -614,7 +633,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 ),
               ),
 
-            // ── 左側: 閉じるボタン または 撮り直しボタン ──
+            // ── 左側: 閉じるボタン または 撮り直しボタン ＆ 地球トグル ──
             Positioned(
               left: 8,
               child: _image == null
@@ -622,23 +641,30 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                       icon: Icon(Icons.close, color: AppColors.pureWhite),
                       onPressed: () => Navigator.pop(context),
                     )
-                  : GestureDetector(
-                      onTap: _isUploading ? null : _retake,
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white12,
-                          border: Border.all(color: Colors.white24),
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: _isUploading ? null : _retake,
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white12,
+                              border: Border.all(color: Colors.white24),
+                            ),
+                            child: const Icon(Icons.refresh_rounded,
+                                color: Colors.white70, size: 22),
+                          ),
                         ),
-                        child: const Icon(Icons.refresh_rounded,
-                            color: Colors.white70, size: 22),
-                      ),
+                        const SizedBox(width: 8),
+                        _buildPublicToggleWidget(),
+                      ],
                     ),
             ),
 
-            // ── 右側: アクションボタン（フラッシュ または 地球トグル＆BGM） ──
+            // ── 右側: アクションボタン（フラッシュ または ステッカートグル＆BGM） ──
             Positioned(
               right: 8,
               child: showFlash
@@ -665,45 +691,26 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                   : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (showPublicToggle) ...[
-                          GestureDetector(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              setState(() {
-                                _postToPublicTimeline = !_postToPublicTimeline;
-                                _publicIconScale = 1.3; // ぷるんと大きくなるトリガー
-                              });
-                              Future.delayed(const Duration(milliseconds: 150), () {
-                                if (mounted) {
-                                  setState(() {
-                                    _publicIconScale = 1.0;
-                                  });
-                                }
-                              });
-                            },
-                            child: AnimatedScale(
-                              scale: _publicIconScale,
-                              duration: const Duration(milliseconds: 150),
-                              curve: Curves.easeOutBack, // 弾むスプリング効果
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _postToPublicTimeline
-                                      ? AppColors.accentGold.withValues(alpha: 0.2)
-                                      : AppColors.pureWhite.withValues(alpha: 0.1),
-                                ),
-                                child: Icon(
-                                  Icons.public_rounded,
-                                  color: _postToPublicTimeline ? AppColors.accentGold : AppColors.pureWhite,
-                                  size: 24,
-                                ),
-                              ),
+                        // 🆕 ステッカー（スタンプ）追加ボタン
+                        GestureDetector(
+                          onTap: _showStickerBottomSheet,
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _stickers.isNotEmpty
+                                  ? AppColors.accentGold.withValues(alpha: 0.2)
+                                  : AppColors.pureWhite.withValues(alpha: 0.1),
+                            ),
+                            child: Icon(
+                              Icons.sticky_note_2_rounded,
+                              color: _stickers.isNotEmpty ? AppColors.accentGold : AppColors.pureWhite,
+                              size: 24,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                        ],
+                        ),
+                        const SizedBox(width: 8),
                         GestureDetector(
                           onTap: _showMusicBottomSheet,
                           child: Container(
@@ -728,6 +735,258 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           ],
         ),
       ),
+    );
+  }
+
+  /// ── 🆕 地球トグルウィジェット（全体公開切り替え用） ──
+  Widget _buildPublicToggleWidget() {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        setState(() {
+          _postToPublicTimeline = !_postToPublicTimeline;
+          _publicIconScale = 1.3; // ぷるんと大きくなるトリガー
+        });
+        Future.delayed(const Duration(milliseconds: 150), () {
+          if (mounted) {
+            setState(() {
+              _publicIconScale = 1.0;
+            });
+          }
+        });
+      },
+      child: AnimatedScale(
+        scale: _publicIconScale,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutBack, // 弾むスプリング効果
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _postToPublicTimeline
+                ? AppColors.accentGold.withValues(alpha: 0.2)
+                : AppColors.pureWhite.withValues(alpha: 0.1),
+          ),
+          child: Icon(
+            Icons.public_rounded,
+            color: _postToPublicTimeline ? AppColors.accentGold : AppColors.pureWhite,
+            size: 24,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// ── 🆕 スタンプ選択ボトムシートを表示します ──
+  void _showStickerBottomSheet() {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final homeData = ref.watch(homeDataProvider).value;
+        final streak = homeData?.streak ?? 0;
+        final totalPosts = homeData?.totalPosts ?? 0;
+        final isJa = Localizations.localeOf(context).languageCode == 'ja';
+
+        // 時刻の簡易フォーマット
+        final now = DateTime.now();
+        final hourStr = now.hour.toString().padLeft(2, '0');
+        final minStr = now.minute.toString().padLeft(2, '0');
+        final timeStr = '$hourStr:$minStr';
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isJa ? 'スタンプを追加' : 'Add Sticker',
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.pureWhite,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // 1. タイムスタンプ
+                    _buildStickerSelectButton(
+                      icon: Icons.access_time_filled_rounded,
+                      label: timeStr,
+                      onTap: () {
+                        Navigator.pop(context);
+                        _addSticker(StickerType.timestamp);
+                      },
+                    ),
+                    // 2. ストリーク
+                    _buildStickerSelectButton(
+                      icon: Icons.calendar_today_rounded,
+                      label: isJa ? '$streakストリーク' : '$streak Streak',
+                      iconColor: AppColors.accentGold,
+                      onTap: () {
+                        Navigator.pop(context);
+                        _addSticker(StickerType.streak);
+                      },
+                    ),
+                    // 3. トータルV
+                    _buildStickerSelectButton(
+                      icon: Icons.emoji_events_rounded,
+                      label: isJa ? '🏆 トータルV: $totalPosts' : '🏆 Total V: $totalPosts',
+                      iconColor: Colors.amber,
+                      onTap: () {
+                        Navigator.pop(context);
+                        _addSticker(StickerType.totalV);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// ── 🆕 ボトムシート内のスタンプ選択ボタン ──
+  Widget _buildStickerSelectButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color iconColor = Colors.white,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: AppColors.pureWhite.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.pureWhite.withValues(alpha: 0.15), width: 1),
+            ),
+            child: Icon(icon, color: iconColor, size: 28),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 90, // はみ出し防止の幅制限
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.notoSansJp(
+                fontSize: 11,
+                color: AppColors.pureWhite,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ── 🆕 スタンプをリストに追加する ──
+  void _addSticker(StickerType type) {
+    HapticFeedback.lightImpact();
+    final newId = DateTime.now().millisecondsSinceEpoch.toString();
+    final size = MediaQuery.of(context).size;
+    
+    // 画面中央よりやや上の、ドラッグしやすい位置をデフォルトとします
+    final initialPos = Offset(size.width * 0.25, size.height * 0.20);
+    
+    setState(() {
+      final sticker = StickerItem(
+        id: newId,
+        type: type,
+        position: initialPos,
+      );
+      _stickers.add(sticker);
+      _selectedSticker = sticker;
+    });
+  }
+
+  /// ── 🆕 スタンプの実体Widgetデザインの生成 ──
+  Widget _buildStickerContent(StickerItem sticker, int streak, int totalPosts) {
+    final isJa = Localizations.localeOf(context).languageCode == 'ja';
+    
+    Widget content;
+    Color? bgColor = sticker.isTextOnly ? null : AppColors.pureBlack.withValues(alpha: 0.65);
+    EdgeInsets padding = sticker.isTextOnly ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 16, vertical: 10);
+    Border? border = sticker.isTextOnly ? null : Border.all(color: AppColors.pureWhite.withValues(alpha: 0.15), width: 1);
+    BorderRadius borderRadius = BorderRadius.circular(16);
+
+    switch (sticker.type) {
+      case StickerType.timestamp:
+        // 追加された瞬間の固定時間を表示します（再描画時に現在時刻で更新されるのを防ぎます）
+        final time = sticker.time;
+        final hourStr = time.hour.toString().padLeft(2, '0');
+        final minStr = time.minute.toString().padLeft(2, '0');
+        content = Text(
+          '$hourStr:$minStr',
+          style: GoogleFonts.outfit(
+            fontSize: 32,
+            fontWeight: FontWeight.w900,
+            color: AppColors.pureWhite,
+            letterSpacing: 1.0,
+            shadows: sticker.isTextOnly ? const [Shadow(color: Colors.black54, blurRadius: 6, offset: Offset(0, 2))] : null,
+          ),
+        );
+        break;
+
+      case StickerType.streak:
+        content = Text(
+          isJa ? '$streakストリーク' : '$streak Streak',
+          style: GoogleFonts.notoSansJp(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: AppColors.pureWhite,
+            shadows: sticker.isTextOnly ? const [Shadow(color: Colors.black54, blurRadius: 6, offset: Offset(0, 2))] : null,
+          ),
+        );
+        break;
+
+      case StickerType.totalV:
+        content = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 24),
+            const SizedBox(width: 6),
+            Text(
+              isJa ? 'トータルV: $totalPosts' : 'Total V: $totalPosts',
+              style: GoogleFonts.notoSansJp(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: AppColors.pureWhite,
+                shadows: sticker.isTextOnly ? const [Shadow(color: Colors.black54, blurRadius: 6, offset: Offset(0, 2))] : null,
+              ),
+            ),
+          ],
+        );
+        break;
+    }
+
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: borderRadius,
+        border: border,
+      ),
+      child: content,
     );
   }
 
@@ -1066,25 +1325,68 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     borderRadius: BorderRadius.circular(24),
                     child: RepaintBoundary(
                       key: _boundaryKey,
-                      child: InteractiveViewer(
-                        transformationController: _transformationController,
-                        minScale: 1.0,
-                        maxScale: 3.0,
-                        panEnabled: true,
-                        scaleEnabled: true,
-                        child: kIsWeb
-                            ? Image.network(
-                                _image!.path,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: double.infinity,
-                              )
-                            : Image.file(
-                                File(_image!.path),
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: double.infinity,
-                              ),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // 画像部分以外のタップでスタンプの選択状態を解除します
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              setState(() {
+                                _selectedSticker = null;
+                              });
+                            },
+                            child: InteractiveViewer(
+                              transformationController: _transformationController,
+                              minScale: 1.0,
+                              maxScale: 3.0,
+                              panEnabled: true,
+                              scaleEnabled: true,
+                              child: kIsWeb
+                                  ? Image.network(
+                                      _image!.path,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    )
+                                  : Image.file(
+                                      File(_image!.path),
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
+                            ),
+                          ),
+                          // 🆕 配置されたスタンプたちを上に重ねて展開します
+                          ..._stickers.map((sticker) {
+                            final isSelected = _selectedSticker == sticker;
+                            return StickerGestureWidget(
+                              sticker: sticker,
+                              isSelected: isSelected,
+                              onTap: () {
+                                setState(() {
+                                  if (_selectedSticker != sticker) {
+                                    // 未選択なら選択状態にします（背景トグルは行いません）
+                                    _selectedSticker = sticker;
+                                    HapticFeedback.selectionClick();
+                                  }
+                                });
+                              },
+                              onDelete: () {
+                                setState(() {
+                                  _stickers.remove(sticker);
+                                  if (_selectedSticker == sticker) {
+                                    _selectedSticker = null;
+                                  }
+                                });
+                              },
+                              onUpdate: (updated) {
+                                setState(() {});
+                              },
+                              child: _buildStickerContent(sticker, homeData?.streak ?? 0, homeData?.totalPosts ?? 0),
+                            );
+                          }),
+                        ],
                       ),
                     ),
                   ),
@@ -1762,5 +2064,156 @@ class _MusicSearchBottomSheetState extends ConsumerState<MusicSearchBottomSheet>
     if (mounted) {
       Navigator.pop(context, item);
     }
+  }
+}
+
+// ──────────────────────────────────────────────
+// 🆕 スタンプ（ステッカー）配置機能用の定義クラス群
+// ──────────────────────────────────────────────
+
+enum StickerType { timestamp, streak, totalV }
+
+class StickerItem {
+  final String id;
+  final StickerType type;
+  Offset position;       // 配置位置
+  double scale;          // 拡大縮小倍率
+  double angle;          // 回転角度（ラジアン）
+  bool isTextOnly;       // 背景の有無（タップでトグル切り替え）
+  final DateTime time;   // 🆕 スタンプが追加された（固定された）日時
+
+  StickerItem({
+    required this.id,
+    required this.type,
+    required this.position,
+    this.scale = 1.0,
+    this.angle = 0.0,
+    this.isTextOnly = true,
+    DateTime? time,
+  }) : time = time ?? DateTime.now();
+}
+
+class StickerGestureWidget extends StatefulWidget {
+  final StickerItem sticker;
+  final Widget child;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+  final ValueChanged<StickerItem> onUpdate;
+
+  const StickerGestureWidget({
+    super.key,
+    required this.sticker,
+    required this.child,
+    required this.isSelected,
+    required this.onTap,
+    required this.onDelete,
+    required this.onUpdate,
+  });
+
+  @override
+  State<StickerGestureWidget> createState() => _StickerGestureWidgetState();
+}
+
+class _StickerGestureWidgetState extends State<StickerGestureWidget> {
+  late Offset _basePosition;
+  late double _baseScale;
+  late double _baseAngle;
+  late Offset _startFocalPoint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      // Paddingを追加したことによる表示位置のズレ（16px）を相殺します
+      left: widget.sticker.position.dx - 16,
+      top: widget.sticker.position.dy - 16,
+      child: Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..translate(0.0, 0.0)
+          ..rotateZ(widget.sticker.angle)
+          ..scale(widget.sticker.scale),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          onScaleStart: (details) {
+            widget.onTap();
+            _basePosition = widget.sticker.position;
+            _baseScale = widget.sticker.scale;
+            _baseAngle = widget.sticker.angle;
+            // 拡大縮小・回転されたローカル座標系ではなく、グローバル座標系で移動量を測ります
+            _startFocalPoint = details.focalPoint;
+          },
+          onScaleUpdate: (details) {
+            // 移動・拡大縮小・回転を指の動きに追従させて更新します
+            setState(() {
+              double newScale = _baseScale * details.scale;
+              if (newScale < 0.5) newScale = 0.5; // 極端に小さくなりすぎるのを防ぐ
+              if (newScale > 3.0) newScale = 3.0; // 極端に大きくなりすぎるのを防ぐ
+
+              // グローバル座標の差分を移動量とします
+              widget.sticker.position = _basePosition + (details.focalPoint - _startFocalPoint);
+              widget.sticker.scale = newScale;
+              widget.sticker.angle = _baseAngle + details.rotation;
+            });
+            widget.onUpdate(widget.sticker);
+          },
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // 選択中のみ、位置調整の目安となる金色の枠線（ボーダー）を表示します
+              // ✖ボタンが親Widgetのレイアウト境界外にはみ出てタップイベントをロストするのを防ぐため、
+              // 全体に16pxのPaddingを適用し、確実に親Widgetの内側にボタンが収まるようにします。
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: widget.isSelected
+                        ? Border.all(color: AppColors.accentGold, width: 1.5)
+                        : Border.all(color: Colors.transparent, width: 1.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  child: widget.child,
+                ),
+              ),
+              // 選択中（タップされたとき）にのみ、右上に削除用の ✖ ボタンを表示します
+              if (widget.isSelected)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Transform.scale(
+                    // ステッカー本体が拡大縮小されても、✖ボタンの物理サイズは常に一定（押しやすい大きさ）を維持します
+                    scale: 1.0 / widget.sticker.scale,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        HapticFeedback.mediumImpact(); // 削除時に少し強めの振動フィードバック
+                        widget.onDelete();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6), // タッチ領域を広げるための余白
+                        decoration: BoxDecoration(
+                          color: AppColors.pureBlack,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.pureWhite, width: 1.5),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: AppColors.pureWhite,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

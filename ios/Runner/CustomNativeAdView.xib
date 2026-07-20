@@ -40,7 +40,7 @@
                 </button>
                 <!-- Bottom Overlay UI container -->
                 <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bottomContainer">
-                    <rect key="frame" x="0.0" y="420" width="375" height="80"/>
+                    <rect key="frame" x="0.0" y="410" width="375" height="90"/>
                     <subviews>
                         <!-- App Icon -->
                         <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="appIcon">

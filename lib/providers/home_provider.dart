@@ -25,6 +25,7 @@ class HomeData {
   final Map<String, String?> userBadgeUrls; // userId -> badgeUrl
   final Map<String, String?> userBadgeAnimations; // userId -> badgeAnimation
   final bool isRecommended;
+  final int totalPosts;
 
   HomeData({
     required this.streak,
@@ -41,6 +42,7 @@ class HomeData {
     required this.userBadgeUrls,
     required this.userBadgeAnimations,
     required this.isRecommended,
+    required this.totalPosts,
   });
 
   @override
@@ -61,7 +63,8 @@ class HomeData {
           _mapEquals(userStreaks, other.userStreaks) &&
           _mapEquals(userBadgeUrls, other.userBadgeUrls) &&
           _mapEquals(userBadgeAnimations, other.userBadgeAnimations) &&
-          isRecommended == other.isRecommended;
+          isRecommended == other.isRecommended &&
+          totalPosts == other.totalPosts;
 
   @override
   int get hashCode =>
@@ -78,7 +81,8 @@ class HomeData {
       userStreaks.hashCode ^
       userBadgeUrls.hashCode ^
       userBadgeAnimations.hashCode ^
-      isRecommended.hashCode;
+      isRecommended.hashCode ^
+      totalPosts.hashCode;
 
   bool _listEquals(List? a, List? b) {
     if (a == null) return b == null;
@@ -140,6 +144,7 @@ class HomeData {
       'userBadgeUrls': userBadgeUrls,
       'userBadgeAnimations': userBadgeAnimations,
       'isRecommended': isRecommended,
+      'totalPosts': totalPosts,
     };
   }
 
@@ -185,6 +190,7 @@ class HomeData {
       userBadgeUrls: Map<String, String?>.from(json['userBadgeUrls'] ?? {}),
       userBadgeAnimations: Map<String, String?>.from(json['userBadgeAnimations'] ?? {}),
       isRecommended: json['isRecommended'] as bool? ?? false,
+      totalPosts: json['totalPosts'] as int? ?? 0,
     );
   }
 }
@@ -276,6 +282,7 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
         userBadgeUrls: initialData.userBadgeUrls,
         userBadgeAnimations: initialData.userBadgeAnimations,
         isRecommended: initialData.isRecommended,
+        totalPosts: initialData.totalPosts,
       );
     }
     yield initialData;
@@ -368,6 +375,7 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
     userBadgeUrls: badgeUrls,
     userBadgeAnimations: badgeAnimations,
     isRecommended: homeDataMap['isRecommended'] as bool? ?? false,
+    totalPosts: homeDataMap['totalPosts'] as int? ?? 0,
   );
 
   // 3. 取得した最新データをキャッシュに保存し、UIへ反映
@@ -428,6 +436,7 @@ Future<void> updateHomeDataCacheWithReaction(
       userBadgeUrls: homeData.userBadgeUrls,
       userBadgeAnimations: homeData.userBadgeAnimations,
       isRecommended: homeData.isRecommended,
+      totalPosts: homeData.totalPosts,
     );
 
     await prefs.setString(cacheKey, jsonEncode(updatedHomeData.toJson()));

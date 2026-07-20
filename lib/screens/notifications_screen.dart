@@ -150,9 +150,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     // 右下の小さなバッジを構築
     Widget? badge;
     if (notif.emoji != null) {
-      badge = _buildBadge(notif.emoji!);
+      final displayContent = notif.reactionCount > 1
+          ? '${notif.emoji} ${notif.reactionCount}'
+          : notif.emoji!;
+      badge = _buildBadge(displayContent);
     } else if (notif.type == NotificationType.reactionReceived) {
-      badge = _buildBadge('🔥');
+      final displayContent = notif.reactionCount > 0
+          ? '🔥 ${notif.reactionCount}'
+          : '🔥';
+      badge = _buildBadge(displayContent);
     } else if (notif.type == NotificationType.friendRequestReceived) {
       badge = _buildBadge('👤+');
     } else if (notif.type == NotificationType.friendTaskCompleted) {
@@ -176,19 +182,25 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   Widget _buildBadge(String content) {
     return Container(
-      padding: const EdgeInsets.all(2),
+      padding: const EdgeInsets.all(1.5),
       decoration: BoxDecoration(
         color: AppColors.black,
-        shape: BoxShape.circle,
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.black, width: 1),
       ),
       child: Container(
-        padding: const EdgeInsets.all(2),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         decoration: BoxDecoration(
           color: AppColors.grey10,
-          shape: BoxShape.circle,
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(content, style: const TextStyle(fontSize: 10)),
+        child: Text(
+          content,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

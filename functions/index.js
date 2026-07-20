@@ -1013,11 +1013,12 @@ exports.processPostNotifications = onTaskDispatched(
 
     // ── 通知文面用のテンプレート（メモリ効率のためループ外で定義） ──
     const templates = [
-      { title: '仲間の一歩', body: '{username}さんも今日の自分に勝ちました' },
-      { title: '仲間の一歩', body: '{username}さんが今日も一歩を刻みました。同じ道を歩く仲間がいます' },
-      { title: '仲間の一歩', body: '{username}さんが自分との約束を果たしました' },
-      { title: '仲間の一歩', body: '{username}さんも戦っています。あなたは一人じゃない' },
-      { title: '仲間の一歩', body: '{username}さんが今日の勝利を手にしました' },
+      { title: '🌱 価値ある一歩', body: '{username}さんが今日の挑戦をやり遂げました！小さな一歩の積み重ねが未来を作ります🌱' },
+      { title: '🚀 挑戦のバトン', body: '{username}さんが今日の目標を突破！良い刺激をもらって、あなたも今日の1歩を踏み出してみませんか？🚀' },
+      { title: '⚡️ 勝利の連鎖', body: '{username}さんが今日の『小さな勝利』を獲得！この勢いに乗って、あなたも行動を開始しましょう！⚡️' },
+      { title: '👥 並走する背中', body: '{username}さんが一歩先へ進みました！並走する仲間がいるから、あなたの習慣ももっと強くなります🤝' },
+      { title: '🎬 実行の証明', body: '{username}さんが本日の『頑張り』をカタチにしました！あなたのスタートもいつでも待っています✨' },
+      { title: '🧠 脱・ドパガキ！', body: '{username}さんが今日の目標を突破！ショート動画を閉じて、あなたも本物の勝利（ドーパミン）を獲得しましょう！⚡️' },
     ];
 
     const multipleTaskTemplates = [
@@ -1028,11 +1029,12 @@ exports.processPostNotifications = onTaskDispatched(
     ];
 
     const enTemplates = [
-      { title: "An Ally's Step", body: "{username} just won the battle against themselves today!" },
-      { title: "An Ally's Step", body: "{username} took another step forward today. You're walking this path together." },
-      { title: "An Ally's Step", body: "{username} kept their promise to themselves." },
-      { title: "An Ally's Step", body: "{username} is out there fighting too. You are not alone." },
-      { title: "An Ally's Step", body: "{username} claimed victory today!" },
+      { title: '🌱 A Meaningful Step', body: '{username} completed today\'s challenge! Small steps build a brighter future. 🌱' },
+      { title: '🚀 Passing the Torch', body: '{username} crushed their goals today! Feel the spark and take your next step. 🚀' },
+      { title: '⚡️ Chain of Victory', body: '{username} secured a small victory today! Ride the wave and start your action now! ⚡️' },
+      { title: '👥 Side-by-Side', body: '{username} took another step forward! Moving together makes your habits even stronger. 🤝' },
+      { title: '🎬 Action Speaks', body: '{username} turned their effort into action today! Ready when you are to make your move. ✨' },
+      { title: '🧠 Dopamine Detox!', body: '{username} crushed their goals! Close the feed, break the doomscrolling loop, and claim your real win! ⚡️' },
     ];
 
     const enMultipleTaskTemplates = [

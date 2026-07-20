@@ -15,6 +15,7 @@ class CustomNativeAdView: NativeAdView {
 
     override func awakeFromNib() {
         super.awakeFromNib()
+        self.clipsToBounds = true // 境界外にはみ出たアセットの描画を防ぐ（AdMobバリデータ対策）
         setupGradient()
     }
 

@@ -436,8 +436,8 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
         transform: matrix,
         child: RepaintBoundary(
           child: SizedBox(
-            width: cardWidth,
-            height: cardHeight,
+            width: cardWidth.roundToDouble(),
+            height: cardHeight.roundToDouble(),
             child: item is String && item == 'ad'
                 ? NativeAdCard(
                     dimAlpha: dimAlpha,
@@ -609,18 +609,27 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
 
                                     // 広告用透明スロット：AbsorbPointerを用いてタッチ調整
                                     if (item is String && item == 'ad') {
+                                      // サブピクセルレンダリングによる表示はみ出し判定エラー（AdMob Validator）を防ぐため、
+                                      // 広告の表示サイズを整数値に丸めます。
+                                      final double roundedWidth = finalCardWidth.roundToDouble();
+                                      final double roundedHeight = maxCardHeight.roundToDouble();
+
+                                      // 広告エリアが極端に狭い（縦横100未満）場合は、アセットが完全にはみ出すため
+                                      // 安全ガードとしてAdWidgetのマウントを行わずに自社プロモを表示させます。
+                                      final bool isSizeValid = roundedWidth >= 100.0 && roundedHeight >= 100.0;
+
                                       return Center(
                                         child: SizedBox(
-                                          width: finalCardWidth,
-                                          height: maxCardHeight,
+                                          width: roundedWidth,
+                                          height: roundedHeight,
                                           child: AbsorbPointer(
                                             absorbing: _isScrolling,
                                             child: NativeAdCard(
                                               dimAlpha: 0.0,
                                               isTop: actualIndex == _focusedGlobalIndex % _feedItems.length,
-                                              nativeAd: _nativeAds[index],
-                                              isAdLoaded: _adLoadStatus[index] == true,
-                                              isAdLoadFailed: _adLoadStatus[index] == false,
+                                              nativeAd: isSizeValid ? _nativeAds[index] : null,
+                                              isAdLoaded: isSizeValid && (_adLoadStatus[index] == true),
+                                              isAdLoadFailed: !isSizeValid || (_adLoadStatus[index] == false),
                                             ),
                                           ),
                                         ),
