@@ -113,6 +113,53 @@
   "weeklyReviewStatReactions": "Reactions",
   "weeklyReviewNoPosts": "No posts this week",
   "weeklyReviewReplay": "Replay this week's review",
+  "weeklyReviewTitle": "Weekly Highlights",
+  "weeklyReviewMostSentTo": "You sent the most V FIRE to {name} this week (Total: {count} times)!",
+  "@weeklyReviewMostSentTo": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "weeklyReviewMostReceivedFrom": "You received the most V FIRE from {name} this week (Total: {count} times)!",
+  "@weeklyReviewMostReceivedFrom": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "weeklyReviewMostActiveDay": "Your most active day was {day} ({count} tasks completed)!",
+  "@weeklyReviewMostActiveDay": {
+    "placeholders": {
+      "day": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "weeklyReviewGoldenTime": "Your golden hour this week was 【{range}】! Highly focused.",
+  "@weeklyReviewGoldenTime": {
+    "placeholders": {
+      "range": { "type": "String" }
+    }
+  },
+  "weeklyReviewBuddyTask": "Your buddy task was \"{task}\" (Completed {count} times this week)!",
+  "@weeklyReviewBuddyTask": {
+    "placeholders": {
+      "task": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "weeklyReviewNoInteractions": "Send V FIRE to your friends' posts to motivate each other!",
+  "weekdayMonday": "Monday",
+  "weekdayTuesday": "Tuesday",
+  "weekdayWednesday": "Wednesday",
+  "weekdayThursday": "Thursday",
+  "weekdayFriday": "Friday",
+  "weekdaySaturday": "Saturday",
+  "weekdaySunday": "Sunday",
+  "timeRangeMorning": "Morning (5:00 AM - 12:00 PM)",
+  "timeRangeAfternoon": "Afternoon (12:00 PM - 6:00 PM)",
+  "timeRangeEvening": "Evening (6:00 PM - 12:00 AM)",
+  "timeRangeLateNight": "Late Night (12:00 AM - 5:00 AM)",
   "authWrapperConnecting": "Taking a moment to connect...",
   "authWrapperRetry": "Retry",
   "firestoreReadError": "Firestore error: {error}",

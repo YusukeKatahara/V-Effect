@@ -113,6 +113,53 @@
   "weeklyReviewStatReactions": "リアクション",
   "weeklyReviewNoPosts": "今週の投稿はまだありません",
   "weeklyReviewReplay": "今週の振り返りをもう一度見る",
+  "weeklyReviewTitle": "今週のハイライト",
+  "weeklyReviewMostSentTo": "あなたは今週、{name}さんに一番多くV FIRE（合計{count}回）を送りました！",
+  "@weeklyReviewMostSentTo": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "weeklyReviewMostReceivedFrom": "あなたは今週、{name}さんから一番多くV FIRE（合計{count}回）を送られました！",
+  "@weeklyReviewMostReceivedFrom": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "weeklyReviewMostActiveDay": "今週最もモチベーションが高かったのは {day} でした！（タスクを {count} 個完了！）",
+  "@weeklyReviewMostActiveDay": {
+    "placeholders": {
+      "day": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "weeklyReviewGoldenTime": "今週の集中ゴールデンタイムは【{range}】でした！集中力が際立っています。",
+  "@weeklyReviewGoldenTime": {
+    "placeholders": {
+      "range": { "type": "String" }
+    }
+  },
+  "weeklyReviewBuddyTask": "今週の相棒タスクは『{task}』でした！（今週だけで {count} 回クリア！）",
+  "@weeklyReviewBuddyTask": {
+    "placeholders": {
+      "task": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "weeklyReviewNoInteractions": "フレンドの投稿にV FIREを送って、お互いを鼓舞しましょう！",
+  "weekdayMonday": "月曜日",
+  "weekdayTuesday": "火曜日",
+  "weekdayWednesday": "水曜日",
+  "weekdayThursday": "木曜日",
+  "weekdayFriday": "金曜日",
+  "weekdaySaturday": "土曜日",
+  "weekdaySunday": "日曜日",
+  "timeRangeMorning": "朝（5:00〜12:00）",
+  "timeRangeAfternoon": "昼（12:00〜18:00）",
+  "timeRangeEvening": "夜（18:00〜24:00）",
+  "timeRangeLateNight": "深夜（0:00〜5:00）",
   "authWrapperConnecting": "接続に時間がかかっています...",
   "authWrapperRetry": "再試行",
   "firestoreReadError": "Firestore読み込みエラー: {error}",

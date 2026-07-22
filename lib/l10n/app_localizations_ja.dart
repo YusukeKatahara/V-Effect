@@ -310,6 +310,70 @@ class AppLocalizationsJa extends AppLocalizations {
   String get weeklyReviewReplay => '今週の振り返りをもう一度見る';
 
   @override
+  String get weeklyReviewTitle => '今週のハイライト';
+
+  @override
+  String weeklyReviewMostSentTo(String name, int count) {
+    return 'あなたは今週、$nameさんに一番多くV FIRE（合計$count回）を送りました！';
+  }
+
+  @override
+  String weeklyReviewMostReceivedFrom(String name, int count) {
+    return 'あなたは今週、$nameさんから一番多くV FIRE（合計$count回）を送られました！';
+  }
+
+  @override
+  String weeklyReviewMostActiveDay(String day, int count) {
+    return '今週最もモチベーションが高かったのは $day でした！（タスクを $count 個完了！）';
+  }
+
+  @override
+  String weeklyReviewGoldenTime(String range) {
+    return '今週の集中ゴールデンタイムは【$range】でした！集中力が際立っています。';
+  }
+
+  @override
+  String weeklyReviewBuddyTask(String task, int count) {
+    return '今週の相棒タスクは『$task』でした！（今週だけで $count 回クリア！）';
+  }
+
+  @override
+  String get weeklyReviewNoInteractions => 'フレンドの投稿にV FIREを送って、お互いを鼓舞しましょう！';
+
+  @override
+  String get weekdayMonday => '月曜日';
+
+  @override
+  String get weekdayTuesday => '火曜日';
+
+  @override
+  String get weekdayWednesday => '水曜日';
+
+  @override
+  String get weekdayThursday => '木曜日';
+
+  @override
+  String get weekdayFriday => '金曜日';
+
+  @override
+  String get weekdaySaturday => '土曜日';
+
+  @override
+  String get weekdaySunday => '日曜日';
+
+  @override
+  String get timeRangeMorning => '朝（5:00〜12:00）';
+
+  @override
+  String get timeRangeAfternoon => '昼（12:00〜18:00）';
+
+  @override
+  String get timeRangeEvening => '夜（18:00〜24:00）';
+
+  @override
+  String get timeRangeLateNight => '深夜（0:00〜5:00）';
+
+  @override
   String get authWrapperConnecting => '接続に時間がかかっています...';
 
   @override

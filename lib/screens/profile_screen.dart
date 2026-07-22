@@ -1562,14 +1562,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return GestureDetector(
       onTap: () async {
         try {
-          final posts = await _postService.getWeeklyReviewPosts();
-          final streak = await _postService.getStreak();
           if (!context.mounted) return;
 
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => WeeklyReviewScreen(posts: posts, currentStreak: streak),
+              builder: (context) => const WeeklyReviewScreen(),
             ),
           );
         } catch (e) {

@@ -13,18 +13,7 @@ import '../widgets/branded_loading.dart';
 
 /// 今週の振り返りをVウォール形式で表示する画面
 class WeeklyReviewScreen extends ConsumerStatefulWidget {
-  final List<Post>? posts;
-  final int? currentStreak;
-  final int? totalVFire;
-  final int? totalReactions;
-
-  const WeeklyReviewScreen({
-    super.key,
-    this.posts,
-    this.currentStreak,
-    this.totalVFire,
-    this.totalReactions,
-  });
+  const WeeklyReviewScreen({super.key});
 
   @override
   ConsumerState<WeeklyReviewScreen> createState() => _WeeklyReviewScreenState();
@@ -37,6 +26,18 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
   int _currentStreak = 0;
   int _totalVFire = 0;
   int _totalReactions = 0;
+
+  // 新しく追加されたパーソナライズ統計
+  String? _mostSentToName;
+  int _mostSentToCount = 0;
+  String? _mostReceivedFromName;
+  int _mostReceivedFromCount = 0;
+  int _mostActiveDayOfWeek = 0;
+  int _mostActiveDayCount = 0;
+  String? _goldenTimeRange;
+  String? _buddyTaskName;
+  int _buddyTaskCount = 0;
+
   bool _isDataInitialized = false;
 
   final GlobalKey _summaryKey = GlobalKey();
@@ -44,15 +45,6 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.posts != null && widget.currentStreak != null && widget.totalVFire != null && widget.totalReactions != null) {
-      _posts = widget.posts!;
-      _imagePosts = _posts.where((p) => p.imageUrl != null).toList();
-      _currentStreak = widget.currentStreak!;
-      _totalVFire = widget.totalVFire!;
-      _totalReactions = widget.totalReactions!;
-      _isDataInitialized = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _precacheImages());
-    }
   }
 
   void _precacheImages() {
@@ -178,6 +170,15 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                 _currentStreak = data.streak;
                 _totalVFire = data.totalVFire;
                 _totalReactions = data.totalReactions;
+                _mostSentToName = data.mostSentToName;
+                _mostSentToCount = data.mostSentToCount;
+                _mostReceivedFromName = data.mostReceivedFromName;
+                _mostReceivedFromCount = data.mostReceivedFromCount;
+                _mostActiveDayOfWeek = data.mostActiveDayOfWeek;
+                _mostActiveDayCount = data.mostActiveDayCount;
+                _goldenTimeRange = data.goldenTimeRange;
+                _buddyTaskName = data.buddyTaskName;
+                _buddyTaskCount = data.buddyTaskCount;
                 _isDataInitialized = true;
               });
               _precacheImages();
@@ -216,6 +217,8 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _buildSummaryCard(),
+                          const SizedBox(height: 24),
+                          _buildHighlightSection(),
                           const SizedBox(height: 24),
                           _buildVWallGrid(),
                           const SizedBox(height: 24),
@@ -379,5 +382,187 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildHighlightSection() {
+    final localizations = AppLocalizations.of(context)!;
+    final highlights = <Widget>[];
+
+    // 1. 最もV FIREを送った相手 (社交度)
+    if (_mostSentToCount > 0 && _mostSentToName != null) {
+      highlights.add(
+        _buildHighlightCard(
+          icon: '🔥',
+          message: localizations.weeklyReviewMostSentTo(_mostSentToName!, _mostSentToCount),
+          color: Colors.orangeAccent.withValues(alpha: 0.15),
+          borderColor: Colors.orangeAccent.withValues(alpha: 0.3),
+        ),
+      );
+    }
+
+    // 2. 最もV FIREを受け取った相手 (被社交度)
+    if (_mostReceivedFromCount > 0 && _mostReceivedFromName != null) {
+      highlights.add(
+        _buildHighlightCard(
+          icon: '✨',
+          message: localizations.weeklyReviewMostReceivedFrom(_mostReceivedFromName!, _mostReceivedFromCount),
+          color: Colors.purpleAccent.withValues(alpha: 0.15),
+          borderColor: Colors.purpleAccent.withValues(alpha: 0.3),
+        ),
+      );
+    }
+
+    // 3. 最もモチベーションの高かった曜日 (活動パターン)
+    if (_mostActiveDayCount > 0 && _mostActiveDayOfWeek > 0) {
+      final dayStr = _getWeekdayName(_mostActiveDayOfWeek);
+      highlights.add(
+        _buildHighlightCard(
+          icon: '📅',
+          message: localizations.weeklyReviewMostActiveDay(dayStr, _mostActiveDayCount),
+          color: Colors.blueAccent.withValues(alpha: 0.15),
+          borderColor: Colors.blueAccent.withValues(alpha: 0.3),
+        ),
+      );
+    }
+
+    // 4. 集中ゴールデンタイム (時間分析)
+    if (_goldenTimeRange != null) {
+      final rangeStr = _getTimeRangeName(_goldenTimeRange!);
+      highlights.add(
+        _buildHighlightCard(
+          icon: '⚡️',
+          message: localizations.weeklyReviewGoldenTime(rangeStr),
+          color: Colors.amber.withValues(alpha: 0.15),
+          borderColor: Colors.amber.withValues(alpha: 0.3),
+        ),
+      );
+    }
+
+    // 5. 今週の相棒タスク (習慣)
+    if (_buddyTaskCount > 0 && _buddyTaskName != null) {
+      highlights.add(
+        _buildHighlightCard(
+          icon: '🤝',
+          message: localizations.weeklyReviewBuddyTask(_buddyTaskName!, _buddyTaskCount),
+          color: Colors.greenAccent.withValues(alpha: 0.15),
+          borderColor: Colors.greenAccent.withValues(alpha: 0.3),
+        ),
+      );
+    }
+
+    if (highlights.isEmpty) {
+      highlights.add(
+        _buildHighlightCard(
+          icon: '💪',
+          message: localizations.weeklyReviewNoInteractions,
+          color: AppColors.white.withValues(alpha: 0.05),
+          borderColor: AppColors.white.withValues(alpha: 0.1),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            localizations.weeklyReviewTitle,
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.white,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        ...highlights.map((h) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: h,
+            )),
+      ],
+    );
+  }
+
+  Widget _buildHighlightCard({
+    required String icon,
+    required String message,
+    required Color color,
+    required Color borderColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            icon,
+            style: const TextStyle(fontSize: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.white,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getWeekdayName(int weekday) {
+    final localizations = AppLocalizations.of(context)!;
+    switch (weekday) {
+      case 1:
+        return localizations.weekdayMonday;
+      case 2:
+        return localizations.weekdayTuesday;
+      case 3:
+        return localizations.weekdayWednesday;
+      case 4:
+        return localizations.weekdayThursday;
+      case 5:
+        return localizations.weekdayFriday;
+      case 6:
+        return localizations.weekdaySaturday;
+      case 7:
+        return localizations.weekdaySunday;
+      default:
+        return '';
+    }
+  }
+
+  String _getTimeRangeName(String range) {
+    final localizations = AppLocalizations.of(context)!;
+    switch (range) {
+      case 'morning':
+        return localizations.timeRangeMorning;
+      case 'afternoon':
+        return localizations.timeRangeAfternoon;
+      case 'evening':
+        return localizations.timeRangeEvening;
+      case 'lateNight':
+        return localizations.timeRangeLateNight;
+      default:
+        return '';
+    }
   }
 }

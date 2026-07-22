@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
 import '../utils/date_helper.dart';
-
 
 /// 今週の振り返り（Weekly Review）画面で表示するデータを読み込み・管理するProvider
 class WeeklyReviewData {
@@ -12,11 +13,31 @@ class WeeklyReviewData {
   final int totalVFire;
   final int totalReactions;
 
+  // 新しく追加されたパーソナライズ統計
+  final String? mostSentToName;
+  final int mostSentToCount;
+  final String? mostReceivedFromName;
+  final int mostReceivedFromCount;
+  final int mostActiveDayOfWeek; // 1 (月) 〜 7 (日)、0 はなし
+  final int mostActiveDayCount;
+  final String? goldenTimeRange; // 'morning', 'afternoon', 'evening', 'lateNight'
+  final String? buddyTaskName;
+  final int buddyTaskCount;
+
   WeeklyReviewData({
     required this.posts,
     required this.streak,
     required this.totalVFire,
     required this.totalReactions,
+    this.mostSentToName,
+    this.mostSentToCount = 0,
+    this.mostReceivedFromName,
+    this.mostReceivedFromCount = 0,
+    this.mostActiveDayOfWeek = 0,
+    this.mostActiveDayCount = 0,
+    this.goldenTimeRange,
+    this.buddyTaskName,
+    this.buddyTaskCount = 0,
   });
 }
 
@@ -37,16 +58,176 @@ final weeklyReviewProvider = FutureProvider.autoDispose<WeeklyReviewData>((ref) 
   int totalReactions = 0;
   for (final post in posts) {
     totalVFire += post.reactionCount;
-    // 絵文字リアクションは userReactions のエントリ数、または emojiReactedUserIds の数
-    // emojiReactedUserIds を基準にする方がユニークユーザー数として確実
     totalReactions += post.emojiReactedUserIds.length;
   }
+
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) {
+    return WeeklyReviewData(
+      posts: posts,
+      streak: streak,
+      totalVFire: totalVFire,
+      totalReactions: totalReactions,
+    );
+  }
+
+  // 今週の開始（月曜日0:00）を計算
+  final now = DateTime.now();
+  final startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+  final startTimestamp = Timestamp.fromDate(startOfWeek);
+
+  // ── 1. 最もV FIREを送った相手の集計 ──
+  final sentQuery = await FirebaseFirestore.instance
+      .collection('notifications')
+      .where('fromUid', isEqualTo: uid)
+      .where('type', isEqualTo: 'reactionReceived')
+      .get();
+
+  final sentMap = <String, int>{};
+  for (final doc in sentQuery.docs) {
+    final data = doc.data();
+    if (data['emoji'] != null) continue;
+    final createdAt = data['createdAt'] as Timestamp?;
+    if (createdAt == null || createdAt.compareTo(startTimestamp) < 0) continue;
+    
+    final toUid = data['toUid'] as String?;
+    final count = data['reactionCount'] as int? ?? 0;
+    if (toUid != null && count > 0) {
+      sentMap[toUid] = (sentMap[toUid] ?? 0) + count;
+    }
+  }
+
+  String? mostSentToUid;
+  int mostSentToCount = 0;
+  sentMap.forEach((key, val) {
+    if (val > mostSentToCount) {
+      mostSentToCount = val;
+      mostSentToUid = key;
+    }
+  });
+
+  // ── 2. 最もV FIREを受け取った相手の集計 ──
+  final receivedQuery = await FirebaseFirestore.instance
+      .collection('notifications')
+      .where('toUid', isEqualTo: uid)
+      .where('type', isEqualTo: 'reactionReceived')
+      .get();
+
+  final receivedMap = <String, int>{};
+  for (final doc in receivedQuery.docs) {
+    final data = doc.data();
+    if (data['emoji'] != null) continue;
+    final createdAt = data['createdAt'] as Timestamp?;
+    if (createdAt == null || createdAt.compareTo(startTimestamp) < 0) continue;
+
+    final fromUid = data['fromUid'] as String?;
+    final count = data['reactionCount'] as int? ?? 0;
+    if (fromUid != null && count > 0) {
+      receivedMap[fromUid] = (receivedMap[fromUid] ?? 0) + count;
+    }
+  }
+
+  String? mostReceivedFromUid;
+  int mostReceivedFromCount = 0;
+  receivedMap.forEach((key, val) {
+    if (val > mostReceivedFromCount) {
+      mostReceivedFromCount = val;
+      mostReceivedFromUid = key;
+    }
+  });
+
+  // 名前を非同期で取得
+  String? mostSentToName;
+  if (mostSentToUid != null) {
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(mostSentToUid).get();
+      mostSentToName = userDoc.data()?['displayName'] ?? userDoc.data()?['username'] ?? 'フレンド';
+    } catch (_) {}
+  }
+
+  String? mostReceivedFromName;
+  if (mostReceivedFromUid != null) {
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(mostReceivedFromUid).get();
+      mostReceivedFromName = userDoc.data()?['displayName'] ?? userDoc.data()?['username'] ?? 'フレンド';
+    } catch (_) {}
+  }
+
+  // ── 3. 最もモチベーションの高かった（タスクを完了した）曜日の集計 ──
+  final dayMap = <int, int>{};
+  for (final post in posts) {
+    final day = post.createdAt.weekday;
+    dayMap[day] = (dayMap[day] ?? 0) + 1;
+  }
+  int mostActiveDayOfWeek = 0;
+  int mostActiveDayCount = 0;
+  dayMap.forEach((key, val) {
+    if (val > mostActiveDayCount) {
+      mostActiveDayCount = val;
+      mostActiveDayOfWeek = key;
+    }
+  });
+
+  // ── 4. 集中ゴールデンタイム（時間帯）の集計 ──
+  final hourMap = <String, int>{
+    'morning': 0,
+    'afternoon': 0,
+    'evening': 0,
+    'lateNight': 0,
+  };
+  for (final post in posts) {
+    final hour = post.createdAt.hour;
+    if (hour >= 5 && hour < 12) {
+      hourMap['morning'] = hourMap['morning']! + 1;
+    } else if (hour >= 12 && hour < 18) {
+      hourMap['afternoon'] = hourMap['afternoon']! + 1;
+    } else if (hour >= 18 && hour < 24) {
+      hourMap['evening'] = hourMap['evening']! + 1;
+    } else {
+      hourMap['lateNight'] = hourMap['lateNight']! + 1;
+    }
+  }
+  String? goldenTimeRange;
+  int maxHourCount = 0;
+  hourMap.forEach((key, val) {
+    if (val > maxHourCount) {
+      maxHourCount = val;
+      goldenTimeRange = key;
+    }
+  });
+  if (maxHourCount == 0) goldenTimeRange = null;
+
+  // ── 5. 今週の相棒タスクの集計 ──
+  final taskMap = <String, int>{};
+  for (final post in posts) {
+    final title = post.taskName;
+    if (title.isNotEmpty) {
+      taskMap[title] = (taskMap[title] ?? 0) + 1;
+    }
+  }
+  String? buddyTaskName;
+  int buddyTaskCount = 0;
+  taskMap.forEach((key, val) {
+    if (val > buddyTaskCount) {
+      buddyTaskCount = val;
+      buddyTaskName = key;
+    }
+  });
 
   return WeeklyReviewData(
     posts: posts,
     streak: streak,
     totalVFire: totalVFire,
     totalReactions: totalReactions,
+    mostSentToName: mostSentToName,
+    mostSentToCount: mostSentToCount,
+    mostReceivedFromName: mostReceivedFromName,
+    mostReceivedFromCount: mostReceivedFromCount,
+    mostActiveDayOfWeek: mostActiveDayOfWeek,
+    mostActiveDayCount: mostActiveDayCount,
+    goldenTimeRange: goldenTimeRange,
+    buddyTaskName: buddyTaskName,
+    buddyTaskCount: buddyTaskCount,
   );
 });
 
@@ -66,4 +247,5 @@ Future<void> markWeeklyReviewAsRead(WidgetRef ref) async {
   await prefs.setBool('weekly_review_read_$mondayStr', true);
   ref.invalidate(isWeeklyReviewReadProvider);
 }
+
 

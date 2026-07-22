@@ -310,6 +310,70 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weeklyReviewReplay => 'Replay this week\'s review';
 
   @override
+  String get weeklyReviewTitle => 'Weekly Highlights';
+
+  @override
+  String weeklyReviewMostSentTo(String name, int count) {
+    return 'You sent the most V FIRE to $name this week (Total: $count times)!';
+  }
+
+  @override
+  String weeklyReviewMostReceivedFrom(String name, int count) {
+    return 'You received the most V FIRE from $name this week (Total: $count times)!';
+  }
+
+  @override
+  String weeklyReviewMostActiveDay(String day, int count) {
+    return 'Your most active day was $day ($count tasks completed)!';
+  }
+
+  @override
+  String weeklyReviewGoldenTime(String range) {
+    return 'Your golden hour this week was 【$range】! Highly focused.';
+  }
+
+  @override
+  String weeklyReviewBuddyTask(String task, int count) {
+    return 'Your buddy task was \"$task\" (Completed $count times this week)!';
+  }
+
+  @override
+  String get weeklyReviewNoInteractions => 'Send V FIRE to your friends\' posts to motivate each other!';
+
+  @override
+  String get weekdayMonday => 'Monday';
+
+  @override
+  String get weekdayTuesday => 'Tuesday';
+
+  @override
+  String get weekdayWednesday => 'Wednesday';
+
+  @override
+  String get weekdayThursday => 'Thursday';
+
+  @override
+  String get weekdayFriday => 'Friday';
+
+  @override
+  String get weekdaySaturday => 'Saturday';
+
+  @override
+  String get weekdaySunday => 'Sunday';
+
+  @override
+  String get timeRangeMorning => 'Morning (5:00 AM - 12:00 PM)';
+
+  @override
+  String get timeRangeAfternoon => 'Afternoon (12:00 PM - 6:00 PM)';
+
+  @override
+  String get timeRangeEvening => 'Evening (6:00 PM - 12:00 AM)';
+
+  @override
+  String get timeRangeLateNight => 'Late Night (12:00 AM - 5:00 AM)';
+
+  @override
   String get authWrapperConnecting => 'Taking a moment to connect...';
 
   @override

@@ -689,6 +689,114 @@ abstract class AppLocalizations {
   /// **'今週の振り返りをもう一度見る'**
   String get weeklyReviewReplay;
 
+  /// No description provided for @weeklyReviewTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'今週のハイライト'**
+  String get weeklyReviewTitle;
+
+  /// No description provided for @weeklyReviewMostSentTo.
+  ///
+  /// In ja, this message translates to:
+  /// **'あなたは今週、{name}さんに一番多くV FIRE（合計{count}回）を送りました！'**
+  String weeklyReviewMostSentTo(String name, int count);
+
+  /// No description provided for @weeklyReviewMostReceivedFrom.
+  ///
+  /// In ja, this message translates to:
+  /// **'あなたは今週、{name}さんから一番多くV FIRE（合計{count}回）を送られました！'**
+  String weeklyReviewMostReceivedFrom(String name, int count);
+
+  /// No description provided for @weeklyReviewMostActiveDay.
+  ///
+  /// In ja, this message translates to:
+  /// **'今週最もモチベーションが高かったのは {day} でした！（タスクを {count} 個完了！）'**
+  String weeklyReviewMostActiveDay(String day, int count);
+
+  /// No description provided for @weeklyReviewGoldenTime.
+  ///
+  /// In ja, this message translates to:
+  /// **'今週の集中ゴールデンタイムは【{range}】でした！集中力が際立っています。'**
+  String weeklyReviewGoldenTime(String range);
+
+  /// No description provided for @weeklyReviewBuddyTask.
+  ///
+  /// In ja, this message translates to:
+  /// **'今週の相棒タスクは『{task}』でした！（今週だけで {count} 回クリア！）'**
+  String weeklyReviewBuddyTask(String task, int count);
+
+  /// No description provided for @weeklyReviewNoInteractions.
+  ///
+  /// In ja, this message translates to:
+  /// **'フレンドの投稿にV FIREを送って、お互いを鼓舞しましょう！'**
+  String get weeklyReviewNoInteractions;
+
+  /// No description provided for @weekdayMonday.
+  ///
+  /// In ja, this message translates to:
+  /// **'月曜日'**
+  String get weekdayMonday;
+
+  /// No description provided for @weekdayTuesday.
+  ///
+  /// In ja, this message translates to:
+  /// **'火曜日'**
+  String get weekdayTuesday;
+
+  /// No description provided for @weekdayWednesday.
+  ///
+  /// In ja, this message translates to:
+  /// **'水曜日'**
+  String get weekdayWednesday;
+
+  /// No description provided for @weekdayThursday.
+  ///
+  /// In ja, this message translates to:
+  /// **'木曜日'**
+  String get weekdayThursday;
+
+  /// No description provided for @weekdayFriday.
+  ///
+  /// In ja, this message translates to:
+  /// **'金曜日'**
+  String get weekdayFriday;
+
+  /// No description provided for @weekdaySaturday.
+  ///
+  /// In ja, this message translates to:
+  /// **'土曜日'**
+  String get weekdaySaturday;
+
+  /// No description provided for @weekdaySunday.
+  ///
+  /// In ja, this message translates to:
+  /// **'日曜日'**
+  String get weekdaySunday;
+
+  /// No description provided for @timeRangeMorning.
+  ///
+  /// In ja, this message translates to:
+  /// **'朝（5:00〜12:00）'**
+  String get timeRangeMorning;
+
+  /// No description provided for @timeRangeAfternoon.
+  ///
+  /// In ja, this message translates to:
+  /// **'昼（12:00〜18:00）'**
+  String get timeRangeAfternoon;
+
+  /// No description provided for @timeRangeEvening.
+  ///
+  /// In ja, this message translates to:
+  /// **'夜（18:00〜24:00）'**
+  String get timeRangeEvening;
+
+  /// No description provided for @timeRangeLateNight.
+  ///
+  /// In ja, this message translates to:
+  /// **'深夜（0:00〜5:00）'**
+  String get timeRangeLateNight;
+
   /// No description provided for @authWrapperConnecting.
   ///
   /// In ja, this message translates to:

@@ -932,22 +932,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // 画面遷移中もホームのローディング通知を送る
     widget.onLoadingChanged?.call(true);
     try {
-      final posts = await _postService.getWeeklyReviewPosts();
-      final streak = await _postService.getStreak();
-      if (!mounted) return;
-
       // 今週の振り返りを既読（一度開いた）状態にする
       await markWeeklyReviewAsRead(ref);
 
       if (!mounted) return;
 
       Navigator.push(
-
         context,
         MaterialPageRoute(
-          builder:
-              (context) =>
-                  WeeklyReviewScreen(posts: posts, currentStreak: streak),
+          builder: (context) => const WeeklyReviewScreen(),
         ),
       );
     } on FirebaseException catch (e, stack) {

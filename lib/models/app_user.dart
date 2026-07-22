@@ -40,6 +40,7 @@ class AppUser {
   final List<String> processedSeasonTaskIds;
   final bool totalPostsMigrated;
   final bool isRecommended;
+  final Map<String, DateTime> mutualFires;
 
   // ── フィールド名定数 ──
   static const String fieldUid = 'uid';
@@ -84,6 +85,7 @@ class AppUser {
   static const String fieldBlockedUsers = 'blockedUsers';
   static const String fieldStreakWarningNotifications = 'streakWarningNotifications';
   static const String fieldOnboardingStep = 'onboardingStep';
+  static const String fieldMutualFires = 'mutualFires';
 
   const AppUser({
     required this.uid,
@@ -121,6 +123,7 @@ class AppUser {
     this.processedSeasonTaskIds = const [],
     this.totalPostsMigrated = false,
     this.isRecommended = false,
+    this.mutualFires = const {},
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -148,6 +151,20 @@ class AppUser {
           return raw.keys.map((k) => k.toString()).toList();
         }
         return [];
+      }
+
+      Map<String, DateTime> extractMutualFires() {
+        final raw = data[fieldMutualFires];
+        if (raw is Map) {
+          final map = <String, DateTime>{};
+          for (final entry in raw.entries) {
+            if (entry.value is Timestamp) {
+              map[entry.key] = (entry.value as Timestamp).toDate();
+            }
+          }
+          return map;
+        }
+        return {};
       }
 
       return AppUser(
@@ -200,6 +217,7 @@ class AppUser {
         processedSeasonTaskIds: (data[fieldProcessedSeasonTaskIds] as List?)?.map((e) => e.toString()).toList() ?? [],
         totalPostsMigrated: data[fieldTotalPostsMigrated] == true,
         isRecommended: data[fieldIsRecommended] == true,
+        mutualFires: extractMutualFires(),
       );
     } catch (e) {
       debugPrint('Error parsing AppUser $id: $e');
@@ -244,6 +262,8 @@ class AppUser {
       fieldProcessedSeasonTaskIds: processedSeasonTaskIds,
       fieldTotalPostsMigrated: totalPostsMigrated,
       fieldIsRecommended: isRecommended,
+      // mutualFires はクライアントから書き込まれる想定はないが、保存時のためにTimestampに変換する
+      fieldMutualFires: mutualFires.map((key, value) => MapEntry(key, Timestamp.fromDate(value))),
     };
   }
 
@@ -284,6 +304,7 @@ class AppUser {
     List<String>? processedSeasonTaskIds,
     bool? totalPostsMigrated,
     bool? isRecommended,
+    Map<String, DateTime>? mutualFires,
   }) {
     return AppUser(
       uid: uid ?? this.uid,
@@ -321,6 +342,7 @@ class AppUser {
       processedSeasonTaskIds: processedSeasonTaskIds ?? this.processedSeasonTaskIds,
       totalPostsMigrated: totalPostsMigrated ?? this.totalPostsMigrated,
       isRecommended: isRecommended ?? this.isRecommended,
+      mutualFires: mutualFires ?? this.mutualFires,
     );
   }
 }

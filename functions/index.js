@@ -177,6 +177,38 @@ exports.sendPushNotification = onDocumentWritten(
       return;
     }
 
+    // ── Mutual Fire (絆の炎) の判定 ──
+    if (isReaction && fromUid && toUid) {
+      const db = getFirestore();
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      
+      const recentReverse = await db.collection("notifications")
+        .where("fromUid", "==", toUid)
+        .where("toUid", "==", fromUid)
+        .where("type", "==", "reactionReceived")
+        .where("createdAt", ">", twentyFourHoursAgo)
+        .limit(1)
+        .get();
+        
+      if (!recentReverse.empty) {
+        const batch = db.batch();
+        const ts = FieldValue.serverTimestamp();
+        
+        batch.set(
+          db.collection("users").doc(fromUid),
+          { mutualFires: { [toUid]: ts } },
+          { merge: true }
+        );
+        batch.set(
+          db.collection("users").doc(toUid),
+          { mutualFires: { [fromUid]: ts } },
+          { merge: true }
+        );
+        
+        await batch.commit();
+      }
+    }
+
     // ── リアクション通知：初回のみ送信 ──
     // 最初のリアクション（ドキュメント新規作成時）のみプッシュを送る。
     // フロントエンドのVFIREは連打が止まってから通信される（デバウンス）ため、
@@ -569,6 +601,8 @@ exports.sendStreakWarning = onSchedule(
     console.log(`Scheduled streak warning: Sent ${promises.length} notifications.`);
   }
 );
+
+
 
 /**
  * seasons コレクションに新しいドキュメントが作成されたとき、
@@ -975,37 +1009,14 @@ exports.processPostNotifications = onTaskDispatched(
 
     const isMilestone = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 130, 200, 365].includes(currentStreak);
 
-    // 5. フレンドの状態を一括取得してトップランナー判定を行う
+    // 5. フレンドの状態を一括取得して言語設定等を確認する
     const friendRefs = friends.map(fUid => db.collection("users").doc(fUid));
     const friendSnaps = friendRefs.length > 0 ? await db.getAll(...friendRefs) : [];
 
-    const unpostedFriends = [];
-    const topRunnerPromises = [];
     const friendDataMap = {};
-
     friendSnaps.forEach(snap => {
       if (!snap.exists) return;
-      const data = snap.data();
-      friendDataMap[snap.id] = data;
-      // フォロワー自身が今日まだ投稿していないかチェック
-      if (data.lastPostedDate !== todayString) {
-        unpostedFriends.push(snap.id);
-        // 今日すでにトップランナー通知を受け取っているかチェック
-        topRunnerPromises.push(
-          db.collection("notifications")
-            .where("toUid", "==", snap.id)
-            .where("isTopRunner", "==", true)
-            .where("createdAt", ">=", startOfTodayUTC)
-            .limit(1)
-            .get()
-        );
-      }
-    });
-
-    const topRunnerResults = await Promise.all(topRunnerPromises);
-    const topRunnerMap = {}; // toUid -> boolean (true: 既に受け取り済み = 今回はトップランナーではない)
-    unpostedFriends.forEach((fUid, index) => {
-      topRunnerMap[fUid] = !topRunnerResults[index].empty;
+      friendDataMap[snap.id] = snap.data();
     });
 
     // 6. 通知をバッチ作成
@@ -1023,9 +1034,10 @@ exports.processPostNotifications = onTaskDispatched(
 
     const multipleTaskTemplates = [
       { title: '🤚 さらなる高みへ', body: '{username}さんは{count}つ目のタスクを達成。どうやら冷笑はもう古いようです🔍' },
-      { title: '⚡️ 勝利者効果 / V EFFECT', body: '勝利の連鎖がさらなる挑戦を熱くする！{username}さんが本日{count}回目の勝利を呼び込みました🔥' },
-      { title: '📈 成長の複利ループ', body: '1.01の積み重ねが未来を劇的に変える！{username}さんが本日{count}つ目の行動を重ね、複利で進化中🚀' },
-      { title: '🧠 意志を超えた習慣化', body: 'もはや努力は呼吸と同じ。{username}さんが本日{count}つ目のタスクを「当たり前」のように突破⚡️' },
+      { title: '✨ 魅せる実行力', body: '{username}さんが早くも本日{count}つ目の目標をクリア！そのスマートな行動力は、見る人すべてに『次は自分の番だ』と思わせる魅力があります。' },
+      { title: '⚡️ 圧倒的なモメンタム', body: '{username}さんが今日だけで{count}回の勝利を重ね、完全に『ゾーン』に入っています！この圧倒的な熱量は、周りのやる気まで引き上げます🔥' },
+      { title: '📈 未来のデザイン', body: '{username}さんが本日{count}つ目の成長を積み上げ、未来の自分をスマートに更新中！このブレない選択は、一緒に走る私たちの道標です🚀' },
+      { title: '🧠 洗練された習慣', body: '{username}さんは本日{count}つ目のタスクをまるで呼吸のようにクリア。無駄のない美しいルーティンは、まさに習慣化の完成形です⚡️' },
     ];
 
     const enTemplates = [
@@ -1039,9 +1051,10 @@ exports.processPostNotifications = onTaskDispatched(
 
     const enMultipleTaskTemplates = [
       { title: "🤚 Reaching Higher", body: "{username} just crushed task #{count}. Looks like cynicism is officially out of style 🔍" },
-      { title: "⚡️ The Winner Effect / V EFFECT", body: "Success breeds success! {username} just secured win #{count} for the day 🔥" },
-      { title: "📈 Compound Growth Loop", body: "A 1% daily improvement changes everything! {username} just stacked action #{count}, compounding their growth 🚀" },
-      { title: "🧠 Habit Beyond Willpower", body: "Effort is now as natural as breathing. {username} just breezed through task #{count} like it was nothing ⚡️" },
+      { title: "✨ Inspiring Execution", body: "{username} just crushed goal #{count}! That smart, decisive action is a reminder to everyone: 'It's time to make my move.'" },
+      { title: "⚡️ Unstoppable Momentum", body: "{username} secured win #{count} today, locking into 'the zone'! That high-caliber energy is pulling everyone up with them. 🔥" },
+      { title: "📈 Designing the Future", body: "{username} just stacked growth #{count}, updating their future self! That steady, unwavering focus is a beacon for all of us. 🚀" },
+      { title: "🧠 Refined Routines", body: "{username} just cleared task #{count} as naturally as breathing. That seamless, beautiful routine is the ultimate goal of habit. ⚡️" },
     ];
 
     // ストリークお祝い通知メッセージの生成ヘルパー
@@ -1160,90 +1173,37 @@ exports.processPostNotifications = onTaskDispatched(
       const friendData = friendDataMap[friendUid] || {};
       const language = friendData.language === "en" ? "en" : "ja";
 
-      const isTopRunner = unpostedFriends.includes(friendUid) && !topRunnerMap[friendUid];
+      // 通常通り1通（ストリークお祝い、または通常の完了通知）を作成
+      const notifId = `post_${postId}_to_${friendUid}`;
+      const notifRef = db.collection("notifications").doc(notifId);
 
-      if (isTopRunner) {
-        // 1. トップランナー通知をメインIDで作成
-        const notifId = `post_${postId}_to_${friendUid}`;
-        const notifRef = db.collection("notifications").doc(notifId);
+      let finalTitle = '';
+      let finalBody = '';
+      let finalType = "friendTaskCompleted"; // 通常はフレンドタスク完了通知
 
-        let trTitle = '';
-        let trBody = '';
-        if (language === "en") {
-          trTitle = `🥇 ${username} Takes the Lead`;
-          trBody = `${username} is leading the pack! Ride the wave and join them!`;
-        } else {
-          trTitle = `🥇 ${username}さんが勝利`;
-          trBody = `${username}さんがトップを独走！あなたもこの流れに乗りましょう！`;
-        }
-
-        batch.set(notifRef, {
-          toUid: friendUid,
-          fromUid: uid,
-          type: "friendTaskCompleted",
-          relatedId: postId,
-          title: trTitle,
-          body: trBody,
-          sendPush: true,
-          isRead: false,
-          isTopRunner: true,
-          createdAt: FieldValue.serverTimestamp(),
-        });
-
-        // 2. もしさらにストリークお祝い（isMilestone）である場合、追加でストリークお祝い通知を作成
-        if (isMilestone) {
-          const streakNotifId = `post_${postId}_to_${friendUid}_streak`;
-          const streakNotifRef = db.collection("notifications").doc(streakNotifId);
-
-          const streakContent = getStreakNotification(language, currentStreak, username);
-
-          // ストリークお祝い時は、プッシュ通知の重複上書きを避けるためと金色UI適用のために type を streakCelebration に設定
-          batch.set(streakNotifRef, {
-            toUid: friendUid,
-            fromUid: uid,
-            type: "streakCelebration",
-            relatedId: postId,
-            title: streakContent.title,
-            body: streakContent.body,
-            sendPush: true,
-            isRead: false,
-            isTopRunner: false,
-            createdAt: FieldValue.serverTimestamp(),
-          });
-        }
+      if (isMilestone) {
+        const streakContent = getStreakNotification(language, currentStreak, username);
+        finalTitle = streakContent.title;
+        finalBody = streakContent.body;
+        finalType = "streakCelebration"; // ストリークお祝い時は type を streakCelebration に変更
       } else {
-        // トップランナーではない場合、通常通り1通（ストリークお祝い、または通常の完了通知）を作成
-        const notifId = `post_${postId}_to_${friendUid}`;
-        const notifRef = db.collection("notifications").doc(notifId);
-
-        let finalTitle = '';
-        let finalBody = '';
-        let finalType = "friendTaskCompleted"; // 通常はフレンドタスク完了通知
-
-        if (isMilestone) {
-          const streakContent = getStreakNotification(language, currentStreak, username);
-          finalTitle = streakContent.title;
-          finalBody = streakContent.body;
-          finalType = "streakCelebration"; // ストリークお祝い時は type を streakCelebration に変更
-        } else {
-          const normalContent = getNormalNotification(language, todayPostCount, username);
-          finalTitle = normalContent.title;
-          finalBody = normalContent.body;
-        }
-
-        batch.set(notifRef, {
-          toUid: friendUid,
-          fromUid: uid,
-          type: finalType, // 動的に設定されたタイプを適用
-          relatedId: postId,
-          title: finalTitle,
-          body: finalBody,
-          sendPush: true,
-          isRead: false,
-          isTopRunner: false,
-          createdAt: FieldValue.serverTimestamp(),
-        });
+        const normalContent = getNormalNotification(language, todayPostCount, username);
+        finalTitle = normalContent.title;
+        finalBody = normalContent.body;
       }
+
+      batch.set(notifRef, {
+        toUid: friendUid,
+        fromUid: uid,
+        type: finalType, // 動的に設定されたタイプを適用
+        relatedId: postId,
+        title: finalTitle,
+        body: finalBody,
+        sendPush: true,
+        isRead: false,
+        isTopRunner: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
     });
 
     await batch.commit();

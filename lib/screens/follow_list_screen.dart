@@ -29,6 +29,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
   bool _initialized = false;
   bool _showPendingBanner = false;
   List<AppUser> _users = [];
+  AppUser? _myUser;
   String _title = '';
 
   @override
@@ -65,11 +66,14 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
     try {
       final results = await Future.wait([
         _friendService.getUserByUid(uid),
+        if (uid != _myUid) _friendService.getUserByUid(_myUid),
         if (isMyFollowers)
           _friendService.getReceivedRequests().first,
       ]);
 
       final userSnap = results[0] as AppUser?;
+      _myUser = (uid == _myUid) ? userSnap : (results[1] as AppUser?);
+
       final uids = isFollowing
           ? (userSnap?.following ?? [])
           : (userSnap?.followers ?? []);
@@ -80,7 +84,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
         _users = users;
         _loading = false;
         if (isMyFollowers) {
-          final pendingList = results[1] as List;
+          final pendingList = results.last as List;
           _showPendingBanner = pendingList.isNotEmpty;
         }
       });
@@ -168,18 +172,43 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
 
   Widget _buildUserTile(AppUser user) {
     final isMe = user.uid == _myUid;
+    
+    // Mutual Fire (絆の炎) の判定: 過去24時間以内
+    bool isMutualFire = false;
+    if (!isMe && _myUser != null && _myUser!.mutualFires.containsKey(user.uid)) {
+      final lastMutual = _myUser!.mutualFires[user.uid]!;
+      if (DateTime.now().difference(lastMutual).inHours < 24) {
+        isMutualFire = true;
+      }
+    }
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       onTap: isMe ? null : () {
         Navigator.pushNamed(context, '/user-profile', arguments: user.uid);
       },
       leading: _buildAvatar(user),
-      title: Text(
-        user.username ?? '',
-        style: TextStyle(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w600,
-        ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              user.username ?? '',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (isMutualFire) ...[
+            const SizedBox(width: 6),
+            Text(
+              '🔥',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ],
       ),
       subtitle: Text(
         '@${user.userId ?? ''}',
