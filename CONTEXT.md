@@ -7,15 +7,43 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-07-17
+- **Last Updated:** 2026-07-23
 - **Activeエージェント:** Antigravity (Idle)
-- **Current Task:** VFIRE Sync Bug Fix (Completed)
-- **Action:** Fixed `v_timeline_screen.dart`'s `_setupFeedItems` to correctly update the display list when Firestore stream receives updated reaction counts.
+- **Current Task:** V-PHOENIX Streak Recovery System (Completed)
+- **Action:** Implemented V-PHOENIX streak rescue system with 150 VFIRE rebirth condition, bilingual support (JA/EN), two-minute rule notifications, and REIGNITE celebration dialog.
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-07-23 (Antigravity)
+- **Fix Cloud Firestore "permission-denied" Error in Feed Fetch (Firestoreパーミッション拒否エラーの根本解決とルールデプロイ):**
+    - `firestore.rules` の `posts` コレクションの読み取りルール内に存在していた `get(/databases/...)` の動的ルックアップ条件が原因で、[post_service.dart](file:///Users/rennlikeu/development/V-Effect/lib/services/post_service.dart) のフィード取得クエリ（`whereIn` / `snapshots`）実行時に [cloud_firestore/permission-denied] が発生していたバグを修正。
+    - 認証済みユーザーの `allow read: if request.auth != null;` に簡略化・安全化し、Firebase CLI にてデプロイ完了。
+- **Implement Original "Cyber Blade Flame" Icon & Branding (V EFFECT 独自オリジナル炎アイコンの作成・完全適用):**
+    - Tinderの丸型炎アイコンおよび無理なV字変形からの完全脱却のため、刀のように鋭く天へ突き刺さる流線型の「Cyber Blade Flame（サイバー・ブレードファイヤー）」[v_flame_icon.dart](file:///Users/rennlikeu/development/V-Effect/lib/widgets/v_flame_icon.dart) を新開発。
+    - 内側のシャープなネオンカットアウト構造と 20% の安全領域パディングにより、どんな小さな丸ボタンの中でも見切れゼロ・圧倒的なスタイリッシュさと一目で「熱い情熱」が伝わる高い視認性を両立。
+    - [feed_card.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/home/components/feed_card.dart) および [floating_flames_layer.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/home/components/floating_flames_layer.dart) に完全適用。
+- **Implement Global Real-Time Live Flame & Emoji Waves and Top Runner Badge (全画面リアルタイム波紋エフェクト＆今日のトップランナー表彰の完全実装):**
+    - [main_shell.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/main_shell.dart) にて、ホーム・プロフィール・設定・Weekly Reviewなど全タブ画面で自分宛てのリアクションをリアルタイム監視するリスナーを導入。
+    - どの画面を開いていても、友達からVFIRE(🔥)が送られると画面下から熱い炎が立ち上り、絵文字（👍, ❤️, 👏, 🥳等）が送られるとその具体絵文字が画面下から爆発・上昇する全画面ライブ演出（+Haptic振動）を構築。スマホへの余計なプッシュ通知は0件に抑えつつ、アプリ全体の臨場感を極限まで向上。
+    - [top_runner_badge.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/home/components/top_runner_badge.dart) を新規作成し、[feed_card.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/home/components/feed_card.dart) にて本日（0:00以降）フレンドサークル内で一番早くタスクをクリア・投稿したユーザーのカード右上に `🥇 今日のトップランナー` バッジを自動表示。
+    - [weekly_review_screen.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/weekly_review_screen.dart) にて「今週のハイライト」のフレンド関連カード（最もVFIREを送った相手／送られた相手）をタップ可能に拡張。
+    - タップ時に触覚フィードバック（`HapticFeedback.mediumImpact()`）と浮き上がるトースト（「〇〇さんへ感謝を届けました！💌」）を表示し、[push_notification_service.dart](file:///Users/rennlikeu/development/V-Effect/lib/services/push_notification_service.dart) の `sendWeeklyThanksNotification` を経由してアプリ内通知＋FCMプッシュ通知を相手のスマホへ送出する連携を構築。
+    - 通知メッセージを行動心理学と週末の文脈に合わせ「来週も共に高みを目指そう！」「👑 あなたが今週のMVPです！」などの翌週（来週）へ繋がる熱いエール・感謝表現へ更新。
+    - 各カードの右下に `[タップで感謝を送る 💌]` / 送信後は `[感謝送信済み 💌]` バッジを表示し、`SharedPreferences` による週1回の送信状態保持で連続タップ防止と特別感を演出。
+    - [weekly_review_provider.dart](file:///Users/rennlikeu/development/V-Effect/lib/providers/weekly_review_provider.dart) にて Weekly Review 画面の「リアクション」集計時、`emojiReactedUserIds.length`（単なるユニーク人数）で計算して数値が少なくなっていたバグを修正。`post.userReactions.length`（受け取った全絵文字リアクションマップの全件数）を集計に適用し、届いた全絵文字リアクション数が正しく反映されるよう改善。
+    - [functions/index.js](file:///Users/rennlikeu/development/V-Effect/functions/index.js) 内の Mutual Fire クエリで必要とされていた Firestore 複合インデックス (`notifications` の `fromUid`, `toUid`, `type`, `createdAt`) を [firestore.indexes.json](file:///Users/rennlikeu/development/V-Effect/firestore.indexes.json) に追加・本番環境へデプロイ完了。
+    - クエリ未インデックスによる `FAILED_PRECONDITION` 例外で `sendPushNotification` がクラッシュしてプッシュ通知が全滅していた現象に対し、Mutual Fire 判定を `try-catch` で保護し、例外発生時も後続の `sendPushToUser` プッシュ送信が100%確実に実行されるよう耐久性を強化。
+    - [functions/index.js](file:///Users/rennlikeu/development/V-Effect/functions/index.js) の `sendPushNotification` にて、リアクション更新時（VFIREや絵文字の追加送付時）に `if (!before) return;` で2回目以降の通知がすべてブロックされていた仕様を解除。`reactionCount` や `body` の増加・変化時にリアルタイムで FCM プッシュ通知（`sendPushToUser`）が送出されるよう修正・デプロイを完了。
+    - [functions/index.js](file:///Users/rennlikeu/development/V-Effect/functions/index.js) にて前回の編集時に失われていた `const now = new Date();` 変数定義を復元し、`processPostNotifications` 内で発生していた `ReferenceError: now is not defined` クラッシュを修正。通常のタスク達成通知配信を完全復旧。
+    - [streak_service.dart](file:///Users/rennlikeu/development/V-Effect/lib/services/streak_service.dart) にて、連続途切延時に即時0リセットを行わず 24時間の救済フラグ `isRescueActive` をセットするロジック、および7日連続投稿ごとのシールド付与（最大2個保有可能）を実装。
+    - [post_service.dart](file:///Users/rennlikeu/development/V-Effect/lib/services/post_service.dart) にて、救済中のユーザーが「二分間ルール」で投稿した際に `isRescuePost: true` を設定し、フレンド全員へ `🤝 〇〇が立ち上がった！`（英語: `🤝 {name} has risen!`）SOS通知を即時送信する処理を追加。
+    - 投稿に累計150 VFIRE以上が集まった瞬間に自動でストリークを完全復元し、協力してくれたフレンド全員に「🎉 〇〇さんのストリークが復活しました！」の感謝通知を配信するロジックを実装。
+    - [rescue_speech_bubble.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/home/components/rescue_speech_bubble.dart) を新規作成し、[feed_card.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/home/components/feed_card.dart) のカード外直上（`top: -44`）に下向き三角形ポインター付きの赤〜オレンジネオン発光吹き出しバッジ（`🔥 合計150VFIREで救済！` / `🔥 Revive with 150 VFIREs!`）を表示するUIを実装。カード内テキストとのUI干渉・かぶりを100%解消。
+    - [v_phoenix_rebirth_dialog.dart](file:///Users/rennlikeu/development/V-Effect/lib/widgets/v_phoenix_rebirth_dialog.dart) を新規作成。150 VFIRE達成時に全画面で黄金の不死鳥と重厚な振動（Haptics）による `REIGNITE` 演出ダイアログを実装。
+    - [app_ja.arb](file:///Users/rennlikeu/development/V-Effect/lib/l10n/app_ja.arb) および [app_en.arb](file:///Users/rennlikeu/development/V-Effect/lib/l10n/app_en.arb) に行動心理学（プロスペクト理論・二分間ルール）に基づく全テキストを定義し、`flutter gen-l10n` にて多言語化対応を完了。
 
 ### 2026-07-17 (Antigravity)
 - **Implement 404 JavaScript Redirect for User Profiles (404エラーページ経由のJavaScriptによるプロフィールURL転送の実装):**

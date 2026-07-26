@@ -2256,4 +2256,55 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get heroTasksUnpublishButton => 'Make Private';
+
+  @override
+  String get vPhoenixRescueBadge => '🔥 Revive with 150 VFIREs!';
+
+  @override
+  String vPhoenixNotificationTitle(String name) {
+    return '🤝 $name has risen!';
+  }
+
+  @override
+  String vPhoenixNotificationBody(String name) {
+    return '$name didn\'t give up! Reach 150 VFIREs total to revive $name\'s streak (like a phoenix!)';
+  }
+
+  @override
+  String vPhoenixBackup18Title(String taskName) {
+    return '⏱️ Just 2 mins of $taskName!';
+  }
+
+  @override
+  String vPhoenixBackup18Body(String taskName, int days) {
+    return 'It doesn\'t have to be perfect. Spend just 2 minutes on $taskName to fully restore your $days-day streak!🔥';
+  }
+
+  @override
+  String vPhoenixBackup21Title(String taskName) {
+    return '🌿 2 mins of $taskName is enough';
+  }
+
+  @override
+  String vPhoenixBackup21Body(String taskName) {
+    return 'Just 2 mins is a 100% win! A tiny 2-minute start changes your moment of decision today⚡️';
+  }
+
+  @override
+  String vPhoenixRevivedTitle(String name) {
+    return '🎉 $name\'s streak has been revived!';
+  }
+
+  @override
+  String vPhoenixRevivedBody(String name) {
+    return 'Thanks to your passionate VFIREs, $name\'s streak is back from the ashes! \"Thank you for your support!🔥\"';
+  }
+
+  @override
+  String get vPhoenixRebirthDialogTitle => 'REIGNITE';
+
+  @override
+  String vPhoenixRebirthDialogDesc(int days) {
+    return 'Your $days-day streak is revived! Powered by your friends\' support, you rose from the ashes!';
+  }
 }

@@ -8,6 +8,9 @@ import '../../../models/quote.dart';
 import '../../../widgets/v_badge_widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/vfire_provider.dart';
+import 'rescue_speech_bubble.dart';
+import 'top_runner_badge.dart';
+import '../../../../widgets/v_flame_icon.dart';
 
 /// フィード画面に表示される各投稿のカード型UIコンポーネント。
 class FeedCard extends StatelessWidget {
@@ -24,6 +27,7 @@ class FeedCard extends StatelessWidget {
     required this.tierColor,
     this.onProfileTap,
     this.onOptionsTap,
+    this.isTopRunner = false,
   });
 
   final Post post;
@@ -37,6 +41,7 @@ class FeedCard extends StatelessWidget {
   final Color tierColor;
   final VoidCallback? onProfileTap;
   final VoidCallback? onOptionsTap;
+  final bool isTopRunner;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +56,7 @@ class FeedCard extends StatelessWidget {
         : '';
     final quoteAuthor = randomQuote != null ? '- ${randomQuote.author}' : '';
 
-    return Container(
+    final cardWidget = Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
@@ -402,10 +407,11 @@ class FeedCard extends StatelessWidget {
                                     width: 1,
                                   ),
                                 ),
-                                child: Icon(
-                                  Icons.local_fire_department,
-                                  color: AppColors.accentGold,
-                                  size: 32,
+                                child: const Center(
+                                  child: VFlameIcon(
+                                    size: 40,
+                                    isGlowing: true,
+                                  ),
                                 ),
                               ),
                             ),
@@ -462,6 +468,25 @@ class FeedCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        cardWidget,
+        if (post.isRescuePost)
+          const Positioned(
+            top: -44,
+            left: 20,
+            child: RescueSpeechBubble(),
+          ),
+        if (isTopRunner)
+          const Positioned(
+            top: 16,
+            right: 16,
+            child: TopRunnerBadge(),
+          ),
+      ],
     );
   }
 }

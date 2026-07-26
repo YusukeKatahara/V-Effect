@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_colors.dart';
 import '../models/friend_request.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,6 +16,8 @@ import 'home_screen.dart';
 import 'v_timeline_screen.dart';
 import 'profile_screen.dart';
 import 'hero_tasks_screen.dart';
+import 'home/components/floating_flames_layer.dart';
+import 'home/components/dopamine_emoji_explosion_layer.dart';
 
 /// Spatial Shell — ジェスチャー主導のUI空間
 ///
@@ -35,6 +39,11 @@ class _MainShellState extends ConsumerState<MainShell> {
   bool _isHomeLoading = true;
   late final SoundService _soundService; // BGM制御用サービス（アンマウント時のクラッシュ防止のため保持）
 
+  final GlobalKey<FloatingFlamesLayerState> _globalFlamesKey = GlobalKey();
+  final GlobalKey<DopamineEmojiExplosionLayerState> _globalExplosionKey = GlobalKey();
+  StreamSubscription<QuerySnapshot>? _notificationSubscription;
+  DateTime? _lastNotificationHandledTime;
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +59,53 @@ class _MainShellState extends ConsumerState<MainShell> {
     // ホーム画面が表示された直後に通知許可ダイアログをチェック・表示する
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkNotificationPrompt();
+      _initRealtimeEffectListener();
+    });
+  }
+
+  void _initRealtimeEffectListener() {
+    final uid = ref.read(userServiceProvider).currentUid;
+    if (uid == null) return;
+
+    _notificationSubscription?.cancel();
+    _lastNotificationHandledTime = DateTime.now();
+
+    // リアルタイムに自分宛てのリアクション通知を監視
+    _notificationSubscription = FirebaseFirestore.instance
+        .collection('notifications')
+        .where('toUid', isEqualTo: uid)
+        .where('type', isEqualTo: 'reactionReceived')
+        .snapshots()
+        .listen((snap) {
+      if (!mounted) return;
+      for (final change in snap.docChanges) {
+        if (change.type == DocumentChangeType.added || change.type == DocumentChangeType.modified) {
+          final data = change.doc.data();
+          if (data == null) continue;
+
+          final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+          if (createdAt != null &&
+              _lastNotificationHandledTime != null &&
+              createdAt.isAfter(_lastNotificationHandledTime!)) {
+            _lastNotificationHandledTime = createdAt;
+
+            final emoji = data['emoji'] as String?;
+            HapticFeedback.mediumImpact();
+
+            if (emoji != null && emoji.isNotEmpty) {
+              // 送られてきた具体的な絵文字を画面下から爆発・演出！
+              _globalExplosionKey.currentState?.explode(emoji);
+            } else {
+              // VFIRE(🔥)の場合、画面下からメラメラ立ち上げる！
+              _globalFlamesKey.currentState?.addFlame(
+                color: AppColors.accentGold,
+                glowColor: AppColors.accentGoldLight,
+                size: 55.0,
+              );
+            }
+          }
+        }
+      }
     });
   }
 
@@ -65,6 +121,7 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   @override
   void dispose() {
+    _notificationSubscription?.cancel();
     MainShell.activeTabIndex.removeListener(_onGlobalTabChanged);
     super.dispose();
   }
@@ -150,6 +207,21 @@ class _MainShellState extends ConsumerState<MainShell> {
               ),
             ),
             child: IndexedStack(index: _currentIndex, children: _screens),
+          ),
+
+          // ── Global Real-Time Live Flame & Emoji Waves ──
+          Positioned.fill(
+            child: IgnorePointer(
+              child: FloatingFlamesLayer(key: _globalFlamesKey),
+            ),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DopamineEmojiExplosionLayer(
+                key: _globalExplosionKey,
+                bottomOffset: 40.0,
+              ),
+            ),
           ),
 
           // ── Bottom spatial nav ──

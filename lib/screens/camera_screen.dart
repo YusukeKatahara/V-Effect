@@ -428,6 +428,18 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   Future<Uint8List?> _capturePng() async {
     try {
+      // 投稿画像への編集UI（金枠や削除✖ボタン）の写り込みを防ぐため、
+      // キャプチャ直前にスタンプ（ステッカー）の選択状態を解除して再描画完了を待ちます。
+      if (_selectedSticker != null) {
+        setState(() {
+          _selectedSticker = null;
+        });
+        // UIの再描画（フレーム確定）を確実に待機します
+        await WidgetsBinding.instance.endOfFrame;
+      }
+
+      if (!mounted) return null;
+
       final boundary = _boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
       
@@ -919,15 +931,23 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     });
   }
 
-  /// ── 🆕 スタンプの実体Widgetデザインの生成 ──
+  /// ── 🆕 スタンプの実体Widgetデザインの生成（シャープで繊細なハイエンド・ラグジュアリー仕様） ──
   Widget _buildStickerContent(StickerItem sticker, int streak, int totalPosts) {
     final isJa = Localizations.localeOf(context).languageCode == 'ja';
     
     Widget content;
     Color? bgColor = sticker.isTextOnly ? null : AppColors.pureBlack.withValues(alpha: 0.65);
-    EdgeInsets padding = sticker.isTextOnly ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 16, vertical: 10);
-    Border? border = sticker.isTextOnly ? null : Border.all(color: AppColors.pureWhite.withValues(alpha: 0.15), width: 1);
-    BorderRadius borderRadius = BorderRadius.circular(16);
+    EdgeInsets padding = sticker.isTextOnly ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 22, vertical: 10);
+    Border? border = sticker.isTextOnly
+        ? null
+        : Border.all(color: AppColors.accentGold.withValues(alpha: 0.35), width: 1.0);
+    BorderRadius borderRadius = BorderRadius.circular(20);
+
+    // 高級感を引き立てる繊細でスマートなシャドウ
+    final defaultShadows = [
+      Shadow(color: Colors.black.withValues(alpha: 0.8), blurRadius: 10, offset: const Offset(0, 2)),
+      Shadow(color: AppColors.accentGold.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 0)),
+    ];
 
     switch (sticker.type) {
       case StickerType.timestamp:
@@ -937,24 +957,25 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         final minStr = time.minute.toString().padLeft(2, '0');
         content = Text(
           '$hourStr:$minStr',
-          style: GoogleFonts.outfit(
-            fontSize: 32,
-            fontWeight: FontWeight.w900,
+          style: GoogleFonts.montserrat(
+            fontSize: 34,
+            fontWeight: FontWeight.w300, // 繊細なLightウェイトでスタイリッシュな高級感を演出
             color: AppColors.pureWhite,
-            letterSpacing: 1.0,
-            shadows: sticker.isTextOnly ? const [Shadow(color: Colors.black54, blurRadius: 6, offset: Offset(0, 2))] : null,
+            letterSpacing: 5.0, // ゆとりのあるエレガントな文字間隔
+            shadows: defaultShadows,
           ),
         );
         break;
 
       case StickerType.streak:
         content = Text(
-          isJa ? '$streakストリーク' : '$streak Streak',
-          style: GoogleFonts.notoSansJp(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
+          isJa ? '$streak ストリーク' : '$streak STREAK',
+          style: GoogleFonts.montserrat(
+            fontSize: 22,
+            fontWeight: FontWeight.w400, // 細身のレギュラー
             color: AppColors.pureWhite,
-            shadows: sticker.isTextOnly ? const [Shadow(color: Colors.black54, blurRadius: 6, offset: Offset(0, 2))] : null,
+            letterSpacing: 3.5,
+            shadows: defaultShadows,
           ),
         );
         break;
@@ -963,15 +984,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         content = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 24),
-            const SizedBox(width: 6),
+            Icon(Icons.emoji_events_outlined, color: AppColors.accentGold, size: 20),
+            const SizedBox(width: 10),
             Text(
-              isJa ? 'トータルV: $totalPosts' : 'Total V: $totalPosts',
-              style: GoogleFonts.notoSansJp(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
+              isJa ? 'トータルV: $totalPosts' : 'TOTAL V: $totalPosts',
+              style: GoogleFonts.montserrat(
+                fontSize: 18,
+                fontWeight: FontWeight.w400,
                 color: AppColors.pureWhite,
-                shadows: sticker.isTextOnly ? const [Shadow(color: Colors.black54, blurRadius: 6, offset: Offset(0, 2))] : null,
+                letterSpacing: 3.0,
+                shadows: defaultShadows,
               ),
             ),
           ],
@@ -985,6 +1007,15 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         color: bgColor,
         borderRadius: borderRadius,
         border: border,
+        boxShadow: sticker.isTextOnly
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: content,
     );

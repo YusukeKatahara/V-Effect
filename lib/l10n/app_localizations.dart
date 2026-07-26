@@ -4372,6 +4372,72 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'非公開にする'**
   String get heroTasksUnpublishButton;
+
+  /// No description provided for @vPhoenixRescueBadge.
+  ///
+  /// In ja, this message translates to:
+  /// **'🔥 合計150VFIREで救済！'**
+  String get vPhoenixRescueBadge;
+
+  /// No description provided for @vPhoenixNotificationTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'🤝 {name}が立ち上がった！'**
+  String vPhoenixNotificationTitle(String name);
+
+  /// No description provided for @vPhoenixNotificationBody.
+  ///
+  /// In ja, this message translates to:
+  /// **'{name}が諦めずに投稿！合計150VFIREで{name}さんのストリークが復活します（まるで不死鳥のように！）'**
+  String vPhoenixNotificationBody(String name);
+
+  /// No description provided for @vPhoenixBackup18Title.
+  ///
+  /// In ja, this message translates to:
+  /// **'⏱️ 2分だけ{taskName}をやればOK！'**
+  String vPhoenixBackup18Title(String taskName);
+
+  /// No description provided for @vPhoenixBackup18Body.
+  ///
+  /// In ja, this message translates to:
+  /// **'完璧にやらなくても大丈夫。2分だけ{taskName}に着手して投稿すれば、{days}日間のストリークは完全復活します🔥'**
+  String vPhoenixBackup18Body(String taskName, int days);
+
+  /// No description provided for @vPhoenixBackup21Title.
+  ///
+  /// In ja, this message translates to:
+  /// **'🌿 {taskName}は2分で十分'**
+  String vPhoenixBackup21Title(String taskName);
+
+  /// No description provided for @vPhoenixBackup21Body.
+  ///
+  /// In ja, this message translates to:
+  /// **'『本を2分読む』『スクワット2分』で100点満点！小さな2分間が今日の『決定の瞬間』を変えます⚡️'**
+  String vPhoenixBackup21Body(String taskName);
+
+  /// No description provided for @vPhoenixRevivedTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'🎉 {name}さんのストリークが復活しました！'**
+  String vPhoenixRevivedTitle(String name);
+
+  /// No description provided for @vPhoenixRevivedBody.
+  ///
+  /// In ja, this message translates to:
+  /// **'あなたの熱いVFIREのおかげで、{name}さんの連続記録が息を吹き返しました！「応援ありがとう！🔥」'**
+  String vPhoenixRevivedBody(String name);
+
+  /// No description provided for @vPhoenixRebirthDialogTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'REIGNITE'**
+  String get vPhoenixRebirthDialogTitle;
+
+  /// No description provided for @vPhoenixRebirthDialogDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'{days}日間のストリークが完全復活！仲間からの想いを受け取り、不死鳥のように蘇りました！'**
+  String vPhoenixRebirthDialogDesc(int days);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

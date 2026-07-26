@@ -2256,4 +2256,55 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get heroTasksUnpublishButton => '非公開にする';
+
+  @override
+  String get vPhoenixRescueBadge => '🔥 合計150VFIREで救済！';
+
+  @override
+  String vPhoenixNotificationTitle(String name) {
+    return '🤝 $nameが立ち上がった！';
+  }
+
+  @override
+  String vPhoenixNotificationBody(String name) {
+    return '$nameが諦めずに投稿！合計150VFIREで$nameさんのストリークが復活します（まるで不死鳥のように！）';
+  }
+
+  @override
+  String vPhoenixBackup18Title(String taskName) {
+    return '⏱️ 2分だけ$taskNameをやればOK！';
+  }
+
+  @override
+  String vPhoenixBackup18Body(String taskName, int days) {
+    return '完璧にやらなくても大丈夫。2分だけ$taskNameに着手して投稿すれば、$days日間のストリークは完全復活します🔥';
+  }
+
+  @override
+  String vPhoenixBackup21Title(String taskName) {
+    return '🌿 $taskNameは2分で十分';
+  }
+
+  @override
+  String vPhoenixBackup21Body(String taskName) {
+    return '『本を2分読む』『スクワット2分』で100点満点！小さな2分間が今日の『決定の瞬間』を変えます⚡️';
+  }
+
+  @override
+  String vPhoenixRevivedTitle(String name) {
+    return '🎉 $nameさんのストリークが復活しました！';
+  }
+
+  @override
+  String vPhoenixRevivedBody(String name) {
+    return 'あなたの熱いVFIREのおかげで、$nameさんの連続記録が息を吹き返しました！「応援ありがとう！🔥」';
+  }
+
+  @override
+  String get vPhoenixRebirthDialogTitle => 'REIGNITE';
+
+  @override
+  String vPhoenixRebirthDialogDesc(int days) {
+    return '$days日間のストリークが完全復活！仲間からの想いを受け取り、不死鳥のように蘇りました！';
+  }
 }

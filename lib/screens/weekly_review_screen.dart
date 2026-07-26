@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/push_notification_service.dart';
+import '../utils/date_helper.dart';
 import '../config/app_colors.dart';
 import '../models/post.dart';
 import '../providers/weekly_review_provider.dart';
@@ -28,8 +34,10 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
   int _totalReactions = 0;
 
   // 新しく追加されたパーソナライズ統計
+  String? _mostSentToUid;
   String? _mostSentToName;
   int _mostSentToCount = 0;
+  String? _mostReceivedFromUid;
   String? _mostReceivedFromName;
   int _mostReceivedFromCount = 0;
   int _mostActiveDayOfWeek = 0;
@@ -38,9 +46,89 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
   String? _buddyTaskName;
   int _buddyTaskCount = 0;
 
+  bool _sentSentToThanks = false;
+  bool _sentReceivedFromThanks = false;
+
   bool _isDataInitialized = false;
 
   final GlobalKey _summaryKey = GlobalKey();
+
+  Future<void> _checkThanksStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final mondayStr = DateHelper.getMondayOfWeekString(DateTime.now());
+    if (mounted) {
+      setState(() {
+        if (_mostSentToUid != null) {
+          _sentSentToThanks = prefs.getBool('thanks_sent_to_${_mostSentToUid}_$mondayStr') ?? false;
+        }
+        if (_mostReceivedFromUid != null) {
+          _sentReceivedFromThanks = prefs.getBool('thanks_sent_from_${_mostReceivedFromUid}_$mondayStr') ?? false;
+        }
+      });
+    }
+  }
+
+  Future<void> _handleSendThanks({
+    required String targetUid,
+    required String targetName,
+    required bool isMostSentTo,
+    required int count,
+  }) async {
+    if (targetUid.isEmpty) return;
+
+    final myUserSnap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser?.uid)
+        .get();
+    final myName = myUserSnap.data()?['displayName'] ?? myUserSnap.data()?['username'] ?? 'フレンド';
+
+    await PushNotificationService.instance.sendWeeklyThanksNotification(
+      toUid: targetUid,
+      fromUsername: myName,
+      isMostSentTo: isMostSentTo,
+      count: count,
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    final mondayStr = DateHelper.getMondayOfWeekString(DateTime.now());
+    final key = isMostSentTo
+        ? 'thanks_sent_to_${targetUid}_$mondayStr'
+        : 'thanks_sent_from_${targetUid}_$mondayStr';
+    await prefs.setBool(key, true);
+
+    HapticFeedback.mediumImpact();
+
+    if (mounted) {
+      setState(() {
+        if (isMostSentTo) {
+          _sentSentToThanks = true;
+        } else {
+          _sentReceivedFromThanks = true;
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.favorite_rounded, color: Colors.pinkAccent, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$targetName さんへ感謝を届けました！💌',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.grey15,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -170,8 +258,10 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                 _currentStreak = data.streak;
                 _totalVFire = data.totalVFire;
                 _totalReactions = data.totalReactions;
+                _mostSentToUid = data.mostSentToUid;
                 _mostSentToName = data.mostSentToName;
                 _mostSentToCount = data.mostSentToCount;
+                _mostReceivedFromUid = data.mostReceivedFromUid;
                 _mostReceivedFromName = data.mostReceivedFromName;
                 _mostReceivedFromCount = data.mostReceivedFromCount;
                 _mostActiveDayOfWeek = data.mostActiveDayOfWeek;
@@ -181,6 +271,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                 _buddyTaskCount = data.buddyTaskCount;
                 _isDataInitialized = true;
               });
+              _checkThanksStatus();
               _precacheImages();
             }
           });
@@ -389,25 +480,47 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     final highlights = <Widget>[];
 
     // 1. 最もV FIREを送った相手 (社交度)
-    if (_mostSentToCount > 0 && _mostSentToName != null) {
+    if (_mostSentToCount > 0 && _mostSentToName != null && _mostSentToUid != null) {
       highlights.add(
         _buildHighlightCard(
           icon: '🔥',
           message: localizations.weeklyReviewMostSentTo(_mostSentToName!, _mostSentToCount),
           color: Colors.orangeAccent.withValues(alpha: 0.15),
           borderColor: Colors.orangeAccent.withValues(alpha: 0.3),
+          isActionable: true,
+          isSent: _sentSentToThanks,
+          actionHint: _sentSentToThanks ? '感謝送信済み 💌' : 'タップで感謝を送る 💌',
+          onTap: _sentSentToThanks
+              ? null
+              : () => _handleSendThanks(
+                    targetUid: _mostSentToUid!,
+                    targetName: _mostSentToName!,
+                    isMostSentTo: true,
+                    count: _mostSentToCount,
+                  ),
         ),
       );
     }
 
     // 2. 最もV FIREを受け取った相手 (被社交度)
-    if (_mostReceivedFromCount > 0 && _mostReceivedFromName != null) {
+    if (_mostReceivedFromCount > 0 && _mostReceivedFromName != null && _mostReceivedFromUid != null) {
       highlights.add(
         _buildHighlightCard(
           icon: '✨',
           message: localizations.weeklyReviewMostReceivedFrom(_mostReceivedFromName!, _mostReceivedFromCount),
           color: Colors.purpleAccent.withValues(alpha: 0.15),
           borderColor: Colors.purpleAccent.withValues(alpha: 0.3),
+          isActionable: true,
+          isSent: _sentReceivedFromThanks,
+          actionHint: _sentReceivedFromThanks ? '感謝送信済み 💌' : 'タップで感謝を送る 💌',
+          onTap: _sentReceivedFromThanks
+              ? null
+              : () => _handleSendThanks(
+                    targetUid: _mostReceivedFromUid!,
+                    targetName: _mostReceivedFromName!,
+                    isMostSentTo: false,
+                    count: _mostReceivedFromCount,
+                  ),
         ),
       );
     }
@@ -489,41 +602,94 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     required String message,
     required Color color,
     required Color borderColor,
+    VoidCallback? onTap,
+    bool isActionable = false,
+    bool isSent = false,
+    String? actionHint,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSent ? AppColors.grey50.withValues(alpha: 0.3) : borderColor,
+            width: isActionable ? 1.8 : 1.5,
           ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            icon,
-            style: const TextStyle(fontSize: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.white,
-                fontWeight: FontWeight.w600,
-                height: 1.4,
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  icon,
+                  style: const TextStyle(fontSize: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w600,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (isActionable && actionHint != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSent
+                      ? AppColors.grey50.withValues(alpha: 0.2)
+                      : AppColors.accentGold.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSent
+                        ? AppColors.grey50.withValues(alpha: 0.4)
+                        : AppColors.accentGold,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isSent ? Icons.check_circle_rounded : Icons.send_rounded,
+                      size: 12,
+                      color: isSent ? AppColors.grey50 : AppColors.accentGold,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      actionHint,
+                      style: GoogleFonts.notoSansJp(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isSent ? AppColors.grey50 : AppColors.accentGold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

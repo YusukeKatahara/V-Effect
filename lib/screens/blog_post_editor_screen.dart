@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +12,7 @@ import '../config/app_colors.dart';
 import '../models/dev_blog_post.dart';
 import '../models/season.dart';
 import '../providers/service_providers.dart';
+import '../widgets/app_markdown_viewer.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/v_effect_header.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -481,10 +481,8 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
           if (title.isNotEmpty && body.isNotEmpty)
             const SizedBox(height: 20),
           if (body.isNotEmpty)
-            MarkdownBody(
+            AppMarkdownViewer(
               data: body,
-              styleSheet: _markdownStyleSheet(),
-              selectable: true,
             ),
           if (title.isEmpty && body.isEmpty)
             Center(
@@ -501,61 +499,7 @@ class _BlogPostEditorScreenState extends ConsumerState<BlogPostEditorScreen> {
     );
   }
 
-  MarkdownStyleSheet _markdownStyleSheet() {
-    return MarkdownStyleSheet(
-      h1: GoogleFonts.notoSansJp(
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-          color: AppColors.white,
-          height: 1.4),
-      h2: GoogleFonts.notoSansJp(
-          fontSize: 17,
-          fontWeight: FontWeight.w700,
-          color: AppColors.white,
-          height: 1.4),
-      h3: GoogleFonts.notoSansJp(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: AppColors.white),
-      p: GoogleFonts.notoSansJp(
-          fontSize: 15, color: AppColors.grey85, height: 1.8),
-      strong: GoogleFonts.notoSansJp(
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-          color: AppColors.white),
-      em: GoogleFonts.notoSansJp(
-          fontSize: 15,
-          color: AppColors.grey85,
-          fontStyle: FontStyle.italic),
-      listBullet: GoogleFonts.notoSansJp(
-          fontSize: 15, color: AppColors.grey85, height: 1.8),
-      blockquote: GoogleFonts.notoSansJp(
-          fontSize: 15, color: AppColors.grey50, height: 1.8),
-      code: GoogleFonts.sourceCodePro(
-          fontSize: 13,
-          color: AppColors.grey85,
-          backgroundColor: Colors.transparent),
-      codeblockDecoration: BoxDecoration(
-        color: AppColors.grey10,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.grey20, width: 0.5),
-      ),
-      codeblockPadding: const EdgeInsets.all(12),
-      blockquoteDecoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(color: AppColors.grey30, width: 3),
-        ),
-      ),
-      blockquotePadding:
-          const EdgeInsets.only(left: 16, top: 4, bottom: 4),
-      horizontalRuleDecoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: AppColors.grey20, width: 0.5),
-        ),
-      ),
-      blockSpacing: 16,
-    );
-  }
+
 
   // ── フォーマットツールバー ────────────────────────────
 

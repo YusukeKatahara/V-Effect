@@ -4,6 +4,7 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../../config/app_colors.dart';
 import '../../config/routes.dart';
 import '../../services/user_service.dart';
+import '../../services/push_notification_service.dart';
 import '../../providers/service_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/gradient_button.dart';
@@ -113,6 +114,12 @@ class _FirstVQuestScreenState extends ConsumerState<FirstVQuestScreen>
         questTitle: skip ? null : _questCtrl.text.trim(),
         questTrigger: skip ? null : _triggerCtrl.text.trim(),
       );
+
+      // 行動心理学に基づく習慣化ストーリー通知（Day 1, Day 3, Day 7）を生活リズムに合わせてスケジュール登録
+      await PushNotificationService().scheduleOnboardingRetentionStoryNotifications(
+        timeframeIndex: _selectedTimeframeIndex,
+      );
+
       if (mounted) {
         Navigator.pushNamed(
           context,

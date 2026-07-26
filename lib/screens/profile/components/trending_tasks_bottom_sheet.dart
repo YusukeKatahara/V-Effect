@@ -52,7 +52,20 @@ void showTrendingTasksBottomSheet(
     backgroundColor: Colors.transparent, // DraggableScrollableSheet用に透明化
     isScrollControlled: true,
     builder: (ctx) {
-      final int totalCount = trendingTasks.fold(0, (acc, t) => acc + ((t['count'] as num?)?.toInt() ?? 0));
+      // 件数(count)の降順、同数の場合はスコア(score)の降順でソート
+      final sortedTasks = List<Map<String, dynamic>>.from(trendingTasks)
+        ..sort((a, b) {
+          final countA = (a['count'] as num?)?.toInt() ?? 0;
+          final countB = (b['count'] as num?)?.toInt() ?? 0;
+          if (countB != countA) {
+            return countB.compareTo(countA);
+          }
+          final scoreA = (a['score'] as num?)?.toDouble() ?? 0.0;
+          final scoreB = (b['score'] as num?)?.toDouble() ?? 0.0;
+          return scoreB.compareTo(scoreA);
+        });
+
+      final int totalCount = sortedTasks.fold(0, (acc, t) => acc + ((t['count'] as num?)?.toInt() ?? 0));
 
       return DraggableScrollableSheet(
         initialChildSize: 0.6,
@@ -92,16 +105,16 @@ void showTrendingTasksBottomSheet(
                   ),
                   const SizedBox(height: 16),
                   // ---トレンドリスト
-                  if (trendingTasks.isEmpty)
+                  if (sortedTasks.isEmpty)
                     Text(AppLocalizations.of(context)!.profileScreenTrendEmpty, style: TextStyle(color: AppColors.grey70))
                   else
                     Expanded(
                       child: ListView.separated(
                         controller: scrollController,
-                        itemCount: trendingTasks.length,
+                        itemCount: sortedTasks.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
-                          final trend = trendingTasks[index];
+                          final trend = sortedTasks[index];
                           final rawName = trend['name'] as String? ?? '';
                           if (rawName.isEmpty) return const SizedBox.shrink();
 

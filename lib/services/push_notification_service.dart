@@ -30,6 +30,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// - バックグラウンド/終了状態の通知はシステムが自動処理
 /// - ストリーク保護アラート: ストリーク切れを防ぐローカル通知をスケジュール
 class PushNotificationService {
+  static PushNotificationService get instance => _instance;
   static final PushNotificationService _instance =
       PushNotificationService._internal();
   factory PushNotificationService() => _instance;
@@ -719,4 +720,231 @@ class PushNotificationService {
       debugPrint('Error cancelling daily task reminder: $e');
     }
   }
+
+  /// オンボーディング完了時に呼び出し、生活リズム連動型（朝/昼/夜）の
+  /// 習慣化ストーリー通知（Day 1, Day 3, Day 7）を個別スケジュール登録します。
+  Future<void> scheduleOnboardingRetentionStoryNotifications({
+    required int timeframeIndex, // 0: 朝, 1: 昼, 2: 夜
+  }) async {
+    if (kIsWeb) return;
+    try {
+      final now = DateTime.now();
+
+      // タイムフレームに応じた送信時刻（時間・分）の決定
+      // 朝(0): 07:30 / 昼(1): 12:15 / 夜(2): 20:30
+      int targetHour;
+      int targetMinute;
+
+      switch (timeframeIndex) {
+        case 0:
+          targetHour = 7;
+          targetMinute = 30;
+          break;
+        case 1:
+          targetHour = 12;
+          targetMinute = 15;
+          break;
+        case 2:
+          targetHour = 20;
+          targetMinute = 30;
+          break;
+        default:
+          targetHour = 7;
+          targetMinute = 30;
+      }
+
+      // 言語判定
+      final isJapanese = PlatformDispatcher.instance.locale.languageCode == 'ja';
+
+      // --- Day 1 (翌日) ---
+      final day1Date = tz.TZDateTime.from(
+        DateTime(now.year, now.month, now.day + 1, targetHour, targetMinute),
+        tz.local,
+      );
+      if (day1Date.isAfter(now)) {
+        final String title1;
+        final String body1;
+        if (isJapanese) {
+          final greeting = timeframeIndex == 0
+              ? 'おはようございます！☀️'
+              : (timeframeIndex == 1 ? 'こんにちは！☀️' : 'こんばんは！🌙');
+          title1 = greeting;
+          body1 = '昨日の一歩、覚えていますか？今日も1分だけアプリを開いてみよう 🚀';
+        } else {
+          final greeting = timeframeIndex == 0
+              ? 'Good morning! ☀️'
+              : (timeframeIndex == 1 ? 'Good afternoon! ☀️' : 'Good evening! 🌙');
+          title1 = greeting;
+          body1 = "Remember your first step yesterday? Let's open the app for just 1 minute today 🚀";
+        }
+
+        await _scheduleOneOffLocalNotification(9001, title1, body1, day1Date);
+        debugPrint('Retention Story Notification (Day 1) scheduled: $day1Date');
+      }
+
+      // --- Day 3 (3日後) ---
+      final day3Date = tz.TZDateTime.from(
+        DateTime(now.year, now.month, now.day + 3, targetHour, targetMinute),
+        tz.local,
+      );
+      if (day3Date.isAfter(now)) {
+        final title3 = isJapanese ? '3日目の壁を突破しよう！🔥' : 'Break through the 3-day wall! 🔥';
+        final body3 = isJapanese
+            ? '今日をクリアすると習慣化にぐっと近づきます！今日の成果を写真で残してみませんか？'
+            : 'Clearing today brings you closer to making it a habit! Share your progress with a photo today!';
+
+        await _scheduleOneOffLocalNotification(9003, title3, body3, day3Date);
+        debugPrint('Retention Story Notification (Day 3) scheduled: $day3Date');
+      }
+
+      // --- Day 7 (7日後) ---
+      final day7Date = tz.TZDateTime.from(
+        DateTime(now.year, now.month, now.day + 7, targetHour, targetMinute),
+        tz.local,
+      );
+      if (day7Date.isAfter(now)) {
+        final title7 = isJapanese ? '祝・1週間達成！🏆' : 'Congrats on 1 week! 🏆';
+        final body7 = isJapanese
+            ? 'すごいです！1週間達成！あなたの新しい習慣が定着し始めました 👑'
+            : 'Amazing! 1 week completed! Your new habit is starting to take root 👑';
+
+        await _scheduleOneOffLocalNotification(9007, title7, body7, day7Date);
+        debugPrint('Retention Story Notification (Day 7) scheduled: $day7Date');
+      }
+    } catch (e) {
+      debugPrint('Error scheduling retention story notifications: $e');
+    }
+  }
+
+  /// 救済中のユーザーが投稿した際、フレンド全員へ SOS 通知を送信
+  Future<void> sendRescueNotificationToFriends({
+    required String uid,
+    required String username,
+  }) async {
+    try {
+      final friends = await FriendService.instance.getFriendsByUid(uid);
+      final isJa = PlatformDispatcher.instance.locale.languageCode == 'ja';
+
+      final title = isJa ? '🤝 $usernameが立ち上がった！' : '🤝 $username has risen!';
+      final body = isJa
+          ? '$usernameが諦めずに投稿！合計150VFIREで$usernameさんのストリークが復活します（まるで不死鳥のように！）'
+          : "$username didn't give up! Reach 150 VFIREs total to revive $username's streak (like a phoenix!)";
+
+      for (final friend in friends) {
+        final notificationId = 'rescue_${uid}_${DateTime.now().millisecondsSinceEpoch}';
+        final notification = AppNotification(
+          id: notificationId,
+          toUid: friend.uid,
+          type: NotificationType.reactionReceived,
+          title: title,
+          body: body,
+          createdAt: DateTime.now(),
+          sendPush: true,
+          isRead: false,
+          relatedId: uid,
+        );
+
+        await _db
+            .collection('users')
+            .doc(friend.uid)
+            .collection('notifications')
+            .doc(notificationId)
+            .set(notification.toFirestore());
+      }
+    } catch (e) {
+      debugPrint('Error sending rescue notifications to friends: $e');
+    }
+  }
+
+  /// 150 VFIRE到達でストリーク復活時、VFIREを贈ってくれたフレンド全員に感謝通知を送信
+  Future<void> sendRescueRevivedNotification({
+    required String targetUid,
+    required String username,
+    required List<String> helperUids,
+  }) async {
+    try {
+      final isJa = PlatformDispatcher.instance.locale.languageCode == 'ja';
+      final title = isJa ? '🎉 $usernameさんのストリークが復活しました！' : "🎉 $username's streak has been revived!";
+      final body = isJa
+          ? 'あなたの熱いVFIREのおかげで、$usernameさんの連続記録が息を吹き返しました！「応援ありがとう！🔥」'
+          : 'Thanks to your passionate VFIREs, $username\'s streak is back from the ashes! "Thank you for your support!🔥"';
+
+      final uniqueHelpers = helperUids.toSet().toList();
+      for (final helperUid in uniqueHelpers) {
+        if (helperUid == targetUid) continue;
+        final notificationId = 'revived_${targetUid}_${DateTime.now().millisecondsSinceEpoch}';
+        final notification = AppNotification(
+          id: notificationId,
+          toUid: helperUid,
+          type: NotificationType.reactionReceived,
+          title: title,
+          body: body,
+          createdAt: DateTime.now(),
+          sendPush: true,
+          isRead: false,
+          relatedId: targetUid,
+        );
+
+        await _db
+            .collection('users')
+            .doc(helperUid)
+            .collection('notifications')
+            .doc(notificationId)
+            .set(notification.toFirestore());
+      }
+    } catch (e) {
+      debugPrint('Error sending rescue revived notifications: $e');
+    }
+  }
+
+  /// Weekly Review から相手に「今週の感謝」通知を送信する
+  Future<void> sendWeeklyThanksNotification({
+    required String toUid,
+    required String fromUsername,
+    required bool isMostSentTo,
+    required int count,
+  }) async {
+    try {
+      final myUid = _auth.currentUser?.uid;
+      if (myUid == null || toUid.isEmpty) return;
+
+      final isJa = PlatformDispatcher.instance.locale.languageCode == 'ja';
+      final String title;
+      final String body;
+
+      if (isMostSentTo) {
+        title = isJa ? '💌 来週もよろしく！' : '💌 Let\'s crush next week too!';
+        body = isJa
+            ? '$fromUsernameさんから「今週一番多くV FIRE（$count回）を送ったよ！来週も共に高みを目指そう！」の熱いエールが届きました🔥'
+            : '$fromUsername sent you a message: "Sent the most V FIREs ($count) to you this week! Let\'s reach new heights next week!🔥"';
+      } else {
+        title = isJa ? '👑 あなたが今週のMVPです！' : '👑 You are this week\'s MVP!';
+        body = isJa
+            ? '$fromUsernameさんから「今週あなたからの$count回のV FIREが一番力になった！来週もよろしくね✨」と感謝が届きました！'
+            : '$fromUsername sent you a thank-you: "Your $count V FIREs gave me the most strength this week! Let\'s keep it up next week!✨"';
+      }
+
+      final notificationId = 'weekly_thanks_${myUid}_${DateTime.now().millisecondsSinceEpoch}';
+      final notification = AppNotification(
+        id: notificationId,
+        toUid: toUid,
+        fromUid: myUid,
+        type: NotificationType.reactionReceived,
+        title: title,
+        body: body,
+        createdAt: DateTime.now(),
+        sendPush: true,
+        isRead: false,
+        relatedId: myUid,
+      );
+
+      await _db
+          .collection('notifications')
+          .doc(notificationId)
+          .set(notification.toFirestore());
+    } catch (e) {
+      debugPrint('Error sending weekly thanks notification: $e');
+    }
+  }
 }
+

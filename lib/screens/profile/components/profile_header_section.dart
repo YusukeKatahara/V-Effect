@@ -5,6 +5,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../config/app_colors.dart';
 import '../../../models/app_user.dart';
@@ -296,6 +298,34 @@ class ProfileHeaderSection extends StatelessWidget {
                   onTap: () {
                     Navigator.pop(context);
                     onQrPressed();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.bug_report_rounded, color: Colors.orangeAccent),
+                  title: const Text(
+                    '🧪 救済テストモードをONにする',
+                    style: TextStyle(color: Colors.orangeAccent, fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    try {
+                      final uid = FirebaseAuth.instance.currentUser?.uid;
+                      if (uid != null) {
+                        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+                          'isRescueActive': true,
+                          'prevStreak': 10,
+                          'streak': 1,
+                          'lastPostedDate': '2026-07-21',
+                        });
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('🔥 救済テストモードをONにしました！（ストリーク10日救済中）')),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      debugPrint('Error setting test rescue mode: $e');
+                    }
                   },
                 ),
                 const SizedBox(height: 16),

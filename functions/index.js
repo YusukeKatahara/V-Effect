@@ -39,6 +39,17 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}) {
     return;
   }
 
+  // 通知タイプごとの詳細設定をチェック
+  const type = dataPayload.type || "";
+  if (type === "reactionReceived") {
+    if (dataPayload.emoji && userData.reactionNotifications === false) {
+      return;
+    }
+    if (!dataPayload.emoji && userData.vFireNotifications === false) {
+      return;
+    }
+  }
+
   // fcmToken は private subcollection を優先参照。
   // 旧バージョンのアプリは users/{uid}.fcmToken（公開エリア）に書き込み続けるため、
   // 移行期間中は public 側にフォールバックする。
@@ -179,43 +190,56 @@ exports.sendPushNotification = onDocumentWritten(
 
     // ── Mutual Fire (絆の炎) の判定 ──
     if (isReaction && fromUid && toUid) {
-      const db = getFirestore();
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      
-      const recentReverse = await db.collection("notifications")
-        .where("fromUid", "==", toUid)
-        .where("toUid", "==", fromUid)
-        .where("type", "==", "reactionReceived")
-        .where("createdAt", ">", twentyFourHoursAgo)
-        .limit(1)
-        .get();
+      try {
+        const db = getFirestore();
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         
-      if (!recentReverse.empty) {
-        const batch = db.batch();
-        const ts = FieldValue.serverTimestamp();
-        
-        batch.set(
-          db.collection("users").doc(fromUid),
-          { mutualFires: { [toUid]: ts } },
-          { merge: true }
-        );
-        batch.set(
-          db.collection("users").doc(toUid),
-          { mutualFires: { [fromUid]: ts } },
-          { merge: true }
-        );
-        
-        await batch.commit();
+        const recentReverse = await db.collection("notifications")
+          .where("fromUid", "==", toUid)
+          .where("toUid", "==", fromUid)
+          .where("type", "==", "reactionReceived")
+          .where("createdAt", ">", twentyFourHoursAgo)
+          .limit(1)
+          .get();
+          
+        if (!recentReverse.empty) {
+          const batch = db.batch();
+          const ts = FieldValue.serverTimestamp();
+          
+          batch.set(
+            db.collection("users").doc(fromUid),
+            { mutualFires: { [toUid]: ts } },
+            { merge: true }
+          );
+          batch.set(
+            db.collection("users").doc(toUid),
+            { mutualFires: { [fromUid]: ts } },
+            { merge: true }
+          );
+          
+          await batch.commit();
+        }
+      } catch (e) {
+        console.error("Mutual Fire calculation warning (non-fatal):", e);
       }
     }
 
-    // ── リアクション通知：初回のみ送信 ──
-    // 最初のリアクション（ドキュメント新規作成時）のみプッシュを送る。
-    // フロントエンドのVFIREは連打が止まってから通信される（デバウンス）ため、
-    // 「初回連打分」はまとめて1通として送られる。同じ人が後で追加リアクション
-    // してもプッシュは鳴らず、通知一覧が更新されるのみとなる。
+    // ── リアクション通知の送信 ──
+    // 新規作成時（!before）、またはリアクション数・文面が更新された場合（reactionCount / body の変化）に送出
     if (!before) {
+      // 新規作成時は無条件でプッシュ通知を送信
       await sendPushToUser(toUid, title, body, payload);
+    } else {
+      // ドキュメント更新時：単なる既読化（isRead 変更）等ではなく、
+      // リアクション数や本文が実際に増えた/変わった場合にプッシュ通知を再送出する
+      const beforeCount = before.reactionCount || 0;
+      const afterCount = after.reactionCount || 0;
+      const beforeBody = before.body || "";
+      const afterBody = after.body || "";
+
+      if (afterCount > beforeCount || afterBody !== beforeBody) {
+        await sendPushToUser(toUid, title, body, payload);
+      }
     }
   }
 );
@@ -957,6 +981,12 @@ exports.processPostNotifications = onTaskDispatched(
     }
 
     const postData = postSnap.data();
+    // 救済投稿の場合は通常の達成通知の生成をスキップ（SOS救済通知のみを送信するため）
+    if (postData.isRescuePost === true) {
+      console.log(`Post ${postId} is a rescue post. Skipping normal achievement notification.`);
+      return;
+    }
+    
     // 有効期限が切れている場合は除外
     const now = new Date();
     if (postData.expiresAt && postData.expiresAt.toDate() < now) {
@@ -1030,6 +1060,7 @@ exports.processPostNotifications = onTaskDispatched(
       { title: '👥 並走する背中', body: '{username}さんが一歩先へ進みました！並走する仲間がいるから、あなたの習慣ももっと強くなります🤝' },
       { title: '🎬 実行の証明', body: '{username}さんが本日の『頑張り』をカタチにしました！あなたのスタートもいつでも待っています✨' },
       { title: '🧠 脱・ドパガキ！', body: '{username}さんが今日の目標を突破！ショート動画を閉じて、あなたも本物の勝利（ドーパミン）を獲得しましょう！⚡️' },
+      { title: '🫠 沼落ち確定の有言実行', body: '{username}さんが本日のタスクをサラッとクリア！言ったことを着実にこなす姿、さすがにメロすぎます…✨' },
     ];
 
     const multipleTaskTemplates = [
@@ -1038,6 +1069,7 @@ exports.processPostNotifications = onTaskDispatched(
       { title: '⚡️ 圧倒的なモメンタム', body: '{username}さんが今日だけで{count}回の勝利を重ね、完全に『ゾーン』に入っています！この圧倒的な熱量は、周りのやる気まで引き上げます🔥' },
       { title: '📈 未来のデザイン', body: '{username}さんが本日{count}つ目の成長を積み上げ、未来の自分をスマートに更新中！このブレない選択は、一緒に走る私たちの道標です🚀' },
       { title: '🧠 洗練された習慣', body: '{username}さんは本日{count}つ目のタスクをまるで呼吸のようにクリア。無駄のない美しいルーティンは、まさに習慣化の完成形です⚡️' },
+      { title: '🫠 沼落ち確定の有言実行', body: '{username}さんが本日{count}つ目のタスクをサラッとクリア！言ったことを着実にこなす姿、さすがにメロすぎます…✨' },
     ];
 
     const enTemplates = [
@@ -1047,6 +1079,7 @@ exports.processPostNotifications = onTaskDispatched(
       { title: '👥 Side-by-Side', body: '{username} took another step forward! Moving together makes your habits even stronger. 🤝' },
       { title: '🎬 Action Speaks', body: '{username} turned their effort into action today! Ready when you are to make your move. ✨' },
       { title: '🧠 Dopamine Detox!', body: '{username} crushed their goals! Close the feed, break the doomscrolling loop, and claim your real win! ⚡️' },
+      { title: '🫠 Absolutely Captivating', body: '{username} just crushed today\'s task with pure elegance. That level of effortless focus is seriously swoon-worthy…✨' },
     ];
 
     const enMultipleTaskTemplates = [
@@ -1055,6 +1088,7 @@ exports.processPostNotifications = onTaskDispatched(
       { title: "⚡️ Unstoppable Momentum", body: "{username} secured win #{count} today, locking into 'the zone'! That high-caliber energy is pulling everyone up with them. 🔥" },
       { title: "📈 Designing the Future", body: "{username} just stacked growth #{count}, updating their future self! That steady, unwavering focus is a beacon for all of us. 🚀" },
       { title: "🧠 Refined Routines", body: "{username} just cleared task #{count} as naturally as breathing. That seamless, beautiful routine is the ultimate goal of habit. ⚡️" },
+      { title: "🫠 Absolutely Captivating", body: "{username} just crushed task #{count} with pure elegance. That level of effortless focus is seriously swoon-worthy…✨" },
     ];
 
     // ストリークお祝い通知メッセージの生成ヘルパー
@@ -1441,9 +1475,17 @@ exports.aggregateTrendingTasks = onSchedule(
       };
     });
 
-    // スコアの降順でソートしてトップ10を取得
+    // 件数(count)の降順を第一優先にし、同数の場合はスコア(score)でソートしてトップ10を取得
     const sorted = trendsWithVelocity
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => {
+        if (b.count !== a.count) {
+          return b.count - a.count;
+        }
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        return b.velocityRatio - a.velocityRatio;
+      })
       .slice(0, 10);
 
     // trends ドキュメントへ保存

@@ -1017,5 +1017,62 @@
   "heroTasksPublishButton": "Publish",
   "heroTasksUnpublishConfirmTitle": "Make Private?",
   "heroTasksUnpublishConfirmDesc": "Do you want to remove this post from the V Timeline?",
-  "heroTasksUnpublishButton": "Make Private"
+  "heroTasksUnpublishButton": "Make Private",
+  "vPhoenixRescueBadge": "🔥 Revive with 150 VFIREs!",
+  "vPhoenixNotificationTitle": "🤝 {name} has risen!",
+  "@vPhoenixNotificationTitle": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "vPhoenixNotificationBody": "{name} didn't give up! Reach 150 VFIREs total to revive {name}'s streak (like a phoenix!)",
+  "@vPhoenixNotificationBody": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "vPhoenixBackup18Title": "⏱️ Just 2 mins of {taskName}!",
+  "@vPhoenixBackup18Title": {
+    "placeholders": {
+      "taskName": { "type": "String" }
+    }
+  },
+  "vPhoenixBackup18Body": "It doesn't have to be perfect. Spend just 2 minutes on {taskName} to fully restore your {days}-day streak!🔥",
+  "@vPhoenixBackup18Body": {
+    "placeholders": {
+      "taskName": { "type": "String" },
+      "days": { "type": "int" }
+    }
+  },
+  "vPhoenixBackup21Title": "🌿 2 mins of {taskName} is enough",
+  "@vPhoenixBackup21Title": {
+    "placeholders": {
+      "taskName": { "type": "String" }
+    }
+  },
+  "vPhoenixBackup21Body": "Just 2 mins is a 100% win! A tiny 2-minute start changes your moment of decision today⚡️",
+  "@vPhoenixBackup21Body": {
+    "placeholders": {
+      "taskName": { "type": "String" }
+    }
+  },
+  "vPhoenixRevivedTitle": "🎉 {name}'s streak has been revived!",
+  "@vPhoenixRevivedTitle": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "vPhoenixRevivedBody": "Thanks to your passionate VFIREs, {name}'s streak is back from the ashes! \"Thank you for your support!🔥\"",
+  "@vPhoenixRevivedBody": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "vPhoenixRebirthDialogTitle": "REIGNITE",
+  "vPhoenixRebirthDialogDesc": "Your {days}-day streak is revived! Powered by your friends' support, you rose from the ashes!",
+  "@vPhoenixRebirthDialogDesc": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  }
 }

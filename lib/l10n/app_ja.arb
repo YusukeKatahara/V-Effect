@@ -1017,5 +1017,62 @@
   "heroTasksPublishButton": "公開する",
   "heroTasksUnpublishConfirmTitle": "非公開に戻しますか？",
   "heroTasksUnpublishConfirmDesc": "この投稿をVタイムラインから非公開に戻しますか？",
-  "heroTasksUnpublishButton": "非公開にする"
+  "heroTasksUnpublishButton": "非公開にする",
+  "vPhoenixRescueBadge": "🔥 合計150VFIREで救済！",
+  "vPhoenixNotificationTitle": "🤝 {name}が立ち上がった！",
+  "@vPhoenixNotificationTitle": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "vPhoenixNotificationBody": "{name}が諦めずに投稿！合計150VFIREで{name}さんのストリークが復活します（まるで不死鳥のように！）",
+  "@vPhoenixNotificationBody": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "vPhoenixBackup18Title": "⏱️ 2分だけ{taskName}をやればOK！",
+  "@vPhoenixBackup18Title": {
+    "placeholders": {
+      "taskName": { "type": "String" }
+    }
+  },
+  "vPhoenixBackup18Body": "完璧にやらなくても大丈夫。2分だけ{taskName}に着手して投稿すれば、{days}日間のストリークは完全復活します🔥",
+  "@vPhoenixBackup18Body": {
+    "placeholders": {
+      "taskName": { "type": "String" },
+      "days": { "type": "int" }
+    }
+  },
+  "vPhoenixBackup21Title": "🌿 {taskName}は2分で十分",
+  "@vPhoenixBackup21Title": {
+    "placeholders": {
+      "taskName": { "type": "String" }
+    }
+  },
+  "vPhoenixBackup21Body": "『本を2分読む』『スクワット2分』で100点満点！小さな2分間が今日の『決定の瞬間』を変えます⚡️",
+  "@vPhoenixBackup21Body": {
+    "placeholders": {
+      "taskName": { "type": "String" }
+    }
+  },
+  "vPhoenixRevivedTitle": "🎉 {name}さんのストリークが復活しました！",
+  "@vPhoenixRevivedTitle": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "vPhoenixRevivedBody": "あなたの熱いVFIREのおかげで、{name}さんの連続記録が息を吹き返しました！「応援ありがとう！🔥」",
+  "@vPhoenixRevivedBody": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "vPhoenixRebirthDialogTitle": "REIGNITE",
+  "vPhoenixRebirthDialogDesc": "{days}日間のストリークが完全復活！仲間からの想いを受け取り、不死鳥のように蘇りました！",
+  "@vPhoenixRebirthDialogDesc": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  }
 }

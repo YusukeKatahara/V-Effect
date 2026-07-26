@@ -29,6 +29,7 @@ class Post {
   final String? bgmArtworkUrl; // アートワークURL
   final bool isSecret; // シークレットタスクの投稿かどうか
   final bool isPublic; // 全体公開のタイムラインへ投稿されたかどうか
+  final bool isRescuePost; // ストリーク救済中の投稿かどうか
 
   // ── フィールド名定数 ──
   static const String fieldUserId = 'userId';
@@ -48,6 +49,7 @@ class Post {
   static const String fieldBgmArtworkUrl = 'bgmArtworkUrl';
   static const String fieldIsSecret = 'isSecret';
   static const String fieldIsPublic = 'isPublic';
+  static const String fieldIsRescuePost = 'isRescuePost';
 
   const Post({
     required this.id,
@@ -68,6 +70,7 @@ class Post {
     this.bgmArtworkUrl,
     this.isSecret = false,
     this.isPublic = false,
+    this.isRescuePost = false,
   });
 
   /// Firestore の DocumentSnapshot からモデルを生成します
@@ -134,6 +137,7 @@ class Post {
       bgmArtworkUrl: data[fieldBgmArtworkUrl],
       isSecret: data[fieldIsSecret] == true,
       isPublic: data[fieldIsPublic] == true,
+      isRescuePost: data[fieldIsRescuePost] == true,
     );
   }
 
@@ -218,6 +222,7 @@ class Post {
       fieldBgmArtworkUrl: bgmArtworkUrl,
       fieldIsSecret: isSecret,
       fieldIsPublic: isPublic,
+      fieldIsRescuePost: isRescuePost,
     };
   }
 

@@ -100,18 +100,22 @@ class StreakService {
     final dayBeforeYesterdayStr = DateHelper.toDateString(dayBeforeYesterday);
 
     int newStreak;
+    bool isRescueTriggered = false;
     if (lastPostedDate == yesterdayStr) {
       newStreak = currentStreak + 1;
     } else if (lastPostedDate == dayBeforeYesterdayStr && currentProtections > 0) {
       newStreak = currentStreak + 1;
       currentProtections -= 1;
     } else {
+      // 連続が切れた場合：一気に0にリセットせず、前の記録を保存して救済モードをセット
       newStreak = 1;
+      isRescueTriggered = true;
       currentProtections = 0;
     }
 
-    if (newStreak > 1 && newStreak % 3 == 0) {
-      if (currentProtections < 1) {
+    // 7日連続投稿ごとに1シールド付与（最大2個まで保有可能）
+    if (newStreak > 1 && newStreak % 7 == 0) {
+      if (currentProtections < 2) {
         currentProtections += 1;
       }
     }
@@ -127,12 +131,16 @@ class StreakService {
       }
     }
 
-    final updates = {
+    final updates = <String, dynamic>{
       AppUser.fieldStreak: newStreak,
       AppUser.fieldStreakProtections: currentProtections,
       AppUser.fieldLastPostedDate: today,
       AppUser.fieldRecentPostDates: recentPostDates,
+      'isRescueActive': isRescueTriggered,
     };
+    if (isRescueTriggered) {
+      updates['prevStreak'] = currentStreak;
+    }
     if (isRecordUpdating) {
       updates[AppUser.fieldMaxStreak] = newStreak;
     }

@@ -433,6 +433,20 @@ class FriendService {
     return snap.data();
   }
 
+  /// 指定UIDのフレンド（相互フォローまたはfriendsリスト）を一括取得します
+  Future<List<AppUser>> getFriendsByUid(String uid) async {
+    final snap = await _db.collection('users').doc(uid).get();
+    if (!snap.exists) return [];
+    final dynamic rawFriends = snap.data()?['friends'] ?? snap.data()?['following'];
+    List<String> uids = [];
+    if (rawFriends is List) {
+      uids = rawFriends.map((e) => e.toString()).toList();
+    } else if (rawFriends is Map) {
+      uids = rawFriends.keys.map((k) => k.toString()).toList();
+    }
+    return getUsersByUids(uids);
+  }
+
   /// 複数UIDのユーザーを一括取得します（最大30件/チャンク）
   Future<List<AppUser>> getUsersByUids(List<String> uids) async {
     if (uids.isEmpty) return [];

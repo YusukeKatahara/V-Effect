@@ -14,8 +14,10 @@ class WeeklyReviewData {
   final int totalReactions;
 
   // 新しく追加されたパーソナライズ統計
+  final String? mostSentToUid;
   final String? mostSentToName;
   final int mostSentToCount;
+  final String? mostReceivedFromUid;
   final String? mostReceivedFromName;
   final int mostReceivedFromCount;
   final int mostActiveDayOfWeek; // 1 (月) 〜 7 (日)、0 はなし
@@ -29,8 +31,10 @@ class WeeklyReviewData {
     required this.streak,
     required this.totalVFire,
     required this.totalReactions,
+    this.mostSentToUid,
     this.mostSentToName,
     this.mostSentToCount = 0,
+    this.mostReceivedFromUid,
     this.mostReceivedFromName,
     this.mostReceivedFromCount = 0,
     this.mostActiveDayOfWeek = 0,
@@ -58,7 +62,11 @@ final weeklyReviewProvider = FutureProvider.autoDispose<WeeklyReviewData>((ref) 
   int totalReactions = 0;
   for (final post in posts) {
     totalVFire += post.reactionCount;
-    totalReactions += post.emojiReactedUserIds.length;
+    // emojiReactedUserIds (単なるユニーク人数) ではなく userReactions (送られた絵文字マップ全件) を集計
+    final emojiCount = post.userReactions.isNotEmpty
+        ? post.userReactions.length
+        : post.emojiReactedUserIds.length;
+    totalReactions += emojiCount;
   }
 
   final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -219,8 +227,10 @@ final weeklyReviewProvider = FutureProvider.autoDispose<WeeklyReviewData>((ref) 
     streak: streak,
     totalVFire: totalVFire,
     totalReactions: totalReactions,
+    mostSentToUid: mostSentToUid,
     mostSentToName: mostSentToName,
     mostSentToCount: mostSentToCount,
+    mostReceivedFromUid: mostReceivedFromUid,
     mostReceivedFromName: mostReceivedFromName,
     mostReceivedFromCount: mostReceivedFromCount,
     mostActiveDayOfWeek: mostActiveDayOfWeek,

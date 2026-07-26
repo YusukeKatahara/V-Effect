@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../config/app_colors.dart';
+import '../../../../widgets/v_flame_icon.dart';
 
 /// 連打したときに画面下部から炎が浮かび上がるエフェクトレイヤー。
 class FloatingFlamesLayer extends StatefulWidget {
@@ -128,16 +129,11 @@ class _FloatingFlameWidgetState extends State<_FloatingFlameWidget>
           ),
         );
       },
-      child: Icon(
-        Icons.whatshot,
-        color: widget.color ?? (widget.isGold ? AppColors.accentGoldLight : AppColors.accentGold),
+      child: VFlameIcon(
         size: widget.size ?? (widget.isGold ? 64 : 44),
-        shadows: [
-          Shadow(
-            color: widget.glowColor ?? (widget.isGold ? AppColors.white : AppColors.white.withValues(alpha: 0.24)),
-            blurRadius: widget.isGold ? 24 : 12,
-          ),
-        ],
+        color: widget.color ?? (widget.isGold ? AppColors.accentGoldLight : AppColors.accentGold),
+        isGlowing: true,
+        glowRadius: widget.isGold ? 24 : 12,
       ),
     );
   }
