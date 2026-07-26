@@ -1095,6 +1095,27 @@ exports.processPostNotifications = onTaskDispatched(
       { title: "🫠 Effortlessly Captivating", body: "{username} just cleared task #{count}! With every goal stacked, their magnetic charm and aura become seriously swoon-worthy…✨" },
     ];
 
+    // 午前中（朝4:00〜11:59）限定の「朝の光の中で (Ah)」通知を追加
+    const isMorning = jstNow.getHours() >= 4 && jstNow.getHours() < 12;
+    if (isMorning) {
+      templates.push({
+        title: '🌅 朝の光の中で (Ah)',
+        body: '{username}さんが、朝の光の中でタスクを難なくクリア！眩しくて見えません！',
+      });
+      multipleTaskTemplates.push({
+        title: '🌅 朝の光の中で (Ah)',
+        body: '{username}さんが、朝の光の中で本日{count}つ目のタスクを難なくクリア！眩しくて見えません！',
+      });
+      enTemplates.push({
+        title: '🌅 In the Morning Light (Ah)',
+        body: '{username} cleared today\'s task effortlessly in the morning light! So bright we can barely look!',
+      });
+      enMultipleTaskTemplates.push({
+        title: '🌅 In the Morning Light (Ah)',
+        body: '{username} cleared task #{count} effortlessly in the morning light! So bright we can barely look!',
+      });
+    }
+
     // ストリークお祝い通知メッセージの生成ヘルパー
     function getStreakNotification(lang, streak, name) {
       let title = '';
