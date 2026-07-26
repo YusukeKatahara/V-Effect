@@ -69,7 +69,8 @@ class NotificationService {
   }
 
   Stream<List<AppNotification>> getMyNotifications() {
-    final myUid = _auth.currentUser!.uid;
+    final myUid = _auth.currentUser?.uid;
+    if (myUid == null) return Stream.value([]);
     final threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
 
     return _notificationsRef
@@ -130,12 +131,16 @@ class NotificationService {
 
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
+    }).handleError((e) {
+      debugPrint('getMyNotifications error: $e');
+      return <AppNotification>[];
     });
   }
 
   /// 未読の通知件数をリアルタイムで取得します
   Stream<int> getNotificationCount() {
-    final myUid = _auth.currentUser!.uid;
+    final myUid = _auth.currentUser?.uid;
+    if (myUid == null) return Stream.value(0);
     final threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
 
     return _notificationsRef
@@ -147,6 +152,9 @@ class NotificationService {
           .map((doc) => doc.data())
           .where((n) => n.createdAt.isAfter(threeDaysAgo))
           .length;
+    }).handleError((e) {
+      debugPrint('getNotificationCount error: $e');
+      return 0;
     });
   }
 

@@ -47,6 +47,18 @@ class DevBlogService {
         .map((snap) => snap.docs.map((d) => d.data()).toList());
   }
 
+  /// 一般ユーザー向けに公開済み（isDraft == false かつ publishAt が過去）の記事のみを取得します
+  Stream<List<DevBlogPost>> getPublishedPosts() {
+    return getPosts().map((posts) {
+      final now = DateTime.now();
+      return posts.where((p) {
+        if (p.isDraft) return false;
+        if (p.publishAt != null && p.publishAt!.isAfter(now)) return false;
+        return true;
+      }).toList();
+    });
+  }
+
   Future<void> createPost(DevBlogPost post) async {
     await _blogRef.doc(post.id).set(post);
   }

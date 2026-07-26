@@ -106,6 +106,8 @@ class _MainShellState extends ConsumerState<MainShell> {
           }
         }
       }
+    }, onError: (e) {
+      debugPrint('Realtime effect listener error: $e');
     });
   }
 
@@ -314,7 +316,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                     StreamBuilder<List<FriendRequest>>(
                       stream: ref.watch(friendServiceProvider).getReceivedRequests(),
                       builder: (context, snapshot) {
-                        final hasRequests = snapshot.hasData && snapshot.data!.isNotEmpty;
+                        final hasRequests = !snapshot.hasError && snapshot.hasData && snapshot.data!.isNotEmpty;
                         return _SpatialNavItem(
                           icon: Icons.person_rounded,
                           isActive: _currentIndex == 3,

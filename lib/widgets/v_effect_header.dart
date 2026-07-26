@@ -80,7 +80,9 @@ class UserAvatarHeader extends StatelessWidget {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
       builder: (context, snapshot) {
-        final data = snapshot.data?.data() as Map<String, dynamic>?;
+        final data = (!snapshot.hasError && snapshot.hasData)
+            ? (snapshot.data?.data() as Map<String, dynamic>?)
+            : null;
         final photoUrl = data?['photoUrl'] as String?;
 
         return GestureDetector(

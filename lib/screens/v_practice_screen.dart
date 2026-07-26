@@ -34,9 +34,9 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final postsAsync = ref.watch(blogPostsProvider);
     final isDeveloperAsync = ref.watch(isDeveloperProvider);
     final isDev = isDeveloperAsync.valueOrNull ?? false;
+    final postsAsync = isDev ? ref.watch(blogPostsProvider) : ref.watch(publishedBlogPostsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.black,
@@ -76,10 +76,8 @@ class _VPracticeScreenState extends ConsumerState<VPracticeScreen> {
             Expanded(
               child: postsAsync.when(
                 data: (allPosts) {
-                  // 1. 開発者以外の時に下書きを除外する
-                  var posts = isDev ? allPosts : allPosts.where((p) => !p.isDraft).toList();
-                  
-                  // 2. 選択中のカテゴリでフィルタリングする
+                  // 1. 選択中のカテゴリでフィルタリングする
+                  var posts = allPosts;
                   if (_selectedCategory != null) {
                     posts = posts.where((p) => p.category == _selectedCategory).toList();
                   }

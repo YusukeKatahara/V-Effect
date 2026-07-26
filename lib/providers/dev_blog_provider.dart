@@ -7,24 +7,11 @@ final blogPostsProvider = StreamProvider<List<DevBlogPost>>((ref) {
   return DevBlogService.instance.getPosts();
 });
 
-/// 公開済みのお知らせのみをフィルタリングして提供するプロバイダー
-final publishedBlogPostsProvider = Provider<AsyncValue<List<DevBlogPost>>>((ref) {
-  final postsAsync = ref.watch(blogPostsProvider);
-  return postsAsync.when(
-    data: (posts) {
-      final now = DateTime.now();
-      return AsyncValue.data(
-        posts.where((p) {
-          if (p.isDraft) return false;
-          if (p.publishAt != null && p.publishAt!.isAfter(now)) return false;
-          return true;
-        }).toList(),
-      );
-    },
-    loading: () => const AsyncValue.loading(),
-    error: (err, stack) => AsyncValue.error(err, stack),
-  );
+/// 公開済みのお知らせのみを提供する StreamProvider（Firestoreセキュリティルールに完全に準拠）
+final publishedBlogPostsProvider = StreamProvider<List<DevBlogPost>>((ref) {
+  return DevBlogService.instance.getPublishedPosts();
 });
+
 
 final isDeveloperProvider = FutureProvider<bool>((ref) {
   return DevBlogService.instance.isDeveloper();

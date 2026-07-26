@@ -607,6 +607,10 @@ class PostService {
           final posts = snap.docs.map((doc) => doc.data()).toList()
             ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return posts;
+        })
+        .handleError((e) {
+          debugPrint('getFriendsPosts error: $e');
+          return <Post>[];
         });
   }
 
@@ -866,6 +870,10 @@ class PostService {
               snap.docs.map((doc) => Post.fromFirestore(doc)).toList()
                 ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return posts;
+        })
+        .handleError((e) {
+          debugPrint('getFriendPosts error: $e');
+          return <Post>[];
         });
   }
 
@@ -1167,6 +1175,10 @@ class PostService {
           final posts = snap.docs.map((doc) => doc.data()).toList()
             ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return posts;
+        })
+        .handleError((e) {
+          debugPrint('getPublicPostsStream error: $e');
+          return <Post>[];
         });
   }
 }

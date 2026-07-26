@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:kana_kit/kana_kit.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -366,12 +367,17 @@ class FriendService {
 
   /// 受信した申請一覧をリアルタイムで取得します（pending のみ）
   Stream<List<FriendRequest>> getReceivedRequests() {
-    final myUid = _auth.currentUser!.uid;
+    final myUid = _auth.currentUser?.uid;
+    if (myUid == null) return Stream.value([]);
     return _friendReqsRef
         .where('toUid', isEqualTo: myUid)
         .where('status', isEqualTo: 'pending')
         .snapshots()
-        .map((snap) => snap.docs.map((doc) => doc.data()).toList());
+        .map((snap) => snap.docs.map((doc) => doc.data()).toList())
+        .handleError((e) {
+          debugPrint('getReceivedRequests error: $e');
+          return <FriendRequest>[];
+        });
   }
 
   /// IDで申請を1件取得します
@@ -383,9 +389,10 @@ class FriendService {
 
   /// フォロー中リストを取得します（リアルタイム）
   Stream<List<AppUser>> getFollowing() {
-    final myUid = _auth.currentUser!.uid;
+    final myUid = _auth.currentUser?.uid;
+    if (myUid == null) return Stream.value([]);
     return _db.collection('users').doc(myUid).snapshots().asyncMap((snap) async {
-      if (!snap.exists) return [];
+      if (!snap.exists) return <AppUser>[];
       final dynamic rawFollowing = snap.data()?['following'] ?? snap.data()?['friends'];
       List<String> uids = [];
       if (rawFollowing is List) {
@@ -394,21 +401,25 @@ class FriendService {
         uids = rawFollowing.keys.map((k) => k.toString()).toList();
       }
 
-      if (uids.isEmpty) return [];
+      if (uids.isEmpty) return <AppUser>[];
 
       final usersSnap = await _db
           .collection('users')
           .where(FieldPath.documentId, whereIn: uids.take(30).toList())
           .get();
       return usersSnap.docs.map((doc) => AppUser.fromFirestore(doc)).toList();
+    }).handleError((e) {
+      debugPrint('getFollowing error: $e');
+      return <AppUser>[];
     });
   }
 
   /// フォロワーリストを取得します（リアルタイム）
   Stream<List<AppUser>> getFollowers() {
-    final myUid = _auth.currentUser!.uid;
+    final myUid = _auth.currentUser?.uid;
+    if (myUid == null) return Stream.value([]);
     return _db.collection('users').doc(myUid).snapshots().asyncMap((snap) async {
-      if (!snap.exists) return [];
+      if (!snap.exists) return <AppUser>[];
       final dynamic rawFollowers = snap.data()?['followers'];
       List<String> uids = [];
       if (rawFollowers is List) {
@@ -417,13 +428,16 @@ class FriendService {
         uids = rawFollowers.keys.map((k) => k.toString()).toList();
       }
 
-      if (uids.isEmpty) return [];
+      if (uids.isEmpty) return <AppUser>[];
 
       final usersSnap = await _db
           .collection('users')
           .where(FieldPath.documentId, whereIn: uids.take(30).toList())
           .get();
       return usersSnap.docs.map((doc) => AppUser.fromFirestore(doc)).toList();
+    }).handleError((e) {
+      debugPrint('getFollowers error: $e');
+      return <AppUser>[];
     });
   }
 
