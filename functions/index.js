@@ -1070,6 +1070,8 @@ exports.processPostNotifications = onTaskDispatched(
       { title: '📈 未来のデザイン', body: '{username}さんが本日{count}つ目の成長を積み上げ、未来の自分をスマートに更新中！このブレない選択は、一緒に走る私たちの道標です🚀' },
       { title: '🧠 洗練された習慣', body: '{username}さんは本日{count}つ目のタスクをまるで呼吸のようにクリア。無駄のない美しいルーティンは、まさに習慣化の完成形です⚡️' },
       { title: '🫠 沼落ち確定の有言実行', body: '{username}さんが本日{count}つ目のタスクをサラッとクリア！言ったことを着実にこなす姿、さすがにメロすぎます…✨' },
+      { title: '🔥 リアルな勝利者効果', body: '{username}さんが早くも本日{count}つ目の目標をクリア！SNSの無為なスクロールを抜け出し、本物の快感を連続で掴み取っています⚡️' },
+      { title: '🫠 罪なほどスマートな実行力', body: '{username}さんが早くも本日{count}つ目のタスクを突破！努力を重ねるたびに増していく圧倒的なオーラと魅力に、沼落ち確定です…✨' },
     ];
 
     const enTemplates = [
@@ -1089,6 +1091,8 @@ exports.processPostNotifications = onTaskDispatched(
       { title: "📈 Designing the Future", body: "{username} just stacked growth #{count}, updating their future self! That steady, unwavering focus is a beacon for all of us. 🚀" },
       { title: "🧠 Refined Routines", body: "{username} just cleared task #{count} as naturally as breathing. That seamless, beautiful routine is the ultimate goal of habit. ⚡️" },
       { title: "🫠 Absolutely Captivating", body: "{username} just crushed task #{count} with pure elegance. That level of effortless focus is seriously swoon-worthy…✨" },
+      { title: "🔥 Real Winner Effect", body: "{username} just crushed goal #{count}! Breaking out of doomscrolling and seizing real victories back-to-back ⚡️" },
+      { title: "🫠 Effortlessly Captivating", body: "{username} just cleared task #{count}! With every goal stacked, their magnetic charm and aura become seriously swoon-worthy…✨" },
     ];
 
     // ストリークお祝い通知メッセージの生成ヘルパー
