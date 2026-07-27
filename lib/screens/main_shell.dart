@@ -16,6 +16,7 @@ import 'home_screen.dart';
 import 'v_timeline_screen.dart';
 import 'profile_screen.dart';
 import 'hero_tasks_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'home/components/floating_flames_layer.dart';
 import 'home/components/dopamine_emoji_explosion_layer.dart';
 
@@ -43,6 +44,10 @@ class _MainShellState extends ConsumerState<MainShell> {
   final GlobalKey<DopamineEmojiExplosionLayerState> _globalExplosionKey = GlobalKey();
   StreamSubscription<QuerySnapshot>? _notificationSubscription;
   DateTime? _lastNotificationHandledTime;
+
+  String? _topBannerMessage;
+  Timer? _topBannerTimer;
+  final Map<String, String> _usernameCache = {};
 
   @override
   void initState() {
@@ -90,25 +95,91 @@ class _MainShellState extends ConsumerState<MainShell> {
             _lastNotificationHandledTime = createdAt;
 
             final emoji = data['emoji'] as String?;
+            final lastInc = (data['lastIncrement'] as int?) ?? 1;
+            final flameEffectCount = lastInc.clamp(1, 20);
             HapticFeedback.mediumImpact();
 
             if (emoji != null && emoji.isNotEmpty) {
               // 送られてきた具体的な絵文字を画面下から爆発・演出！
-              _globalExplosionKey.currentState?.explode(emoji);
+              final emojiCount = flameEffectCount.clamp(1, 5);
+              for (int i = 0; i < emojiCount; i++) {
+                Future.delayed(Duration(milliseconds: i * 120), () {
+                  if (mounted) _globalExplosionKey.currentState?.explode(emoji);
+                });
+              }
             } else {
-              // VFIRE(🔥)の場合、画面下からメラメラ立ち上げる！
-              _globalFlamesKey.currentState?.addFlame(
-                color: AppColors.accentGold,
-                glowColor: AppColors.accentGoldLight,
-                size: 55.0,
-              );
+              // VFIRE(🔥)の場合、今回の送信数(lastInc)の分だけ画面中央の下からメラメラ連続で立ち上げる！
+              for (int i = 0; i < flameEffectCount; i++) {
+                Future.delayed(Duration(milliseconds: i * 80), () {
+                  if (!mounted) return;
+                  _globalFlamesKey.currentState?.addFlame(
+                    color: AppColors.accentGold,
+                    glowColor: AppColors.accentGoldLight,
+                    size: 55.0,
+                    isCentered: true,
+                    bottomOffset: 80.0,
+                  );
+                });
+              }
             }
+            _handleIncomingReactionNotification(data, lastInc, emoji);
           }
         }
       }
     }, onError: (e) {
       debugPrint('Realtime effect listener error: $e');
     });
+  }
+
+  void _showTopBannerNotification(String message) {
+    _topBannerTimer?.cancel();
+    setState(() {
+      _topBannerMessage = message;
+    });
+    _topBannerTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _topBannerMessage = null;
+        });
+      }
+    });
+  }
+
+  Future<void> _handleIncomingReactionNotification(
+    Map<String, dynamic> data,
+    int incrementCount,
+    String? emoji,
+  ) async {
+    final fromUid = data['fromUid'] as String?;
+    String senderName = 'フレンド';
+
+    if (fromUid != null && fromUid.isNotEmpty) {
+      if (_usernameCache.containsKey(fromUid)) {
+        senderName = _usernameCache[fromUid]!;
+      } else {
+        try {
+          final userSnap = await FirebaseFirestore.instance.collection('users').doc(fromUid).get();
+          if (userSnap.exists) {
+            final userData = userSnap.data();
+            senderName = userData?['username'] ?? userData?['displayName'] ?? 'フレンド';
+            _usernameCache[fromUid] = senderName;
+          }
+        } catch (e) {
+          debugPrint('Error fetching sender username: $e');
+        }
+      }
+    }
+
+    String bannerText;
+    if (emoji != null && emoji.isNotEmpty) {
+      bannerText = '$senderNameさんから「$emoji」が届きました！';
+    } else {
+      bannerText = incrementCount > 1
+          ? '$senderNameさんから$incrementCount回のV FIREが届きました！'
+          : '$senderNameさんからV FIREが届きました！';
+    }
+
+    _showTopBannerNotification(bannerText);
   }
 
   void _onGlobalTabChanged() {
@@ -123,6 +194,7 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   @override
   void dispose() {
+    _topBannerTimer?.cancel();
     _notificationSubscription?.cancel();
     MainShell.activeTabIndex.removeListener(_onGlobalTabChanged);
     super.dispose();
@@ -229,6 +301,50 @@ class _MainShellState extends ConsumerState<MainShell> {
           // ── Bottom spatial nav ──
           if (!_isHomeLoading || _currentIndex != 0)
             Positioned(left: 0, right: 0, bottom: 0, child: _buildSpatialNav()),
+
+          // ── Real-Time Top Reaction Banner (UploadProgressBarと同一UI) ──
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: _topBannerMessage != null
+                    ? Container(
+                        key: ValueKey(_topBannerMessage),
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                        color: AppColors.accentGold.withValues(alpha: 0.1),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.local_fire_department,
+                              color: AppColors.accentGold,
+                              size: 12,
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                _topBannerMessage!,
+                                style: GoogleFonts.notoSansJp(
+                                  color: AppColors.accentGold,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink(key: ValueKey('empty_top_banner')),
+              ),
+            ),
+          ),
         ],
       ),
     );

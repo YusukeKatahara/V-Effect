@@ -21,6 +21,7 @@ import '../utils/ad_helper.dart';
 import 'home/components/floating_flames_layer.dart';
 import 'home/components/feed_card.dart';
 import 'home/components/bgm_indicator.dart';
+import '../widgets/v_phoenix_rebirth_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../widgets/home/home_skeleton_body.dart';
@@ -51,6 +52,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
   List<dynamic> _feedItems = []; // Post または 'ad'
   int _focusedGlobalIndex = 100000;
   double _scrollPos = 100000.0;
+  final Set<String> _celebratedRescuePostIds = {};
   bool _isScrolling = false;
   bool _loadingProfiles = true;
 
@@ -59,6 +61,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
   final Map<String, String?> _userPhotos = {};
   final Map<String, String?> _userBadgeUrls = {};
   final Map<String, String?> _userBadgeAnimations = {};
+  final Set<String> _fetchingUids = {};
 
   // 広告管理
   final Map<int, NativeAd> _nativeAds = {};
@@ -120,20 +123,33 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
 
   // ── ユーザープロフィール取得＆マッピング ──
   Future<void> _loadUserProfiles(List<Post> posts) async {
-    final uids = posts.map((p) => p.userId).toSet().toList();
-    if (uids.isEmpty) {
-      if (mounted) setState(() => _loadingProfiles = false);
+    // まだプロファイルを保持しておらず、フェッチ中でないUIDのみ抽出
+    final missingUids = posts
+        .map((p) => p.userId)
+        .where((uid) => !_userNames.containsKey(uid) && !_fetchingUids.contains(uid))
+        .toSet()
+        .toList();
+
+    if (missingUids.isEmpty) {
+      if (mounted && _loadingProfiles) {
+        setState(() => _loadingProfiles = false);
+      }
       return;
     }
 
+    _fetchingUids.addAll(missingUids);
+
     try {
-      final profiles = await _postService.getFriendsListFromUids(uids);
+      final profiles = await _postService.getFriendsListFromUids(missingUids);
       if (!mounted) return;
 
       setState(() {
         for (final p in profiles) {
           final uid = p['uid'] as String;
-          _userNames[uid] = p['username'] as String? ?? 'Unknown';
+          final rawName = p['username'] as String?;
+          _userNames[uid] = (rawName != null && rawName.trim().isNotEmpty)
+              ? rawName
+              : (p['userId'] as String? ?? '');
           _userPhotos[uid] = p['photoUrl'] as String?;
           _userBadgeUrls[uid] = p['equippedBadgeUrl'] as String?;
           _userBadgeAnimations[uid] = p['equippedBadgeAnimation'] as String?;
@@ -142,7 +158,11 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
       });
     } catch (e) {
       debugPrint('Error loading profiles for V-Timeline: $e');
-      if (mounted) setState(() => _loadingProfiles = false);
+      if (mounted && _loadingProfiles) {
+        setState(() => _loadingProfiles = false);
+      }
+    } finally {
+      _fetchingUids.removeAll(missingUids);
     }
   }
 
@@ -372,6 +392,16 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
 
     // グローバルなVFIREプロバイダーへ通知して同期処理を委譲
     ref.read(vfireProvider.notifier).increment(post);
+
+    // 救済投稿の150VFIRE達成判定と祝福ダイアログの自動発火
+    if (post.isRescuePost && !_celebratedRescuePostIds.contains(post.id)) {
+      final currentCount = ref.read(vfireProvider).getAdjustedReactionCount(post);
+      if (currentCount >= 150) {
+        _celebratedRescuePostIds.add(post.id);
+        _stopFlameAutoFire();
+        VPhoenixRebirthDialog.show(context, streakDays: 1);
+      }
+    }
   }
 
   // ── 3D/2D カードスタック描画用ソート順計算 ──
@@ -450,7 +480,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
                     // 背面の3D描画用は前面のタッチPageViewがジェスチャを奪うためタッチ不可にする
                     child: FeedCard(
                       post: item,
-                      username: _userNames[item.userId] ?? 'User',
+                      username: _userNames[item.userId] ?? AppLocalizations.of(context)!.defaultUsername,
                       userPhotoUrl: _userPhotos[item.userId],
                       userBadgeUrl: _userBadgeUrls[item.userId],
                       userBadgeAnimation: _userBadgeAnimations[item.userId],
@@ -529,10 +559,8 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
           );
         }
 
-        // プロフィールのロード開始
-        if (_userNames.isEmpty && _loadingProfiles) {
-          _loadUserProfiles(posts);
-        }
+        // プロフィールのロード開始（未読み込みUIDがあれば自動差分フェッチ）
+        _loadUserProfiles(posts);
 
         _setupFeedItems(posts);
 
@@ -638,7 +666,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
 
                                     // 投稿用透明スロット：タップジェスチャの検出レイヤー
                                     if (item is Post) {
-                                      final username = _userNames[item.userId] ?? 'User';
+                                      final username = _userNames[item.userId] ?? AppLocalizations.of(context)!.defaultUsername;
                                       final photoUrl = _userPhotos[item.userId];
 
                                       return Center(

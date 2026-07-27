@@ -33,6 +33,7 @@ import '../services/migration_service.dart';
 
 import '../providers/home_provider.dart';
 import '../providers/upload_provider.dart';
+import '../widgets/v_phoenix_rebirth_dialog.dart';
 import '../widgets/upload_progress_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'main_shell.dart';
@@ -110,6 +111,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final Map<int, NativeAd> _nativeAds = {};
   final Map<int, bool> _adLoadStatus = {}; // true: loaded, false: failed
   Timer? _adRefreshTimer; // 広告自動リフレッシュ用のタイマー (30秒滞在でリフレッシュ)
+  final Set<String> _celebratedRescuePostIds = {};
   bool _isScrolling = false; // スワイプ（スクロール）中かどうかのフラグ。スワイプ中のかくつきを防止するために使用
 
 
@@ -886,6 +888,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           bottomOffset: _flameBottomOffset,
         );
         _soundService.playFireTapSound(playbackRate: soundPitch);
+      }
+    }
+
+    // 救済投稿の150VFIRE達成判定と祝福ダイアログの自動発火
+    if (post.isRescuePost && !_celebratedRescuePostIds.contains(post.id)) {
+      final currentCount = ref.read(vfireProvider).getAdjustedReactionCount(post);
+      if (currentCount >= 150) {
+        _celebratedRescuePostIds.add(post.id);
+        _stopFlameAutoFire();
+        VPhoenixRebirthDialog.show(context, streakDays: 1);
       }
     }
 

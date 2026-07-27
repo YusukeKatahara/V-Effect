@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
 
-/// V EFFECT 独自のシャープなゴールド炎アイコン (Cyber Gold Flame Icon)
-/// 丸っこい水滴・玉ねぎ・一般的な雫型アイコンを100%追放し、最高にスタイリッシュな幾何学火炎を描画。
+/// V EFFECT 伝統の標準炎アイコン (Icons.local_fire_department)
 class VFlameIcon extends StatelessWidget {
   final double size;
   final Color? color;
@@ -22,16 +21,10 @@ class VFlameIcon extends StatelessWidget {
     final baseColor = color ?? AppColors.accentGold;
 
     // 物理的に100%完全背景透過化されたアルファPNGを描画 (四角い透明枠は絶対発生ゼロ)
-    final iconWidget = Container(
-      width: size,
-      height: size,
-      padding: EdgeInsets.all(size * 0.04),
-      child: Image.asset(
-        'assets/icon/v_fire_gold_icon.png',
-        width: size,
-        height: size,
-        fit: BoxFit.contain,
-      ),
+    final iconWidget = Icon(
+      Icons.local_fire_department,
+      size: size,
+      color: baseColor,
     );
 
     if (!isGlowing) {

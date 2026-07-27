@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../config/app_colors.dart';
-import '../../../l10n/app_localizations.dart';
 
 /// カード外上部に配置される、下向きポインター（先端）付きのパルス発光救済吹き出しバッジ
 class RescueSpeechBubble extends StatefulWidget {
-  const RescueSpeechBubble({super.key});
+  final int currentCount;
+  final int targetCount;
+
+  const RescueSpeechBubble({
+    super.key,
+    this.currentCount = 0,
+    this.targetCount = 150,
+  });
 
   @override
   State<RescueSpeechBubble> createState() => _RescueSpeechBubbleState();
@@ -32,7 +38,20 @@ class _RescueSpeechBubbleState extends State<RescueSpeechBubble>
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context)!;
+    final isAchieved = widget.currentCount >= widget.targetCount;
+    final remaining = (widget.targetCount - widget.currentCount).clamp(0, widget.targetCount);
+
+    final borderColor = isAchieved ? AppColors.accentGold : Colors.redAccent;
+    final shadowColor1 = isAchieved ? AppColors.accentGold : Colors.redAccent;
+    final shadowColor2 = isAchieved ? AppColors.accentGoldLight : Colors.orangeAccent;
+
+    final badgeText = isAchieved
+        ? '✨ 救済達成！不死鳥復活 🎉'
+        : '🔥 あと ${remaining}VFIREで救済！';
+
+    final badgeIcon = isAchieved
+        ? Icons.auto_awesome_rounded
+        : Icons.local_fire_department_rounded;
 
     return AnimatedBuilder(
       animation: _pulseController,
@@ -50,35 +69,35 @@ class _RescueSpeechBubbleState extends State<RescueSpeechBubble>
                 color: AppColors.black.withValues(alpha: 0.90),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.redAccent.withValues(alpha: borderAlpha),
+                  color: borderColor.withValues(alpha: borderAlpha),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.redAccent.withValues(alpha: glowAlpha),
-                    blurRadius: 16,
-                    spreadRadius: 2,
+                    color: shadowColor1.withValues(alpha: glowAlpha),
+                    blurRadius: isAchieved ? 22 : 16,
+                    spreadRadius: isAchieved ? 3 : 2,
                   ),
                   BoxShadow(
-                    color: Colors.orangeAccent.withValues(alpha: glowAlpha * 0.6),
-                    blurRadius: 28,
-                    spreadRadius: 4,
+                    color: shadowColor2.withValues(alpha: glowAlpha * 0.6),
+                    blurRadius: isAchieved ? 32 : 28,
+                    spreadRadius: isAchieved ? 5 : 4,
                   ),
                 ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.whatshot_rounded,
-                    color: Colors.orangeAccent,
+                  Icon(
+                    badgeIcon,
+                    color: isAchieved ? AppColors.accentGold : Colors.orangeAccent,
                     size: 15,
                   ),
                   const SizedBox(width: 5),
                   Text(
-                    l.vPhoenixRescueBadge,
+                    badgeText,
                     style: GoogleFonts.notoSansJp(
-                      color: AppColors.pureWhite,
+                      color: isAchieved ? AppColors.accentGoldLight : AppColors.pureWhite,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.3,
@@ -91,7 +110,7 @@ class _RescueSpeechBubbleState extends State<RescueSpeechBubble>
             CustomPaint(
               size: const Size(12, 6),
               painter: _TrianglePointerPainter(
-                color: Colors.redAccent.withValues(alpha: borderAlpha),
+                color: borderColor.withValues(alpha: borderAlpha),
                 bgColor: AppColors.black.withValues(alpha: 0.90),
               ),
             ),

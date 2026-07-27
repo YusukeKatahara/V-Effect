@@ -21,28 +21,55 @@ class FloatingFlamesLayerState extends State<FloatingFlamesLayer> {
     double? size,
     bool isGold = false,
     double bottomOffset = 120.0,
+    bool isCentered = false,
   }) {
     final id = _counter++;
-    final randomX = (Random().nextDouble() - 0.5) * 60;
+    final randomX = (Random().nextDouble() - 0.5) * 80;
 
     setState(() {
-      _flames[id] = Positioned(
-        key: ValueKey(id),
-        bottom: bottomOffset,
-        right: 40 + randomX,
-        child: _FloatingFlameWidget(
-          key: ValueKey('flame_$id'),
-          isGold: isGold,
-          color: color,
-          glowColor: glowColor,
-          size: size,
-          onComplete: () {
-            if (mounted) {
-              setState(() => _flames.remove(id));
-            }
-          },
-        ),
-      );
+      if (isCentered) {
+        _flames[id] = Positioned(
+          key: ValueKey(id),
+          bottom: bottomOffset,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Transform.translate(
+              offset: Offset(randomX, 0),
+              child: _FloatingFlameWidget(
+                key: ValueKey('flame_$id'),
+                isGold: isGold,
+                color: color,
+                glowColor: glowColor,
+                size: size,
+                onComplete: () {
+                  if (mounted) {
+                    setState(() => _flames.remove(id));
+                  }
+                },
+              ),
+            ),
+          ),
+        );
+      } else {
+        _flames[id] = Positioned(
+          key: ValueKey(id),
+          bottom: bottomOffset,
+          right: 40 + randomX,
+          child: _FloatingFlameWidget(
+            key: ValueKey('flame_$id'),
+            isGold: isGold,
+            color: color,
+            glowColor: glowColor,
+            size: size,
+            onComplete: () {
+              if (mounted) {
+                setState(() => _flames.remove(id));
+              }
+            },
+          ),
+        );
+      }
     });
   }
 

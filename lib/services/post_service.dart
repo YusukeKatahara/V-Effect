@@ -260,34 +260,51 @@ class PostService {
   ) async {
     if (friendUids.isEmpty) return [];
 
-    final limitedUids = friendUids.take(30).toList();
-
-    // Firestore の whereIn は最大30件なので分割不要
-    final friendsSnap =
-        await _db
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: limitedUids)
-            .get();
-
+    final uniqueUids = friendUids.toSet().toList();
     final today = DateHelper.toDateString(DateTime.now());
-    return friendsSnap.docs.map((doc) {
-      final data = doc.data();
-      final effective = StreakService.calculateEffectiveStreak(
-        streak: (data['streak'] as num?)?.toInt() ?? 0,
-        protections: (data['streakProtections'] as num?)?.toInt() ?? 0,
-        lastPostedDate: data['lastPostedDate']?.toString(),
+    final List<Map<String, dynamic>> results = [];
+
+    // Firestore の whereIn は最大30件までのため、30件ずつのチャンクに分割して一括取得
+    const int chunkSize = 30;
+    final List<Future<QuerySnapshot<Map<String, dynamic>>>> futures = [];
+
+    for (var i = 0; i < uniqueUids.length; i += chunkSize) {
+      final chunk = uniqueUids.sublist(
+        i,
+        i + chunkSize > uniqueUids.length ? uniqueUids.length : i + chunkSize,
       );
-      return {
-        'uid': doc.id,
-        'username': data['username']?.toString() ?? '',
-        'userId': data['userId']?.toString() ?? '',
-        'photoUrl': data['photoUrl'] is String ? data['photoUrl'] as String : data['photoUrl']?.toString(),
-        'hasPostedToday': data['lastPostedDate']?.toString() == today,
-        'streak': effective['streak'],
-        'equippedBadgeUrl': data['equippedBadgeUrl']?.toString(),
-        'equippedBadgeAnimation': data['equippedBadgeAnimation']?.toString(),
-      };
-    }).toList();
+      futures.add(
+        _db
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get(),
+      );
+    }
+
+    final snapshots = await Future.wait(futures);
+
+    for (final snap in snapshots) {
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final effective = StreakService.calculateEffectiveStreak(
+          streak: (data['streak'] as num?)?.toInt() ?? 0,
+          protections: (data['streakProtections'] as num?)?.toInt() ?? 0,
+          lastPostedDate: data['lastPostedDate']?.toString(),
+        );
+        results.add({
+          'uid': doc.id,
+          'username': data['username']?.toString() ?? '',
+          'userId': data['userId']?.toString() ?? '',
+          'photoUrl': data['photoUrl'] is String ? data['photoUrl'] as String : data['photoUrl']?.toString(),
+          'hasPostedToday': data['lastPostedDate']?.toString() == today,
+          'streak': effective['streak'],
+          'equippedBadgeUrl': data['equippedBadgeUrl']?.toString(),
+          'equippedBadgeAnimation': data['equippedBadgeAnimation']?.toString(),
+        });
+      }
+    }
+
+    return results;
   }
 
   /// 写真付き投稿をFirebaseにアップロードして保存します
@@ -782,13 +799,12 @@ class PostService {
         final docSnap = await transaction.get(notifRef);
         final data = docSnap.exists ? docSnap.data()! : {};
         
-        int reactionCount = 1;
+        final currentIncrement = isEmoji ? 1 : (flameIncrement > 0 ? flameIncrement : 1);
+        int reactionCount = currentIncrement;
         if (docSnap.exists) {
           // 既存のドキュメントがあればカウントを合算
           final existingCount = data['reactionCount'] as int? ?? 0;
-          reactionCount = existingCount + (isEmoji ? 1 : (flameIncrement > 0 ? flameIncrement : 1));
-        } else {
-          reactionCount = isEmoji ? 1 : (flameIncrement > 0 ? flameIncrement : 1);
+          reactionCount = existingCount + currentIncrement;
         }
 
         if (isEmoji) {
@@ -826,6 +842,7 @@ class PostService {
           'type': NotificationType.reactionReceived.name,
           'emoji': emoji, // どの絵文字か記録
           'reactionCount': reactionCount,
+          'lastIncrement': currentIncrement, // 今回追加された送信数
           'title': title,
           'body': body,
           'sendPush': sendPush, // プッシュ送出フラグ

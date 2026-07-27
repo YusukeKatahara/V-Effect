@@ -475,10 +475,15 @@ class FeedCard extends StatelessWidget {
       children: [
         cardWidget,
         if (post.isRescuePost)
-          const Positioned(
+          Positioned(
             top: -44,
             left: 20,
-            child: RescueSpeechBubble(),
+            child: Consumer(
+              builder: (context, ref, _) {
+                final count = ref.watch(vfireProvider.select((state) => state.getAdjustedReactionCount(post)));
+                return RescueSpeechBubble(currentCount: count);
+              },
+            ),
           ),
         if (isTopRunner)
           const Positioned(
