@@ -341,6 +341,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get weeklyReviewNoInteractions => 'フレンドの投稿にV FIREを送って、お互いを鼓舞しましょう！';
 
   @override
+  String get weeklyReviewAiAnalyticsTitle => 'AIデータアナリティクス';
+
+  @override
+  String get weeklyReviewAiActionApplied => '✨ 設定を変更完了';
+
+  @override
+  String get weeklyReviewAiActionToast => '⚡️ 来週の目標時間を自動最適化しました！';
+
+  @override
   String get weekdayMonday => '月曜日';
 
   @override

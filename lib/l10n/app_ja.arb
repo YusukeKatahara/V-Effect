@@ -149,6 +149,9 @@
     }
   },
   "weeklyReviewNoInteractions": "フレンドの投稿にV FIREを送って、お互いを鼓舞しましょう！",
+  "weeklyReviewAiAnalyticsTitle": "AIデータアナリティクス",
+  "weeklyReviewAiActionApplied": "✨ 設定を変更完了",
+  "weeklyReviewAiActionToast": "⚡️ 来週の目標時間を自動最適化しました！",
   "weekdayMonday": "月曜日",
   "weekdayTuesday": "火曜日",
   "weekdayWednesday": "水曜日",

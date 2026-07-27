@@ -738,7 +738,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '⚡️ 来週の目標時間を自動最適化しました！',
+                  AppLocalizations.of(context)!.weeklyReviewAiActionToast,
                   style: GoogleFonts.notoSansJp(fontWeight: FontWeight.bold, color: AppColors.white),
                 ),
               ),
@@ -777,7 +777,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'AIデータアナリティクス',
+                      AppLocalizations.of(context)!.weeklyReviewAiAnalyticsTitle,
                       style: GoogleFonts.outfit(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -889,7 +889,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    _isAiActionApplied ? '✨ 設定を変更完了' : advice.actionLabel,
+                    _isAiActionApplied ? AppLocalizations.of(context)!.weeklyReviewAiActionApplied : advice.actionLabel,
                     style: GoogleFonts.notoSansJp(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,

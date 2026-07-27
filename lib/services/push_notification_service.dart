@@ -352,10 +352,17 @@ class PushNotificationService {
     return Icons.notifications;
   }
 
+  /// 今週の振り返り通知タップ時のコールバック
+  static void Function()? onWeeklyReviewNotificationTap;
+
   /// 通知タップによるアプリ起動を Analytics に記録
   void _handleNotificationOpen(RemoteMessage message) {
     final type = message.data['type'] as String? ?? 'unknown';
     AnalyticsService.instance.logOpenFromNotification(type: type);
+
+    if (type == 'weekly_review' || type == 'weeklyReviewAvailable') {
+      onWeeklyReviewNotificationTap?.call();
+    }
   }
 
   /// FCM トークンを Firestore に保存

@@ -731,6 +731,24 @@ abstract class AppLocalizations {
   /// **'フレンドの投稿にV FIREを送って、お互いを鼓舞しましょう！'**
   String get weeklyReviewNoInteractions;
 
+  /// No description provided for @weeklyReviewAiAnalyticsTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'AIデータアナリティクス'**
+  String get weeklyReviewAiAnalyticsTitle;
+
+  /// No description provided for @weeklyReviewAiActionApplied.
+  ///
+  /// In ja, this message translates to:
+  /// **'✨ 設定を変更完了'**
+  String get weeklyReviewAiActionApplied;
+
+  /// No description provided for @weeklyReviewAiActionToast.
+  ///
+  /// In ja, this message translates to:
+  /// **'⚡️ 来週の目標時間を自動最適化しました！'**
+  String get weeklyReviewAiActionToast;
+
   /// No description provided for @weekdayMonday.
   ///
   /// In ja, this message translates to:

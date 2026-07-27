@@ -149,6 +149,9 @@
     }
   },
   "weeklyReviewNoInteractions": "Send V FIRE to your friends' posts to motivate each other!",
+  "weeklyReviewAiAnalyticsTitle": "AI Analytics",
+  "weeklyReviewAiActionApplied": "✨ Settings Optimized",
+  "weeklyReviewAiActionToast": "⚡️ Schedule optimized for next week!",
   "weekdayMonday": "Monday",
   "weekdayTuesday": "Tuesday",
   "weekdayWednesday": "Wednesday",

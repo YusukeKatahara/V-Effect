@@ -1940,3 +1940,32 @@ function getMondayOfWeekString(d) {
   return monday.toISOString().split("T")[0];
 }
 
+/**
+ * 毎週土曜日 20:00 (JST) に「今週の振り返り」プッシュ通知を自動一括送信する
+ */
+exports.sendWeeklyReviewNotification = onSchedule(
+  {
+    schedule: "0 20 * * 6",
+    timeZone: "Asia/Tokyo",
+  },
+  async () => {
+    const db = getFirestore();
+    const usersSnap = await db.collection("users").get();
+
+    console.log(`Sending weekly review notifications to ${usersSnap.size} users...`);
+
+    const title = "今週の振り返りが届きました！";
+    const body = "今週の頑張りと来週の継続ヒントをチェックしよう！🔥";
+    const dataPayload = { type: "weekly_review" };
+
+    const promises = [];
+    usersSnap.forEach((doc) => {
+      const uid = doc.id;
+      promises.push(sendPushToUser(uid, title, body, dataPayload));
+    });
+
+    await Promise.all(promises);
+    console.log("Weekly review push notifications successfully processed.");
+  }
+);
+

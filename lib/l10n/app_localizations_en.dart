@@ -341,6 +341,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weeklyReviewNoInteractions => 'Send V FIRE to your friends\' posts to motivate each other!';
 
   @override
+  String get weeklyReviewAiAnalyticsTitle => 'AI Analytics';
+
+  @override
+  String get weeklyReviewAiActionApplied => '✨ Settings Optimized';
+
+  @override
+  String get weeklyReviewAiActionToast => '⚡️ Schedule optimized for next week!';
+
+  @override
   String get weekdayMonday => 'Monday';
 
   @override

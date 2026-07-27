@@ -21,6 +21,7 @@ import 'services/deep_link_service.dart';
 import 'services/sound_service.dart';
 import 'services/post_service.dart';
 import 'utils/date_helper.dart';
+import 'screens/weekly_review_screen.dart';
 import 'widgets/global_error_widget.dart';
 import 'widgets/splash_loading.dart';
 import 'widgets/web_profile_wrapper.dart';
@@ -191,6 +192,15 @@ class _AppInitializerState extends State<AppInitializer> {
           debugPrint('AdMob初期化エラー: $e');
         }
       }
+      PushNotificationService.onWeeklyReviewNotificationTap = () {
+        final context = VEffectApp.navigatorKey.currentContext;
+        if (context != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const WeeklyReviewScreen()),
+          );
+        }
+      };
       PushNotificationService().initialize().catchError((e) => debugPrint('通知初期化エラー: $e'));
       DeepLinkService().initialize().catchError((e) => debugPrint('DeepLink初期化エラー: $e'));
       SoundService.instance.init().catchError((e) => debugPrint('音声初期化エラー: $e'));
