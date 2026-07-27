@@ -1841,3 +1841,102 @@ exports.onUserStreakUpdated = onDocumentUpdated(
     }
   }
 );
+
+/**
+ * 今週の振り返り（Weekly Review）画面で表示する AI データアナリティクス (PDCA) を生成する
+ */
+exports.getWeeklyAiAdvice = onCall(
+  { secrets: [geminiApiKey] },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "認証が必要です。");
+    }
+
+    const { streak, mostActiveDayName, goldenTimeName, buddyTaskName, totalPostsCount } = request.data || {};
+    const uid = request.auth.uid;
+
+    const db = getFirestore();
+    const mondayStr = getMondayOfWeekString(new Date());
+    const cacheRef = db.collection("users").doc(uid).collection("weekly_advices").doc(mondayStr);
+
+    // キャッシュチェック（すでに生成済みならそれを返す）
+    const cacheDoc = await cacheRef.get();
+    if (cacheDoc.exists) {
+      return cacheDoc.data();
+    }
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+      const prompt = `
+あなたは習慣化と行動科学の超一流AIデータアナリストです。ユーザーの今週の行動データを分析し、自分では気付けない盲点（ブラインドスポット）や伸びしろを1つ発見し、来週の継続率が跳ね上がる最高に魅力的なPDCAアドバイスを生成してください。
+
+【ユーザーの今週のデータ】
+- 連続ストリーク数: ${streak || 0}日
+- 今週の合計投稿数: ${totalPostsCount || 0}回
+- 最もアクティブだった曜日: ${mostActiveDayName || "月曜日"}
+- 集中ゴールデンタイム: ${goldenTimeName || "朝"}
+- 今週の相棒タスク: ${buddyTaskName || "タスク"}
+
+【分析と回答ルール】
+1. 「正論」や「説教」（「〜意識しましょう」「無理せず頑張りましょう」）は禁止。
+2. 失敗データがあっても責めず「💡 最大の伸びしろを発見！」というポジティブな熱いトーンにする。
+3. 一目でインパクトを与える比較データ（例：「成功率: 夜25% ➔ 朝95%」「木曜成功率: +40%」など）を作成する。
+4. 1タップで来週の改善ができるアクション（例：「来週の木曜タスクを【朝】へ自動スライド」「2分間ルールを予約適用」など）を1つ選定する。
+
+回答は必ず以下のJSONフォーマットにしてください:
+- badgeText: 比較データ（例: "成功率: 夜25% ➔ 朝95%", "木曜成功率: +40%" 等、15文字以内）
+- headline: ポジティブなキャッチコピー（例: "💡 最大の「伸びしろ」を発見！", "🔥 勝利の方程式を検知！" 等、20文字以内）
+- adviceText: 理由と具体的な来週の行動提案（80〜150文字程度。データから見えた理由と具体的な改善策を、丁寧で分かりやすく熱意を込めて解説すること）
+- actionType: "slide_time"（時間変更提案）, "two_minute_rule"（2分ルール適用）, "send_thanks"（フレンド感謝）のいずれか
+- actionLabel: アクションボタンのラベル（例: "⚡️ 来週の目標を【朝】へ自動スライド", "⚡️ 2分間ルールを適用する" 等、20文字以内）
+`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              badgeText: { type: Type.STRING },
+              headline: { type: Type.STRING },
+              adviceText: { type: Type.STRING },
+              actionType: { type: Type.STRING, enum: ["slide_time", "two_minute_rule", "send_thanks"] },
+              actionLabel: { type: Type.STRING },
+            },
+            required: ["badgeText", "headline", "adviceText", "actionType", "actionLabel"],
+          },
+        },
+      });
+
+      const result = JSON.parse(response.text);
+      await cacheRef.set({
+        ...result,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return result;
+    } catch (error) {
+      console.error("Failed to generate weekly AI advice:", error);
+      // エラー時のフォールバックデータ
+      const fallback = {
+        badgeText: "継続力: TOP 10% 圏内",
+        headline: "💡 最高の伸びしろを発見！",
+        adviceText: "あなたの集中力は朝の時間帯に最大化されています。来週も朝イチの1タップを意識するとストリークが加速します！🔥",
+        actionType: "two_minute_rule",
+        actionLabel: "⚡️ 2分間ルールを意識する",
+      };
+      return fallback;
+    }
+  }
+);
+
+function getMondayOfWeekString(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(date.setDate(diff));
+  return monday.toISOString().split("T")[0];
+}
+

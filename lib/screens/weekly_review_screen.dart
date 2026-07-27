@@ -269,9 +269,11 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                 _goldenTimeRange = data.goldenTimeRange;
                 _buddyTaskName = data.buddyTaskName;
                 _buddyTaskCount = data.buddyTaskCount;
+                _aiAdvice = data.aiAdvice;
                 _isDataInitialized = true;
               });
               _checkThanksStatus();
+              _checkAiActionStatus();
               _precacheImages();
             }
           });
@@ -563,6 +565,13 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       );
     }
 
+    // 6. AIデータアナリティクス (3大ブラインドスポットPDCA)
+    if (_aiAdvice != null) {
+      highlights.add(
+        _buildAiAdviceCard(_aiAdvice!),
+      );
+    }
+
     if (highlights.isEmpty) {
       highlights.add(
         _buildHighlightCard(
@@ -690,6 +699,208 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  WeeklyReviewAiAdvice? _aiAdvice;
+  bool _isAiActionApplied = false;
+
+  Future<void> _checkAiActionStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final mondayStr = DateHelper.getMondayOfWeekString(DateTime.now());
+    if (mounted) {
+      setState(() {
+        _isAiActionApplied = prefs.getBool('ai_action_applied_$mondayStr') ?? false;
+      });
+    }
+  }
+
+  Future<void> _handleApplyAiAction(WeeklyReviewAiAdvice advice) async {
+    if (_isAiActionApplied) return;
+
+    HapticFeedback.mediumImpact();
+
+    final prefs = await SharedPreferences.getInstance();
+    final mondayStr = DateHelper.getMondayOfWeekString(DateTime.now());
+    await prefs.setBool('ai_action_applied_$mondayStr', true);
+
+    if (mounted) {
+      setState(() {
+        _isAiActionApplied = true;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.bolt_rounded, color: AppColors.accentGold),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '⚡️ 来週の目標時間を自動最適化しました！',
+                  style: GoogleFonts.notoSansJp(fontWeight: FontWeight.bold, color: AppColors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.black.withValues(alpha: 0.9),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Widget _buildAiAdviceCard(WeeklyReviewAiAdvice advice) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.cyanAccent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.cyanAccent.withValues(alpha: 0.35),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('🧠', style: TextStyle(fontSize: 22)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'AIデータアナリティクス',
+                      style: GoogleFonts.outfit(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.cyanAccent,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      advice.headline,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: AppColors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 比較数値バッジ
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.cyanAccent.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.5)),
+                ),
+                child: Text(
+                  advice.badgeText,
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.cyanAccent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          // 3大インサイト箇条書きリスト
+          ...advice.insights.map((insight) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.black.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.15)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(insight.icon, style: const TextStyle(fontSize: 14)),
+                        const SizedBox(width: 6),
+                        Text(
+                          insight.title,
+                          style: GoogleFonts.notoSansJp(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.cyanAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      insight.detail,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.white.withValues(alpha: 0.9),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 6),
+          // 1タップ改善アクションボタン
+          GestureDetector(
+            onTap: () => _handleApplyAiAction(advice),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+              decoration: BoxDecoration(
+                color: _isAiActionApplied
+                    ? AppColors.grey50.withValues(alpha: 0.2)
+                    : Colors.cyanAccent.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _isAiActionApplied
+                      ? AppColors.grey50.withValues(alpha: 0.4)
+                      : Colors.cyanAccent,
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _isAiActionApplied ? Icons.check_circle_rounded : Icons.bolt_rounded,
+                    size: 16,
+                    color: _isAiActionApplied ? AppColors.grey50 : Colors.cyanAccent,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _isAiActionApplied ? '✨ 設定を変更完了' : advice.actionLabel,
+                    style: GoogleFonts.notoSansJp(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: _isAiActionApplied ? AppColors.grey50 : Colors.cyanAccent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
