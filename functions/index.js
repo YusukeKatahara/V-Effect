@@ -1941,11 +1941,11 @@ function getMondayOfWeekString(d) {
 }
 
 /**
- * 毎週土曜日 20:00 (JST) に「今週の振り返り」プッシュ通知を自動一括送信する
+ * 毎週土曜日 12:00 (JST) に「今週の振り返り」プッシュ通知を自動一括送信する
  */
 exports.sendWeeklyReviewNotification = onSchedule(
   {
-    schedule: "0 20 * * 6",
+    schedule: "0 12 * * 6",
     timeZone: "Asia/Tokyo",
   },
   async () => {
