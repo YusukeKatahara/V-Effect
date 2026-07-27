@@ -1949,18 +1949,33 @@ exports.sendWeeklyReviewNotification = onSchedule(
     timeZone: "Asia/Tokyo",
   },
   async () => {
-    const db = getFirestore();
-    const usersSnap = await db.collection("users").get();
+    // 今週月曜日 0:00 以降に1回以上投稿したユーザーのみを抽出
+    const monday = new Date();
+    const day = monday.getDay();
+    const diff = monday.getDate() - day + (day === 0 ? -6 : 1);
+    monday.setDate(diff);
+    monday.setHours(0, 0, 0, 0);
 
-    console.log(`Sending weekly review notifications to ${usersSnap.size} users...`);
+    const activePostsSnap = await db.collection("posts")
+      .where("createdAt", ">=", monday)
+      .get();
+
+    const activeUids = new Set();
+    activePostsSnap.forEach((doc) => {
+      const data = doc.data();
+      if (data.userId) {
+        activeUids.add(data.userId);
+      }
+    });
+
+    console.log(`Sending weekly review notifications to ${activeUids.size} active users with posts...`);
 
     const title = "今週の振り返りが届きました！";
     const body = "今週の頑張りと来週の継続ヒントをチェックしよう！🔥";
     const dataPayload = { type: "weekly_review" };
 
     const promises = [];
-    usersSnap.forEach((doc) => {
-      const uid = doc.id;
+    activeUids.forEach((uid) => {
       promises.push(sendPushToUser(uid, title, body, dataPayload));
     });
 
