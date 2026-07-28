@@ -1015,14 +1015,13 @@ exports.processPostNotifications = onTaskDispatched(
     }
 
     // 3. 今日の投稿数をカウント
-    // UTCから9時間進めた日本時間での本日の開始時刻を算出
-    const jstNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-    const startOfTodayJST = new Date(jstNow.getFullYear(), jstNow.getMonth(), jstNow.getDate());
-    // JSTの0:00をUTC時間に変換 (JST = UTC + 9)
-    const startOfTodayUTC = new Date(startOfTodayJST.getTime() - 9 * 60 * 60 * 1000);
-
-    // 日本時間での今日の日付文字列を取得 (YYYY-MM-DD)
-    const todayString = `${jstNow.getFullYear()}-${String(jstNow.getMonth() + 1).padStart(2, '0')}-${String(jstNow.getDate()).padStart(2, '0')}`;
+    // UTCエポックミリ秒から日本時間(+9時間)の本日0:00 (UTC表現)を正確に算出
+    const nowMs = Date.now();
+    const jstOffsetMs = 9 * 60 * 60 * 1000;
+    const jstDate = new Date(nowMs + jstOffsetMs);
+    const startOfTodayUTC = new Date(
+      Date.UTC(jstDate.getUTCFullYear(), jstDate.getUTCMonth(), jstDate.getUTCDate()) - jstOffsetMs
+    );
 
     const postsSnap = await db.collection("posts")
       .where("userId", "==", uid)
@@ -1096,7 +1095,7 @@ exports.processPostNotifications = onTaskDispatched(
     ];
 
     // 午前中（朝4:00〜11:59）限定の「朝の光の中で (Ah)」通知を追加
-    const isMorning = jstNow.getHours() >= 4 && jstNow.getHours() < 12;
+    const isMorning = jstDate.getUTCHours() >= 4 && jstDate.getUTCHours() < 12;
     if (isMorning) {
       templates.push({
         title: '🌅 朝の光の中で (Ah)',
@@ -1981,6 +1980,105 @@ exports.sendWeeklyReviewNotification = onSchedule(
 
     await Promise.all(promises);
     console.log("Weekly review push notifications successfully processed.");
+  }
+);
+
+/**
+ * 【二重化＆自己修復（セルフヒーリング）バッチ】
+ * 10分ごとに自動実行。直近1時間以内に作成された投稿をチェックし、
+ * 万が一 Cloud Tasks の一時障害等で通知（notifications）作成が漏れていた場合、
+ * 自動的に不足しているフレンド宛て通知を補填生成して FCM プッシュ通知を送信する。
+ */
+exports.healUnprocessedPostNotifications = onSchedule(
+  {
+    schedule: "every 10 minutes",
+    timeZone: "Asia/Tokyo",
+    memory: "256MiB",
+  },
+  async (event) => {
+    const db = getFirestore();
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+    try {
+      // 直近1時間以内の投稿を取得
+      const recentPostsSnap = await db.collection("posts")
+        .where("createdAt", ">=", oneHourAgo)
+        .get();
+
+      if (recentPostsSnap.empty) return;
+
+      let healedCount = 0;
+
+      for (const postDoc of recentPostsSnap.docs) {
+        const postData = postDoc.data();
+        const postId = postDoc.id;
+        const uid = postData.userId;
+
+        if (!uid || postData.isRescuePost === true) continue;
+
+        // ユーザー情報とフレンド一覧の取得
+        const userSnap = await db.collection("users").doc(uid).get();
+        if (!userSnap.exists) continue;
+        const userData = userSnap.data();
+
+        const rawFriends = userData.following || userData.friends;
+        let friends = [];
+        if (Array.isArray(rawFriends)) {
+          friends = rawFriends;
+        } else if (rawFriends && typeof rawFriends === "object") {
+          friends = Object.keys(rawFriends);
+        }
+
+        if (friends.length === 0) continue;
+
+        // 既に作成されている通知を確認 (`relatedId == postId`)
+        const existingNotifsSnap = await db.collection("notifications")
+          .where("relatedId", "==", postId)
+          .get();
+
+        const existingFriendUids = new Set();
+        existingNotifsSnap.forEach((doc) => {
+          const notif = doc.data();
+          if (notif.toUid) {
+            existingFriendUids.add(notif.toUid);
+          }
+        });
+
+        // 未作成のフレンドを探す
+        const missingFriends = friends.filter((fUid) => !existingFriendUids.has(fUid));
+        if (missingFriends.length === 0) continue;
+
+        console.log(`[Self-Healing] Found post ${postId} missing notifications for ${missingFriends.length} friends. Healing...`);
+
+        // 欠落しているフレンドへ通知作成
+        const batch = db.batch();
+        missingFriends.forEach((fUid) => {
+          const notifId = `post_${postId}_to_${fUid}`;
+          const notifRef = db.collection("notifications").doc(notifId);
+          batch.set(notifRef, {
+            toUid: fUid,
+            fromUid: uid,
+            type: "friendTaskCompleted",
+            relatedId: postId,
+            title: "🎬 実行の証明",
+            body: `${userData.username || "フレンド"}さんが本日の『頑張り』をカタチにしました！あなたのスタートもいつでも待っています✨`,
+            sendPush: true,
+            isRead: false,
+            isTopRunner: false,
+            createdAt: FieldValue.serverTimestamp(),
+          });
+        });
+
+        await batch.commit();
+        healedCount += missingFriends.length;
+      }
+
+      if (healedCount > 0) {
+        console.log(`[Self-Healing] Successfully healed and created ${healedCount} missing notifications.`);
+      }
+    } catch (error) {
+      console.error("[Self-Healing] Error in healUnprocessedPostNotifications:", error);
+    }
   }
 );
 

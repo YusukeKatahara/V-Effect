@@ -94,8 +94,11 @@ class PushNotificationService {
     // FCM トークンを保存
     await saveFcmToken();
 
-    // トークン更新時にも保存
-    _messaging.onTokenRefresh.listen((_) => saveFcmToken());
+    // トークン更新時にも即座に保存・同期
+    _messaging.onTokenRefresh.listen((newToken) {
+      debugPrint('FCM Token refreshed: $newToken');
+      saveFcmToken(newToken);
+    });
 
     // 起動時にバッジをリセット
     await resetBadge();
@@ -366,7 +369,7 @@ class PushNotificationService {
   }
 
   /// FCM トークンを Firestore に保存
-  Future<void> saveFcmToken() async {
+  Future<void> saveFcmToken([String? newToken]) async {
     final user = _auth.currentUser;
     if (user == null) return;
 
@@ -383,28 +386,13 @@ class PushNotificationService {
         }
       }
 
-      // iOS の場合は APNs トークンの取得状況を確認し、必要に応じて待機する
-      if (defaultTargetPlatform == TargetPlatform.iOS) {
-        String? apnsToken;
-        for (int i = 0; i < 15; i++) {
-          apnsToken = await _messaging.getAPNSToken();
-          if (apnsToken != null) break;
-          await Future.delayed(const Duration(seconds: 1));
-        }
-        debugPrint('APNs Token: $apnsToken');
-        if (apnsToken == null) {
-          debugPrint('警告: iOS で APNs トークンが取得できなかったため、FCMトークンの保存をスキップします。実機かつプロビジョニング設定が正しい必要があります。');
-          return;
-        }
-      }
-
-      final token = await _messaging.getToken();
+      final String? token = newToken ?? await _messaging.getToken();
       if (token == null) {
         debugPrint('FCMトークンが取得できませんでした');
         return;
       }
 
-      debugPrint('FCM Token: $token');
+      debugPrint('FCM Token (saving): $token');
 
       // fcmToken は private subcollection に保存（全認証ユーザーからの読み取りを防ぐ）
       await _db

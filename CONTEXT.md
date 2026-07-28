@@ -17,6 +17,12 @@
 
 ## 📝 Recent Changes (直近の変更内容)
 
+### 2026-07-28 (Antigravity)
+- **Implement Instagram-Grade Notification Reliability Architecture (FCMトークンリアルタイム自動同期＆セルフヒーリング自動救済バッチの完全実装とデプロイ):**
+    - [push_notification_service.dart](file:///Users/rennlikeu/development/V-Effect/lib/services/push_notification_service.dart) にて `_messaging.onTokenRefresh` に即時トークン同期ロジックを実装。トークン変更時の宛先乖離・不達を防止。
+    - [functions/index.js](file:///Users/rennlikeu/development/V-Effect/functions/index.js) に `healUnprocessedPostNotifications` (10分ごと自動実行のセルフヒーリングスケジュール関数) を新規追加。直近1時間の投稿をチェックし、一時的なサーバーエラー等で作成漏れとなった通知を自動検知・再補填送出する二重化救済構造を確立。
+    - `processPostNotifications` における `startOfTodayUTC` の日付計算を `Date.UTC` + JSTオフセット計算に修正し、本日1回目の投稿通知の誤判定を解決。
+
 ### 2026-07-23 (Antigravity)
 - **Fix Cloud Firestore "permission-denied" Error in Feed Fetch (Firestoreパーミッション拒否エラーの根本解決とルールデプロイ):**
     - `firestore.rules` の `posts` コレクションの読み取りルール内に存在していた `get(/databases/...)` の動的ルックアップ条件が原因で、[post_service.dart](file:///Users/rennlikeu/development/V-Effect/lib/services/post_service.dart) のフィード取得クエリ（`whereIn` / `snapshots`）実行時に [cloud_firestore/permission-denied] が発生していたバグを修正。
