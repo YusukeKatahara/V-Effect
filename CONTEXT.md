@@ -7,15 +7,24 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-07-23
-- **Activeエージェント:** Antigravity (Idle)
-- **Current Task:** V-PHOENIX Streak Recovery System (Completed)
-- **Action:** Implemented V-PHOENIX streak rescue system with 150 VFIRE rebirth condition, bilingual support (JA/EN), two-minute rule notifications, and REIGNITE celebration dialog.
+- **Last Updated:** 2026-07-29
+- **Activeエージェント:** Claude Code (Idle)
+- **Current Task:** LP Blog (SEO) Phase 0/1 Implementation (Completed)
+- **Action:** Built `tool/generate_blog.py` static blog generator and published 5 initial SEO articles under `public/blog/`. See `docs/blog_seo_plan.md` for the full plan. `lib/` (Flutter app) is untouched by this work.
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-07-29 (Claude Code)
+- **Implement LP Blog for SEO (`docs/blog_seo_plan.md` Phase 0/1) (LPブログ機能の新設・初速5記事の公開):**
+    - `tool/generate_blog.py` を新規作成。`content/blog/*.md`（frontmatter + Markdown）を読み込み、`public/blog/index.html`（一覧）、`public/blog/<slug>/index.html`（詳細、meta description/OGP/JSON-LD `BlogPosting` 付き）、`public/sitemap.xml`（既存5URL + ブログURLで全文再生成）を生成する静的サイトジェネレーターを実装。実行は `python tool/generate_blog.py` の1コマンドのみ。
+    - `public/assets/css/lp.css` に `.blog-*` クラス群（カードグリッド・記事本文タイポグラフィ・テーブル/blockquote装飾等）を追加。既存の黒×ゴールドのデザイントークンをそのまま継承。
+    - `public/index.html` のヘッダーナビに「ブログ」リンクを追加（`/blog/`）。
+    - アプリ内 `dev_blog`（Firestore、読み取り専用でREST API経由取得）に既存の運営告知5記事を初速コンテンツとして採用し、SEO用に大幅リライトして `content/blog/*.md` として書き起こし公開: `mokuhyou-settei-shikumika`（目標と仕組み）、`syukanka-fukuri-koka`（複利効果）、`hitori-de-tsuzukanai-nakama`（仲間と環境）、`kuchiguse-nokagaku`（言葉と脳科学）、`tokui-mitsukekata-jikorikai`（自己理解）。Atomic Habits / Tools of Titans由来の要約色が強かった原文は、直接引用を1〜2文+出典明記に絞り、独自解説とV EFFECTの実践導線を主にする形へ編集（著作権リスクが最も高かった `tokui-mitsukekata-jikorikai` は書籍要約の体裁をやめほぼ書き下ろし）。
+    - `firebase deploy --only hosting:lp` でデプロイ完了。本番（`https://veffect.web.app/blog/` 以下、記事5本、`sitemap.xml`）で200 OKを確認済み。
+    - **未実施（ユーザー側の手動作業）:** Google Search Console への sitemap.xml 初回送信（計画書§8）。`lib/` 配下のFlutterアプリコード・Firestore・Cloud Functionsは一切変更していない。
 
 ### 2026-07-28 (Antigravity)
 - **Implement Instagram-Grade Notification Reliability Architecture (FCMトークンリアルタイム自動同期＆セルフヒーリング自動救済バッチの完全実装とデプロイ):**

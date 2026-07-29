@@ -518,6 +518,210 @@ html:lang(en) .cta h2 {
     margin-top: 8px;
 }
 
+/* ---------- ブログ: 一覧ヒーロー ---------- */
+.blog-hero {
+    padding: 88px 0 56px;
+    text-align: center;
+    background:
+        radial-gradient(ellipse 60% 50% at 50% 0%, rgba(212, 175, 55, 0.07), transparent),
+        var(--bg);
+}
+
+.blog-hero h1 {
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 16px;
+}
+
+.blog-hero .hero-sub {
+    margin: 0 auto;
+}
+
+/* ---------- ブログ: カードグリッド(一覧・関連記事共通) ---------- */
+.blog-list {
+    padding: 24px 0 96px;
+}
+
+.blog-related {
+    padding: 80px 0;
+    border-top: 1px solid var(--border);
+}
+
+.blog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+}
+
+.blog-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 26px;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.blog-card:hover {
+    border-color: var(--gold-soft);
+    transform: translateY(-2px);
+}
+
+.blog-card-cat {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    margin-bottom: 12px;
+}
+
+.blog-card-title {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+.blog-card-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    flex-grow: 1;
+}
+
+.blog-card-date {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 18px;
+}
+
+/* ---------- ブログ: 記事詳細 ---------- */
+.blog-article {
+    padding: 72px 0 32px;
+}
+
+.blog-article-inner {
+    max-width: 720px;
+}
+
+.blog-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.blog-meta .blog-card-cat {
+    margin-bottom: 0;
+}
+
+.blog-meta-date {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.blog-article h1 {
+    font-size: clamp(26px, 4vw, 36px);
+    font-weight: 700;
+    line-height: 1.45;
+    margin-bottom: 40px;
+}
+
+.blog-body {
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.blog-body h2 {
+    font-size: clamp(20px, 2.8vw, 26px);
+    font-weight: 700;
+    margin: 48px 0 20px;
+}
+
+.blog-body h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 32px 0 14px;
+}
+
+.blog-body p {
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+}
+
+.blog-body strong {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.blog-body ul,
+.blog-body ol {
+    margin: 0 0 20px 1.4em;
+    color: var(--text-secondary);
+}
+
+.blog-body li {
+    margin-bottom: 8px;
+}
+
+.blog-body blockquote {
+    border-left: 2px solid var(--gold-soft);
+    background: var(--gold-glow);
+    padding: 16px 24px;
+    margin: 28px 0;
+    color: var(--text-primary);
+    font-size: 15px;
+    border-radius: 0 12px 12px 0;
+}
+
+.blog-body blockquote p:last-child {
+    margin-bottom: 0;
+}
+
+.blog-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 28px 0;
+    font-size: 14px;
+}
+
+.blog-body th,
+.blog-body td {
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    text-align: left;
+}
+
+.blog-body th {
+    background: var(--surface-2);
+    color: var(--gold);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.blog-body hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 40px 0;
+}
+
+@media (max-width: 640px) {
+    .blog-article {
+        padding: 48px 0 16px;
+    }
+    .blog-body table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
+
 /* ---------- モーション低減 ---------- */
 @media (prefers-reduced-motion: reduce) {
     html {
