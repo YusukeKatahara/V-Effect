@@ -1239,7 +1239,10 @@ exports.processPostNotifications = onTaskDispatched(
       let finalBody = '';
       let finalType = "friendTaskCompleted"; // 通常はフレンドタスク完了通知
 
-      if (isMilestone) {
+      // ストリークお祝い通知は、節目（マイルストーン）かつ本日1回目の投稿（todayPostCount === 1）の時のみ送信
+      const shouldCelebrateStreak = isMilestone && todayPostCount === 1;
+
+      if (shouldCelebrateStreak) {
         const streakContent = getStreakNotification(language, currentStreak, username);
         finalTitle = streakContent.title;
         finalBody = streakContent.body;

@@ -1368,20 +1368,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final streak = _user!.streak;
     final l10n = AppLocalizations.of(context)!;
     
-    // 閾値、ティア名、カラーの定義
+    // 閾値とカラーの定義
     final thresholds = [0, 3, 7, 14, 30, 66, 100, 180, 270, 365];
-    final names = [
-      l10n.tierIron,
-      l10n.tierBronze,
-      l10n.tierSilver,
-      l10n.tierGold,
-      l10n.tierPlatinum,
-      l10n.tierEmerald,
-      l10n.tierDiamond,
-      l10n.tierMaster,
-      l10n.tierGrandmaster,
-      l10n.tierChallenger,
-    ];
     final colors = [
       const Color(0xFF5E4B43),
       const Color(0xFF8F5338),
@@ -1395,13 +1383,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const Color(0xFFE0A33B),
     ];
 
-    String currentTier = l10n.tierIron;
-    String nextTier = l10n.tierChallenger;
     int currentThreshold = 0;
     int nextThreshold = 365;
     double percent = 1.0;
     Color currentTierColor = colors.first;
-    Color nextTierColor = colors.last;
 
     if (streak < 365) {
       int index = 0;
@@ -1411,13 +1396,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           break;
         }
       }
-      currentTier = names[index];
-      nextTier = names[index + 1];
       currentThreshold = thresholds[index];
       nextThreshold = thresholds[index + 1];
     } else {
-      currentTier = l10n.tierChallenger;
-      nextTier = l10n.tierChallenger;
       currentThreshold = 365;
       nextThreshold = 365;
     }
@@ -1428,39 +1409,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
       segmentCount = nextThreshold >= 12 ? nextThreshold : 12;
       percent = (streak / nextThreshold).clamp(0.0, 1.0);
       currentTierColor = colors[thresholds.indexOf(currentThreshold)];
-      nextTierColor = colors[thresholds.indexOf(nextThreshold)];
     } else {
       segmentCount = 60;
       percent = 1.0;
       currentTierColor = colors.last;
-      nextTierColor = colors.last;
     }
+
+    final isDark = AppColors.isDark;
+    final inactiveColor = isDark 
+        ? Colors.white.withValues(alpha: 0.08) 
+        : Colors.black.withValues(alpha: 0.06);
 
     return RepaintBoundary(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: AppColors.bgSurface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(
+            color: isDark ? AppColors.border : AppColors.grey20,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark 
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // 左側: セグメント分割型円形メーター
+            // 左側: セグメント分割型円形メーター（高さ72px）
             SizedBox(
-              width: 90,
-              height: 90,
+              width: 72,
+              height: 72,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   CustomPaint(
-                    size: const Size(90, 90),
+                    size: const Size(72, 72),
                     painter: SegmentedCircularProgressPainter(
                       percent: percent,
                       activeColor: currentTierColor,
-                      inactiveColor: Colors.white.withValues(alpha: 0.08),
+                      inactiveColor: inactiveColor,
                       segmentCount: segmentCount,
-                      strokeWidth: 12, // 太くして存在感を出す
+                      strokeWidth: 8,
                     ),
                   ),
                   Column(
@@ -1470,16 +1467,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         '$streak',
                         style: GoogleFonts.outfit(
                           color: currentTierColor,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          height: 1.0,
                         ),
                       ),
+                      const SizedBox(height: 1),
                       Text(
-                        l10n.profileScreenStreak,
-                        style: TextStyle(
+                        l10n.profileScreenStreak.toUpperCase(),
+                        style: GoogleFonts.outfit(
                           color: currentTierColor,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 7,
+                          fontWeight: FontWeight.w700,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -1488,73 +1487,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-            const SizedBox(width: 20),
-            // 右側: 詳細テキスト項目
+            const SizedBox(width: 12),
+            // 右側: 月間カレンダー表示
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildDetailRow(l10n.profileScreenCurrentRank, currentTier, valueColor: currentTierColor),
-                  const SizedBox(height: 6),
-                  _buildDetailRow(l10n.profileScreenStreak, l10n.profileScreenStreakDays(streak)),
-                  const SizedBox(height: 6),
-                  _buildDetailRow(
-                    l10n.profileScreenStreakProgress,
-                    l10n.profileScreenStreakProgressValue(streak, nextThreshold),
-                  ),
-                  const SizedBox(height: 6),
-                  _buildDetailRow(
-                    l10n.profileScreenNextRank,
-                    streak < 365 ? nextTier : l10n.profileScreenStreakMax,
-                    valueColor: streak < 365 ? nextTierColor : const Color(0xFFE0A33B),
-                  ),
-                ],
+              child: StreakMonthCalendarWidget(
+                recentPostDates: _user!.recentPostDates,
+                activeColor: currentTierColor,
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value, {Color? valueColor, String suffix = ''}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 11,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          child: RichText(
-            overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              style: TextStyle(
-                color: valueColor ?? AppColors.textPrimary,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-              children: [
-                TextSpan(text: value),
-                if (suffix.isNotEmpty)
-                  TextSpan(
-                    text: suffix,
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -1801,5 +1744,210 @@ class SegmentedCircularProgressPainter extends CustomPainter {
         oldDelegate.activeColor != activeColor ||
         oldDelegate.inactiveColor != inactiveColor ||
         oldDelegate.segmentCount != segmentCount;
+  }
+}
+
+/// ストリークカード用当月カレンダー表示ウィジェット（超コンパクト版）
+class StreakMonthCalendarWidget extends StatefulWidget {
+  final List<String> recentPostDates;
+  final Color activeColor;
+
+  const StreakMonthCalendarWidget({
+    super.key,
+    required this.recentPostDates,
+    required this.activeColor,
+  });
+
+  @override
+  State<StreakMonthCalendarWidget> createState() => _StreakMonthCalendarWidgetState();
+}
+
+class _StreakMonthCalendarWidgetState extends State<StreakMonthCalendarWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final year = now.year;
+    final month = now.month;
+    final isDark = AppColors.isDark;
+    final firstDayOfMonth = DateTime(year, month, 1);
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    final startWeekday = firstDayOfMonth.weekday % 7; // 日曜=0, 月曜=1, ..., 土曜=6
+
+    // 曜日ヘッダー（言語設定に応じた多言語対応）
+    final isJa = Localizations.localeOf(context).languageCode == 'ja';
+    final weekdays = isJa
+        ? const ['日', '月', '火', '水', '木', '金', '土']
+        : const ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // 今月の達成日数カウント
+    int achievedDaysThisMonth = 0;
+    for (int d = 1; d <= daysInMonth; d++) {
+      final dStr = '$year-${month.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}';
+      if (widget.recentPostDates.contains(dStr)) {
+        achievedDaysThisMonth++;
+      }
+    }
+
+    // 当月のすべてのセル数 (1日までの空セル + 日付セル)
+    final totalCells = startWeekday + daysInMonth;
+
+    // 達成セルの文字色は緑色背景に対して常に純白 (Colors.white)
+    const achievedTextColor = Colors.white;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 月名 ＆ 今月達成数ヘッダー（左寄せ配置）
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text(
+              '$month月',
+              style: GoogleFonts.outfit(
+                color: isDark ? AppColors.textPrimary : AppColors.pureBlack,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? widget.activeColor.withValues(alpha: 0.25)
+                    : widget.activeColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(
+                '$achievedDaysThisMonth/$daysInMonth日達成',
+                style: GoogleFonts.outfit(
+                  color: isDark ? const Color(0xFF34D399) : widget.activeColor,
+                  fontSize: 7.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 1.5),
+        // 曜日ヘッダー
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: weekdays.map((w) {
+            return Expanded(
+              child: Center(
+                child: Text(
+                  w,
+                  style: GoogleFonts.outfit(
+                    color: isDark ? Colors.white54 : Colors.black45,
+                    fontSize: 6.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 1),
+        // カレンダーグリッド (超コンパクトアスペクト比 1.85)
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: totalCells,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7,
+            mainAxisSpacing: 1.2,
+            crossAxisSpacing: 1.2,
+            childAspectRatio: 1.85,
+          ),
+          itemBuilder: (context, index) {
+            if (index < startWeekday) {
+              return const SizedBox.shrink();
+            }
+            final dayNumber = index - startWeekday + 1;
+            final dateStr = '$year-${month.toString().padLeft(2, '0')}-${dayNumber.toString().padLeft(2, '0')}';
+            final isAchieved = widget.recentPostDates.contains(dateStr);
+            final isToday = dayNumber == now.day;
+
+            // アニメーション用の分割制御 (1日〜31日順に順番に塗りつぶし)
+            final animStart = ((dayNumber - 1) / daysInMonth) * 0.7;
+            final animEnd = (animStart + 0.3).clamp(0.0, 1.0);
+            final curvedAnimation = CurvedAnimation(
+              parent: _controller,
+              curve: Interval(animStart, animEnd, curve: Curves.easeOutBack),
+            );
+
+            // 未達成セルの背景色
+            final unachievedBg = isDark
+                ? const Color(0xFF222224)
+                : Colors.black.withValues(alpha: 0.04);
+
+            return AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                final scale = isAchieved ? (0.3 + 0.7 * curvedAnimation.value) : 1.0;
+                final opacity = isAchieved ? curvedAnimation.value.clamp(0.0, 1.0) : 1.0;
+
+                return Transform.scale(
+                  scale: scale,
+                  child: Opacity(
+                    opacity: opacity,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isAchieved
+                            ? widget.activeColor
+                            : isToday
+                                ? widget.activeColor.withValues(alpha: isDark ? 0.3 : 0.12)
+                                : unachievedBg,
+                        borderRadius: BorderRadius.circular(2),
+                        border: isToday && !isAchieved
+                            ? Border.all(color: widget.activeColor, width: 0.8)
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$dayNumber',
+                        style: GoogleFonts.outfit(
+                          color: isAchieved
+                              ? achievedTextColor
+                              : isToday
+                                  ? widget.activeColor
+                                  : (dayNumber > now.day)
+                                      ? (isDark ? const Color(0xFF555558) : Colors.black26)
+                                      : (isDark ? Colors.white70 : Colors.black87),
+                          fontSize: 9.5,
+                          fontWeight: isAchieved || isToday ? FontWeight.w800 : FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    );
   }
 }

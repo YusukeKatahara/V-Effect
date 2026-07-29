@@ -52,6 +52,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
 
   // ── Card Expansion ──
   int? _expandedIndex; // 長押しで拡大中のカードインデックス
+  int _expandedPostPage = 0; // 拡大中カードの現在選択中の投稿写真ページ番号
   final Map<String, String?> _userPhotos = {};
   final Map<String, String> _userNames = {};
   String? _myPhotoUrl;
@@ -101,14 +102,9 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
     _pageController = PageController(initialPage: initialPage)
       ..addListener(() {
         if (mounted && _pageController.hasClients) {
+          if (_expandedIndex != null) return; // カード拡大中は外側のスクロールリスナーを無効化
           final page = _pageController.page;
           if (page != null && !page.isNaN) {
-            // スワイプが始まったら拡大状態を解除
-            if (_expandedIndex != null) {
-              setState(() => _expandedIndex = null);
-              _soundService.stopBgm();
-              return;
-            }
             _scrollPositionNotifier.value = page;
             // ユーザーがスワイプ（画面移動）を開始したら、ガイドを非表示にする
             if (_showSwipeGuide) {
@@ -297,6 +293,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
           setState(() {
             if (_expandedIndex != null) {
               _expandedIndex = null; // 拡大状態をリセット
+              _expandedPostPage = 0;
               _soundService.stopBgm(); // スワイプ時に音楽を止める
             }
           });
@@ -406,6 +403,56 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
         await ref.read(userServiceProvider).updateProfile(tasks: updatedTasks);
       },
     );
+  }
+
+  void _handleCardTap(
+    int actualIndex,
+    int rawIndex,
+    TapUpDetails details,
+    double finalCardWidth,
+    double maxCardHeight,
+  ) {
+    if (_expandedIndex != null) {
+      setState(() {
+        _expandedIndex = null;
+        _expandedPostPage = 0;
+      });
+      _soundService.stopBgm();
+      return;
+    }
+    // カードが中央にない場合はスナップして終了
+    if (actualIndex != _focusedIndex) {
+      _pageController.animateToPage(
+        rawIndex,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+      return;
+    }
+    final item = _taskItems[actualIndex];
+    if (item.isCompleted) {
+      // カードの真ん中付近（追いVボタン）か判定
+      final cardCenter = Offset(finalCardWidth / 2, maxCardHeight / 2);
+      final tapPos = details.localPosition;
+      final dist = (tapPos - cardCenter).distance;
+      if (dist < 60) {
+        // 半径60以内なら追加撮影へ
+        _selectHeroTask(actualIndex);
+      } else {
+        // それ以外は拡大
+        HapticFeedback.mediumImpact();
+        setState(() {
+          _expandedIndex = actualIndex;
+          _expandedPostPage = 0;
+        });
+        if (item.latestPost?.bgmUrl != null) {
+          _soundService.playBgm(item.latestPost!.bgmUrl!);
+        }
+      }
+    } else {
+      // 未完了ならカメラへ
+      _selectHeroTask(actualIndex);
+    }
   }
 
   Future<void> _selectHeroTask(int index) async {
@@ -786,8 +833,18 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
             _taskItems.isNotEmpty ? _taskItems[_focusedIndex] : null;
         final isCompleted = focusedTask?.isCompleted ?? false;
         final tierColor = _getTierColor(_streak);
+
+        final sortedPosts = (focusedTask != null)
+            ? (List<Post>.from(focusedTask.completedPosts)
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt)))
+            : <Post>[];
+
+        final displayedPost = (_expandedIndex == _focusedIndex && sortedPosts.isNotEmpty)
+            ? sortedPosts[_expandedPostPage.clamp(0, sortedPosts.length - 1)]
+            : (sortedPosts.isNotEmpty ? sortedPosts.first : null);
+
         final currentUid = ref.watch(userServiceProvider).currentUid;
-        final isMyPost = focusedTask?.latestPost?.userId == currentUid;
+        final isMyPost = displayedPost?.userId == currentUid;
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -879,7 +936,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                     ),
                   ),
                 ),
-                if (isCompleted && _expandedIndex == _focusedIndex && isMyPost) ...[
+                if (isCompleted && _expandedIndex == _focusedIndex && isMyPost && displayedPost != null) ...[
                   // 推薦ユーザー制限をなくし、全員が全体公開の切り替えを行えるように公開・非公開ボタンを表示します。
                   Positioned(
                     left: 0,
@@ -890,14 +947,10 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                         width: 32,
                         height: 32,
                         child: IconButton(
-                          onPressed: () {
-                            if (focusedTask?.latestPost != null) {
-                              _togglePostPublicStatus(focusedTask!.latestPost!);
-                            }
-                          },
+                          onPressed: () => _togglePostPublicStatus(displayedPost),
                           icon: Icon(
                             Icons.public,
-                            color: (focusedTask?.latestPost?.isPublic ?? false)
+                            color: displayedPost.isPublic
                                 ? AppColors.accentGold
                                 : AppColors.white,
                             size: 18,
@@ -920,17 +973,15 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                           height: 32,
                           child: IconButton(
                             onPressed: () {
-                              if (focusedTask?.latestPost != null) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => HeroTaskSharePreviewScreen(
-                                      imageUrl: focusedTask!.latestPost!.imageUrl,
-                                      currentStreak: _streak,
-                                    ),
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => HeroTaskSharePreviewScreen(
+                                    imageUrl: displayedPost.imageUrl,
+                                    currentStreak: _streak,
                                   ),
-                                );
-                              }
+                                ),
+                              );
                             },
                             icon: Icon(
                               Icons.ios_share,
@@ -945,8 +996,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                           width: 32,
                           height: 32,
                           child: IconButton(
-                            onPressed:
-                                () => _deleteHeroPost(focusedTask!.latestPost!.id),
+                            onPressed: () => _deleteHeroPost(displayedPost.id),
                             icon: Icon(
                               Icons.delete_outline_rounded,
                               color: AppColors.error,
@@ -1036,7 +1086,9 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                     ignoring: _isSublimating,
                     child: PageView.builder(
                       controller: _pageController,
-                      physics: const FrictionlessPageScrollPhysics(),
+                      physics: _expandedIndex != null
+                          ? const NeverScrollableScrollPhysics()
+                          : const FrictionlessPageScrollPhysics(),
                       itemBuilder: (context, rawIndex) {
                         if (_taskItems.isEmpty) return const SizedBox.shrink();
                         final actualIndex = rawIndex % _taskItems.length;
@@ -1049,50 +1101,41 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                             child: Stack(
                               clipBehavior: Clip.none,
                               children: [
-                                // 全体検知（タップで拡大・タスク選択）
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTapUp: (details) {
-                                    if (_expandedIndex != null) {
-                                      setState(() => _expandedIndex = null);
-                                      _soundService.stopBgm();
-                                      return;
-                                    }
-                                    // カードが中央にない場合はスナップして終了
-                                    if (actualIndex != _focusedIndex) {
-                                      _pageController.animateToPage(
-                                        rawIndex,
-                                        duration:
-                                            const Duration(milliseconds: 300),
-                                        curve: Curves.easeOutCubic,
+                                // 全体検知（タップで拡大・タスク選択 / 拡大時は写真スワイプ）
+                                if (actualIndex == _expandedIndex && item.completedPosts.length > 1)
+                                  PageView.builder(
+                                    itemCount: item.completedPosts.length,
+                                    onPageChanged: (pageIdx) {
+                                      setState(() {
+                                        _expandedPostPage = pageIdx;
+                                      });
+                                    },
+                                    itemBuilder: (context, postIdx) {
+                                      return GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTapUp: (details) => _handleCardTap(
+                                          actualIndex,
+                                          rawIndex,
+                                          details,
+                                          finalCardWidth,
+                                          maxCardHeight,
+                                        ),
+                                        child: const SizedBox.expand(),
                                       );
-                                      return;
-                                    }
-                                    final item = _taskItems[actualIndex];
-                                    if (item.isCompleted) {
-                                      // カードの真ん中付近（追いVボタン）か判定
-                                      final cardCenter = Offset(finalCardWidth / 2, maxCardHeight / 2);
-                                      final tapPos = details.localPosition;
-                                      final dist = (tapPos - cardCenter).distance;
-                                      if (dist < 60) { // 半径60以内なら追加撮影へ
-                                        _selectHeroTask(actualIndex);
-                                      } else {
-                                        // それ以外は拡大
-                                        HapticFeedback.mediumImpact();
-                                        setState(
-                                            () => _expandedIndex = actualIndex);
-                                        // [New] 拡大時に音楽を流す
-                                        if (item.latestPost?.bgmUrl != null) {
-                                          _soundService.playBgm(item.latestPost!.bgmUrl!);
-                                        }
-                                      }
-                                    } else {
-                                      // 未完了ならカメラへ
-                                      _selectHeroTask(actualIndex);
-                                    }
-                                  },
-                                  child: const SizedBox.expand(),
-                                ),
+                                    },
+                                  )
+                                else
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTapUp: (details) => _handleCardTap(
+                                      actualIndex,
+                                      rawIndex,
+                                      details,
+                                      finalCardWidth,
+                                      maxCardHeight,
+                                    ),
+                                    child: const SizedBox.expand(),
+                                  ),
 
                                 // [New] ヒントボタン（SEASONタスクの場合のみ、右上に配置）
                                 // 手前のフォーカスされたカード、または拡大されている時に表示する
@@ -1285,6 +1328,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
                 showCamera: !_isSublimating && index == _focusedIndex,
                 tierColor: _getTierColor(_streak),
                 isExpanded: isExpanded,
+                activePostIndex: (index == _expandedIndex) ? _expandedPostPage : 0,
                 userPhotos: _userPhotos,
                 onDelete: item.latestPost != null
                     ? () => _deleteHeroPost(item.latestPost!.id)

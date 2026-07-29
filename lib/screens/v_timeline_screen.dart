@@ -205,6 +205,14 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
       adUnitId: AdHelper.nativeAdUnitId,
       request: const AdRequest(),
       factoryId: 'customNativeAd',
+      nativeAdOptions: NativeAdOptions(
+        videoOptions: VideoOptions(
+          startMuted: true,
+          customControlsRequested: false,
+          clickToExpandRequested: false,
+        ),
+        mediaAspectRatio: MediaAspectRatio.any,
+      ),
       listener: NativeAdListener(
         onAdLoaded: (loadedAd) {
           if (mounted) {
@@ -230,12 +238,10 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
 
   void _preloadAdsNearFocusedIndex() {
     if (_feedItems.isEmpty) return;
-    for (int i = -1; i <= 1; i++) {
-      final targetPage = _focusedGlobalIndex + i;
-      final actualIndex = (targetPage % _feedItems.length + _feedItems.length) % _feedItems.length;
-      if (_feedItems[actualIndex] is String && _feedItems[actualIndex] == 'ad') {
-        _loadAdForGlobalIndex(targetPage);
-      }
+    final focusedPage = _focusedGlobalIndex;
+    final actualIndex = (focusedPage % _feedItems.length + _feedItems.length) % _feedItems.length;
+    if (_feedItems[actualIndex] is String && _feedItems[actualIndex] == 'ad') {
+      _loadAdForGlobalIndex(focusedPage);
     }
   }
 

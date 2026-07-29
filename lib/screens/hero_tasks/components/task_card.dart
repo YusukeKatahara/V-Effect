@@ -23,6 +23,7 @@ class TaskCard extends ConsumerStatefulWidget {
   final bool showCamera;
   final Color tierColor;
   final bool isExpanded;
+  final int activePostIndex;
   final Map<String, String?> userPhotos;
   final VoidCallback? onDelete;
   final String? myPhotoUrl;
@@ -39,6 +40,7 @@ class TaskCard extends ConsumerStatefulWidget {
     required this.showCamera,
     required this.tierColor,
     required this.isExpanded,
+    this.activePostIndex = 0,
     required this.userPhotos,
     this.onDelete,
     required this.myPhotoUrl,
@@ -52,31 +54,6 @@ class TaskCard extends ConsumerStatefulWidget {
 }
 
 class TaskCardState extends ConsumerState<TaskCard> {
-  late PageController _pageController;
-  int _currentPage = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-  }
-
-  @override
-  void didUpdateWidget(covariant TaskCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!widget.isExpanded && oldWidget.isExpanded) {
-      if (_pageController.hasClients) {
-        _pageController.jumpToPage(0);
-      }
-      _currentPage = 0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
 
   Widget _buildHabitStepSequence({
     required HeroTaskItem item,
@@ -233,19 +210,30 @@ class TaskCardState extends ConsumerState<TaskCard> {
     final isCompleted = item.isCompleted || isUploadingThisTask || isUploadSuccessThisTask;
     final sortedPosts = _sortedPosts;
     final postCount = sortedPosts.length;
-    final currentPost = (isExpanded && postCount > 1) 
-        ? sortedPosts[_currentPage] 
-        : (sortedPosts.isNotEmpty ? sortedPosts.first : null);
+    final activeIndex = (isExpanded && postCount > 1) 
+        ? widget.activePostIndex.clamp(0, postCount > 0 ? postCount - 1 : 0) 
+        : 0;
+    final currentPost = sortedPosts.isNotEmpty ? sortedPosts[activeIndex] : null;
 
     int totalReactionCount = 0;
     final Map<String, String> totalUserReactions = {};
-    final Set<String> totalEmojiReactedUserIds = {};
+    final List<String> totalEmojiReactedUserIds = [];
 
-    for (final post in sortedPosts) {
-      final adjustedCount = ref.watch(vfireProvider.select((state) => state.getAdjustedReactionCount(post)));
-      totalReactionCount += adjustedCount;
-      totalUserReactions.addAll(post.userReactions);
-      totalEmojiReactedUserIds.addAll(post.emojiReactedUserIds);
+    if (isExpanded && currentPost != null) {
+      // 拡大時：現在表示されている投稿 (currentPost) 個別のリアクション同期
+      totalReactionCount = ref.watch(vfireProvider.select((state) => state.getAdjustedReactionCount(currentPost)));
+      totalUserReactions.addAll(currentPost.userReactions);
+      totalEmojiReactedUserIds.addAll(currentPost.emojiReactedUserIds);
+    } else {
+      // 通常時：カード全体の合算リアクション
+      final Set<String> emojiUids = {};
+      for (final post in sortedPosts) {
+        final adjustedCount = ref.watch(vfireProvider.select((state) => state.getAdjustedReactionCount(post)));
+        totalReactionCount += adjustedCount;
+        totalUserReactions.addAll(post.userReactions);
+        emojiUids.addAll(post.emojiReactedUserIds);
+      }
+      totalEmojiReactedUserIds.addAll(emojiUids);
     }
 
     const bgColorTop = Color(0xFF1C1D21);
@@ -318,22 +306,14 @@ class TaskCardState extends ConsumerState<TaskCard> {
           fit: StackFit.expand,
           children: [
             if (isCompleted)
-              if (isExpanded && postCount > 1)
-                PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: (idx) {
-                    setState(() {
-                      _currentPage = idx;
-                    });
-                  },
-                  itemCount: postCount,
-                  itemBuilder: (context, i) {
-                    final p = sortedPosts[i];
-                    return _buildBackgroundImage(p.imageUrl, isExpanded, isTop);
-                  },
+              if (currentPost?.imageUrl != null)
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: Container(
+                    key: ValueKey(currentPost!.imageUrl),
+                    child: _buildBackgroundImage(currentPost.imageUrl, isExpanded, isTop),
+                  ),
                 )
-              else if (sortedPosts.isNotEmpty)
-                _buildBackgroundImage(sortedPosts.first.imageUrl, isExpanded, isTop)
               else if (isUploadingThisTask || isUploadSuccessThisTask)
                 _buildLocalBackgroundImage(uploadState.imageBytes, isExpanded, isTop),
 
@@ -341,6 +321,7 @@ class TaskCardState extends ConsumerState<TaskCard> {
               item,
               isCompleted,
               postCount,
+              activeIndex,
               isTop,
               depth,
               isExpanded,
@@ -348,7 +329,7 @@ class TaskCardState extends ConsumerState<TaskCard> {
               tierColor,
               totalReactionCount,
               totalUserReactions,
-              totalEmojiReactedUserIds.toList(),
+              totalEmojiReactedUserIds,
               userPhotos,
               currentPost,
               widget.myPhotoUrl,
@@ -369,6 +350,7 @@ class TaskCardState extends ConsumerState<TaskCard> {
     HeroTaskItem item,
     bool isCompleted,
     int postCount,
+    int activeIndex,
     bool isTop,
     int depth,
     bool isExpanded,
@@ -897,7 +879,7 @@ class TaskCardState extends ConsumerState<TaskCard> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(postCount, (i) {
-                final isActive = i == _currentPage;
+                final isActive = i == activeIndex;
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
