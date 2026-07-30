@@ -1048,6 +1048,20 @@ exports.processPostNotifications = onTaskDispatched(
       friendDataMap[snap.id] = snap.data();
     });
 
+    // 節目（マイルストーン）の場合、既に各フレンド宛てにこのストリーク祝い通知を作成済みかチェック
+    const celebratedFriendMap = {};
+    if (isMilestone) {
+      const streakNotifRefs = friends.map(fUid => 
+        db.collection("notifications").doc(`streak_${currentStreak}_${uid}_to_${fUid}`)
+      );
+      const streakNotifSnaps = streakNotifRefs.length > 0 ? await db.getAll(...streakNotifRefs) : [];
+      streakNotifSnaps.forEach(snap => {
+        if (snap.exists) {
+          celebratedFriendMap[snap.id] = true;
+        }
+      });
+    }
+
     // 6. 通知をバッチ作成
     const batch = db.batch();
 
@@ -1231,16 +1245,19 @@ exports.processPostNotifications = onTaskDispatched(
       const friendData = friendDataMap[friendUid] || {};
       const language = friendData.language === "en" ? "en" : "ja";
 
-      // 通常通り1通（ストリークお祝い、または通常の完了通知）を作成
-      const notifId = `post_${postId}_to_${friendUid}`;
+      const streakNotifId = `streak_${currentStreak}_${uid}_to_${friendUid}`;
+      const isAlreadyCelebrated = !!celebratedFriendMap[streakNotifId];
+
+      // ストリークお祝い通知は、節目（マイルストーン）かつ本日1回目の投稿（todayPostCount === 1）かつ過去未送信の時のみ送信
+      const shouldCelebrateStreak = isMilestone && todayPostCount === 1 && !isAlreadyCelebrated;
+
+      // お祝い通知の場合はストリーク数固定のIDを使用し、通常通知の場合は投稿IDベースのIDを使用
+      const notifId = shouldCelebrateStreak ? streakNotifId : `post_${postId}_to_${friendUid}`;
       const notifRef = db.collection("notifications").doc(notifId);
 
       let finalTitle = '';
       let finalBody = '';
       let finalType = "friendTaskCompleted"; // 通常はフレンドタスク完了通知
-
-      // ストリークお祝い通知は、節目（マイルストーン）かつ本日1回目の投稿（todayPostCount === 1）の時のみ送信
-      const shouldCelebrateStreak = isMilestone && todayPostCount === 1;
 
       if (shouldCelebrateStreak) {
         const streakContent = getStreakNotification(language, currentStreak, username);
