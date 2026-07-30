@@ -9,6 +9,7 @@ description: V EFFECT プロジェクトの概要・チーム構成・フォル�
 - **App Description:** An all-positive SNS app where users share their daily efforts with photos and praise each other to maintain motivation for growth. Users post photos once a day in a narrow community such as among friends, and only those who post can view others' posts (BeReal style). Combines goal management, roadmap creation, and game elements (skill tree, XP, streak) to visualize self-growth.
 - **Target Users:** 自分磨きを頑張る、習慣化したいことがある、または常にある良習慣を強固にしたい人たちへ。サブタイトルは習慣化,努力と勝利の共有である。
 - **Platform:** Android / iOS (Cross-platform development using Flutter)
+- **Release Status (2026-07現在):** ⚠️ **App Store で正式リリース済み・本番運用中**（id6763709764）。Google Play は未公開。未リリース前提で回答・実装しないこと。破壊的変更（Firestoreスキーマ・functions・ルール）は影響範囲を明示してから行う。
 - **Development Language:** Dart (Flutter framework)
 - **Development Members:** 2 members
   - **renn** (Main Developer / Planner): アプリの開発・コーディング、およびコマンド実行やデプロイ等の作業を自ら担当しています。
@@ -21,20 +22,31 @@ description: V EFFECT プロジェクトの概要・チーム構成・フォル�
 V-Effect/
 ├── .agents/          ... AI configuration files
 │   ├── skills/       ... Skill definitions (this folder)
+│   ├── rules/        ... Firebase quota rules etc.
 │   └── workflows/    ... Workflow definitions
-├── docs/             ... Documents
+├── docs/             ... Documents (docs/archive/ は過去の計画書置き場。現行情報として参照しない)
 ├── setup/            ... Setup guides
 ├── lib/              ... Dart source code (main development area)
 │   ├── main.dart     ... App entry point (startup file)
 │   ├── screens/      ... Widgets for each screen
 │   ├── widgets/      ... Reusable UI parts
+│   ├── providers/    ... Riverpod providers (state management)
 │   ├── models/       ... Data models (defines data shapes)
 │   ├── services/     ... API communication and database processing
+│   ├── config/       ... Theme, routes, app configuration
+│   ├── l10n/         ... Localization (app_ja.arb / app_en.arb → flutter gen-l10n)
 │   └── utils/        ... Common utility functions
+├── functions/        ... Cloud Functions (Node.js 20, index.js)
+├── public/           ... LP & blog static site (Firebase Hosting → https://veffect.web.app)
+├── content/blog/     ... Blog articles source (Markdown, tool/generate_blog.py で public/blog/ へ生成)
+├── tool/             ... Build scripts (generate_blog.py, generate_lp_images.py)
+├── analytics/        ... Firebase Analytics 分析用 Python スクリプト
+├── scratch/          ... 一時スクリプト置き場 (git管理外)
 ├── test/             ... Test code
-├── android/          ... Android-specific settings (auto-generated, usually don't touch)
-├── ios/              ... iOS-specific settings (auto-generated, usually don't touch)
+├── android/ ios/ web/ ... Platform-specific settings (auto-generated, usually don't touch)
+├── firestore.rules   ... Firestore Security Rules (変更後は firebase deploy --only firestore:rules 必須)
 ├── pubspec.yaml      ... Package (external library) management file
+├── CONTEXT.md        ... AI agent sync log (作業完了時に追記)
 └── README.md
 ```
 
@@ -98,4 +110,4 @@ V-Effect/
 ```
 
 ---
-*Last applied: 2026-06-15*
+*Last applied: 2026-07-31*

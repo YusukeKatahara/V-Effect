@@ -7,17 +7,24 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-07-29
+- **Last Updated:** 2026-07-31
 - **Activeエージェント:** Claude Code (Idle)
-- **Current Task:** LP Blog (SEO) Phase 0/1 Implementation (Completed)
-- **Action:** Built `tool/generate_blog.py` static blog generator and published 5 initial SEO articles under `public/blog/`. See `docs/blog_seo_plan.md` for the full plan. `lib/` (Flutter app) is untouched by this work.
+- **Current Task:** Workspace Cleanup & AI Config Sync (Completed)
+- **Action:** rennからの「AIが古い情報を持ち込む」問題を受け、リポジトリの棚卸しを実施。古いファイルの削除・アーカイブ、AI設定ファイル（`.agents/`配下・`README.md`・本ファイル）の現状同期を完了。詳細は下記 2026-07-31 のログを参照。
 
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
 
-### 2026-07-29 (Claude Code)
+### 2026-07-31 (Claude Code)
+- **Workspace Cleanup & AI Config Sync (作業フォルダの棚卸しとAI設定ファイルの現状同期):**
+    - **背景:** renn からの依頼「AIを使った開発時に古い情報（廃止機能・過去の段階）を持ち込んでくる」を受け、原因となる陳腐化ファイルを一掃。
+    - **削除（git履歴には残存・復元可）:** ルート直下の一時コマンド出力8件（`analyze_output.txt` 等）、スペース入り重複ファイル4件（`.flutter-plugins 2/3` 等）、解決済みクラッシュのスクショ `1000050554.jpg`、初期手描きワイヤーフレーム `demo/demo.jpg`（現UIと乖離）、`docs/development_guide.txt`（.md と重複）、`scratch/` の役目を終えた一時スクリプト12件、未追跡の `build_log.txt`・空の `old/`、ルートの単発スクリプト3件（`extract_pptx.py` / `localize_script.py` / `update_functions.js`）。
+    - **アーカイブ:** `docs/archive/` を新設し、過去の計画書3件（`implementation_plan.md`・`plan_for_release.md`・`AnalyticsOnV_EFFECTForMonetization.md`）を移動。ルート直下にあるとAIが「現行計画」と誤読するため隔離。
+    - **`.agents/CLAUDE.md` の事実誤り修正:** 状態管理を「Provider ^6.1.5+1」→「flutter_riverpod ^2.5.1」（実コードは51ファイルでRiverpod使用、旧Provider使用は0件）、Cloud Functions を「Node.js 18 / firebase-admin ^12 / firebase-functions ^5」→「Node.js 20 / ^13.7.0 / ^7.2.2」に訂正。ディレクトリ表に `lib/providers/`・`lib/widgets/`・`lib/l10n/` を追加。**廃止済みの「V-Alert」をレビュー観点から削除**し、現行の Streak救済システム・通知セルフヒーリング等の観点に置換。冒頭に「技術スタック表は pubspec.yaml / functions/package.json と同一コミットで同期する」メンテナンスルールを明記。
+    - **`.agents/skills/v-effect-context/SKILL.md`:** フォルダ構造を実態（`functions/` `public/` `content/` `tool/` `analytics/` 等）に更新し、App Store 本番運用中であるリリースステータスを明記。
+    - **本ファイル（CONTEXT.md）:** 2026-03から放置されていた Pending Tasks を現行タスクに刷新し、「完了・陳腐化したタスクは削除する」運用ルールを明記。末尾の Coding Guidelines 参照を renn の Mac 絶対パスからリポジトリ相対パスに修正。
 - **Implement LP Blog for SEO (`docs/blog_seo_plan.md` Phase 0/1) (LPブログ機能の新設・初速5記事の公開):**
     - `tool/generate_blog.py` を新規作成。`content/blog/*.md`（frontmatter + Markdown）を読み込み、`public/blog/index.html`（一覧）、`public/blog/<slug>/index.html`（詳細、meta description/OGP/JSON-LD `BlogPosting` 付き）、`public/sitemap.xml`（既存5URL + ブログURLで全文再生成）を生成する静的サイトジェネレーターを実装。実行は `python tool/generate_blog.py` の1コマンドのみ。
     - `public/assets/css/lp.css` に `.blog-*` クラス群（カードグリッド・記事本文タイポグラフィ・テーブル/blockquote装飾等）を追加。既存の黒×ゴールドのデザイントークンをそのまま継承。
@@ -226,9 +233,11 @@
 ---
 
 ## 📌 Pending Tasks & Context (保留中のタスクとコンテキスト)
-- [x] **MCP Sync:** Antigravity側でもこの `CONTEXT.md` を読み込み、作業開始時に「Active Agent」を自分に書き換える運用を開始する。
-- [ ] **Optimization Check:** ユーザーからの「ロードが長い」という指摘に対し、Firestoreクエリの最適化（`createdAt` フィルタ追加）を行ったため、インデックス作成が必要な場合がある。
-- [ ] **Next:** 別の機能追加（通知詳細など）への着手、または現在の最適化結果のユーザー確認。
+- [ ] **Google Search Console:** `sitemap.xml` の初回送信（`docs/blog_seo_plan.md` §8。ユーザー側の手動作業）。
+- [ ] **セキュリティ残課題:** 2026-05-28の包括レビューで発見された未修正の指摘が残っている。関連箇所（認証・ルール・Storage）を触る際は必ず確認する。
+- [ ] **Google Play 未公開:** Android版のストア公開は未着手。
+
+> ⚠️ この節は「今も有効なタスク」だけを残す運用とする。完了・陳腐化したタスクは削除すること（2026-03時点の古いタスクが2026-07まで残置され、AIが古い文脈を持ち込む原因になっていた）。
 
 ---
 
@@ -249,7 +258,9 @@
 ---
 
 ## 🏗 Coding Guidelines Reference
-詳細な技術規約は以下を参照してください。
-- [Coding Guidelines](file:///Users/rennlikeu/Desktop/V-Effect/.agents/skills/coding-rules/SKILL.md)
+詳細な技術規約は以下を参照してください（リポジトリ相対パス。renn/yusukeどちらの環境でも辿れるよう絶対パスは使わない）。
+- [Coding Guidelines](./.agents/skills/coding-rules/SKILL.md)
+- [Tech Stack & Naming](./.agents/CLAUDE.md)
+- [Firebase Quota Rules](./.agents/rules/firebase_quota_rules.md)
 
 エージェントはコード生成・修正時、常にこの規約に沿っているか確認すること。

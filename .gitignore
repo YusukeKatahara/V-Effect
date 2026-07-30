@@ -27,6 +27,7 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
@@ -81,8 +82,8 @@ ios/Flutter/flutter_export_environment.sh
 /docs/V-Effect_セキュリティ評価レポート.pdf
 /scratch/generate_security_report.py
 
-# Agent directories & temporary files
-.agents/
+# Agent temporary files
+# 注意: .agents/ は意図的にgit管理する（renn/yusuke間でAI設定を共有するため）。無視リストに戻さないこと
 ORIGINAL_REQUEST.md
 PROJECT.md
 scratch/
