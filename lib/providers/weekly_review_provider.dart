@@ -299,16 +299,26 @@ final weeklyReviewProvider = FutureProvider.autoDispose<WeeklyReviewData>((ref) 
   WeeklyReviewAiAdvice? aiAdvice;
   try {
     final mondayStr = DateHelper.getMondayOfWeekString(DateTime.now());
-    final cacheDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('weekly_advices')
-        .doc(mondayStr)
-        .get();
+    bool isCacheLoaded = false;
+    try {
+      final cacheDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('weekly_advices')
+          .doc(mondayStr)
+          .get();
 
-    if (cacheDoc.exists && cacheDoc.data() != null) {
-      aiAdvice = WeeklyReviewAiAdvice.fromMap(cacheDoc.data()!);
-    } else {
+      if (cacheDoc.exists && cacheDoc.data() != null) {
+        aiAdvice = WeeklyReviewAiAdvice.fromMap(cacheDoc.data()!);
+        isCacheLoaded = true;
+      }
+    } catch (e) {
+      // キャッシュ読み取りで権限エラーや通信エラーが起きても Cloud Functions を呼び出すようにする
+      isCacheLoaded = false;
+    }
+
+    if (!isCacheLoaded) {
+      try {
       // Functions を呼び出してオンデマンド生成
       final dayNames = ['', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日', '日曜日'];
       final timeNames = {
@@ -327,32 +337,36 @@ final weeklyReviewProvider = FutureProvider.autoDispose<WeeklyReviewData>((ref) 
         'buddyTaskName': buddyTaskName ?? 'タスク',
       });
 
-      if (res.data != null && res.data is Map) {
-        final map = Map<String, dynamic>.from(res.data as Map);
-        aiAdvice = WeeklyReviewAiAdvice.fromMap(map);
+        if (res.data != null && res.data is Map) {
+          final map = Map<String, dynamic>.from(res.data as Map);
+          aiAdvice = WeeklyReviewAiAdvice.fromMap(map);
+        }
+      } catch (e) {
+        debugPrint('getWeeklyAiAdvice callable error: $e');
+        rethrow;
       }
     }
   } catch (e) {
-    // エラー時のフォールバックデータ
+    // エラー時のフォールバックデータ（集計中メッセージを表示）
     final taskName = buddyTaskName ?? '相棒タスク';
     aiAdvice = WeeklyReviewAiAdvice(
-      badgeText: '分析完了',
-      headline: '💡 今週のデータ多角分析結果 (PDCA)',
+      badgeText: '集計中',
+      headline: '🔄 今週のAIデータを集計・準備中です',
       insights: [
         AiInsightItem(
-          icon: '⏰',
-          title: '1. 【時間の傾向】',
-          detail: 'ご自身の生活リズムに合わせた時間設定が、習慣化の最大の鍵となります！',
+          icon: '⏳',
+          title: '1. 【集計ステータス】',
+          detail: '現在データの分析を行っています。しばらく時間をおいて再度ご確認ください。',
         ),
         AiInsightItem(
           icon: '🔑',
           title: '2. 【ドミノ習慣】',
-          detail: '『$taskName』を中心に、一つずつのクリアを積み重ねていきましょう！',
+          detail: '『$taskName』を中心に、一つずつのクリアを継続していきましょう！',
         ),
         AiInsightItem(
           icon: '🔮',
-          title: '3. 【来週のポイント】',
-          detail: '来週も集中しやすい時間帯を活用し、ストリークを更新していきましょう！',
+          title: '3. 【分析の更新】',
+          detail: 'データが集計され次第、あなた専用の分析レポートが表示されます。',
         ),
       ],
       actionType: 'slide_time',

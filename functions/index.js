@@ -1953,25 +1953,25 @@ exports.getWeeklyAiAdvice = onCall(
       return result;
     } catch (error) {
       console.error("Failed to generate weekly AI advice:", error);
-      // エラー時のフォールバックデータ
+      // エラー時のフォールバックデータ（集計中メッセージを表示）
       const fallback = {
-        badgeText: "分析完了",
-        headline: "💡 今週のデータ多角分析結果 (PDCA)",
+        badgeText: "集計中",
+        headline: "🔄 今週のAIデータを集計・準備中です",
         insights: [
           {
-            icon: "⏰",
-            title: "1. 【時間の傾向】",
-            detail: `最もアクティブな【${goldenTimeName || "朝"}】の時間帯を活かすことで、習慣の定着率がより高まります。`,
+            icon: "⏳",
+            title: "1. 【集計ステータス】",
+            detail: "現在データの分析を行っています。しばらく時間をおいて再度ご確認ください。",
           },
           {
             icon: "🔑",
             title: "2. 【ドミノ習慣】",
-            detail: `『${buddyTaskName || "相棒タスク"}』をクリアすることで、一日全体のモチベーションが高まる傾向があります。`,
+            detail: `『${buddyTaskName || "相棒タスク"}』を中心に、一つずつのクリアを継続していきましょう！`,
           },
           {
             icon: "🔮",
-            title: "3. 【来週のポイント】",
-            detail: "集中しやすい時間帯に合わせて、まずは1タップの小さなステップから継続していきましょう！",
+            title: "3. 【分析の更新】",
+            detail: "データが集計され次第、あなた専用の分析レポートが表示されます。",
           },
         ],
         actionType: "slide_time",
