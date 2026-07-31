@@ -50,27 +50,27 @@ class WeeklyReviewAiAdvice {
     }
 
     return WeeklyReviewAiAdvice(
-      badgeText: map['badgeText'] as String? ?? '成功率: 朝95% / ドミノ88%',
+      badgeText: map['badgeText'] as String? ?? '分析完了',
       headline: map['headline'] as String? ?? '💡 今週のデータ多角分析結果 (PDCA)',
       insights: list.isNotEmpty ? list : [
         AiInsightItem(
           icon: '⏰',
-          title: '1. 【時間の盲点】',
-          detail: '過去データの未達成の75%が夜間に集中。朝へ時間をずらすと継続率が3倍へ跳ね上がります！',
+          title: '1. 【時間の傾向】',
+          detail: 'アクティブな時間帯に合わせたタスク実行を意識することで、継続率を高められます！',
         ),
         AiInsightItem(
           icon: '🔑',
           title: '2. 【ドミノ習慣】',
-          detail: '『相棒タスク』が成功した日は、他の全タスクの完了率が+88%爆増する鍵習慣になっています！',
+          detail: '中心となるタスクを優先的に達成することが、日々の成功リズムを作ります！',
         ),
         AiInsightItem(
           icon: '🔮',
-          title: '3. 【スランプ予知】',
-          detail: '来週木曜日は疲労のピーク予測。事前にお気に入りタスクを【朝7:00】へシフトするのが最善策です！',
+          title: '3. 【来週のポイント】',
+          detail: '小さなアプローチからスタートし、無理のないペースでストリークを伸ばしましょう！',
         ),
       ],
       actionType: map['actionType'] as String? ?? 'slide_time',
-      actionLabel: map['actionLabel'] as String? ?? '⚡️『相棒タスク』を【朝7:00】に変更',
+      actionLabel: map['actionLabel'] as String? ?? '⚡️ タスク設定を確認',
     );
   }
 }
@@ -336,27 +336,27 @@ final weeklyReviewProvider = FutureProvider.autoDispose<WeeklyReviewData>((ref) 
     // エラー時のフォールバックデータ
     final taskName = buddyTaskName ?? '相棒タスク';
     aiAdvice = WeeklyReviewAiAdvice(
-      badgeText: '成功率: 朝95% / ドミノ88%',
+      badgeText: '分析完了',
       headline: '💡 今週のデータ多角分析結果 (PDCA)',
       insights: [
         AiInsightItem(
           icon: '⏰',
-          title: '1. 【時間の盲点】',
-          detail: '過去データの未達成の75%が夜間に集中。朝へ時間をずらすと継続率が3倍へ跳ね上がります！',
+          title: '1. 【時間の傾向】',
+          detail: 'ご自身の生活リズムに合わせた時間設定が、習慣化の最大の鍵となります！',
         ),
         AiInsightItem(
           icon: '🔑',
           title: '2. 【ドミノ習慣】',
-          detail: '『$taskName』が成功した日は、他の全タスクの完了率が+88%爆増する鍵習慣になっています！',
+          detail: '『$taskName』を中心に、一つずつのクリアを積み重ねていきましょう！',
         ),
         AiInsightItem(
           icon: '🔮',
-          title: '3. 【スランプ予知】',
-          detail: '来週木曜日は疲労のピーク予測。事前に『$taskName』を【朝7:00】へシフトするのが最善策です！',
+          title: '3. 【来週のポイント】',
+          detail: '来週も集中しやすい時間帯を活用し、ストリークを更新していきましょう！',
         ),
       ],
       actionType: 'slide_time',
-      actionLabel: '⚡️『$taskName』を【朝7:00】に変更',
+      actionLabel: '⚡️『$taskName』の設定を確認',
     );
   }
 

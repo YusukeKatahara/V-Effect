@@ -1887,7 +1887,7 @@ exports.getWeeklyAiAdvice = onCall(
     try {
       const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
       const prompt = `
-あなたは習慣化と行動科学の超一流AIデータアナリストです。ユーザーの今週の行動データを分析し、自分では気付けない盲点（ブラインドスポット）や伸びしろを1つ発見し、来週の継続率が跳ね上がる最高に魅力的なPDCAアドバイスを生成してください。
+あなたは習慣化と行動科学の超一流AIデータアナリストです。ユーザーの今週の行動データを分析し、自分では気付けない盲点（ブラインドスポット）や伸びしろを発見し、来週の継続率が跳ね上がる最高に魅力的なPDCAアドバイスを生成してください。
 
 【ユーザーの今週のデータ】
 - 連続ストリーク数: ${streak || 0}日
@@ -1899,15 +1899,19 @@ exports.getWeeklyAiAdvice = onCall(
 【分析と回答ルール】
 1. 「正論」や「説教」（「〜意識しましょう」「無理せず頑張りましょう」）は禁止。
 2. 失敗データがあっても責めず「💡 最大の伸びしろを発見！」というポジティブな熱いトーンにする。
-3. 一目でインパクトを与える比較データ（例：「成功率: 夜25% ➔ 朝95%」「木曜成功率: +40%」など）を作成する。
-4. 1タップで来週の改善ができるアクション（例：「来週の木曜タスクを【朝】へ自動スライド」「2分間ルールを予約適用」など）を1つ選定する。
+3. ユーザーの実際のデータに基づいた説得力のあるアドバイスを生成すること。架空の数値（「75%」「88%」など）を根拠なく捏造しないこと。
+4. insights には必ず3つの分析ポイント（1.【時間の傾向】, 2.【ドミノ習慣/鍵タスク】, 3.【来週のポイント】など）を含めること。
+5. 1タップで来週の改善ができるアクション（例：「来週の目標を【朝】へ自動スライド」「2分間ルールを適用する」など）を1つ選定する。
 
 回答は必ず以下のJSONフォーマットにしてください:
-- badgeText: 比較データ（例: "成功率: 夜25% ➔ 朝95%", "木曜成功率: +40%" 等、15文字以内）
+- badgeText: キャッチーな比較・評価データ（例: "継続力: アッパーゾーン", "木曜成功率: HIGH" 等、15文字以内）
 - headline: ポジティブなキャッチコピー（例: "💡 最大の「伸びしろ」を発見！", "🔥 勝利の方程式を検知！" 等、20文字以内）
-- adviceText: 理由と具体的な来週の行動提案（80〜150文字程度。データから見えた理由と具体的な改善策を、丁寧で分かりやすく熱意を込めて解説すること）
+- insights: 3つの分析ポイントのオブジェクト配列（各要素は icon, title, detail を持つ）
+  - 1要素目: 時間帯やアクティブ曜日の傾向分析 (icon: 絵文字, title: "1. 【時間の傾向】" 等, detail: 70文字以内の解説)
+  - 2要素目: 相棒タスクや習慣の波及効果 (icon: 絵文字, title: "2. 【ドミノ習慣】" 等, detail: 70文字以内の解説)
+  - 3要素目: 来週への具体的な改善提案 (icon: 絵文字, title: "3. 【来週のポイント】" 等, detail: 70文字以内の解説)
 - actionType: "slide_time"（時間変更提案）, "two_minute_rule"（2分ルール適用）, "send_thanks"（フレンド感謝）のいずれか
-- actionLabel: アクションボタンのラベル（例: "⚡️ 来週の目標を【朝】へ自動スライド", "⚡️ 2分間ルールを適用する" 等、20文字以内）
+- actionLabel: アクションボタンのラベル（例: "⚡️ 『${buddyTaskName || "タスク"}』を【朝】に変更", "⚡️ 2分間ルールを適用する" 等、20文字以内）
 `;
 
       const response = await ai.models.generateContent({
@@ -1920,11 +1924,22 @@ exports.getWeeklyAiAdvice = onCall(
             properties: {
               badgeText: { type: Type.STRING },
               headline: { type: Type.STRING },
-              adviceText: { type: Type.STRING },
+              insights: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    icon: { type: Type.STRING },
+                    title: { type: Type.STRING },
+                    detail: { type: Type.STRING },
+                  },
+                  required: ["icon", "title", "detail"],
+                },
+              },
               actionType: { type: Type.STRING, enum: ["slide_time", "two_minute_rule", "send_thanks"] },
               actionLabel: { type: Type.STRING },
             },
-            required: ["badgeText", "headline", "adviceText", "actionType", "actionLabel"],
+            required: ["badgeText", "headline", "insights", "actionType", "actionLabel"],
           },
         },
       });
@@ -1940,11 +1955,27 @@ exports.getWeeklyAiAdvice = onCall(
       console.error("Failed to generate weekly AI advice:", error);
       // エラー時のフォールバックデータ
       const fallback = {
-        badgeText: "継続力: TOP 10% 圏内",
-        headline: "💡 最高の伸びしろを発見！",
-        adviceText: "あなたの集中力は朝の時間帯に最大化されています。来週も朝イチの1タップを意識するとストリークが加速します！🔥",
-        actionType: "two_minute_rule",
-        actionLabel: "⚡️ 2分間ルールを意識する",
+        badgeText: "分析完了",
+        headline: "💡 今週のデータ多角分析結果 (PDCA)",
+        insights: [
+          {
+            icon: "⏰",
+            title: "1. 【時間の傾向】",
+            detail: `最もアクティブな【${goldenTimeName || "朝"}】の時間帯を活かすことで、習慣の定着率がより高まります。`,
+          },
+          {
+            icon: "🔑",
+            title: "2. 【ドミノ習慣】",
+            detail: `『${buddyTaskName || "相棒タスク"}』をクリアすることで、一日全体のモチベーションが高まる傾向があります。`,
+          },
+          {
+            icon: "🔮",
+            title: "3. 【来週のポイント】",
+            detail: "集中しやすい時間帯に合わせて、まずは1タップの小さなステップから継続していきましょう！",
+          },
+        ],
+        actionType: "slide_time",
+        actionLabel: `⚡️ 『${buddyTaskName || "相棒タスク"}』の設定を確認`,
       };
       return fallback;
     }
