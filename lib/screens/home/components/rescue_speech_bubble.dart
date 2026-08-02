@@ -46,8 +46,8 @@ class _RescueSpeechBubbleState extends State<RescueSpeechBubble>
     final shadowColor2 = isAchieved ? AppColors.accentGoldLight : Colors.orangeAccent;
 
     final badgeText = isAchieved
-        ? '✨ 救済達成！不死鳥復活 🎉'
-        : '🔥 あと ${remaining}VFIREで救済！';
+        ? '救済達成！'
+        : 'あと ${remaining}VFIREで救済！';
 
     final badgeIcon = isAchieved
         ? Icons.auto_awesome_rounded
