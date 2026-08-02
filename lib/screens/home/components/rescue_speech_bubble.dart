@@ -66,7 +66,7 @@ class _RescueSpeechBubbleState extends State<RescueSpeechBubble>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                color: AppColors.black.withValues(alpha: 0.90),
+                color: AppColors.pureBlack.withValues(alpha: 0.90),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: borderColor.withValues(alpha: borderAlpha),
@@ -111,7 +111,7 @@ class _RescueSpeechBubbleState extends State<RescueSpeechBubble>
               size: const Size(12, 6),
               painter: _TrianglePointerPainter(
                 color: borderColor.withValues(alpha: borderAlpha),
-                bgColor: AppColors.black.withValues(alpha: 0.90),
+                bgColor: AppColors.pureBlack.withValues(alpha: 0.90),
               ),
             ),
           ],

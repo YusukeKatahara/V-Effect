@@ -103,7 +103,7 @@ class _VPhoenixRebirthDialogState extends State<VPhoenixRebirthDialog>
                           height: 150,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: AppColors.black,
+                            color: AppColors.pureBlack,
                             border: Border.all(
                               color: Colors.orangeAccent.withValues(alpha: 0.8),
                               width: 2.0,

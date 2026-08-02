@@ -1,0 +1,79 @@
+Analyzing V-Effect...                                           
+
+warning • The value of the field '_isPlayingPreview' isn't used • lib/screens/camera_screen.dart:52:8 • unused_field
+warning • Duplicate import • lib/screens/notifications_screen.dart:11:8 • duplicate_import
+warning • The declaration '_buildCompactButton' isn't referenced • lib/screens/notifications_screen.dart:321:10 • unused_element
+warning • Dead code • lib/screens/notifications_screen.dart:418:5 • dead_code
+   info • The private field _selectedPosts could be 'final' • lib/screens/past_comparison_screen.dart:30:14 • prefer_final_fields
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/past_comparison_screen.dart:473:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/past_comparison_screen.dart:514:50 • deprecated_member_use
+warning • Unused import: '../../../models/app_task.dart' • lib/screens/profile/components/task_section.dart:5:8 • unused_import
+warning • The value of the field '_todayPosts' isn't used • lib/screens/profile_screen.dart:45:14 • unused_field
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/profile_screen.dart:903:76 • deprecated_member_use
+warning • The value of the field '_occupationCount' isn't used • lib/screens/profile_setup_screen.dart:35:16 • unused_field
+warning • Unused import: 'dart:async' • lib/screens/weekly_review_screen.dart:1:8 • unused_import
+warning • Unused import: 'dart:ui' • lib/screens/weekly_review_screen.dart:2:8 • unused_import
+   info • The import of 'package:flutter/rendering.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' • lib/screens/weekly_review_screen.dart:4:8 • unnecessary_import
+   info • The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' • lib/screens/weekly_review_screen.dart:5:8 • unnecessary_import
+warning • Unused import: 'package:share_plus/share_plus.dart' • lib/screens/weekly_review_screen.dart:8:8 • unused_import
+warning • Unused import: 'package:path_provider/path_provider.dart' • lib/screens/weekly_review_screen.dart:9:8 • unused_import
+warning • Unused import: 'dart:io' • lib/screens/weekly_review_screen.dart:10:8 • unused_import
+   info • The private field _isSharing could be 'final' • lib/screens/weekly_review_screen.dart:49:8 • prefer_final_fields
+warning • The value of the field '_isSharing' isn't used • lib/screens/weekly_review_screen.dart:49:8 • unused_field
+warning • Unused import: 'package:flutter/foundation.dart' • lib/services/friend_service.dart:1:8 • unused_import
+warning • Unused import: '../models/app_notification.dart' • lib/services/friend_service.dart:6:8 • unused_import
+warning • The value of the local variable 'docRef' isn't used • lib/services/friend_service.dart:169:13 • unused_local_variable
+warning • The value of the field '_notificationService' isn't used • lib/services/post_service.dart:37:29 • unused_field
+warning • The value of the local variable 'userPrivateSnap' isn't used • lib/services/post_service.dart:282:11 • unused_local_variable
+warning • The value of the local variable 'reactionCount' isn't used • lib/services/post_service.dart:612:9 • unused_local_variable
+warning • Unused import: 'package:flutter/foundation.dart' • lib/services/streak_service.dart:1:8 • unused_import
+warning • Unused import: 'notification_service.dart' • lib/services/streak_service.dart:5:8 • unused_import
+warning • Unused import: '../models/app_notification.dart' • lib/services/streak_service.dart:6:8 • unused_import
+   info • Empty catch block • scratch/find_unused_files.dart:16:95 • empty_catches
+   info • Empty catch block • scratch/find_unused_files.dart:21:21 • empty_catches
+   info • Don't invoke 'print' in production code • scratch/find_unused_files.dart:35:9 • avoid_print
+   info • Empty catch block • scratch/find_unused_files.dart:37:16 • empty_catches
+warning • Unused import: 'package:cloud_firestore/cloud_firestore.dart' • scratch/fix_old_notifications.dart:1:8 • unused_import
+warning • Unused import: 'package:firebase_core/firebase_core.dart' • scratch/fix_old_notifications.dart:2:8 • unused_import
+warning • Unused import: 'package:flutter/widgets.dart' • scratch/fix_old_notifications.dart:3:8 • unused_import
+   info • Don't invoke 'print' in production code • scratch/query_notifications.dart:15:3 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/query_notifications.dart:17:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:12:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:13:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:14:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:15:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:16:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:17:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:18:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:21:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:22:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:23:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:24:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:25:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:29:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:30:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:31:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:32:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:33:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:34:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:35:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:38:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:39:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:40:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:41:5 • avoid_print
+   info • Don't invoke 'print' in production code • scratch/test_colors.dart:42:5 • avoid_print
+   info • Don't invoke 'print' in production code • test/const_theme_update_test.dart:99:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/const_theme_update_test.dart:100:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_stress_test.dart:14:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_stress_test.dart:25:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_stress_test.dart:27:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_stress_test.dart:31:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_stress_test.dart:38:9 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_stress_test.dart:56:11 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_stress_test.dart:77:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_stress_test.dart:78:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_stress_test.dart:81:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_write_race_test.dart:39:11 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_write_race_test.dart:65:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/theme_provider_write_race_test.dart:66:7 • avoid_print
+

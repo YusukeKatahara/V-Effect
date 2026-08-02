@@ -1,0 +1,24 @@
+{
+  "score": 5,
+  "summary": "Firestore rules are highly secure and robust, with strict ownership checks, field-level restrictions on updates, input validation, and developer role verification.",
+  "findings": [
+    {
+      "check": "The Update Bypass",
+      "severity": "minor",
+      "issue": "There is no validation of fields during update on users/{uid} for the owner, allowing the owner to write invalid data types to their own profile, although it doesn't affect other users.",
+      "recommendation": "Add field type validation (is string, is int) for user profile updates by the owner."
+    },
+    {
+      "check": "Storage Abuse",
+      "severity": "minor",
+      "issue": "No string length constraints or array size limits are enforced on posts/{postId} or users/{uid} collections, posing a minor resource exhaustion/DoS risk.",
+      "recommendation": "Implement size checks (e.g., resource.data.content.size() < 1000) for posts and user profile fields."
+    },
+    {
+      "check": "Type Safety",
+      "severity": "minor",
+      "issue": "Type validation is missing for posts/{postId} fields (e.g. userId, createdAt, imageUrl) and user profile fields on creation.",
+      "recommendation": "Add basic type checks (e.g., request.resource.data.userId is string) in creation rules."
+    }
+  ]
+}

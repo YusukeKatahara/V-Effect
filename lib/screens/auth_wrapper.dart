@@ -32,9 +32,24 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
     if (_navigating) return;
     _navigating = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, route);
+      if (!mounted) return;
+
+      // 現在最前面に表示されているルート名を取得
+      String? topRouteName;
+      Navigator.of(context).popUntil((r) {
+        topRouteName = r.settings.name;
+        return true;
+      });
+
+      // 既にホーム (/home) や カメラ (/camera) が最前面に表示されている状態で
+      // /home への遷移が要求された場合、カメラ画面をコンパス画面で上書きしないようスキップする
+      if (route == AppRoutes.home &&
+          (topRouteName == AppRoutes.home || topRouteName == AppRoutes.camera)) {
+        debugPrint('AuthWrapper: Skip redirecting to $route because topRoute is already $topRouteName');
+        return;
       }
+
+      Navigator.pushReplacementNamed(context, route);
     });
   }
 

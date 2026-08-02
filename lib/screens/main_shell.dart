@@ -19,6 +19,7 @@ import 'hero_tasks_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home/components/floating_flames_layer.dart';
 import 'home/components/dopamine_emoji_explosion_layer.dart';
+import '../services/deep_link_service.dart';
 
 /// Spatial Shell — ジェスチャー主導のUI空間
 ///
@@ -65,6 +66,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkNotificationPrompt();
       _initRealtimeEffectListener();
+      DeepLinkService().onNavigatorReady();
     });
   }
 

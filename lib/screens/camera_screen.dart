@@ -11,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
+import '../config/routes.dart';
 import '../widgets/swipe_to_post_button.dart';
 
 import '../services/music_api_service.dart';
@@ -23,6 +24,7 @@ import 'package:path_provider/path_provider.dart';
 import '../providers/home_provider.dart';
 import '../providers/upload_provider.dart';
 import '../providers/service_providers.dart';
+import '../models/app_task.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/v_badge_widget.dart';
 import '../screens/home/components/bgm_indicator.dart';
@@ -79,12 +81,60 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   double _currentZoomLevel = 1.0;
   double _baseZoomLevel = 1.0;
 
+  String? _selectedTaskName;
+
   String? get _taskName {
     // ルート引数 or コンストラクタ引数
     final args = ModalRoute.of(context)?.settings.arguments;
     if (widget.heroTaskName != null) return widget.heroTaskName;
     if (args is String) return args;
     return null;
+  }
+
+  String get _effectiveTaskName {
+    if (_selectedTaskName != null) return _selectedTaskName!;
+    if (_taskName != null) return _taskName!;
+
+    // ユーザーのタスク一覧の中から、1日の最初の投稿として相応しいメインタスクを優先選択
+    final homeData = ref.read(homeDataProvider).value;
+    final userTasks = homeData?.tasks ?? [];
+    if (userTasks.isNotEmpty) {
+      final uncompletedTasks = userTasks.where((t) => !t.isCompletedToday).toList();
+      final targetList = uncompletedTasks.isNotEmpty ? uncompletedTasks : userTasks;
+
+      final sortedList = List<AppTask>.from(targetList);
+      sortedList.sort((a, b) {
+        // 0. 本日未完了のタスクを達成済みタスクよりも絶対優先
+        final completedA = a.isCompletedToday;
+        final completedB = b.isCompletedToday;
+        if (!completedA && completedB) return -1;
+        if (completedA && !completedB) return 1;
+
+        final titleA = a.title.trim();
+        final titleB = b.title.trim();
+
+        // 1. 「感謝」「振り返り」「日記」などの締めくくり系タスクはファースト投稿の候補として後回しにする
+        final isNightTaskA = titleA.contains('感謝') || titleA.contains('振り返り') || titleA.contains('日記');
+        final isNightTaskB = titleB.contains('感謝') || titleB.contains('振り返り') || titleB.contains('日記');
+        if (isNightTaskA && !isNightTaskB) return 1;
+        if (!isNightTaskA && isNightTaskB) return -1;
+
+        // 2. リマインダー時間 (HH:mm 形式) が設定されている場合は時間が早いものを優先
+        if (a.reminderTime != null && b.reminderTime != null) {
+          return a.reminderTime!.compareTo(b.reminderTime!);
+        }
+        if (a.reminderTime != null) return -1;
+        if (b.reminderTime != null) return 1;
+
+        return 0;
+      });
+
+      if (sortedList.first.title.trim().isNotEmpty) {
+        return sortedList.first.title;
+      }
+    }
+
+    return AppLocalizations.of(context)!.cameraScreenTaskDefault;
   }
 
   @override
@@ -124,17 +174,19 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   ///   _isInitializing ガードで初期化中の二重破棄・二重起動を防ぐ。
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // 初期化中（権限ダイアログ含む）は何もしない
-    if (_isInitializing) return;
+    // 初期化中（権限ダイアログ含む）や撮影後確認中、アップロード中は何もしない
+    if (_isInitializing || _isUploading || _image != null) return;
 
     if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
       final controller = _cameraController;
       if (controller != null && controller.value.isInitialized) {
         controller.dispose();
-        setState(() {
-          _isCameraReady = false;
-          _cameraController = null;
-        });
+        if (mounted) {
+          setState(() {
+            _isCameraReady = false;
+            _cameraController = null;
+          });
+        }
       }
     } else if (state == AppLifecycleState.resumed) {
       // プレビュー表示中（写真確認画面でない）かつカメラが未初期化なら再起動
@@ -458,7 +510,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   Future<void> _uploadPost() async {
     if (_image == null) return;
-    final taskName = _taskName ?? AppLocalizations.of(context)!.cameraScreenTaskDefault;
+    final taskName = _effectiveTaskName;
 
     // ── キャプチャ処理の実行 ──
     // ローディング状態（_isUploading = true）になってUIが再描画・非活性化される前に、
@@ -521,12 +573,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
       if (mounted) {
         _isPosted = true; // ── 投稿完了を記録 ──
-        Navigator.pop(context, {
-          'posted': true,
-          'imagePath': tempPath, // 拡大調整された一時ファイルのパスを返す
-          'newStreak': calculatedStreak,
-          'isRecordUpdating': false,
-        });
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context, {
+            'posted': true,
+            'imagePath': tempPath, // 拡大調整された一時ファイルのパスを返す
+            'newStreak': calculatedStreak,
+            'isRecordUpdating': false,
+          });
+        } else {
+          Navigator.pushReplacementNamed(context, AppRoutes.home);
+        }
       }
     } catch (e, st) {
       debugPrint('POST UPLOAD ERROR: $e\n$st');
@@ -541,7 +597,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    final taskName = _taskName;
+    final taskName = _effectiveTaskName;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
@@ -616,7 +672,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     );
   }
 
-  Widget _buildHeader(String? taskName) {
+  Widget _buildHeader(String taskName) {
     // 写真撮影済みの場合はフラッシュボタンを非表示にする
     final showFlash = _image == null;
 
@@ -627,23 +683,53 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // ── 中央: タスク名（左右のボタンと被らないようにセーフエリアマージンを設定） ──
-            if (taskName != null)
-              Positioned(
-                left: 100,
-                right: 100,
-                child: Text(
-                  taskName,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.notoSansJp(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.pureWhite,
+            // ── 中央: タスク名（左右のボタンと被らないようにセーフエリアマージンを設定・タップで変更可能） ──
+            Positioned(
+              left: 95,
+              right: 95,
+              child: Center(
+                child: GestureDetector(
+                  onTap: _isUploading ? null : () => _showTaskSelectionBottomSheet(context),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.pureWhite.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.pureWhite.withValues(alpha: 0.2),
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          taskName,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.notoSansJp(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.pureWhite,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 16,
+                        color: AppColors.pureWhite.withValues(alpha: 0.8),
+                      ),
+                    ],
                   ),
                 ),
               ),
+            ),
+          ),
 
             // ── 左側: 閉じるボタン または 撮り直しボタン ＆ 地球トグル ──
             Positioned(
@@ -651,7 +737,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               child: _image == null
                   ? IconButton(
                       icon: Icon(Icons.close, color: AppColors.pureWhite),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        } else {
+                          Navigator.pushReplacementNamed(context, AppRoutes.home);
+                        }
+                      },
                     )
                   : Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1304,7 +1396,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   /// ── 写真プレビュー（撮影済み） ──
   Widget _buildPreview() {
-    final taskName = _taskName ?? AppLocalizations.of(context)!.cameraScreenTaskDefault;
+    final taskName = _effectiveTaskName;
 
     // homeDataProvider からユーザー情報を取得
     final homeData = ref.watch(homeDataProvider).value;
@@ -1754,6 +1846,193 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           text: AppLocalizations.of(context)!.cameraScreenPost,
         ),
       ),
+    );
+  }
+
+  /// ── タスク名選択用ボトムシート ──
+  void _showTaskSelectionBottomSheet(BuildContext context) {
+    HapticFeedback.selectionClick();
+
+    final homeData = ref.read(homeDataProvider).value;
+    final userTasks = homeData?.tasks ?? [];
+
+    final isDark = AppColors.isDark;
+
+    // 重複を避けつつ、ユーザー登録タスクのリストを作成
+    final taskCandidates = <AppTask>[];
+    final addedTitles = <String>{};
+
+    for (final task in userTasks) {
+      if (task.title.trim().isNotEmpty && !addedTitles.contains(task.title.trim())) {
+        taskCandidates.add(task);
+        addedTitles.add(task.title.trim());
+      }
+    }
+
+    // 現在選択中のタスク名が登録リストにない場合、先頭に追加
+    final currentName = _effectiveTaskName;
+    if (currentName.isNotEmpty && !addedTitles.contains(currentName)) {
+      taskCandidates.insert(0, AppTask(title: currentName));
+      addedTitles.add(currentName);
+    }
+
+    // 万が一タスクリストが空の場合のデフォルト候補
+    if (taskCandidates.isEmpty) {
+      final defaultList = ['Work Out', '読書', '勉強', '早起き', '健康維持'];
+      for (final title in defaultList) {
+        taskCandidates.add(AppTask(title: title));
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (bottomSheetContext) {
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.bgElevated,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(
+              color: AppColors.accentGold.withValues(alpha: isDark ? 0.3 : 0.5),
+              width: 1,
+            ),
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ドラッグ用ハンドル
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.textMuted.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.task_alt_rounded,
+                      color: AppColors.accentGold,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'タスクを選択',
+                      style: GoogleFonts.notoSansJp(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '証明するタスクを変更できます',
+                  style: GoogleFonts.notoSansJp(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.45,
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: taskCandidates.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (listContext, index) {
+                      final task = taskCandidates[index];
+                      final isSelected = task.title == _effectiveTaskName;
+
+                      final unselectedBg = isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.04);
+                      final unselectedBorder = isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.08);
+
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() {
+                            _selectedTaskName = task.title;
+                          });
+                          Navigator.pop(bottomSheetContext);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.accentGold.withValues(alpha: isDark ? 0.15 : 0.12)
+                                : unselectedBg,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected ? AppColors.accentGold : unselectedBorder,
+                              width: isSelected ? 1.5 : 0.5,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                task.isSeason ? Icons.stars_rounded : Icons.task_alt_rounded,
+                                color: isSelected ? AppColors.accentGold : AppColors.textSecondary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  task.title,
+                                  style: GoogleFonts.notoSansJp(
+                                    fontSize: 15,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                    color: isSelected ? AppColors.accentGold : AppColors.textPrimary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isSelected) ...[
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: AppColors.accentGold,
+                                  size: 20,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -981,11 +981,7 @@ exports.processPostNotifications = onTaskDispatched(
     }
 
     const postData = postSnap.data();
-    // 救済投稿の場合は通常の達成通知の生成をスキップ（SOS救済通知のみを送信するため）
-    if (postData.isRescuePost === true) {
-      console.log(`Post ${postId} is a rescue post. Skipping normal achievement notification.`);
-      return;
-    }
+    // 救済投稿（SOSでストリーク復帰した投稿）であってもフレンドへ達成通知を送信するよう対応
     
     // 有効期限が切れている場合は除外
     const now = new Date();
@@ -2065,7 +2061,7 @@ exports.healUnprocessedPostNotifications = onSchedule(
         const postId = postDoc.id;
         const uid = postData.userId;
 
-        if (!uid || postData.isRescuePost === true) continue;
+        if (!uid) continue;
 
         // ユーザー情報とフレンド一覧の取得
         const userSnap = await db.collection("users").doc(uid).get();

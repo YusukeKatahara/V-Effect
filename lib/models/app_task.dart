@@ -37,6 +37,14 @@ class AppTask {
     this.reminderTime,
   });
 
+  /// 本日達成（投稿）されたタスクかどうか判定する
+  bool get isCompletedToday {
+    if (completedAt == null) return false;
+    final now = DateTime.now();
+    final cat = completedAt!;
+    return cat.year == now.year && cat.month == now.month && cat.day == now.day;
+  }
+
   Map<String, dynamic> toFirestore() {
     return {
       fieldId: id,

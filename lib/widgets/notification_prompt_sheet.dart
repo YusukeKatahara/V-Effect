@@ -43,7 +43,14 @@ class _NotificationPromptSheetState extends State<NotificationPromptSheet> {
 
     // ユーザーがOSダイアログで「許可」または「許可しない」を選択したら自動的にこのモーダルを閉じます
     if (mounted) {
-      Navigator.pop(context);
+      try {
+        final nav = Navigator.of(context);
+        if (nav.canPop()) {
+          nav.pop();
+        }
+      } catch (e) {
+        debugPrint('NotificationPromptSheet pop safe catch: $e');
+      }
     }
   }
 

@@ -151,6 +151,19 @@ class PostService {
             })
             .toList();
 
+    // 本日投稿済みのタスク名を抽出し、タスク一覧に completedAt を動的付与
+    final postedTaskMap = <String, DateTime>{};
+    for (final post in postedPostsToday) {
+      postedTaskMap[post.taskName] = post.createdAt;
+    }
+
+    final updatedMergedTasks = mergedTasks.map((t) {
+      if (postedTaskMap.containsKey(t.title)) {
+        return t.copyWith(completedAt: postedTaskMap[t.title]);
+      }
+      return t;
+    }).toList();
+
     final effectiveStreakData = StreakService.calculateEffectiveStreak(
       streak: (data['streak'] as num?)?.toInt() ?? 0,
       protections: (data['streakProtections'] as num?)?.toInt() ?? 0,
@@ -164,10 +177,10 @@ class PostService {
       'streakProtections': effectiveStreakData['streakProtections'],
       'postedToday': postedPostsToday.isNotEmpty,
       'isAllTasksCompleted':
-          mergedTasks.isNotEmpty &&
-          mergedTasks.every((t) => postedPostsToday.any((p) => p.taskName == t.title)),
+          updatedMergedTasks.isNotEmpty &&
+          updatedMergedTasks.every((t) => t.isCompletedToday),
       'username': data['username'] as String? ?? '',
-      'tasks': mergedTasks, // マージされたタスク一覧を返す
+      'tasks': updatedMergedTasks, // 今日の投稿日時が合成されたタスク一覧を返す
       'friends': (() {
         final dynamic f = data['following'] ?? data['friends'];
         if (f is List) return f.map((e) => e.toString()).toList();

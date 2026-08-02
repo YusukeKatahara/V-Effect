@@ -167,7 +167,46 @@ struct VEffectWidgetEntryView : View {
     }
 
     var body: some View {
-        if family == .systemSmall {
+        if family == .accessoryCircular {
+            ZStack {
+                AccessoryWidgetBackground()
+                if entry.isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 24, weight: .bold))
+                } else {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 22, weight: .bold))
+                }
+            }
+            .widgetURL(URL(string: "veffect://camera"))
+        } else if family == .accessoryRectangular {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 10))
+                    Text("V-EFFECT")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                if entry.isCompleted {
+                    Text("今日のV達成！")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("Streak: \(entry.streakCount)日")
+                        .font(.system(size: 10))
+                } else {
+                    Text("📷 タスクを撮影")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("1タップで全画面カメラ")
+                        .font(.system(size: 10))
+                }
+            }
+            .widgetURL(URL(string: "veffect://camera"))
+        } else if family == .accessoryInline {
+            HStack {
+                Image(systemName: entry.isCompleted ? "checkmark.circle" : "camera")
+                Text(entry.isCompleted ? "V完了 (\(entry.streakCount)日)" : "V撮影未完了")
+            }
+            .widgetURL(URL(string: "veffect://camera"))
+        } else if family == .systemSmall {
             ZStack {
                 if entry.isCompleted {
                     // 完了時のデザイン: ゴールド系のグラデーション
@@ -195,13 +234,18 @@ struct VEffectWidgetEntryView : View {
                         endPoint: .bottomTrailing
                     )
                     
-                    Text("Vを証明する")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .tracking(2.0)
+                    VStack(spacing: 4) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("Vを証明する")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .tracking(2.0)
+                    }
                 }
             }
-            .widgetURL(URL(string: "veffect://task"))
+            .widgetURL(URL(string: "veffect://camera"))
         } else {
             ZStack {
                 // 不透明背景を削除し、すりガラスのトーンを保護する半透明黒レイヤーを設置
@@ -262,8 +306,8 @@ struct VEffectWidgetEntryView : View {
                         lineWidth: 1.2
                     )
             )
-            // タップ時にアプリのホームへ
-            .widgetURL(URL(string: "veffect://home"))
+            // タップ時にアプリのカメラへ
+            .widgetURL(URL(string: "veffect://camera"))
             .unredacted()
         }
     }
@@ -286,8 +330,27 @@ struct VEffectWidget: Widget {
         }
         .configurationDisplayName("V EFFECT")
         .description("日々のタスクと達成状況を確認します。")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
         .contentMarginsDisabled()
+    }
+}
+
+struct CameraVIconView: View {
+    var iconSize: CGFloat = 22
+    var vSize: CGFloat = 10
+    var color: Color = .white
+    
+    var body: some View {
+        ZStack {
+            Image(systemName: "camera.fill")
+                .font(.system(size: iconSize, weight: .bold))
+                .foregroundColor(color)
+            
+            Text("V")
+                .font(.system(size: vSize, weight: .black, design: .rounded))
+                .foregroundColor(.black)
+                .offset(y: 1)
+        }
     }
 }
 

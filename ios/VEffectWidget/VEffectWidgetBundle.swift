@@ -13,5 +13,8 @@ struct VEffectWidgetBundle: WidgetBundle {
     var body: some Widget {
         VEffectWidget()
         VEffectUploadLiveActivity()
+        if #available(iOS 18.0, *) {
+            VEffectCameraControl()
+        }
     }
 }

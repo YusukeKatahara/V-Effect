@@ -17,6 +17,12 @@
 
 ## 📝 Recent Changes (直近の変更内容)
 
+### 2026-08-01 (Antigravity)
+- **Task Switcher on Camera/Preview Screen & Adaptive Theme Rule Enforcement (撮影・プレビュー画面におけるタスク選択切替UI追加およびライト・ダークモード両対応ルールの規定):**
+  - **撮影・プレビュー画面のタスク切替 (`camera_screen.dart`):** 写真撮影前およびプレビュー画面において、誤ったタスクで撮影を始めてしまった場合に、上部ヘッダー中央のタスク名（および写真左上バッジ）をタップすることで、設定済みタスクから選び直せる「タスク選択ボトムシート」を新規追加。
+  - **ライトモード・ダークモード両対応 (`AppColors` 連携):** ボトムシート・カード・テキスト等のテーマ対応を実施。ライトモード時でも視認性・コントラストが崩れないよう `AppColors.bgElevated`, `textPrimary`, `textSecondary`, `isDark` による動的カラー適用を完了。
+  - **コーディング規約更新 (`.agents/skills/coding-rules/SKILL.md`):** `/learn` コマンドに基づき、今後新規 UI を追加・改修する際は特定テーマの色直指定を禁止し、初期実装時点から `AppColors` の動的カラーと `AppColors.isDark` を活用してライト/ダーク両対応にすることをルール化。
+
 ### 2026-07-31 (Claude Code)
 - **Workspace Cleanup & AI Config Sync (作業フォルダの棚卸しとAI設定ファイルの現状同期):**
     - **背景:** renn からの依頼「AIを使った開発時に古い情報（廃止機能・過去の段階）を持ち込んでくる」を受け、原因となる陳腐化ファイルを一掃。

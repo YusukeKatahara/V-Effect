@@ -80,7 +80,10 @@ class AppRoutes {
           }
           return MainShell(initialIndex: MainShell.activeTabIndex.value);
         },
-        camera: (context) => const CameraScreen(),
+        camera: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as String?;
+          return CameraScreen(heroTaskName: args);
+        },
         profileSetup: (context) => const ProfileSetupScreen(),
         taskSetup: (context) => const TaskSetupScreen(),
         taskTemplate: (context) => const TaskTemplateScreen(),

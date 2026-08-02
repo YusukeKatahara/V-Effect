@@ -9,6 +9,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app_links/app_links.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import 'firebase_options.dart';
@@ -25,6 +26,9 @@ import 'screens/weekly_review_screen.dart';
 import 'widgets/global_error_widget.dart';
 import 'widgets/splash_loading.dart';
 import 'widgets/web_profile_wrapper.dart';
+import 'screens/auth_wrapper.dart';
+import 'screens/camera_screen.dart';
+import 'screens/main_shell.dart';
 import 'dart:async';
 import 'package:audio_session/audio_session.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -55,43 +59,44 @@ void main() {
       }
     }
 
-    // App Check: 改造クライアントや外部スクリプトからの直接 API 叩きを抑止する。
-    // 失敗してもアプリ自体は動かしたいので catch して握りつぶす。
-    // 本番では Android=Play Integrity / iOS=App Attest、デバッグ時はデバッグプロバイダーを使う。
-    // Web は ReCaptcha プロバイダーの Console 登録が必要なため未対応（App Check の
-    // enforcement を有効化する場合は Web 用に ReCaptchaV3Provider を設定すること）。
-    if (!kIsWeb && Firebase.apps.isNotEmpty) {
+    // App Check (リリースビルドでのみアクティブ化し、デバッグ時の403/400エラーログを防止)
+    if (!kDebugMode && !kIsWeb && Firebase.apps.isNotEmpty) {
       try {
         await FirebaseAppCheck.instance.activate(
-          providerAndroid: kDebugMode
-              ? AndroidDebugProvider()
-              : AndroidPlayIntegrityProvider(),
-          providerApple: kDebugMode
-              ? AppleDebugProvider()
-              : AppleAppAttestProvider(),
+          providerAndroid: AndroidPlayIntegrityProvider(),
+          providerApple: AppleAppAttestProvider(),
         );
       } catch (e) {
         debugPrint('App Check 初期化エラー (非致命的): $e');
       }
     }
 
-    // Step2: Firebase 設定（初期化成功時のみ）
+    // Crashlytics
     if (!kIsWeb && Firebase.apps.isNotEmpty) {
       FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
     }
 
-    // Fast Boot: キャッシュ状況から最適な初期ルートを動的に決定します
+    // Fast Boot: キャッシュ状況およびウィジェットからのダイレクト起動判定
     String initialRoute = AppRoutes.login;
     try {
+      final appLinks = AppLinks();
+      final initialUri = await appLinks.getInitialLink();
+      final initialWidgetUri = kIsWeb ? null : await HomeWidget.initiallyLaunchedFromHomeWidget();
+      final uriString = (initialUri ?? initialWidgetUri)?.toString() ?? '';
+
+      // ウィジェット/コントロールセンターからveffect://cameraで起動され、
+      // かつオンボーディング完了済みの場合はダイレクトでカメラ画面へ（ゼロ・ディレイ起動）
       final prefs = await SharedPreferences.getInstance();
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final isCompleted = prefs.getBool('onboardingCompleted_${user.uid}') ?? false;
-        if (isCompleted) {
-          initialRoute = AppRoutes.home;
-        } else {
-          initialRoute = AppRoutes.wrapper;
-        }
+      final isCompleted = user != null && (prefs.getBool('onboardingCompleted_${user.uid}') ?? true);
+
+      if (user != null && (uriString.contains('veffect://camera') || uriString.contains('veffect:camera'))) {
+        initialRoute = AppRoutes.camera;
+        DeepLinkService().markInitialLinkHandled();
+      } else if (isCompleted) {
+        initialRoute = AppRoutes.home;
+      } else {
+        initialRoute = AppRoutes.wrapper;
       }
     } catch (e) {
       debugPrint('初期ルート判定エラー: $e');
@@ -151,18 +156,21 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _initialize() async {
     try {
-      // 🚀 【強制アップデートチェック】
-      // セキュリティ上の重大な変更があった古いアプリバージョンをピンポイントでブロックします
-      await ForceUpdateService.instance.checkForceUpdate();
-      if (ForceUpdateService.instance.needsForceUpdate) {
-        if (mounted) {
+      // DeepLink初期化を最優先で実行し、起動URL（veffect://cameraなど）を即時補足できるようにする
+      unawaited(DeepLinkService().initialize().catchError((e) {
+        debugPrint('DeepLink初期化エラー: $e');
+      }));
+
+      // 強制アップデートチェックはUI描画をブロックしないよう非同期で並列実行
+      unawaited(ForceUpdateService.instance.checkForceUpdate().then((_) {
+        if (ForceUpdateService.instance.needsForceUpdate && mounted) {
           setState(() {
             _needsForceUpdate = true;
-            _isInitialized = true;
           });
         }
-        return;
-      }
+      }).catchError((e) {
+        debugPrint('強制アップデートチェックエラー: $e');
+      }));
 
       // ── アプリ全体のオーディオセッションを強固に設定 ──
       // UIの描画をブロックさせないため、非同期で実行します（Fire-and-forget）
@@ -184,7 +192,6 @@ class _AppInitializerState extends State<AppInitializer> {
       });
 
       // 非UIブロック項目の初期化
-      // AdMob (google_mobile_ads) は Web 非対応のため Web ではスキップ
       if (!kIsWeb) {
         try {
           await MobileAds.instance.initialize();
@@ -202,7 +209,6 @@ class _AppInitializerState extends State<AppInitializer> {
         }
       };
       PushNotificationService().initialize().catchError((e) => debugPrint('通知初期化エラー: $e'));
-      DeepLinkService().initialize().catchError((e) => debugPrint('DeepLink初期化エラー: $e'));
       SoundService.instance.init().catchError((e) => debugPrint('音声初期化エラー: $e'));
       WidgetService.instance.initialize().then((_) => _syncWidgetData()).catchError((e) => debugPrint('Widget初期化エラー: $e'));
 
@@ -260,7 +266,6 @@ class VEffectApp extends ConsumerStatefulWidget {
 }
 
 class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObserver {
-  final _appLinks = AppLinks();
   Timer? _midnightTimer;
   String _lastCheckedDate = '';
   // テーマ変更時に呼び出されるコールバック。
@@ -287,9 +292,6 @@ class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObse
     
     _lastCheckedDate = DateHelper.toDateString(DateTime.now());
     _scheduleMidnightTimer();
-
-    // メール認証 Deep Link の受信を開始
-    _initDeepLinks();
 
     // Navigatorの準備が完了したタイミングでDeepLinkServiceに通知し、溜まっていたリンクを処理させる
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -319,41 +321,6 @@ class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObse
       // 日付が変わったら、PostServiceを通じてアプリ全体に更新を通知
       PostService.instance.notifyUpdate();
       debugPrint('Date changed to $today. Triggered app-wide refresh.');
-    }
-  }
-
-  /// メール認証リンクをアプリで受け取って処理する
-  void _initDeepLinks() {
-    _appLinks.uriLinkStream.listen((uri) async {
-      await _handleEmailVerificationLink(uri.toString());
-    });
-
-    // アプリを閉じた状態からリンクで起動したケース
-    _appLinks.getInitialLink().then((uri) async {
-      if (uri != null) {
-        await _handleEmailVerificationLink(uri.toString());
-      }
-    });
-  }
-
-  Future<void> _handleEmailVerificationLink(String link) async {
-    final auth = FirebaseAuth.instance;
-    if (!auth.isSignInWithEmailLink(link)) return;
-    try {
-      final user = auth.currentUser;
-      if (user == null) return;
-      // メール認証コードを適用
-      await auth.applyActionCode(
-        Uri.parse(link).queryParameters['oobCode'] ?? '',
-      );
-      await user.reload();
-      // 認証完了 → ホーム画面へ
-      final navigator = VEffectApp.navigatorKey.currentState;
-      if (navigator != null && user.emailVerified) {
-        navigator.pushNamedAndRemoveUntil(AppRoutes.wrapper, (r) => false);
-      }
-    } catch (e) {
-      debugPrint('Deep link email verification error: $e');
     }
   }
 
@@ -418,6 +385,36 @@ class _VEffectAppState extends ConsumerState<VEffectApp> with WidgetsBindingObse
       ],
       locale: Locale(lang),
       initialRoute: widget.initialRoute,
+      // 🚀 【爆速化 & 競合解消】onGenerateInitialRoutes を明示定義
+      // デフォルトでは '/camera' が ['/', '/camera'] に分割され、 AuthWrapper (/) が
+      // カメラ画面を /home に強制置換してしまうため、ここで初期スタックを正確に構築する。
+      onGenerateInitialRoutes: (initialRouteName) {
+        if (initialRouteName == AppRoutes.camera) {
+          return [
+            MaterialPageRoute(
+              settings: const RouteSettings(name: AppRoutes.home),
+              builder: (context) => MainShell(initialIndex: 0),
+            ),
+            MaterialPageRoute(
+              settings: const RouteSettings(name: AppRoutes.camera),
+              builder: (context) => const CameraScreen(),
+            ),
+          ];
+        } else if (initialRouteName == AppRoutes.home) {
+          return [
+            MaterialPageRoute(
+              settings: const RouteSettings(name: AppRoutes.home),
+              builder: (context) => MainShell(initialIndex: 0),
+            ),
+          ];
+        }
+        return [
+          MaterialPageRoute(
+            settings: const RouteSettings(name: AppRoutes.wrapper),
+            builder: (context) => const AuthWrapper(),
+          ),
+        ];
+      },
       routes: AppRoutes.routes,
       onGenerateRoute: (settings) {
         final name = settings.name ?? '';

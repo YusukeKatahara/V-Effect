@@ -21,6 +21,15 @@ class DeepLinkService {
   // Navigatorの準備ができるまでリンクを保持するキュー
   final List<Uri> _pendingLinks = [];
   bool _isNavigatorReady = false;
+  bool _initialLinkHandled = false;
+  bool _isNavigatingToCamera = false;
+  DateTime? _lastHandledTime;
+  String? _lastHandledUri;
+
+  /// main()側で Fast Boot により初期リンクが処理された場合に重複処理を防ぐフラグ
+  void markInitialLinkHandled() {
+    _initialLinkHandled = true;
+  }
 
   Future<void> initialize() async {
     _appLinks = AppLinks();
@@ -40,16 +49,18 @@ class DeepLinkService {
       });
     }
 
-    // 初期リンクも取得してキューに入れる
-    final initialUri = await _appLinks.getInitialLink();
-    if (initialUri != null) {
-      _queueOrHandleLink(initialUri);
-    }
+    // Fast Bootで既に初期リンクが処理された場合は重複取得をスキップ
+    if (!_initialLinkHandled) {
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        _queueOrHandleLink(initialUri);
+      }
 
-    if (!kIsWeb) {
-      final initialWidgetUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
-      if (initialWidgetUri != null) {
-        _queueOrHandleLink(initialWidgetUri);
+      if (!kIsWeb) {
+        final initialWidgetUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+        if (initialWidgetUri != null) {
+          _queueOrHandleLink(initialWidgetUri);
+        }
       }
     }
   }
@@ -64,6 +75,19 @@ class DeepLinkService {
   }
 
   void _queueOrHandleLink(Uri uri) {
+    final now = DateTime.now();
+    final uriString = uri.toString();
+
+    // 300ミリ秒以内の全く同じ瞬間的重複のみ防止（AppLinksとHomeWidgetの同秒発火対策）
+    if (_lastHandledUri == uriString &&
+        _lastHandledTime != null &&
+        now.difference(_lastHandledTime!) < const Duration(milliseconds: 300)) {
+      debugPrint('DeepLinkService: Duplicate link skipped ($uriString)');
+      return;
+    }
+    _lastHandledUri = uriString;
+    _lastHandledTime = now;
+
     if (!_isNavigatorReady) {
       _pendingLinks.add(uri);
     } else {
@@ -93,6 +117,14 @@ class DeepLinkService {
           return;
         }
       }
+    }
+
+    // カスタムスキーム（カメラダイレクト起動）
+    if (uriString.contains('veffect://camera') || uriString.contains('veffect:camera')) {
+      final taskId = uri.queryParameters['taskId'];
+      final taskName = uri.queryParameters['taskName'];
+      _navigateToCameraScreen(taskId: taskId, taskName: taskName);
+      return;
     }
 
     // カスタムスキーム（ウィジェットからの遷移など）
@@ -139,6 +171,65 @@ class DeepLinkService {
       );
     } catch (e) {
       debugPrint('Error handling user profile link: $e');
+    }
+  }
+
+  Future<void> _navigateToCameraScreen({String? taskId, String? taskName}) async {
+    if (_isNavigatingToCamera) {
+      debugPrint('DeepLinkService: Already navigating to camera, skipping concurrent request');
+      return;
+    }
+    _isNavigatingToCamera = true;
+    try {
+      debugPrint('DeepLinkService: Instant camera navigation request (taskName: $taskName)');
+
+      // 1. コントロールセンターやロック画面から復帰する際、アプリのライフサイクルが resumed に復帰するまで安全に待機
+      int lifecycleRetries = 0;
+      while (lifecycleRetries < 40) {
+        final lifecycleState = WidgetsBinding.instance.lifecycleState;
+        if (lifecycleState == AppLifecycleState.resumed || lifecycleState == null) {
+          break;
+        }
+        await Future.delayed(const Duration(milliseconds: 50));
+        lifecycleRetries++;
+      }
+
+      // 2. NavigatorState が画面構築（初回フレーム）で非 null & マウント状態になるまで安全に待機
+      int retries = 0;
+      NavigatorState? navigatorState;
+      while (retries < 50) {
+        navigatorState = VEffectApp.navigatorKey.currentState;
+        if (navigatorState != null && navigatorState.mounted) {
+          break;
+        }
+        await Future.delayed(const Duration(milliseconds: 50));
+        retries++;
+      }
+
+      if (navigatorState == null || !navigatorState.mounted) {
+        debugPrint('DeepLinkService: NavigatorState is still null/unmounted after waiting');
+        return;
+      }
+
+      // 最前面のルートを確認
+      String? topRouteName;
+      navigatorState.popUntil((route) {
+        topRouteName = route.settings.name;
+        return true;
+      });
+
+      // 既にカメラ画面が表示されている場合でなければ Push（即時ルーティング）
+      if (topRouteName != AppRoutes.camera) {
+        debugPrint('DeepLinkService: Pushing camera route now! (current route: $topRouteName)');
+        navigatorState.pushNamed(
+          AppRoutes.camera,
+          arguments: taskName,
+        );
+      }
+    } catch (e) {
+      debugPrint('DeepLinkService: Error navigating to camera screen: $e');
+    } finally {
+      _isNavigatingToCamera = false;
     }
   }
 
