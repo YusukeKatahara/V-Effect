@@ -36,16 +36,21 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
 
       // 現在最前面に表示されているルート名を取得
       String? topRouteName;
+      bool hasCameraRoute = false;
       Navigator.of(context).popUntil((r) {
-        topRouteName = r.settings.name;
+        topRouteName ??= r.settings.name;
+        if (r.settings.name == AppRoutes.camera) {
+          hasCameraRoute = true;
+        }
         return true;
       });
 
-      // 既にホーム (/home) や カメラ (/camera) が最前面に表示されている状態で
-      // /home への遷移が要求された場合、カメラ画面をコンパス画面で上書きしないようスキップする
+      // 既にホーム (/home) や カメラ (/camera) が最前面に表示されている場合、
+      // または既に画面スタック上にカメラ画面が存在している場合、
+      // ウィジェットやディープリンクからのカメラ起動をコンパス画面で上書き・消去しないようスキップする
       if (route == AppRoutes.home &&
-          (topRouteName == AppRoutes.home || topRouteName == AppRoutes.camera)) {
-        debugPrint('AuthWrapper: Skip redirecting to $route because topRoute is already $topRouteName');
+          (topRouteName == AppRoutes.home || topRouteName == AppRoutes.camera || hasCameraRoute)) {
+        debugPrint('AuthWrapper: Skip redirecting to $route because topRoute is $topRouteName (hasCamera=$hasCameraRoute)');
         return;
       }
 

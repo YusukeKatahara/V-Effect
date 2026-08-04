@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import '../config/app_colors.dart';
 
 /// バッジのアニメーションタイプ定義
@@ -30,7 +31,9 @@ class VBadgeWidget extends StatefulWidget {
 }
 
 class _VBadgeWidgetState extends State<VBadgeWidget>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
+  bool _isVisible = true;
+  bool _isAppActive = true;
   
   // ハートビート（鼓動）用
   late AnimationController _heartbeatController;
@@ -68,6 +71,7 @@ class _VBadgeWidgetState extends State<VBadgeWidget>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     // 1. ハートビート（鼓動）アニメーションの初期化
     _heartbeatController = AnimationController(
@@ -173,11 +177,22 @@ class _VBadgeWidgetState extends State<VBadgeWidget>
     }
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final active = (state == AppLifecycleState.resumed);
+    if (_isAppActive != active) {
+      _isAppActive = active;
+      _startAnimations();
+    }
+  }
+
   void _startAnimations() {
     _heartbeatController.stop();
     _shimmerController.stop();
     _bobbingController.stop();
     _pixelBounceController.stop();
+
+    if (!_isVisible || !_isAppActive) return;
 
     if (_type == BadgeAnimationType.heartbeat) {
       _heartbeatController.repeat();
@@ -192,6 +207,7 @@ class _VBadgeWidgetState extends State<VBadgeWidget>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _heartbeatController.dispose();
     _shimmerController.dispose();
     _bobbingController.dispose();
@@ -382,15 +398,27 @@ class _VBadgeWidgetState extends State<VBadgeWidget>
       finalBadge = badgeImage;
     }
 
+    Widget result = finalBadge;
     if (widget.imageUrl == 'tester') {
-      return Transform(
+      result = Transform(
         transform: Matrix4.skewX(-0.15),
         alignment: Alignment.center,
         child: finalBadge,
       );
     }
 
-    return finalBadge;
+    return VisibilityDetector(
+      key: Key('v_badge_${widget.hashCode}'),
+      onVisibilityChanged: (info) {
+        if (!mounted) return;
+        final visible = info.visibleFraction > 0.01;
+        if (_isVisible != visible) {
+          _isVisible = visible;
+          _startAnimations();
+        }
+      },
+      child: result,
+    );
   }
 }
 

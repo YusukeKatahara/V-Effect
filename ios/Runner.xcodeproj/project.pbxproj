@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -22,7 +22,7 @@
 		A1B2C3D4E5F6010101010102 /* MyNativeAdFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6010101010101 /* MyNativeAdFactory.swift */; };
 		A1B2C3D4E5F6010101010104 /* CustomNativeAdView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6010101010103 /* CustomNativeAdView.swift */; };
 		A1B2C3D4E5F6010101010106 /* CustomNativeAdView.xib in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6010101010105 /* CustomNativeAdView.xib */; };
-		A1B2C3D4E5F6010101010108 /* VEffectWidget/VEffectCameraControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6010101010107 /* VEffectWidget/VEffectCameraControl.swift */; };
+		A1B2C3D4E5F6010101010108 /* VEffectCameraControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6010101010107 /* VEffectCameraControl.swift */; };
 		AAFEAE8352AC81477F7FFEBF /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 51030A159D38070F2204A9BF /* Pods_RunnerTests.framework */; };
 /* End PBXBuildFile section */
 
@@ -94,7 +94,7 @@
 		A1B2C3D4E5F6010101010101 /* MyNativeAdFactory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MyNativeAdFactory.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6010101010103 /* CustomNativeAdView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomNativeAdView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6010101010105 /* CustomNativeAdView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = CustomNativeAdView.xib; sourceTree = "<group>"; };
-		A1B2C3D4E5F6010101010107 /* VEffectWidget/VEffectCameraControl.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VEffectWidget/VEffectCameraControl.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6010101010107 /* VEffectCameraControl.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VEffectWidget/VEffectCameraControl.swift; sourceTree = "<group>"; };
 		A3F316673B6A9C59D704DFA5 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		A69C8B622957F18564EFB9B3 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		D8FDF683B35046CED749CB31 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
@@ -102,7 +102,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		3505B21A2FCB105200C73909 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		3505B21A2FCB105200C73909 /* Exceptions for "VEffectWidget" folder in "VEffectWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -112,7 +112,18 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		3505B20B2FCB105100C73909 /* VEffectWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (3505B21A2FCB105200C73909 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = VEffectWidget; sourceTree = "<group>"; };
+		3505B20B2FCB105100C73909 /* VEffectWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3505B21A2FCB105200C73909 /* Exceptions for "VEffectWidget" folder in "VEffectWidgetExtension" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = VEffectWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,7 +177,7 @@
 		3585DB2D301F5D0A00E20E71 /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
-				A1B2C3D4E5F6010101010107 /* VEffectWidget/VEffectCameraControl.swift */,
+				A1B2C3D4E5F6010101010107 /* VEffectCameraControl.swift */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -433,13 +444,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -549,7 +556,7 @@
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				A1B2C3D4E5F6010101010102 /* MyNativeAdFactory.swift in Sources */,
 				A1B2C3D4E5F6010101010104 /* CustomNativeAdView.swift in Sources */,
-				A1B2C3D4E5F6010101010108 /* VEffectWidget/VEffectCameraControl.swift in Sources */,
+				A1B2C3D4E5F6010101010108 /* VEffectCameraControl.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

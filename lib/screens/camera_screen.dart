@@ -13,6 +13,8 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../config/routes.dart';
 import '../widgets/swipe_to_post_button.dart';
+import '../widgets/entropic_conversion_overlay.dart';
+import '../widgets/post_success_dialog.dart';
 
 import '../services/music_api_service.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -154,6 +156,15 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     setState(() {});
   }
 
+  /// 現在この画面が画面スタックの最前面（アクティブな表示状態）かどうかを判定
+  /// （裏側にある非アクティブな状態で誤ってカメラを起動しないためのガード）
+  bool get _isScreenActive {
+    if (!mounted) return false;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return false;
+    return true;
+  }
+
   @override
   void dispose() {
     // ── 投稿フローを完了せず画面が破棄された場合は離脱ログ ──
@@ -162,7 +173,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     }
     WidgetsBinding.instance.removeObserver(this);
     _captionController.removeListener(_onCaptionChanged);
-    _cameraController?.dispose();
+    final controller = _cameraController;
+    _cameraController = null; // 非同期チェーンでの二重起動や参照残りを防ぐため null にクリア
+    controller?.dispose();
     _captionController.dispose();
     _transformationController.dispose();
     _audioPlayer.dispose();
@@ -177,7 +190,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     // 初期化中（権限ダイアログ含む）や撮影後確認中、アップロード中は何もしない
     if (_isInitializing || _isUploading || _image != null) return;
 
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
       final controller = _cameraController;
       if (controller != null && controller.value.isInitialized) {
         controller.dispose();
@@ -189,8 +204,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         }
       }
     } else if (state == AppLifecycleState.resumed) {
-      // プレビュー表示中（写真確認画面でない）かつカメラが未初期化なら再起動
-      if (_image == null && _cameraController == null) {
+      // プレビュー表示中（写真確認画面でない）かつ現在このカメラ画面が最前面（アクティブ）であり、
+      // カメラが未初期化なら再起動
+      // ※ 最前面チェック (_isScreenActive) により、他の画面にいるときに裏でカメラが誤起動する現象を防止
+      if (_isScreenActive && _image == null && _cameraController == null) {
         _initCamera();
       }
     }
@@ -201,7 +218,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   /// カメラを初期化してプレビューを開始
   /// 二重呼び出しを防ぐために _isInitializing フラグで排他制御する。
   Future<void> _initCamera() async {
-    if (_isInitializing) return; // 二重起動防止
+    // 画面が最前面で表示されていない場合や初期化中の場合は実行しない（裏でのカメラ起動防止）
+    if (!_isScreenActive || _isInitializing) return;
     _isInitializing = true;
 
     try {
@@ -262,11 +280,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
     try {
       await controller.initialize();
-      // 初期化完了後、まだこのコントローラーが有効か確認
-      // 画面がすでに破棄（アンマウント）されたか、別のカメラが起動した場合は、
-      // 不要になったコントローラーを即座に破棄（dispose）してカメラデバイスの解放とメモリリークを防ぎます。
-      if (!mounted || _cameraController != controller) {
+      // 初期化完了後、まだこのコントローラーが有効かつ現在の画面が最前面（アクティブ）か確認
+      // 画面がすでに破棄（アンマウント）されたか、別の画面に遷移した場合、
+      // または別のカメラが起動した場合は、不要になったコントローラーを即座に破棄（dispose）して
+      // カメラデバイスの解放とメモリリーク・発熱・裏での継続稼働を防ぎます。
+      if (!mounted || _cameraController != controller || !_isScreenActive) {
         controller.dispose();
+        if (_cameraController == controller) {
+          _cameraController = null;
+          if (mounted) setState(() => _isCameraReady = false);
+        }
         return;
       }
       
@@ -581,7 +604,22 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
             'isRecordUpdating': false,
           });
         } else {
-          Navigator.pushReplacementNamed(context, AppRoutes.home);
+          // FastBoot等でcanPopできない場合も投稿演出をカットせず実行してからホームへ遷移
+          await EntropicConversionOverlay.show(
+            context,
+            finishedImagePath: tempPath,
+            taskName: taskName,
+          );
+          if (mounted) {
+            await PostSuccessDialog.show(
+              context,
+              streakDays: calculatedStreak,
+              isRecordUpdating: false,
+            );
+          }
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, AppRoutes.home);
+          }
         }
       }
     } catch (e, st) {

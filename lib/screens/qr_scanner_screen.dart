@@ -16,14 +16,37 @@ class QrScannerScreen extends ConsumerStatefulWidget {
   ConsumerState<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
+class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
+    with WidgetsBindingObserver {
   final MobileScannerController _controller = MobileScannerController();
   bool _isProcessing = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
+  }
+
+  /// アプリライフサイクルの変化を監視し、バックグラウンド移行時等にカメラを停止する
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _controller.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      // 画面が最前面（アクティブ）かつ処理中でない場合のみスキャナーを再開
+      if (mounted && (ModalRoute.of(context)?.isCurrent ?? false) && !_isProcessing) {
+        _controller.start();
+      }
+    }
   }
 
   Future<void> _onDetect(BarcodeCapture capture) async {

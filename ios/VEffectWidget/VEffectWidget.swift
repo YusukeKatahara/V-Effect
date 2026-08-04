@@ -170,13 +170,9 @@ struct VEffectWidgetEntryView : View {
         if family == .accessoryCircular {
             ZStack {
                 AccessoryWidgetBackground()
-                if entry.isCompleted {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24, weight: .bold))
-                } else {
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 22, weight: .bold))
-                }
+                // 投稿後もUIが変わらないよう、常にカメラアイコンを表示
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 22, weight: .bold))
             }
             .widgetURL(URL(string: "veffect://camera"))
         } else if family == .accessoryRectangular {
@@ -187,62 +183,45 @@ struct VEffectWidgetEntryView : View {
                     Text("V-EFFECT")
                         .font(.system(size: 10, weight: .bold))
                 }
-                if entry.isCompleted {
-                    Text("今日のV達成！")
-                        .font(.system(size: 12, weight: .bold))
-                    Text("Streak: \(entry.streakCount)日")
-                        .font(.system(size: 10))
-                } else {
-                    Text("📷 タスクを撮影")
-                        .font(.system(size: 12, weight: .bold))
-                    Text("1タップで全画面カメラ")
-                        .font(.system(size: 10))
-                }
+                // 投稿後もUIが変わらないよう、常に撮影を促す表示に固定
+                Text("📷 タスクを撮影")
+                    .font(.system(size: 12, weight: .bold))
+                Text("1タップで全画面カメラ")
+                    .font(.system(size: 10))
             }
             .widgetURL(URL(string: "veffect://camera"))
         } else if family == .accessoryInline {
             HStack {
-                Image(systemName: entry.isCompleted ? "checkmark.circle" : "camera")
-                Text(entry.isCompleted ? "V完了 (\(entry.streakCount)日)" : "V撮影未完了")
+                // 投稿後もUIが変わらないよう、常にカメラアイコン表示に固定
+                Image(systemName: "camera")
+                Text("Vを証明する")
             }
             .widgetURL(URL(string: "veffect://camera"))
         } else if family == .systemSmall {
             ZStack {
-                if entry.isCompleted {
-                    // 完了時のデザイン: ゴールド系のグラデーション
-                    RadialGradient(
-                        gradient: Gradient(colors: [Color(red: 0.9, green: 0.8, blue: 0.3), Color(red: 0.7, green: 0.5, blue: 0.1)]),
-                        center: .center,
-                        startRadius: 20,
-                        endRadius: 120
+                // ライトモード / ダークモードに応じたグラデーション背景
+                if colorScheme == .light {
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color.white, Color(white: 0.92)]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-                    
-                    VStack(spacing: 8) {
-                        Text("DONE")
-                            .font(.system(size: 32, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                            .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
-                        Text("\(entry.streakCount) Streak")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.9))
-                    }
                 } else {
-                    // 未完了時のデザイン: ダークグレー〜黒のグラデーション
                     LinearGradient(
                         gradient: Gradient(colors: [Color(white: 0.15), Color.black]),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
-                    
-                    VStack(spacing: 4) {
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
-                        Text("Vを証明する")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .tracking(2.0)
-                    }
+                }
+                
+                VStack(spacing: 4) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(colorScheme == .light ? Color(white: 0.1) : .white)
+                    Text("Vを証明する")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(colorScheme == .light ? Color(white: 0.1) : .white)
+                        .tracking(2.0)
                 }
             }
             .widgetURL(URL(string: "veffect://camera"))

@@ -20,6 +20,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'home/components/floating_flames_layer.dart';
 import 'home/components/dopamine_emoji_explosion_layer.dart';
 import '../services/deep_link_service.dart';
+import '../widgets/auto_pause_tab.dart';
 
 /// Spatial Shell — ジェスチャー主導のUI空間
 ///
@@ -242,16 +243,19 @@ class _MainShellState extends ConsumerState<MainShell> {
   }
 
   late final List<Widget> _screens = [
-    HomeScreen(
-      onLoadingChanged: (isLoading) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() => _isHomeLoading = isLoading);
-        });
-      },
+    AutoPauseTab(
+      tabKey: 'tab_home',
+      child: HomeScreen(
+        onLoadingChanged: (isLoading) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _isHomeLoading = isLoading);
+          });
+        },
+      ),
     ),
-    const VTimelineScreen(),
-    const HeroTasksScreen(),
-    const ProfileScreen(),
+    const AutoPauseTab(tabKey: 'tab_timeline', child: VTimelineScreen()),
+    const AutoPauseTab(tabKey: 'tab_hero_tasks', child: HeroTasksScreen()),
+    const AutoPauseTab(tabKey: 'tab_profile', child: ProfileScreen()),
   ];
 
   void _onTap(int index) {

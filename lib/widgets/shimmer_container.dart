@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import '../config/app_colors.dart';
 
 /// 骨組み（スケルトン）表示用の、アニメーション付きプレースホルダーウィジェット
@@ -33,12 +34,15 @@ class ShimmerContainer extends StatefulWidget {
 }
 
 class _ShimmerContainerState extends State<ShimmerContainer>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _controller;
+  bool _isVisible = true;
+  bool _isAppActive = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // アニメーション周期は1.5秒で繰り返します
     _controller = AnimationController(
       vsync: this,
@@ -48,16 +52,45 @@ class _ShimmerContainerState extends State<ShimmerContainer>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final active = (state == AppLifecycleState.resumed);
+    if (_isAppActive != active) {
+      _isAppActive = active;
+      _updateAnimState();
+    }
+  }
+
+  void _updateAnimState() {
+    if (!mounted) return;
+    if (_isVisible && _isAppActive) {
+      if (!_controller.isAnimating) _controller.repeat();
+    } else {
+      if (_controller.isAnimating) _controller.stop();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Container(
+    return VisibilityDetector(
+      key: Key('shimmer_${widget.hashCode}'),
+      onVisibilityChanged: (info) {
+        if (!mounted) return;
+        final visible = info.visibleFraction > 0.01;
+        if (_isVisible != visible) {
+          _isVisible = visible;
+          _updateAnimState();
+        }
+      },
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Container(
           width: widget.width,
           height: widget.height,
           decoration: ShapeDecoration(
@@ -86,6 +119,7 @@ class _ShimmerContainerState extends State<ShimmerContainer>
           ),
         );
       },
+    ),
     );
   }
 }

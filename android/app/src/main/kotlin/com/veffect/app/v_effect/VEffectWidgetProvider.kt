@@ -26,11 +26,8 @@ class VEffectWidgetProvider : AppWidgetProvider() {
             // UIの更新
             views.setTextViewText(R.id.widget_streak_count, streak.toString())
             
-            val statusText = when {
-                isAllTasksCompleted -> "Mission Complete!"
-                postedToday -> "Keep going!"
-                else -> "Today's Victory?"
-            }
+            // 投稿後もUIが変わらないよう「Today's Victory?」に固定
+            val statusText = "Today's Victory?"
             views.setTextViewText(R.id.widget_status_text, statusText)
 
             // アプリアイコンとテキストに背景色などを設定してV-EFFECTらしく

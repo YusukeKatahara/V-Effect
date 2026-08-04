@@ -8,6 +8,8 @@ import '../main.dart';
 import '../config/routes.dart';
 import 'friend_service.dart';
 import '../screens/main_shell.dart';
+import '../widgets/entropic_conversion_overlay.dart';
+import '../widgets/post_success_dialog.dart';
 
 class DeepLinkService {
   static final DeepLinkService _instance = DeepLinkService._internal();
@@ -78,10 +80,10 @@ class DeepLinkService {
     final now = DateTime.now();
     final uriString = uri.toString();
 
-    // 300ミリ秒以内の全く同じ瞬間的重複のみ防止（AppLinksとHomeWidgetの同秒発火対策）
+    // 1500ミリ秒以内の全く同じ瞬間的重複のみ防止（iOSのAppLinksとHomeWidgetによる同一リンク重複発火対策）
     if (_lastHandledUri == uriString &&
         _lastHandledTime != null &&
-        now.difference(_lastHandledTime!) < const Duration(milliseconds: 300)) {
+        now.difference(_lastHandledTime!) < const Duration(milliseconds: 1500)) {
       debugPrint('DeepLinkService: Duplicate link skipped ($uriString)');
       return;
     }
@@ -194,13 +196,27 @@ class DeepLinkService {
         lifecycleRetries++;
       }
 
-      // 2. NavigatorState が画面構築（初回フレーム）で非 null & マウント状態になるまで安全に待機
+      // 2. NavigatorState が画面構築（初回フレーム）で非 null & マウント状態になり、
+      // かつ AuthWrapper('/' または AppRoutes.wrapper) による初期認証およびルーティング（コンパス画面等への到達）が
+      // 完了して通常の画面（AppRoutes.home 等）がマウントされるまで安全に待機（最長8秒間: 50ms×160回）
+      // ※ コールドスタート直後にカメラ画面を Push した直後、AuthWrapper の pushReplacement で
+      //   コンパス画面に上書き消去されてしまう問題（レースコンディション）を完全に防ぐための必須ガードです。
       int retries = 0;
       NavigatorState? navigatorState;
-      while (retries < 50) {
+      String? topRouteName;
+      while (retries < 160) {
         navigatorState = VEffectApp.navigatorKey.currentState;
         if (navigatorState != null && navigatorState.mounted) {
-          break;
+          navigatorState.popUntil((route) {
+            topRouteName = route.settings.name;
+            return true;
+          });
+          // 最前面のルート名が判明し、かつ AuthWrapper('/') 等の初期化ラッパー以外の実画面に到達していれば待機完了
+          if (topRouteName != null &&
+              topRouteName != AppRoutes.wrapper &&
+              topRouteName != '/') {
+            break;
+          }
         }
         await Future.delayed(const Duration(milliseconds: 50));
         retries++;
@@ -211,20 +227,51 @@ class DeepLinkService {
         return;
       }
 
-      // 最前面のルートを確認
-      String? topRouteName;
-      navigatorState.popUntil((route) {
-        topRouteName = route.settings.name;
-        return true;
-      });
+      // 未ログインやオンボーディング中のまま8秒経過した場合は、サイレントに既存フローを優先（エラー通知を出さないスマートな動作）
+      if (topRouteName == AppRoutes.wrapper ||
+          topRouteName == '/' ||
+          topRouteName == AppRoutes.login ||
+          topRouteName == AppRoutes.profileSetup ||
+          topRouteName == AppRoutes.taskSetup ||
+          (topRouteName?.startsWith('/onboarding') ?? false)) {
+        debugPrint('DeepLinkService: Still in auth/onboarding or wrapper ($topRouteName), silent fallback applied');
+        return;
+      }
 
       // 既にカメラ画面が表示されている場合でなければ Push（即時ルーティング）
       if (topRouteName != AppRoutes.camera) {
         debugPrint('DeepLinkService: Pushing camera route now! (current route: $topRouteName)');
-        navigatorState.pushNamed(
+        // Navigator.pushNamed に <Map<String, dynamic>> を指定すると、MaterialApp の routes が
+        // 生成する Route<dynamic> から Route<Map<String, dynamic>?> へのキャストで Dart の
+        // 実行時型エラー (TypeError) が発生するため、型引数は指定せず受け取る
+        final dynamic result = await navigatorState.pushNamed(
           AppRoutes.camera,
           arguments: taskName,
         );
+
+        // ウィジェット・ディープリンク経由で投稿完了した場合は、ホーム画面上で投稿演出がカットされないよう確実に再生する
+        if (result is Map && result['posted'] == true) {
+          final context = VEffectApp.navigatorKey.currentContext;
+          if (context != null && context.mounted) {
+            final String? localImagePath = result['imagePath'] as String?;
+            final int newStreak = (result['newStreak'] as num?)?.toInt() ?? 1;
+            final bool isRecordUpdating = result['isRecordUpdating'] == true;
+
+            await EntropicConversionOverlay.show(
+              context,
+              finishedImagePath: localImagePath,
+              taskName: taskName ?? 'V EFFECT',
+            );
+
+            if (context.mounted) {
+              await PostSuccessDialog.show(
+                context,
+                streakDays: newStreak,
+                isRecordUpdating: isRecordUpdating,
+              );
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint('DeepLinkService: Error navigating to camera screen: $e');
