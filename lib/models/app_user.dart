@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'app_task.dart';
+import 'hero_pick.dart';
 import '../services/streak_service.dart';
 
 /// Firestore の users コレクションに対応するデータモデル
@@ -21,6 +22,7 @@ class AppUser {
   final List<String> followers;
   final List<String> recentPostDates;
   final List<AppTask> tasks;
+  final List<HeroPick> heroPicks;
   final String? occupation;
   final bool profileCompleted;
   final bool templateCompleted;
@@ -61,7 +63,9 @@ class AppUser {
   static const String fieldFollowers = 'followers';
   static const String fieldRecentPostDates = 'recentPostDates';
   static const String fieldTasks = 'tasks';
+  static const String fieldHeroPicks = 'heroPicks';
   static const String fieldOccupation = 'occupation';
+
   static const String fieldProfileCompleted = 'profileCompleted';
   static const String fieldTemplateCompleted = 'templateCompleted';
   static const String fieldOnboardingCompleted = 'onboardingCompleted';
@@ -104,6 +108,7 @@ class AppUser {
     this.followers = const [],
     this.recentPostDates = const [],
     this.tasks = const [],
+    this.heroPicks = const [],
     this.occupation,
     this.profileCompleted = false,
     this.templateCompleted = false,
@@ -167,6 +172,17 @@ class AppUser {
         return {};
       }
 
+      List<HeroPick> extractHeroPicks() {
+        final raw = data[fieldHeroPicks];
+        if (raw is List) {
+          return raw
+              .whereType<Map<String, dynamic>>()
+              .map((item) => HeroPick.fromMap(item))
+              .toList();
+        }
+        return [];
+      }
+
       return AppUser(
         uid: id,
         email: safeString(data[fieldEmail]),
@@ -196,6 +212,7 @@ class AppUser {
         tasks: (data[fieldTasks] as List? ?? [])
             .map((item) => AppTask.fromFirestore(item))
             .toList(),
+        heroPicks: extractHeroPicks(),
         occupation: safeString(data[fieldOccupation]),
         profileCompleted: data[fieldProfileCompleted] == true,
         templateCompleted: data[fieldTemplateCompleted] == true,
@@ -243,6 +260,7 @@ class AppUser {
       fieldFollowers: followers,
       fieldRecentPostDates: recentPostDates,
       fieldTasks: tasks.map((t) => t.toFirestore()).toList(),
+      fieldHeroPicks: heroPicks.map((p) => p.toMap()).toList(),
       fieldOccupation: occupation,
       fieldProfileCompleted: profileCompleted,
       fieldTemplateCompleted: templateCompleted,
@@ -285,6 +303,7 @@ class AppUser {
     List<String>? followers,
     List<String>? recentPostDates,
     List<AppTask>? tasks,
+    List<HeroPick>? heroPicks,
     String? occupation,
     bool? profileCompleted,
     bool? templateCompleted,
@@ -323,6 +342,7 @@ class AppUser {
       followers: followers ?? this.followers,
       recentPostDates: recentPostDates ?? this.recentPostDates,
       tasks: tasks ?? this.tasks,
+      heroPicks: heroPicks ?? this.heroPicks,
       occupation: occupation ?? this.occupation,
       profileCompleted: profileCompleted ?? this.profileCompleted,
       templateCompleted: templateCompleted ?? this.templateCompleted,
@@ -346,3 +366,4 @@ class AppUser {
     );
   }
 }
+

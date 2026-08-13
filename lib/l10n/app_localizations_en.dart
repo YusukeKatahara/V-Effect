@@ -2316,4 +2316,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String vPhoenixRebirthDialogDesc(int days) {
     return 'Your $days-day streak is revived! Powered by your friends\' support, you rose from the ashes!';
   }
+
+  @override
+  String get profileHeroPicksTitle => 'HERO PICKS';
+
+  @override
+  String get profileHeroPicksEmptyTitle => 'Pick your best moments';
+
+  @override
+  String get profileHeroPicksEmptyDesc => 'Pin up to 6 of your favorite moments to your profile';
+
+  @override
+  String get profileHeroPicksAdd => 'Add Pick';
+
+  @override
+  String get profileHeroPicksRemove => 'Remove Pick';
+
+  @override
+  String get profileHeroPicksRemoveConfirmTitle => 'Remove from Picks?';
+
+  @override
+  String get profileHeroPicksRemoveConfirmDesc => 'Remove this post from your Hero Picks? (The post itself will not be deleted)';
+
+  @override
+  String get profileHeroPicksMaxReached => 'You can pin up to 6 picks';
+
+  @override
+  String get profileHeroPicksSuccess => 'Added to Hero Picks!';
+
+  @override
+  String get profileHeroPicksRemoved => 'Removed from Hero Picks';
+
+  @override
+  String get profileHeroPicksSelectTitle => 'Select a post to pick';
+
+  @override
+  String get profileHeroPicksSelectEmpty => 'No past posts available to pick';
+
+  @override
+  String get profileHeroPicksAlreadyPicked => 'This post is already picked';
+
+  @override
+  String get profileHeroPicksPreview => 'Public Preview';
+
+  @override
+  String get profileHeroPicksPickedBadge => 'Picked';
+
+  @override
+  String get profileHeroPicksAction => 'Pick';
 }

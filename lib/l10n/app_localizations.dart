@@ -4456,6 +4456,102 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'{days}日間のストリークが完全復活！仲間からの想いを受け取り、不死鳥のように蘇りました！'**
   String vPhoenixRebirthDialogDesc(int days);
+
+  /// No description provided for @profileHeroPicksTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'ヒーローピック'**
+  String get profileHeroPicksTitle;
+
+  /// No description provided for @profileHeroPicksEmptyTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'お気に入りの努力をピックしよう'**
+  String get profileHeroPicksEmptyTitle;
+
+  /// No description provided for @profileHeroPicksEmptyDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'過去の積み重ねから最大6枚をプロフィールに飾れます'**
+  String get profileHeroPicksEmptyDesc;
+
+  /// No description provided for @profileHeroPicksAdd.
+  ///
+  /// In ja, this message translates to:
+  /// **'ピックを追加'**
+  String get profileHeroPicksAdd;
+
+  /// No description provided for @profileHeroPicksRemove.
+  ///
+  /// In ja, this message translates to:
+  /// **'ピックを解除'**
+  String get profileHeroPicksRemove;
+
+  /// No description provided for @profileHeroPicksRemoveConfirmTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'ヒーローピックを解除しますか？'**
+  String get profileHeroPicksRemoveConfirmTitle;
+
+  /// No description provided for @profileHeroPicksRemoveConfirmDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'この投稿をプロフィールのヒーローピックから解除します。（投稿自体は削除されません）'**
+  String get profileHeroPicksRemoveConfirmDesc;
+
+  /// No description provided for @profileHeroPicksMaxReached.
+  ///
+  /// In ja, this message translates to:
+  /// **'ヒーローピックできるのは最大6枚までです'**
+  String get profileHeroPicksMaxReached;
+
+  /// No description provided for @profileHeroPicksSuccess.
+  ///
+  /// In ja, this message translates to:
+  /// **'ヒーローピックに追加しました！'**
+  String get profileHeroPicksSuccess;
+
+  /// No description provided for @profileHeroPicksRemoved.
+  ///
+  /// In ja, this message translates to:
+  /// **'ヒーローピックから解除しました'**
+  String get profileHeroPicksRemoved;
+
+  /// No description provided for @profileHeroPicksSelectTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'ヒーローピックする投稿を選択'**
+  String get profileHeroPicksSelectTitle;
+
+  /// No description provided for @profileHeroPicksSelectEmpty.
+  ///
+  /// In ja, this message translates to:
+  /// **'ヒーローピックできる過去の投稿がまだありません'**
+  String get profileHeroPicksSelectEmpty;
+
+  /// No description provided for @profileHeroPicksAlreadyPicked.
+  ///
+  /// In ja, this message translates to:
+  /// **'この投稿はすでにヒーローピックされています'**
+  String get profileHeroPicksAlreadyPicked;
+
+  /// No description provided for @profileHeroPicksPreview.
+  ///
+  /// In ja, this message translates to:
+  /// **'公開プレビュー'**
+  String get profileHeroPicksPreview;
+
+  /// No description provided for @profileHeroPicksPickedBadge.
+  ///
+  /// In ja, this message translates to:
+  /// **'ピック済'**
+  String get profileHeroPicksPickedBadge;
+
+  /// No description provided for @profileHeroPicksAction.
+  ///
+  /// In ja, this message translates to:
+  /// **'ピック'**
+  String get profileHeroPicksAction;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

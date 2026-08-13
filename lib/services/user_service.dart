@@ -8,8 +8,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'push_notification_service.dart';
 import '../models/app_task.dart';
 import '../models/app_user.dart';
+import '../models/hero_pick.dart';
 import '../models/season.dart';
 import 'dev_blog_service.dart';
+
 
 /// ユーザープロフィール・ヒーロータスク設定の読み書きを担当するサービス
 class UserService {
@@ -561,4 +563,83 @@ class UserService {
       AppUser.fieldIsRecommended: recommend,
     });
   }
+
+  /// Hero Picks に投稿を追加します（最大6枚）
+  Future<bool> addHeroPick(HeroPick pick) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return false;
+
+    try {
+      final snap = await _db.collection('users').doc(uid).get();
+      if (!snap.exists) return false;
+
+      final user = AppUser.fromFirestore(snap);
+      final picks = List<HeroPick>.from(user.heroPicks);
+
+      // すでに同一投稿が含まれている場合は先頭に移動
+      picks.removeWhere((p) => p.postId == pick.postId);
+
+      // 最大6枚制限
+      if (picks.length >= 6) {
+        return false;
+      }
+
+      // 新しいPickを先頭に追加
+      picks.insert(0, pick);
+
+      await _db.collection('users').doc(uid).update({
+        AppUser.fieldHeroPicks: picks.map((p) => p.toMap()).toList(),
+      });
+
+      _updateController.add(null);
+      return true;
+    } catch (e) {
+      debugPrint('Error adding hero pick: $e');
+      return false;
+    }
+  }
+
+  /// Hero Picks から指定の投稿を削除します
+  Future<bool> removeHeroPick(String postId) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return false;
+
+    try {
+      final snap = await _db.collection('users').doc(uid).get();
+      if (!snap.exists) return false;
+
+      final user = AppUser.fromFirestore(snap);
+      final picks = List<HeroPick>.from(user.heroPicks);
+      picks.removeWhere((p) => p.postId == postId);
+
+      await _db.collection('users').doc(uid).update({
+        AppUser.fieldHeroPicks: picks.map((p) => p.toMap()).toList(),
+      });
+
+      _updateController.add(null);
+      return true;
+    } catch (e) {
+      debugPrint('Error removing hero pick: $e');
+      return false;
+    }
+  }
+
+  /// Hero Picks の並び順を更新します
+  Future<bool> updateHeroPicks(List<HeroPick> picks) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return false;
+
+    try {
+      await _db.collection('users').doc(uid).update({
+        AppUser.fieldHeroPicks: picks.take(6).map((p) => p.toMap()).toList(),
+      });
+
+      _updateController.add(null);
+      return true;
+    } catch (e) {
+      debugPrint('Error updating hero picks: $e');
+      return false;
+    }
+  }
 }
+

@@ -51,6 +51,10 @@ class SoundService {
     }
   }
 
+  int _bgmSessionId = 0;
+  bool _isBgmPlaying = false;
+  bool get isBgmPlaying => _isBgmPlaying;
+
   /// BGM再生時にオーディオセッションを playback に変更し、マナーモードを上書きする
   Future<void> _setPlaybackSession() async {
     try {
@@ -122,16 +126,23 @@ class SoundService {
   /// それ以外（自動再生）の場合はマナーモードに従います（ambient）。
   Future<void> playBgm(String url, {bool userExplicitAction = false, double initialVolume = 1.0}) async {
     _fadeTimer?.cancel();
+    _fadeTimer = null;
     
     if (_isBgmMuted) {
       // ミュート設定時は再生しない（UIで切り替え可能にする）
       return;
     }
 
+    final int sessionId = ++_bgmSessionId;
+    _isBgmPlaying = true;
+
     try {
       if (_bgmPlayer.state == PlayerState.playing) {
         await _bgmPlayer.stop();
       }
+
+      // セッションIDが変わっている（直後にstopBgmなどが呼ばれた）場合は中断
+      if (_bgmSessionId != sessionId || !_isBgmPlaying) return;
       
       // BGM再生開始に合わせてセッションを切り替え
       if (userExplicitAction) {
@@ -139,6 +150,8 @@ class SoundService {
       } else {
         await _setAmbientSession();
       }
+
+      if (_bgmSessionId != sessionId || !_isBgmPlaying) return;
       
       if (_isFirstBgmPlay) {
         _isFirstBgmPlay = false;
@@ -147,13 +160,28 @@ class SoundService {
         // エラー（-12860等）を防ぐため、再生を開始してから少し遅延を入れて音量を上げ始める
         await _bgmPlayer.setVolume(0.0);
         await _bgmPlayer.play(UrlSource(url));
+
+        if (_bgmSessionId != sessionId || !_isBgmPlaying) {
+          await _bgmPlayer.stop();
+          return;
+        }
         
         // ストリーミングのバッファリングが始まるのを少し待つ
         await Future.delayed(const Duration(milliseconds: 300));
+
+        if (_bgmSessionId != sessionId || !_isBgmPlaying) {
+          await _bgmPlayer.stop();
+          return;
+        }
         
         int fadeTicks = 0;
         const int maxTicks = 20; // 2秒間かけてフェードイン
         _fadeTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+          if (_bgmSessionId != sessionId || !_isBgmPlaying) {
+            timer.cancel();
+            _fadeTimer = null;
+            return;
+          }
           fadeTicks++;
           if (fadeTicks > maxTicks) {
             timer.cancel();
@@ -168,6 +196,11 @@ class SoundService {
         // 2曲目以降：即座に指定の初期音量で再生
         await _bgmPlayer.setVolume(initialVolume);
         await _bgmPlayer.play(UrlSource(url));
+
+        if (_bgmSessionId != sessionId || !_isBgmPlaying) {
+          await _bgmPlayer.stop();
+          return;
+        }
       }
       
     } catch (e) {
@@ -177,6 +210,8 @@ class SoundService {
 
   /// BGMの停止
   Future<void> stopBgm() async {
+    _bgmSessionId++;
+    _isBgmPlaying = false;
     _fadeTimer?.cancel();
     _fadeTimer = null;
     try {
@@ -188,6 +223,7 @@ class SoundService {
       await _setAmbientSession();
     }
   }
+
 
   /// 現在再生中のBGMの音量を変更します (0.0 〜 1.0)
   Future<void> setBgmVolume(double volume) async {

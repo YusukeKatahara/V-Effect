@@ -9,7 +9,12 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/post.dart';
 import '../models/app_task.dart';
+import '../models/hero_pick.dart';
+import '../services/user_service.dart';
+import '../services/sound_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+
 import '../providers/service_providers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/shimmer_container.dart';
@@ -457,9 +462,55 @@ class _PastComparisonScreenState extends ConsumerState<PastComparisonScreen> wit
           ),
           Row(
             children: [
+              // 1件選択時のHero Pickボタン
+              if (_selectedPosts.length == 1) ...[
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final heroPick = HeroPick.fromPost(_selectedPosts.first);
+                    final success = await UserService.instance.addHeroPick(heroPick);
+                    if (mounted) {
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(AppLocalizations.of(context)!.profileHeroPicksSuccess),
+                            backgroundColor: AppColors.accentGold,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        _toggleSelectMode();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(AppLocalizations.of(context)!.profileHeroPicksMaxReached),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  icon: Icon(Icons.push_pin_outlined, color: AppColors.accentGold, size: 18),
+                  label: Text(
+                    AppLocalizations.of(context)!.profileHeroPicksAction,
+                    style: GoogleFonts.notoSansJp(
+                      color: AppColors.accentGold,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppColors.accentGold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+              ],
               // 比較するボタン
               OutlinedButton.icon(
                 onPressed: isCompareReady ? _showComparisonViewer : null,
+
                 icon: Icon(
                   Icons.compare_arrows,
                   color: isCompareReady ? AppColors.accentGold : AppColors.grey30,
@@ -1148,39 +1199,104 @@ class _ComparisonViewerScreenState extends State<ComparisonViewerScreen> {
 }
 
 /// 画像とコメントを全画面表示するビューアー
-class PostDetailViewerScreen extends StatelessWidget {
+class PostDetailViewerScreen extends ConsumerStatefulWidget {
   final Post post;
 
   const PostDetailViewerScreen({super.key, required this.post});
 
   @override
+  ConsumerState<PostDetailViewerScreen> createState() => _PostDetailViewerScreenState();
+}
+
+class _PostDetailViewerScreenState extends ConsumerState<PostDetailViewerScreen> {
+  SoundService get _soundService => ref.read(soundServiceProvider);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.post.bgmUrl != null && widget.post.bgmUrl!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _soundService.playBgm(widget.post.bgmUrl!);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.post.bgmUrl != null && widget.post.bgmUrl!.isNotEmpty) {
+      _soundService.stopBgm();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDark;
+
     return Scaffold(
       backgroundColor: AppColors.bgBase,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: AppColors.white),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: isDark ? AppColors.white : AppColors.pureBlack),
+          onPressed: () {
+            _soundService.stopBgm();
+            Navigator.pop(context);
+          },
+        ),
+        iconTheme: IconThemeData(color: isDark ? AppColors.white : AppColors.pureBlack),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.push_pin_outlined, color: AppColors.accentGold),
+            tooltip: AppLocalizations.of(context)!.profileHeroPicksAdd,
+            onPressed: () async {
+              final heroPick = HeroPick.fromPost(widget.post);
+              final success = await UserService.instance.addHeroPick(heroPick);
+              if (context.mounted) {
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!.profileHeroPicksSuccess),
+                      backgroundColor: AppColors.accentGold,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!.profileHeroPicksMaxReached),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+        ],
       ),
+
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               child: Center(
-                child: post.imageUrl != null
+                child: widget.post.imageUrl != null
                     ? InteractiveViewer(
                         child: AspectRatio(
                           aspectRatio: 9 / 16,
                           child: CachedNetworkImage(
-                            imageUrl: post.imageUrl!,
+                            imageUrl: widget.post.imageUrl!,
                             fit: BoxFit.cover,
                             fadeInDuration: const Duration(milliseconds: 250),
                             placeholder: (context, url) => const ShimmerContainer(
                               width: double.infinity,
                               height: double.infinity,
                             ),
-                            errorWidget: (context, url, error) => Center(child: Icon(Icons.error, color: AppColors.white, size: 48)),
+                            errorWidget: (context, url, error) => Center(
+                              child: Icon(Icons.error, color: AppColors.grey50, size: 48),
+                            ),
                           ),
                         ),
                       )
@@ -1196,7 +1312,7 @@ class PostDetailViewerScreen extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.5),
+                    color: isDark ? Colors.black.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.08),
                     blurRadius: 10,
                     offset: const Offset(0, -2),
                   ),
@@ -1207,19 +1323,19 @@ class PostDetailViewerScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    DateFormat('yyyy.MM.dd HH:mm').format(post.createdAt),
+                    DateFormat('yyyy.MM.dd HH:mm').format(widget.post.createdAt),
                     style: GoogleFonts.rubik(
                       color: AppColors.accentGold,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
-                  if (post.caption != null && post.caption!.isNotEmpty) ...[
+                  if (widget.post.caption != null && widget.post.caption!.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Text(
-                      post.caption!,
+                      widget.post.caption!,
                       style: GoogleFonts.notoSansJp(
-                        color: AppColors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 16,
                         height: 1.6,
                       ),
@@ -1234,3 +1350,4 @@ class PostDetailViewerScreen extends StatelessWidget {
     );
   }
 }
+

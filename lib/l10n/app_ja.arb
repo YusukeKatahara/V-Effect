@@ -1077,5 +1077,24 @@
     "placeholders": {
       "days": { "type": "int" }
     }
-  }
+  },
+  "profileHeroPicksTitle": "ヒーローピック",
+  "profileHeroPicksEmptyTitle": "お気に入りの努力をピックしよう",
+  "profileHeroPicksEmptyDesc": "過去の積み重ねから最大6枚をプロフィールに飾れます",
+  "profileHeroPicksAdd": "ピックを追加",
+  "profileHeroPicksRemove": "ピックを解除",
+  "profileHeroPicksRemoveConfirmTitle": "ヒーローピックを解除しますか？",
+  "profileHeroPicksRemoveConfirmDesc": "この投稿をプロフィールのヒーローピックから解除します。（投稿自体は削除されません）",
+  "profileHeroPicksMaxReached": "ヒーローピックできるのは最大6枚までです",
+  "profileHeroPicksSuccess": "ヒーローピックに追加しました！",
+  "profileHeroPicksRemoved": "ヒーローピックから解除しました",
+  "profileHeroPicksSelectTitle": "ヒーローピックする投稿を選択",
+  "profileHeroPicksSelectEmpty": "ヒーローピックできる過去の投稿がまだありません",
+  "profileHeroPicksAlreadyPicked": "この投稿はすでにヒーローピックされています",
+  "profileHeroPicksPreview": "公開プレビュー",
+  "profileHeroPicksPickedBadge": "ピック済",
+  "profileHeroPicksAction": "ピック"
 }
+
+
+

@@ -1077,5 +1077,22 @@
     "placeholders": {
       "days": { "type": "int" }
     }
-  }
+  },
+  "profileHeroPicksTitle": "HERO PICKS",
+  "profileHeroPicksEmptyTitle": "Pick your best moments",
+  "profileHeroPicksEmptyDesc": "Pin up to 6 of your favorite moments to your profile",
+  "profileHeroPicksAdd": "Add Pick",
+  "profileHeroPicksRemove": "Remove Pick",
+  "profileHeroPicksRemoveConfirmTitle": "Remove from Picks?",
+  "profileHeroPicksRemoveConfirmDesc": "Remove this post from your Hero Picks? (The post itself will not be deleted)",
+  "profileHeroPicksMaxReached": "You can pin up to 6 picks",
+  "profileHeroPicksSuccess": "Added to Hero Picks!",
+  "profileHeroPicksRemoved": "Removed from Hero Picks",
+  "profileHeroPicksSelectTitle": "Select a post to pick",
+  "profileHeroPicksSelectEmpty": "No past posts available to pick",
+  "profileHeroPicksAlreadyPicked": "This post is already picked",
+  "profileHeroPicksPreview": "Public Preview",
+  "profileHeroPicksPickedBadge": "Picked",
+  "profileHeroPicksAction": "Pick"
 }
+

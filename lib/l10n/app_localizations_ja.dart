@@ -2316,4 +2316,52 @@ class AppLocalizationsJa extends AppLocalizations {
   String vPhoenixRebirthDialogDesc(int days) {
     return '$days日間のストリークが完全復活！仲間からの想いを受け取り、不死鳥のように蘇りました！';
   }
+
+  @override
+  String get profileHeroPicksTitle => 'ヒーローピック';
+
+  @override
+  String get profileHeroPicksEmptyTitle => 'お気に入りの努力をピックしよう';
+
+  @override
+  String get profileHeroPicksEmptyDesc => '過去の積み重ねから最大6枚をプロフィールに飾れます';
+
+  @override
+  String get profileHeroPicksAdd => 'ピックを追加';
+
+  @override
+  String get profileHeroPicksRemove => 'ピックを解除';
+
+  @override
+  String get profileHeroPicksRemoveConfirmTitle => 'ヒーローピックを解除しますか？';
+
+  @override
+  String get profileHeroPicksRemoveConfirmDesc => 'この投稿をプロフィールのヒーローピックから解除します。（投稿自体は削除されません）';
+
+  @override
+  String get profileHeroPicksMaxReached => 'ヒーローピックできるのは最大6枚までです';
+
+  @override
+  String get profileHeroPicksSuccess => 'ヒーローピックに追加しました！';
+
+  @override
+  String get profileHeroPicksRemoved => 'ヒーローピックから解除しました';
+
+  @override
+  String get profileHeroPicksSelectTitle => 'ヒーローピックする投稿を選択';
+
+  @override
+  String get profileHeroPicksSelectEmpty => 'ヒーローピックできる過去の投稿がまだありません';
+
+  @override
+  String get profileHeroPicksAlreadyPicked => 'この投稿はすでにヒーローピックされています';
+
+  @override
+  String get profileHeroPicksPreview => '公開プレビュー';
+
+  @override
+  String get profileHeroPicksPickedBadge => 'ピック済';
+
+  @override
+  String get profileHeroPicksAction => 'ピック';
 }

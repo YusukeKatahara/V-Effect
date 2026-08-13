@@ -8,12 +8,16 @@ import 'package:v_effect/l10n/app_localizations.dart';
 import '../config/app_colors.dart';
 import '../models/app_user.dart';
 import '../services/friend_service.dart';
+import '../services/sound_service.dart';
 import '../widgets/swipe_back_gate.dart';
+
 import '../widgets/full_screen_image_viewer.dart';
 import '../widgets/v_badge_widget.dart';
 import '../widgets/shimmer_container.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/service_providers.dart';
+import 'profile/components/hero_picks_section.dart';
+
 
 /// 他ユーザーのプロフィール閲覧画面
 ///
@@ -46,7 +50,14 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   int _mutualCount = 0;
 
   @override
+  void dispose() {
+    SoundService.instance.stopBgm();
+    super.dispose();
+  }
+
+  @override
   void didChangeDependencies() {
+
     super.didChangeDependencies();
     // late final フィールドの初期化（ref が有効になった後に実行）
     if (!_initialized) {
@@ -472,11 +483,19 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                           _buildMutualFollowSection(),
                         ],
                       ],
+                      if (_user!.heroPicks.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        HeroPicksSection(
+                          picks: _user!.heroPicks,
+                          isOwner: false,
+                        ),
+                      ],
                       if (_user!.tasks.isNotEmpty) ...[
                         const SizedBox(height: 32),
                         _buildTasksSection(),
                       ],
                       const SizedBox(height: 40),
+
                     ],
                   ),
                 ),

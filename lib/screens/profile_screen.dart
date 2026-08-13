@@ -11,7 +11,9 @@ import '../models/app_task.dart';
 import '../models/post.dart';
 import '../services/user_service.dart';
 import '../services/post_service.dart';
+import '../services/sound_service.dart';
 import '../widgets/v_effect_header.dart';
+
 import '../widgets/season_hint_modal.dart';
 import '../models/season.dart';
 import 'edit_profile_screen.dart';
@@ -21,7 +23,9 @@ import 'qr_display_screen.dart';
 import 'qr_scanner_screen.dart';
 import '../widgets/responsive_container.dart';
 import 'past_comparison_screen.dart';
+import 'user_profile_screen.dart';
 import '../widgets/shimmer_container.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/weekly_review_provider.dart';
 import 'weekly_review_screen.dart';
@@ -32,6 +36,8 @@ import 'profile/components/profile_header_section.dart';
 import 'profile/components/task_section.dart';
 import 'profile/components/trending_tasks_bottom_sheet.dart';
 import 'profile/components/quest_card.dart';
+import 'profile/components/hero_picks_section.dart';
+
 
 
 class ProfileScreen extends StatefulWidget {
@@ -78,10 +84,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
+    SoundService.instance.stopBgm();
     _postUpdateSubscription?.cancel();
     _userUpdateSubscription?.cancel();
     super.dispose();
   }
+
 
   Future<void> _loadTrendingTasks() async {
     try {
@@ -1177,8 +1185,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
+                  // ---── HERO PICKS セクション ──────────────────────────
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverToBoxAdapter(
+                      child: HeroPicksSection(
+                        picks: _user!.heroPicks,
+                        isOwner: true,
+                        onPicksChanged: _loadProfile,
+                        onPreview: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              settings: RouteSettings(
+                                arguments: {
+                                  'uid': _user!.uid,
+                                  'username': _user!.username,
+                                  'photoUrl': _user!.photoUrl,
+                                },
+                              ),
+                              builder: (_) => const UserProfileScreen(),
+                            ),
+                          );
+                        },
+
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
 
                   // ---── ヒーロータスクセクション ──
+
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     sliver: SliverTaskSectionHeader(

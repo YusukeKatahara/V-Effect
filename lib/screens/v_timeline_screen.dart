@@ -21,7 +21,9 @@ import '../utils/ad_helper.dart';
 import 'home/components/floating_flames_layer.dart';
 import 'home/components/feed_card.dart';
 import 'home/components/bgm_indicator.dart';
+import 'main_shell.dart';
 import '../widgets/v_phoenix_rebirth_dialog.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../widgets/home/home_skeleton_body.dart';
@@ -42,8 +44,10 @@ class VTimelineScreen extends ConsumerStatefulWidget {
   ConsumerState<VTimelineScreen> createState() => _VTimelineScreenState();
 }
 
-class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerProviderStateMixin {
+class _VTimelineScreenState extends ConsumerState<VTimelineScreen>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final PostService _postService;
+
   late final SoundService _soundService;
 
   final PageController _pageController = PageController(initialPage: 100000);
@@ -86,6 +90,8 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
     super.initState();
     _postService = ref.read(postServiceProvider);
     _soundService = ref.read(soundServiceProvider);
+    WidgetsBinding.instance.addObserver(this);
+    MainShell.activeTabIndex.addListener(_onTabChanged);
 
     _bumpController = AnimationController(
       vsync: this,
@@ -107,8 +113,34 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
     });
   }
 
+  void _onTabChanged() {
+    if (!mounted) return;
+    if (MainShell.activeTabIndex.value == 1) {
+      // V-Timelineタブに戻ってきたらBGMを再開
+      _playBgmForFocusedPost();
+    } else {
+      // 他のタブへ切り替わったら確実に停止
+      _soundService.stopBgm();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _soundService.stopBgm();
+      _adRefreshTimer?.cancel();
+    } else if (state == AppLifecycleState.resumed) {
+      if (MainShell.activeTabIndex.value == 1) {
+        _playBgmForFocusedPost();
+      }
+    }
+  }
+
   @override
   void dispose() {
+    MainShell.activeTabIndex.removeListener(_onTabChanged);
+    WidgetsBinding.instance.removeObserver(this);
+    _soundService.stopBgm();
     _pageController.dispose();
     _bumpController.dispose();
     _adRefreshTimer?.cancel();
@@ -120,6 +152,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen> with TickerPr
 
     super.dispose();
   }
+
 
   // ── ユーザープロフィール取得＆マッピング ──
   Future<void> _loadUserProfiles(List<Post> posts) async {
