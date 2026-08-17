@@ -99,6 +99,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       case NotificationType.seasonTaskReceived:
       case NotificationType.seasonTaskPushOnly:
         return Icons.event_available;
+      case NotificationType.rescueRequested:
+        return Icons.volunteer_activism;
+      case NotificationType.rescueRevived:
+        return Icons.local_fire_department;
     }
   }
 
@@ -123,6 +127,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       case NotificationType.seasonTaskDistributed:
       case NotificationType.seasonTaskReceived:
       case NotificationType.seasonTaskPushOnly:
+        return AppColors.accentGold;
+      case NotificationType.rescueRequested:
+        return AppColors.accentGoldLight;
+      case NotificationType.rescueRevived:
         return AppColors.accentGold;
     }
   }
@@ -171,6 +179,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       badge = _buildBadge('🏅');
     } else if (notif.type == NotificationType.seasonTaskDistributed) {
       badge = _buildBadge('🎁');
+    } else if (notif.type == NotificationType.rescueRequested) {
+      badge = _buildBadge('🤝');
+    } else if (notif.type == NotificationType.rescueRevived) {
+      badge = _buildBadge('🔥');
     }
 
     if (badge == null) return avatarBody;

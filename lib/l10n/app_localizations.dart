@@ -3332,19 +3332,19 @@ abstract class AppLocalizations {
   /// No description provided for @notificationPromptTitle.
   ///
   /// In ja, this message translates to:
-  /// **'「仲間の努力」を習慣の味方にしますか？'**
+  /// **'通知をONにして、習慣を続けよう'**
   String get notificationPromptTitle;
 
   /// No description provided for @notificationPromptDesc.
   ///
   /// In ja, this message translates to:
-  /// **'V EFFECTで最も強い習慣化の力は「仲間の存在」です。\n\n通知をONにすることで、仲間の達成がリアルタイムにあなたの刺激になり、あなたの努力も仲間に届きます。\nお互いの存在を背中に感じながら、強固な習慣を築きましょう。'**
+  /// **'毎日のタスク忘れを防ぐリマインダーや、仲間が目標を達成した合図をお届けします。\n\n通知を受け取ることで刺激になり、毎日の継続率がアップします！\n（※ 通知はいつでも設定から変更・オフにできます）'**
   String get notificationPromptDesc;
 
   /// No description provided for @notificationPromptNext.
   ///
   /// In ja, this message translates to:
-  /// **'次へ'**
+  /// **'通知を設定する'**
   String get notificationPromptNext;
 
   /// No description provided for @notificationPromptLater.

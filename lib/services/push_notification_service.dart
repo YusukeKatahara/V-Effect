@@ -208,7 +208,7 @@ class PushNotificationService {
   }
 
   /// 通知権限をリクエスト
-  Future<void> requestPermission() async {
+  Future<NotificationSettings> requestPermission() async {
     final settings = await _messaging.requestPermission(
       alert: true,
       badge: true,
@@ -235,6 +235,7 @@ class PushNotificationService {
       await restoreProtectionAlertSchedule();
       await restoreDailyTaskReminders();
     }
+    return settings;
   }
 
   /// ローカル通知プラグインの初期化
@@ -351,6 +352,10 @@ class PushNotificationService {
       return Icons.workspace_premium;
     } else if (typeStr == NotificationType.streakWarning.name) {
       return Icons.warning_amber_rounded;
+    } else if (typeStr == NotificationType.rescueRequested.name) {
+      return Icons.volunteer_activism;
+    } else if (typeStr == NotificationType.rescueRevived.name) {
+      return Icons.local_fire_department;
     }
     return Icons.notifications;
   }
@@ -826,11 +831,12 @@ class PushNotificationService {
           : "$username didn't give up! Reach 150 VFIREs total to revive $username's streak (like a phoenix!)";
 
       for (final friend in friends) {
-        final notificationId = 'rescue_${uid}_${DateTime.now().millisecondsSinceEpoch}';
+        final notificationId = 'rescue_${uid}_${friend.uid}_${DateTime.now().millisecondsSinceEpoch}';
         final notification = AppNotification(
           id: notificationId,
           toUid: friend.uid,
-          type: NotificationType.reactionReceived,
+          fromUid: uid,
+          type: NotificationType.rescueRequested,
           title: title,
           body: body,
           createdAt: DateTime.now(),
@@ -840,8 +846,6 @@ class PushNotificationService {
         );
 
         await _db
-            .collection('users')
-            .doc(friend.uid)
             .collection('notifications')
             .doc(notificationId)
             .set(notification.toFirestore());
@@ -851,7 +855,7 @@ class PushNotificationService {
     }
   }
 
-  /// 150 VFIRE到達でストリーク復活時、VFIREを贈ってくれたフレンド全員に感謝通知を送信
+  /// 150 VFIRE到達でストリーク復活時、VFIREを贈ってくれたフレンド全員および本人に通知を送信
   Future<void> sendRescueRevivedNotification({
     required String targetUid,
     required String username,
@@ -864,14 +868,16 @@ class PushNotificationService {
           ? 'あなたの熱いVFIREのおかげで、$usernameさんの連続記録が息を吹き返しました！「応援ありがとう！🔥」'
           : 'Thanks to your passionate VFIREs, $username\'s streak is back from the ashes! "Thank you for your support!🔥"';
 
+      // 応援してくれたフレンド全員へ感謝通知
       final uniqueHelpers = helperUids.toSet().toList();
       for (final helperUid in uniqueHelpers) {
         if (helperUid == targetUid) continue;
-        final notificationId = 'revived_${targetUid}_${DateTime.now().millisecondsSinceEpoch}';
+        final notificationId = 'revived_${targetUid}_to_${helperUid}_${DateTime.now().millisecondsSinceEpoch}';
         final notification = AppNotification(
           id: notificationId,
           toUid: helperUid,
-          type: NotificationType.reactionReceived,
+          fromUid: targetUid,
+          type: NotificationType.rescueRevived,
           title: title,
           body: body,
           createdAt: DateTime.now(),
@@ -881,12 +887,34 @@ class PushNotificationService {
         );
 
         await _db
-            .collection('users')
-            .doc(helperUid)
             .collection('notifications')
             .doc(notificationId)
             .set(notification.toFirestore());
       }
+
+      // 救済された本人宛てのお祝い通知
+      final selfNotificationId = 'revived_self_${targetUid}_${DateTime.now().millisecondsSinceEpoch}';
+      final selfTitle = isJa ? '🔥 救済達成！ストリークが完全復活！' : '🔥 Rescue Complete! Streak Revived!';
+      final selfBody = isJa
+          ? 'フレンドたちの熱いVFIREが集まり、あなたのストリークが息を吹き返しました！🔥'
+          : "With your friends' fiery support, your streak has risen from the ashes!🔥";
+      final selfNotification = AppNotification(
+        id: selfNotificationId,
+        toUid: targetUid,
+        fromUid: targetUid,
+        type: NotificationType.rescueRevived,
+        title: selfTitle,
+        body: selfBody,
+        createdAt: DateTime.now(),
+        sendPush: true,
+        isRead: false,
+        relatedId: targetUid,
+      );
+
+      await _db
+          .collection('notifications')
+          .doc(selfNotificationId)
+          .set(selfNotification.toFirestore());
     } catch (e) {
       debugPrint('Error sending rescue revived notifications: $e');
     }

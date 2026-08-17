@@ -97,6 +97,8 @@ service cloud.firestore {
         ||
         (!('fromUid' in request.resource.data.keys())
          && request.resource.data.toUid == request.auth.uid)
+        ||
+        (request.resource.data.type == 'rescueRevived')
       );
 
       // 通知読み取り: 認証済みユーザーなら許可（「Rules are not filters」の制約による権限エラーを防ぐため）

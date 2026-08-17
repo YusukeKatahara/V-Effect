@@ -415,7 +415,26 @@ class PostService {
       }
     }
 
-    final isRescueActive = userData['isRescueActive'] == true;
+    bool taskUpdated = false;
+    final updatedTasks = tasks.map((t) {
+      if (t.title == taskName && t.isOneTime && t.completedAt == null) {
+        taskUpdated = true;
+        return t.copyWith(completedAt: now);
+      }
+      return t;
+    }).toList();
+
+    // 🚀 【爆速化 2】ストリーク計算をメモリ上で行い、書き込み用更新データを取得
+    final streakResultData = _streakService.calculateStreakUpdates(
+      userData: userData,
+      now: now,
+      uid: uid,
+    );
+    final streakUpdates = streakResultData['updates'] as Map<String, dynamic>;
+    final streakResult = streakResultData['result'] as Map<String, dynamic>;
+
+    // 救済モードの判定（既存の救済フラグ保持、または今回新たに救済発動した場合の両方に対応）
+    final isRescueTriggeredOrActive = (userData['isRescueActive'] == true) || (streakUpdates['isRescueActive'] == true);
 
     final newPost = Post(
       id: postId,
@@ -436,26 +455,8 @@ class PostService {
       bgmArtworkUrl: bgmArtworkUrl,
       isSecret: isSecretTask,
       isPublic: isPublic,
-      isRescuePost: isRescueActive,
+      isRescuePost: isRescueTriggeredOrActive,
     );
-    
-    bool taskUpdated = false;
-    final updatedTasks = tasks.map((t) {
-      if (t.title == taskName && t.isOneTime && t.completedAt == null) {
-        taskUpdated = true;
-        return t.copyWith(completedAt: now);
-      }
-      return t;
-    }).toList();
-
-    // 🚀 【爆速化 2】ストリーク計算をメモリ上で行い、書き込み用更新データを取得
-    final streakResultData = _streakService.calculateStreakUpdates(
-      userData: userData,
-      now: now,
-      uid: uid,
-    );
-    final streakUpdates = streakResultData['updates'] as Map<String, dynamic>;
-    final streakResult = streakResultData['result'] as Map<String, dynamic>;
 
     // 🚀 【爆速化 3】タスク更新とストリーク更新のクエリを1つのドキュメント更新にマージ
     final combinedUserUpdates = Map<String, dynamic>.from(streakUpdates);
@@ -554,7 +555,7 @@ class PostService {
 
     await Future.wait(writeFutures);
 
-    if (isRescueActive) {
+    if (isRescueTriggeredOrActive) {
       final username = userData['displayName'] ?? userData['username'] ?? 'フレンド';
       PushNotificationService.instance.sendRescueNotificationToFriends(
         uid: uid,

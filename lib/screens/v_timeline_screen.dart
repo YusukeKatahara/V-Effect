@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart'; // kIsWeb 用
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/vfire_provider.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -438,6 +439,29 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen>
       if (currentCount >= 150) {
         _celebratedRescuePostIds.add(post.id);
         _stopFlameAutoFire();
+        _showRebirthDialog(context, post);
+      }
+    }
+  }
+
+  /// 救済150VFIRE達成時の祝福ダイアログを表示
+  Future<void> _showRebirthDialog(BuildContext context, Post post) async {
+    try {
+      final userSnap = await FirebaseFirestore.instance.collection('users').doc(post.userId).get();
+      int restoredStreak = 1;
+      if (userSnap.exists) {
+        final data = userSnap.data()!;
+        final currentStreak = (data['streak'] as num?)?.toInt() ?? 0;
+        final prevStreak = (data['prevStreak'] as num?)?.toInt() ?? 0;
+        restoredStreak = max(currentStreak, prevStreak + 1);
+        if (restoredStreak <= 0) restoredStreak = 1;
+      }
+      if (context.mounted) {
+        VPhoenixRebirthDialog.show(context, streakDays: restoredStreak);
+      }
+    } catch (e) {
+      debugPrint('Error showing rebirth dialog: $e');
+      if (context.mounted) {
         VPhoenixRebirthDialog.show(context, streakDays: 1);
       }
     }

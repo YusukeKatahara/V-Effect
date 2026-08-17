@@ -14,6 +14,8 @@ enum NotificationType {
   seasonTaskDistributed, // シーズンタスク配布通知
   seasonTaskReceived,    // シーズンタスク受信
   seasonTaskPushOnly,    // シーズンタスクPush専用
+  rescueRequested,       // 救済SOS通知（救済中の投稿）
+  rescueRevived,         // 救済完全復活・感謝通知（150 VFIRE達成）
 }
 
 /// Firestore の notifications コレクションに対応するデータモデル

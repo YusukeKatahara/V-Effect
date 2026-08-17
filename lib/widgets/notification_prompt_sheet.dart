@@ -12,8 +12,8 @@ class NotificationPromptSheet extends StatefulWidget {
   const NotificationPromptSheet({super.key});
 
   /// ハーフモーダルを表示する静的メソッド
-  static Future<void> show(BuildContext context) {
-    return showModalBottomSheet(
+  static Future<bool> show(BuildContext context) async {
+    final result = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent, // 背景を透過させてカスタムの角丸を適用
       isScrollControlled: true,
@@ -21,6 +21,7 @@ class NotificationPromptSheet extends StatefulWidget {
       enableDrag: false,    // スワイプで勝手に閉じられるのを防ぎます
       builder: (_) => const NotificationPromptSheet(),
     );
+    return result ?? false;
   }
 
   @override
@@ -125,7 +126,7 @@ class _NotificationPromptSheetState extends State<NotificationPromptSheet> {
             ),
             const SizedBox(height: 32),
 
-            // ── アクションボタン群 ──
+            // ── アクションボタン ──
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -145,27 +146,6 @@ class _NotificationPromptSheetState extends State<NotificationPromptSheet> {
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ── あとでボタン ──
-            TextButton(
-              onPressed: () {
-                if (mounted) {
-                  Navigator.pop(context);
-                }
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.textSecondary,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-              ),
-              child: Text(
-                AppLocalizations.of(context)!.notificationPromptLater,
-                style: GoogleFonts.notoSansJp(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),

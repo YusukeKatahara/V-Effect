@@ -7,15 +7,25 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-07-31
-- **Activeエージェント:** Claude Code (Idle)
-- **Current Task:** Workspace Cleanup & AI Config Sync (Completed)
-- **Action:** rennからの「AIが古い情報を持ち込む」問題を受け、リポジトリの棚卸しを実施。古いファイルの削除・アーカイブ、AI設定ファイル（`.agents/`配下・`README.md`・本ファイル）の現状同期を完了。詳細は下記 2026-07-31 のログを参照。
-
+- **Last Updated:** 2026-08-17
+- **Activeエージェント:** Antigravity (Gemini 3.7 Flash)
+- **Current Task:** Rescue Notification Delivery & UI Enhancement (Completed)
+- **Action:** ストリーク救済中のSOS通知および150 VFIRE達成時の復活通知が確実に届くよう、Firestore保存先パスの修正、ストリーク計算タイミングの調整、Cloud FunctionsおよびUI対応を完了。
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-08-17 (Antigravity)
+- **Implement Rescue Notification Delivery & System Integration (ストリーク救済SOS通知および150 VFIRE復活通知の完全配信対応):**
+  - **Firestore通知保存先パスの統一 (`push_notification_service.dart`):** クライアント側でサブコレクション `users/{uid}/notifications` に保存されていた救済通知・復活通知の書き込み先を、Cloud Functions の FCM 送信トリガーおよび通知一覧画面が監視するルートコレクション `notifications/{id}` に修正。
+  - **救済投稿判定タイミングの修正 (`post_service.dart`):** ストリーク計算（`calculateStreakUpdates`）によって今回新たに救済モードに入った場合も含め、投稿モデルに `isRescuePost: true` が正しくセットされ、SOS通知が確実にトリガーされるように実行順序を修正。
+  - **Cloud Functions の救済投稿配信対応 (`functions/index.js`):** `processPostNotifications` および `healUnprocessedPostNotifications`（セルフヒーリング）にて、救済投稿（`isRescuePost: true`）時に通常テンプレートではなく「🤝 〇〇が立ち上がった！（SOS通知）」を各フレンドへ配信するよう実装（日英両言語対応）。
+  - **救済専用通知種別の追加とUI対応 (`app_notification.dart`, `notifications_screen.dart`):** `NotificationType` に `rescueRequested`（救済SOS）と `rescueRevived`（救済完全復活）を追加。通知一覧画面で「🤝」「🔥」の専用バッジやアイコンを表示。
+  - **150 VFIRE 達成時の本人宛て復活通知 (`push_notification_service.dart`):** 応援してくれたフレンドたちへの感謝通知に加え、救済された本人宛てにも「🔥 救済達成！ストリークが完全復活！」の通知を生成・保存。
+  - **Firestore セキュリティルールの更新 (`firestore.rules`):** `rescueRevived` タイプの通知作成を許可し、権限エラーによる不達を防止。
+  - **救済復活ダイアログ（REIGNITE）の表示日数修正 (`home_screen.dart`, `v_timeline_screen.dart`):** `VPhoenixRebirthDialog` 表示時にハードコードされていた `streakDays: 1` を解消し、ユーザーの実際の復元ストリーク日数（`prevStreak + 1`）を非同期取得してダイアログに反映。
+  - **救済発動条件の最適化 (`streak_service.dart`):** 連続が切れて1日目（一昨日が最終投稿日）のみ救済を発動し、2日以上放置した場合は救済UIを出さずに1から完全リセットするようルールを統一。
 
 ### 2026-08-01 (Antigravity)
 - **Task Switcher on Camera/Preview Screen & Adaptive Theme Rule Enforcement (撮影・プレビュー画面におけるタスク選択切替UI追加およびライト・ダークモード両対応ルールの規定):**

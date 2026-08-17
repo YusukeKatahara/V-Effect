@@ -1255,7 +1255,18 @@ exports.processPostNotifications = onTaskDispatched(
       let finalBody = '';
       let finalType = "friendTaskCompleted"; // 通常はフレンドタスク完了通知
 
-      if (shouldCelebrateStreak) {
+      const isRescue = postData.isRescuePost === true || userData.isRescueActive === true;
+
+      if (isRescue) {
+        finalType = "rescueRequested";
+        if (language === "en") {
+          finalTitle = `🤝 ${username} has risen!`;
+          finalBody = `${username} didn't give up! Reach 150 VFIREs total to revive ${username}'s streak (like a phoenix!)`;
+        } else {
+          finalTitle = `🤝 ${username}が立ち上がった！`;
+          finalBody = `${username}が諦めずに投稿！合計150VFIREで${username}さんのストリークが復活します（まるで不死鳥のように！）`;
+        }
+      } else if (shouldCelebrateStreak) {
         const streakContent = getStreakNotification(language, currentStreak, username);
         finalTitle = streakContent.title;
         finalBody = streakContent.body;
@@ -2099,16 +2110,36 @@ exports.healUnprocessedPostNotifications = onSchedule(
 
         // 欠落しているフレンドへ通知作成
         const batch = db.batch();
+        const isRescue = postData.isRescuePost === true;
         missingFriends.forEach((fUid) => {
           const notifId = `post_${postId}_to_${fUid}`;
           const notifRef = db.collection("notifications").doc(notifId);
+          const friendData = friendDataMap[fUid] || {};
+          const isEn = friendData.language === "en";
+          const username = userData.username || (isEn ? "Friend" : "フレンド");
+
+          let healedType = "friendTaskCompleted";
+          let healedTitle = "🎬 実行の証明";
+          let healedBody = `${username}さんが本日の『頑張り』をカタチにしました！あなたのスタートもいつでも待っています✨`;
+
+          if (isRescue) {
+            healedType = "rescueRequested";
+            if (isEn) {
+              healedTitle = `🤝 ${username} has risen!`;
+              healedBody = `${username} didn't give up! Reach 150 VFIREs total to revive ${username}'s streak (like a phoenix!)`;
+            } else {
+              healedTitle = `🤝 ${username}が立ち上がった！`;
+              healedBody = `${username}が諦めずに投稿！合計150VFIREで${username}さんのストリークが復活します（まるで不死鳥のように！）`;
+            }
+          }
+
           batch.set(notifRef, {
             toUid: fUid,
             fromUid: uid,
-            type: "friendTaskCompleted",
+            type: healedType,
             relatedId: postId,
-            title: "🎬 実行の証明",
-            body: `${userData.username || "フレンド"}さんが本日の『頑張り』をカタチにしました！あなたのスタートもいつでも待っています✨`,
+            title: healedTitle,
+            body: healedBody,
             sendPush: true,
             isRead: false,
             isTopRunner: false,

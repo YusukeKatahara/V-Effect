@@ -102,14 +102,21 @@ class StreakService {
     int newStreak;
     bool isRescueTriggered = false;
     if (lastPostedDate == yesterdayStr) {
+      // 毎日投稿 -> ストリーク+1
       newStreak = currentStreak + 1;
     } else if (lastPostedDate == dayBeforeYesterdayStr && currentProtections > 0) {
+      // 1日サボったがシールドあり -> シールドを消費してストリーク+1
       newStreak = currentStreak + 1;
       currentProtections -= 1;
-    } else {
-      // 連続が切れた場合：一気に0にリセットせず、前の記録を保存して救済モードをセット
+    } else if (lastPostedDate == dayBeforeYesterdayStr && currentStreak > 0) {
+      // 切れて1日目（一昨日が最終投稿日）かつ過去にストリーク記録あり -> 救済モード発動！
       newStreak = 1;
       isRescueTriggered = true;
+      currentProtections = 0;
+    } else {
+      // 切れて2日目以降（2日以上放置）または新規 -> 救済なし、完全リセットで1からスタート
+      newStreak = 1;
+      isRescueTriggered = false;
       currentProtections = 0;
     }
 

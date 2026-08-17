@@ -138,23 +138,25 @@ class _OnboardingProfileSettingsScreenState
     final uid = _userService.currentUid;
     if (uid == null) return;
 
-    // すでに表示済みの場合は何もしません
-    final hasShown = prefs.getBool('notification_prompt_shown_$uid') ?? false;
-    if (hasShown) return;
-
     try {
-      // すでに通知許可済みの場合はモーダルを表示する必要がないため、フラグだけ立ててスキップします
       final settings = await FirebaseMessaging.instance.getNotificationSettings();
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+
+      // すでにOS側で「許可」または「暫定許可」されている場合はフラグを立ててスキップ
+      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional) {
         await prefs.setBool('notification_prompt_shown_$uid', true);
         return;
       }
 
+      // すでにOSダイアログで「許可しない（denied）」を選択済みかつモーダル表示済みの場合はスキップ
+      final hasShown = prefs.getBool('notification_prompt_shown_$uid') ?? false;
+      if (settings.authorizationStatus == AuthorizationStatus.denied && hasShown) {
+        return;
+      }
+
       if (mounted) {
-        // ハーフモーダル (プレ・ダイアログ) を表示し、その中で自動でOS通知パーミッション要求をトリガーします
+        // ハーフモーダルを表示し、その中でOS通知パーミッション要求をトリガーします
         await NotificationPromptSheet.show(context);
-        
-        // 次回以降表示されないようにフラグを保存します
         await prefs.setBool('notification_prompt_shown_$uid', true);
       }
     } catch (e) {

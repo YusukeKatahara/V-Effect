@@ -4,10 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/app_colors.dart';
 import '../widgets/notification_prompt_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/service_providers.dart';
+import '../services/push_notification_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class NotificationSettingsScreen extends ConsumerStatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -58,7 +61,86 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
     }
   }
 
+  void _showPermissionDeniedDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.grey08,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppColors.accentGold.withValues(alpha: 0.3)),
+        ),
+        title: Text(
+          '通知がオフになっています',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        content: Text(
+          'アプリの通知を受け取るには、端末の「設定」で通知を許可してください。',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'キャンセル',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentGold,
+              foregroundColor: AppColors.bgBase,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final url = Uri.parse('app-settings:');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              }
+            },
+            child: const Text(
+              '設定を開く',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _updateSetting(String key, bool value) async {
+    // スイッチをONにしようとした際、OSの通知権限をチェック
+    if (value) {
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
+        // まだ一度もOSダイアログを出していない場合は、OS標準の通知ダイアログをトリガー
+        final newSettings = await PushNotificationService().requestPermission();
+        if (newSettings.authorizationStatus == AuthorizationStatus.denied) {
+          if (mounted) {
+            _showPermissionDeniedDialog();
+          }
+          return;
+        }
+      } else if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        // OS側で通知が拒否されている場合は、設定アプリへ誘導するダイアログを表示
+        if (mounted) {
+          _showPermissionDeniedDialog();
+        }
+        return;
+      }
+    }
+
     setState(() {
       switch (key) {
         case 'pushNotifications':

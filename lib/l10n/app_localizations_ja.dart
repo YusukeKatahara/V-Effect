@@ -1696,13 +1696,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingProfileImageAdjust => '画像を調整';
 
   @override
-  String get notificationPromptTitle => '「仲間の努力」を習慣の味方にしますか？';
+  String get notificationPromptTitle => '通知をONにして、習慣を続けよう';
 
   @override
-  String get notificationPromptDesc => 'V EFFECTで最も強い習慣化の力は「仲間の存在」です。\n\n通知をONにすることで、仲間の達成がリアルタイムにあなたの刺激になり、あなたの努力も仲間に届きます。\nお互いの存在を背中に感じながら、強固な習慣を築きましょう。';
+  String get notificationPromptDesc => '毎日のタスク忘れを防ぐリマインダーや、仲間が目標を達成した合図をお届けします。\n\n通知を受け取ることで刺激になり、毎日の継続率がアップします！\n（※ 通知はいつでも設定から変更・オフにできます）';
 
   @override
-  String get notificationPromptNext => '次へ';
+  String get notificationPromptNext => '通知を設定する';
 
   @override
   String get notificationPromptLater => '今はしない';

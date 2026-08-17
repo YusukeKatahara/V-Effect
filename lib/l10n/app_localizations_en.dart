@@ -1696,13 +1696,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingProfileImageAdjust => 'Adjust Image';
 
   @override
-  String get notificationPromptTitle => 'Make your crew\'s hustle work for you.';
+  String get notificationPromptTitle => 'Turn on notifications to keep your streak';
 
   @override
-  String get notificationPromptDesc => 'The most powerful force in V EFFECT is your crew.\n\nWith notifications on, your friends\' victories inspire you in real time — and your effort reaches them too.\nFeel each other\'s presence and build unbreakable habits together.';
+  String get notificationPromptDesc => 'Get daily reminders to stay on track and real-time updates when your crew crushes their goals.\n\nStaying notified boosts your consistency!\n(You can change or turn this off anytime in Settings)';
 
   @override
-  String get notificationPromptNext => 'Next';
+  String get notificationPromptNext => 'Enable Notifications';
 
   @override
   String get notificationPromptLater => 'Not now';

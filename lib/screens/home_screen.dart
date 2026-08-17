@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -904,7 +905,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (currentCount >= 150) {
         _celebratedRescuePostIds.add(post.id);
         _stopFlameAutoFire();
-        VPhoenixRebirthDialog.show(context, streakDays: 1);
+        _showRebirthDialog(context, post);
       }
     }
 
@@ -945,6 +946,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         });
       }
     });
+  }
+
+  /// 救済150VFIRE達成時の祝福ダイアログを表示
+  Future<void> _showRebirthDialog(BuildContext context, Post post) async {
+    try {
+      final userSnap = await FirebaseFirestore.instance.collection('users').doc(post.userId).get();
+      int restoredStreak = 1;
+      if (userSnap.exists) {
+        final data = userSnap.data()!;
+        final currentStreak = (data['streak'] as num?)?.toInt() ?? 0;
+        final prevStreak = (data['prevStreak'] as num?)?.toInt() ?? 0;
+        restoredStreak = max(currentStreak, prevStreak + 1);
+        if (restoredStreak <= 0) restoredStreak = 1;
+      }
+      if (context.mounted) {
+        VPhoenixRebirthDialog.show(context, streakDays: restoredStreak);
+      }
+    } catch (e) {
+      debugPrint('Error showing rebirth dialog: $e');
+      if (context.mounted) {
+        VPhoenixRebirthDialog.show(context, streakDays: 1);
+      }
+    }
   }
 
   Future<void> _openWeeklyReview() async {
