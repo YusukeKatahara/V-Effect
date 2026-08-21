@@ -6,10 +6,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 
 import '../config/app_colors.dart';
+import '../config/routes.dart';
 import '../models/app_user.dart';
 import '../services/friend_service.dart';
 import '../services/sound_service.dart';
 import '../widgets/swipe_back_gate.dart';
+import 'chat/direct_chat_screen.dart';
 
 import '../widgets/full_screen_image_viewer.dart';
 import '../widgets/v_badge_widget.dart';
@@ -832,33 +834,33 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   }
 
   Widget _buildFollowButton() {
+    final l10n = AppLocalizations.of(context)!;
     final String label;
     final Color bgColor;
     final Color fgColor;
     final BorderSide border;
 
     if (_isFollowing) {
-      label = AppLocalizations.of(context)!.userProfileFollowing;
+      label = l10n.userProfileFollowing;
       bgColor = AppColors.bgSurface;
       fgColor = AppColors.textPrimary;
       border = BorderSide(color: AppColors.border);
     } else if (_isPending) {
-      label = AppLocalizations.of(context)!.userProfilePending;
+      label = l10n.userProfilePending;
       bgColor = AppColors.bgSurface;
       fgColor = AppColors.textSecondary;
       border = BorderSide(color: AppColors.border);
     } else {
-      label = AppLocalizations.of(context)!.userProfileFollowRequest;
+      label = l10n.userProfileFollowRequest;
       bgColor = AppColors.white;
       fgColor = AppColors.black;
       border = BorderSide.none;
     }
 
-    return SizedBox(
-      width: double.infinity,
+    final followButton = SizedBox(
       height: 48,
       child: ElevatedButton(
-        onPressed: _toggleFollow, // 無効化による色の変化やくるくる表示をなくす
+        onPressed: _toggleFollow,
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
           foregroundColor: fgColor,
@@ -877,6 +879,57 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           ),
         ),
       ),
+    );
+
+    // 相互フォローの場合は「メッセージ」ボタンを並べて表示
+    if (_isFollowing && _isMyFollower && _user != null) {
+      return Row(
+        children: [
+          Expanded(child: followButton),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SizedBox(
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  SoundService.instance.stopBgm();
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.directChat,
+                    arguments: DirectChatScreenArgs(
+                      otherUid: _user!.uid,
+                      otherName: _user!.displayName?.isNotEmpty == true
+                          ? _user!.displayName!
+                          : (_user!.username?.isNotEmpty == true ? _user!.username! : 'User'),
+                      otherPhotoUrl: _user!.photoUrl,
+                      otherStreak: _user!.streak,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                label: Text(
+                  l10n.directChatSendMessage,
+                  style: const TextStyle(fontWeight: FontWeight.bold, height: 1.1),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accentGold,
+                  foregroundColor: Colors.black,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: followButton,
     );
   }
 

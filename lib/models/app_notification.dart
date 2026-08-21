@@ -69,17 +69,85 @@ class AppNotification {
     return AppNotification.fromMap(doc.id, data ?? {});
   }
 
+  /// 通知タイプを安全にパースするヘルパーメソッド
+  static NotificationType _parseType(
+    dynamic rawType, {
+    String? title,
+    String? body,
+  }) {
+    final typeStr = rawType?.toString();
+    final b = body ?? '';
+    final t = title ?? '';
+
+    // 1. 本文やタイトルから救済通知を判定するセーフティネット
+    // （過去データや表記揺れで type が不一致の場合でも救済通知として正しく解釈）
+    if (b.contains('150VFIRE') ||
+        b.contains('不死鳥') ||
+        b.contains('ストリーク復活へ') ||
+        b.contains('不屈の闘志') ||
+        b.contains('完全覚醒') ||
+        t.contains('立ち上がった') ||
+        t.contains('has risen') ||
+        t.contains('猛追') ||
+        t.contains('完全覚醒') ||
+        t.contains('不屈の闘志') ||
+        t.contains('不死鳥') ||
+        t.contains('on the Chase') ||
+        t.contains('Wings of the Phoenix') ||
+        t.contains('Fully Awakened') ||
+        t.contains('Unyielding Spirit')) {
+      return NotificationType.rescueRequested;
+    }
+    if (b.contains('ストリークが復活') ||
+        b.contains('streak has been revived') ||
+        t.contains('ストリークが復活') ||
+        t.contains('Streak Revived')) {
+      return NotificationType.rescueRevived;
+    }
+
+    // 2. 表記揺れ・エイリアスのマッピング
+    if (typeStr != null) {
+      if (typeStr == 'rescueRequested' ||
+          typeStr == 'rescue_requested' ||
+          typeStr == 'rescue' ||
+          typeStr == 'streak_relief' ||
+          typeStr == 'streakRelief') {
+        return NotificationType.rescueRequested;
+      }
+      if (typeStr == 'rescueRevived' ||
+          typeStr == 'rescue_revived' ||
+          typeStr == 'streak_revived') {
+        return NotificationType.rescueRevived;
+      }
+
+      for (final val in NotificationType.values) {
+        if (val.name == typeStr) {
+          return val;
+        }
+      }
+    }
+
+    // 3. 不明なタイプの場合、安全な汎用タイプ（friendTaskCompleted）にフォールバック
+    // ※ 承認・削除ボタンが出る friendRequestReceived にフォールバックさせてはならない
+    return NotificationType.friendTaskCompleted;
+  }
+
   factory AppNotification.fromMap(String id, Map<String, dynamic> data) {
     try {
+      final title = data[fieldTitle]?.toString() ?? '';
+      final body = data[fieldBody]?.toString() ?? '';
+      final type = _parseType(
+        data[fieldType],
+        title: title,
+        body: body,
+      );
+
       return AppNotification(
         id: id,
         toUid: data[fieldToUid]?.toString() ?? '',
-        type: NotificationType.values.firstWhere(
-          (e) => e.name == data[fieldType],
-          orElse: () => NotificationType.friendRequestReceived,
-        ),
-        title: data[fieldTitle]?.toString() ?? '',
-        body: data[fieldBody]?.toString() ?? '',
+        type: type,
+        title: title,
+        body: body,
         fromUid: data[fieldFromUid]?.toString(),
         relatedId: data[fieldRelatedId]?.toString(),
         emoji: data[fieldEmoji]?.toString(),
@@ -94,7 +162,7 @@ class AppNotification {
       return AppNotification(
         id: id,
         toUid: '',
-        type: NotificationType.friendRequestReceived,
+        type: NotificationType.friendTaskCompleted,
         title: 'Error loading notification',
         body: '',
         createdAt: DateTime.now(),

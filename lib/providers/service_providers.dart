@@ -5,6 +5,7 @@ import '../services/app_review_service.dart';
 import '../services/auth_service.dart';
 import '../services/block_service.dart';
 import '../services/dev_blog_service.dart';
+import '../services/direct_chat_service.dart';
 import '../services/friend_service.dart';
 import '../services/invite_service.dart';
 import '../services/music_api_service.dart';
@@ -98,5 +99,10 @@ final pushNotificationServiceProvider = Provider<PushNotificationService>(
 /// ホーム画面ウィジェット（iOS/Android ウィジェット）の更新
 final widgetServiceProvider = Provider<WidgetService>(
   (ref) => WidgetService.instance,
+);
+
+/// ダイレクトメッセージ（1対1チャット）
+final directChatServiceProvider = Provider<DirectChatService>(
+  (ref) => DirectChatService.instance,
 );
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -36,7 +37,14 @@ class DevBlogService {
   }
 
   Stream<DevBlogPost?> getPost(String id) {
-    return _blogRef.doc(id).snapshots().map((snap) => snap.data());
+    return _blogRef
+        .doc(id)
+        .snapshots()
+        .map((snap) => snap.data())
+        .handleError((e) {
+          debugPrint('DevBlog getPost error: $e');
+          return null;
+        });
   }
 
   Stream<List<DevBlogPost>> getPosts() {
@@ -44,7 +52,11 @@ class DevBlogService {
         .orderBy(DevBlogPost.fieldIsPinned, descending: true)
         .orderBy(DevBlogPost.fieldCreatedAt, descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => d.data()).toList());
+        .map((snap) => snap.docs.map((d) => d.data()).toList())
+        .handleError((e) {
+          debugPrint('DevBlog getPosts error: $e');
+          return <DevBlogPost>[];
+        });
   }
 
   /// 一般ユーザー向けに公開済み（isDraft == false かつ publishAt が過去）の記事のみを取得します

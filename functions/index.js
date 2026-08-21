@@ -127,6 +127,7 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}) {
         aps: {
           sound: "default",
           badge: unreadCount, // 動的な未読件数を設定
+          ...(type === "directMessage" ? { "mutable-content": 1 } : {}),
           // "content-available": 1, // バックグラウンド処理が必要な場合はコメントを外す
         },
       },
@@ -1125,6 +1126,81 @@ exports.processPostNotifications = onTaskDispatched(
       });
     }
 
+    // ── 救済モード用通知テンプレート ──
+    const rescueInitialTemplate = {
+      title: '🤝 {username}が立ち上がった！',
+      body: '{username}が諦めずに投稿！合計150VFIREで{username}さんのストリークが復活します（まるで不死鳥のように！）'
+    };
+
+    const rescueMultipleTemplates = [
+      {
+        title: '🔥 {username}の猛追！本日{count}つ目の達成',
+        body: '諦める気はゼロ！{username}さんが本日{count}つ目のタスクを完遂してストリーク復活へ加速中！熱いVFIREで後押ししましょう⚡️'
+      },
+      {
+        title: '🪽 不死鳥の羽ばたき！',
+        body: '「ストリークは絶対に途切れさせない」——{username}さんが執念の本日{count}連続投稿！完全復活までVFIREを送り続けましょう🔥'
+      },
+      {
+        title: '⚡️ {username}が完全覚醒！本日{count}つ目',
+        body: 'ピンチをチャンスに変える圧倒的な行動力！{username}さんが本日{count}つ目のタスクを突破！この熱量に全力でVFIREをぶち込みましょう‼️'
+      },
+      {
+        title: '🦾 不屈の闘志が炸裂！',
+        body: '{username}さんが本日{count}つ目のタスクをクリア！炎はどんどん大きくなっています。あと一息、VFIREで不死鳥を降臨させましょう🔥'
+      },
+    ];
+
+    const enRescueInitialTemplate = {
+      title: '🤝 {username} has risen!',
+      body: "{username} didn't give up! Reach 150 VFIREs total to revive {username}'s streak (like a phoenix!)"
+    };
+
+    const enRescueMultipleTemplates = [
+      {
+        title: '🔥 {username} on the Chase! Task #{count}',
+        body: "Refusing to back down! {username} crushed task #{count} today, speeding towards streak revival! Back them up with blazing VFIREs! ⚡️"
+      },
+      {
+        title: '🪽 Wings of the Phoenix!',
+        body: "'Never letting the streak die!' — {username} just stacked task #{count}! Keep fueling the fire until full rebirth! 🔥"
+      },
+      {
+        title: '⚡️ {username} Fully Awakened! Task #{count}',
+        body: "Turning crisis into power! {username} broke through task #{count}! Send all your VFIREs to match this unstoppable energy! ‼️"
+      },
+      {
+        title: '🦾 Unyielding Spirit in Action!',
+        body: "{username} cleared task #{count} today! The flame is growing brighter. One more push with VFIREs to revive the phoenix! 🔥"
+      },
+    ];
+
+    // 救済通知メッセージの生成ヘルパー
+    function getRescueNotification(lang, count, name) {
+      let title = '';
+      let body = '';
+      if (lang === "en") {
+        if (count > 1) {
+          const tmpl = enRescueMultipleTemplates[Math.floor(Math.random() * enRescueMultipleTemplates.length)];
+          title = tmpl.title.replace('{username}', name).replace('{count}', count);
+          body = tmpl.body.replace('{username}', name).replace('{count}', count);
+        } else {
+          title = enRescueInitialTemplate.title.replace('{username}', name);
+          body = enRescueInitialTemplate.body.replace('{username}', name);
+        }
+      } else {
+        if (count > 1) {
+          const tmpl = rescueMultipleTemplates[Math.floor(Math.random() * rescueMultipleTemplates.length)];
+          title = tmpl.title.replace('{username}', name).replace('{count}', count);
+          body = tmpl.body.replace('{username}', name).replace('{count}', count);
+        } else {
+          title = rescueInitialTemplate.title.replace('{username}', name);
+          body = rescueInitialTemplate.body.replace('{username}', name);
+        }
+      }
+      return { title, body };
+    }
+
     // ストリークお祝い通知メッセージの生成ヘルパー
     function getStreakNotification(lang, streak, name) {
       let title = '';
@@ -1259,13 +1335,9 @@ exports.processPostNotifications = onTaskDispatched(
 
       if (isRescue) {
         finalType = "rescueRequested";
-        if (language === "en") {
-          finalTitle = `🤝 ${username} has risen!`;
-          finalBody = `${username} didn't give up! Reach 150 VFIREs total to revive ${username}'s streak (like a phoenix!)`;
-        } else {
-          finalTitle = `🤝 ${username}が立ち上がった！`;
-          finalBody = `${username}が諦めずに投稿！合計150VFIREで${username}さんのストリークが復活します（まるで不死鳥のように！）`;
-        }
+        const rescueContent = getRescueNotification(language, todayPostCount, username);
+        finalTitle = rescueContent.title;
+        finalBody = rescueContent.body;
       } else if (shouldCelebrateStreak) {
         const streakContent = getStreakNotification(language, currentStreak, username);
         finalTitle = streakContent.title;
@@ -1869,6 +1941,100 @@ exports.onUserStreakUpdated = onDocumentUpdated(
 );
 
 /**
+ * 投稿のリアクション更新時、救済投稿が150 VFIREに到達した際のストリーク完全復活処理
+ * サーバー側でAdmin SDKを用いて安全にストリークを復元し、協力フレンドへ感謝通知を配信する
+ */
+exports.onPostUpdated = onDocumentUpdated(
+  "posts/{postId}",
+  async (event) => {
+    const beforeData = event.data?.before?.data();
+    const afterData = event.data?.after?.data();
+    if (!beforeData || !afterData) return;
+
+    const postId = event.params.postId;
+    const postUserId = afterData.userId;
+    if (!postUserId) return;
+
+    const isRescue = afterData.isRescuePost === true || beforeData.isRescuePost === true;
+    const beforeReactions = Number(beforeData.reactionCount) || 0;
+    const afterReactions = Number(afterData.reactionCount) || 0;
+
+    // 救済投稿であり、150 VFIRE（リアクション数150）に新たに到達した瞬間を検知
+    if (isRescue && beforeReactions < 150 && afterReactions >= 150) {
+      const db = getFirestore();
+      console.log(`[Rescue Revival] Post ${postId} for user ${postUserId} reached 150 VFIREs! Reviving streak...`);
+
+      try {
+        // 1. 投稿の isRescuePost を解除
+        await event.data.after.ref.update({ isRescuePost: false });
+
+        // 2. ユーザーの isRescueActive を解除し、ストリークを完全復元
+        const userRef = db.collection("users").doc(postUserId);
+        const userSnap = await userRef.get();
+        if (!userSnap.exists) return;
+
+        const userData = userSnap.data();
+        const currentStreak = Number(userData.streak) || 0;
+        const prevStreak = Number(userData.prevStreak) || currentStreak;
+        const restoredStreak = Math.max(currentStreak, prevStreak + 1, 1);
+
+        await userRef.update({
+          isRescueActive: false,
+          streak: restoredStreak,
+        });
+
+        // 3. 応援してくれたフレンド（リアクションしてくれた人）全員に感謝通知を送信
+        const username = userData.username || "フレンド";
+        const userReactions = afterData.userReactions || {};
+        const helperUids = Object.keys(userReactions);
+
+        // 重複防止しつつ自分以外のヘルパーUIDを抽出
+        const targetFriendUids = [...new Set(helperUids)].filter((uid) => uid !== postUserId);
+
+        if (targetFriendUids.length > 0) {
+          const friendRefs = targetFriendUids.map((fUid) => db.collection("users").doc(fUid));
+          const friendSnaps = await db.getAll(...friendRefs);
+          const batch = db.batch();
+
+          friendSnaps.forEach((fSnap) => {
+            if (!fSnap.exists) return;
+            const fData = fSnap.data();
+            const isEn = fData.language === "en";
+
+            const title = isEn
+              ? `🎉 ${username}'s streak has been revived!`
+              : `🎉 ${username}さんのストリークが復活しました！`;
+            const body = isEn
+              ? `Thanks to your passionate VFIREs, ${username}'s streak is back from the ashes! "Thank you for your support!🔥"`
+              : `あなたの熱いVFIREのおかげで、${username}さんの連続記録が息を吹き返しました！「応援ありがとう！🔥」`;
+
+            const notifId = `rescue_revived_${postId}_to_${fSnap.id}`;
+            const notifRef = db.collection("notifications").doc(notifId);
+
+            batch.set(notifRef, {
+              toUid: fSnap.id,
+              fromUid: postUserId,
+              type: "rescueRevived",
+              relatedId: postId,
+              title: title,
+              body: body,
+              sendPush: true,
+              isRead: false,
+              createdAt: FieldValue.serverTimestamp(),
+            });
+          });
+
+          await batch.commit();
+          console.log(`[Rescue Revival] Sent revival notifications to ${targetFriendUids.length} helpers for user ${postUserId}`);
+        }
+      } catch (error) {
+        console.error(`[Rescue Revival] Error restoring streak for post ${postId}:`, error);
+      }
+    }
+  }
+);
+
+/**
  * 今週の振り返り（Weekly Review）画面で表示する AI データアナリティクス (PDCA) を生成する
  */
 exports.getWeeklyAiAdvice = onCall(
@@ -2156,6 +2322,60 @@ exports.healUnprocessedPostNotifications = onSchedule(
       }
     } catch (error) {
       console.error("[Self-Healing] Error in healUnprocessedPostNotifications:", error);
+    }
+  }
+);
+
+/**
+ * ダイレクトメッセージが送信された際に相手へ FCM プッシュ通知を送信する
+ */
+exports.sendDirectMessageNotification = onDocumentCreated(
+  "direct_chats/{chatId}/messages/{messageId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const messageData = snap.data();
+    const chatId = event.params.chatId;
+    const senderId = messageData.senderId;
+    const text = messageData.text || "";
+
+    if (!senderId || !text) return;
+
+    const db = getFirestore();
+
+    try {
+      // チャット部屋の情報を取得
+      const chatDoc = await db.collection("direct_chats").doc(chatId).get();
+      if (!chatDoc.exists) return;
+
+      const chatData = chatDoc.data();
+      const participants = chatData.participants || [];
+      const participantDetails = chatData.participantDetails || {};
+
+      // 送信相手のUIDを特定
+      const recipientUid = participants.find((uid) => uid !== senderId);
+      if (!recipientUid) return;
+
+      // 送信者の名前を取得
+      const senderInfo = participantDetails[senderId] || {};
+      const senderName = senderInfo.name || "フレンド";
+
+      // 相手へプッシュ通知を送信（アバターURLを含めることでCommunication Notificationsに対応）
+      await sendPushToUser(
+        recipientUid,
+        senderName,
+        text,
+        {
+          type: "directMessage",
+          chatId: chatId,
+          senderId: senderId,
+          senderName: senderName,
+          senderAvatarUrl: senderInfo.photoUrl || "",
+        }
+      );
+    } catch (error) {
+      console.error("Error in sendDirectMessageNotification:", error);
     }
   }
 );

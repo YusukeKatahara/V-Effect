@@ -2364,4 +2364,88 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileHeroPicksAction => 'ピック';
+
+  @override
+  String get directChatTitle => 'メッセージ';
+
+  @override
+  String get directChatNewChat => '新規メッセージ';
+
+  @override
+  String get directChatSelectFriend => 'メッセージを送る友達を選択';
+
+  @override
+  String get directChatNoMutualFriends => '相互フォロー中の友達がいません';
+
+  @override
+  String get directChatEmptyTitle => 'まだメッセージはありません';
+
+  @override
+  String get directChatEmptyDesc => '相互フォローの友達にエールを送ってみよう！';
+
+  @override
+  String get directChatInputHint => 'メッセージを入力...';
+
+  @override
+  String get directChatSend => '送信';
+
+  @override
+  String get directChatSendMessage => 'メッセージ';
+
+  @override
+  String get directChatMutualOnly => '相互フォローになるとメッセージが送れます';
+
+  @override
+  String get directChatBlock => 'ブロックする';
+
+  @override
+  String get directChatReport => '通報する';
+
+  @override
+  String get directChatBlockConfirmTitle => 'ユーザーをブロックしますか？';
+
+  @override
+  String get directChatBlockConfirmDesc => 'ブロックすると、このユーザーとのメッセージのやり取りができなくなります。';
+
+  @override
+  String get directChatReportSuccess => '通報を受け付けました。ご協力ありがとうございます。';
+
+  @override
+  String get directChatDeleteRoom => 'チャットを削除';
+
+  @override
+  String get directChatDeleteRoomConfirm => 'このチャット履歴を削除しますか？';
+
+  @override
+  String get directChatCancel => 'キャンセル';
+
+  @override
+  String get directChatDelete => '削除';
+
+  @override
+  String get directChatStreakDays => '日連続';
+
+  @override
+  String get directChatSentNow => '今';
+
+  @override
+  String get directChatQuickThanks => 'いつもありがとう';
+
+  @override
+  String get directChatQuickTogether => '一緒に頑張ろう';
+
+  @override
+  String get directChatCopied => 'メッセージをコピーしました';
+
+  @override
+  String get directChatToday => '今日';
+
+  @override
+  String get directChatYesterday => '昨日';
+
+  @override
+  String get directChatRead => '既読';
+
+  @override
+  String get directChatCopy => 'コピー';
 }

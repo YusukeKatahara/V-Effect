@@ -79,6 +79,9 @@ void main() {
     // Fast Boot: キャッシュ状況およびウィジェットからのダイレクト起動判定
     String initialRoute = AppRoutes.login;
     try {
+      if (!kIsWeb) {
+        await WidgetService.instance.initialize();
+      }
       final appLinks = AppLinks();
       final initialUri = await appLinks.getInitialLink();
       final initialWidgetUri = kIsWeb ? null : await HomeWidget.initiallyLaunchedFromHomeWidget();
@@ -88,12 +91,22 @@ void main() {
       // かつオンボーディング完了済みの場合はダイレクトでカメラ画面へ（ゼロ・ディレイ起動）
       final prefs = await SharedPreferences.getInstance();
       final user = FirebaseAuth.instance.currentUser;
+
+      // 認証トークンのウォームアップ（Firestoreのpermission-denied防止）
+      if (user != null) {
+        try {
+          await user.getIdToken(false).timeout(const Duration(milliseconds: 600));
+        } catch (e) {
+          debugPrint('Auth token warmup (non-fatal): $e');
+        }
+      }
+
       final isCompleted = user != null && (prefs.getBool('onboardingCompleted_${user.uid}') ?? true);
 
       if (user != null && (uriString.contains('veffect://camera') || uriString.contains('veffect:camera'))) {
         initialRoute = AppRoutes.camera;
         DeepLinkService().markInitialLinkHandled();
-      } else if (isCompleted) {
+      } else if (user != null && isCompleted) {
         initialRoute = AppRoutes.home;
       } else {
         initialRoute = AppRoutes.wrapper;

@@ -76,7 +76,7 @@ class GlobalErrorWidget extends StatelessWidget {
                           ),
                           child: SingleChildScrollView(
                             child: Text(
-                              '${details?.exceptionAsString() ?? error ?? "未知のエラー"}\n\n【スタックトレース】\n${details?.stack ?? stackTrace ?? ""}',
+                              '${details?.exceptionAsString() ?? error ?? "未知のエラー"}\n\n${details?.context != null ? "【コンテキスト】\n${details!.context}\n\n" : ""}【スタックトレース】\n${details?.stack ?? stackTrace ?? ""}',
                               style: const TextStyle(
                                 color: Colors.redAccent,
                                 fontSize: 12,

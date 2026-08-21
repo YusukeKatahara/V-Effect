@@ -4552,6 +4552,174 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'ピック'**
   String get profileHeroPicksAction;
+
+  /// No description provided for @directChatTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'メッセージ'**
+  String get directChatTitle;
+
+  /// No description provided for @directChatNewChat.
+  ///
+  /// In ja, this message translates to:
+  /// **'新規メッセージ'**
+  String get directChatNewChat;
+
+  /// No description provided for @directChatSelectFriend.
+  ///
+  /// In ja, this message translates to:
+  /// **'メッセージを送る友達を選択'**
+  String get directChatSelectFriend;
+
+  /// No description provided for @directChatNoMutualFriends.
+  ///
+  /// In ja, this message translates to:
+  /// **'相互フォロー中の友達がいません'**
+  String get directChatNoMutualFriends;
+
+  /// No description provided for @directChatEmptyTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'まだメッセージはありません'**
+  String get directChatEmptyTitle;
+
+  /// No description provided for @directChatEmptyDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'相互フォローの友達にエールを送ってみよう！'**
+  String get directChatEmptyDesc;
+
+  /// No description provided for @directChatInputHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'メッセージを入力...'**
+  String get directChatInputHint;
+
+  /// No description provided for @directChatSend.
+  ///
+  /// In ja, this message translates to:
+  /// **'送信'**
+  String get directChatSend;
+
+  /// No description provided for @directChatSendMessage.
+  ///
+  /// In ja, this message translates to:
+  /// **'メッセージ'**
+  String get directChatSendMessage;
+
+  /// No description provided for @directChatMutualOnly.
+  ///
+  /// In ja, this message translates to:
+  /// **'相互フォローになるとメッセージが送れます'**
+  String get directChatMutualOnly;
+
+  /// No description provided for @directChatBlock.
+  ///
+  /// In ja, this message translates to:
+  /// **'ブロックする'**
+  String get directChatBlock;
+
+  /// No description provided for @directChatReport.
+  ///
+  /// In ja, this message translates to:
+  /// **'通報する'**
+  String get directChatReport;
+
+  /// No description provided for @directChatBlockConfirmTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'ユーザーをブロックしますか？'**
+  String get directChatBlockConfirmTitle;
+
+  /// No description provided for @directChatBlockConfirmDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'ブロックすると、このユーザーとのメッセージのやり取りができなくなります。'**
+  String get directChatBlockConfirmDesc;
+
+  /// No description provided for @directChatReportSuccess.
+  ///
+  /// In ja, this message translates to:
+  /// **'通報を受け付けました。ご協力ありがとうございます。'**
+  String get directChatReportSuccess;
+
+  /// No description provided for @directChatDeleteRoom.
+  ///
+  /// In ja, this message translates to:
+  /// **'チャットを削除'**
+  String get directChatDeleteRoom;
+
+  /// No description provided for @directChatDeleteRoomConfirm.
+  ///
+  /// In ja, this message translates to:
+  /// **'このチャット履歴を削除しますか？'**
+  String get directChatDeleteRoomConfirm;
+
+  /// No description provided for @directChatCancel.
+  ///
+  /// In ja, this message translates to:
+  /// **'キャンセル'**
+  String get directChatCancel;
+
+  /// No description provided for @directChatDelete.
+  ///
+  /// In ja, this message translates to:
+  /// **'削除'**
+  String get directChatDelete;
+
+  /// No description provided for @directChatStreakDays.
+  ///
+  /// In ja, this message translates to:
+  /// **'日連続'**
+  String get directChatStreakDays;
+
+  /// No description provided for @directChatSentNow.
+  ///
+  /// In ja, this message translates to:
+  /// **'今'**
+  String get directChatSentNow;
+
+  /// No description provided for @directChatQuickThanks.
+  ///
+  /// In ja, this message translates to:
+  /// **'いつもありがとう'**
+  String get directChatQuickThanks;
+
+  /// No description provided for @directChatQuickTogether.
+  ///
+  /// In ja, this message translates to:
+  /// **'一緒に頑張ろう'**
+  String get directChatQuickTogether;
+
+  /// No description provided for @directChatCopied.
+  ///
+  /// In ja, this message translates to:
+  /// **'メッセージをコピーしました'**
+  String get directChatCopied;
+
+  /// No description provided for @directChatToday.
+  ///
+  /// In ja, this message translates to:
+  /// **'今日'**
+  String get directChatToday;
+
+  /// No description provided for @directChatYesterday.
+  ///
+  /// In ja, this message translates to:
+  /// **'昨日'**
+  String get directChatYesterday;
+
+  /// No description provided for @directChatRead.
+  ///
+  /// In ja, this message translates to:
+  /// **'既読'**
+  String get directChatRead;
+
+  /// No description provided for @directChatCopy.
+  ///
+  /// In ja, this message translates to:
+  /// **'コピー'**
+  String get directChatCopy;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

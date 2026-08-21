@@ -199,9 +199,6 @@ final postUpdateProvider = StreamProvider.autoDispose<void>((ref) {
   return PostService.instance.updateStream;
 });
 
-/// 初回ロード完了フラグを保持するProvider
-final homeDataLoadedProvider = StateProvider.autoDispose<bool>((ref) => false);
-
 final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
   // PostService からの更新信号を監視。信号が届くたびにこの Provider は再実行される。
   ref.watch(postUpdateProvider);
@@ -213,15 +210,10 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
   final prefs = await SharedPreferences.getInstance();
   final cacheKey = 'homeData_$myUid';
 
-  final isLoaded = ref.read(homeDataLoadedProvider);
   final now = DateTime.now();
   final todayStr = DateHelper.toDateString(now);
 
   // 1. まずローカルキャッシュから即座に表示（ゼロ・ディレイ起動）
-  // 2026ベストプラクティス：再フェッチ時はすでに最新データがメモリ上にあるため、古いキャッシュの読み込みをスキップして表示の巻き戻りを防ぐ
-  // 【改善】日付が変わっている場合は、すでにロード済みであっても、Firestoreからのロード完了を待つ間に古いデータが表示され続けないよう、
-  // キャッシュを補正した状態（本日の日付依存データをクリア）を一旦 yield します。
-  
   HomeData? initialData;
   bool isDateChanged = false;
 
@@ -230,26 +222,13 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
     isDateChanged = true;
   }
 
-  if (!isLoaded) {
-    final cachedStr = prefs.getString(cacheKey);
-    if (cachedStr != null) {
-      try {
-        final cachedJson = jsonDecode(cachedStr) as Map<String, dynamic>;
-        initialData = HomeData.fromJson(cachedJson);
-      } catch (e) {
-        debugPrint('HomeData cache decode error: $e');
-      }
-    }
-  } else if (isDateChanged) {
-    // 既にロード済みだが日付が変わっている場合は、日付依存データをクリアした一時データを表示するため、キャッシュから再度読み込む
-    final cachedStr = prefs.getString(cacheKey);
-    if (cachedStr != null) {
-      try {
-        final cachedJson = jsonDecode(cachedStr) as Map<String, dynamic>;
-        initialData = HomeData.fromJson(cachedJson);
-      } catch (e) {
-        debugPrint('HomeData cache decode error: $e');
-      }
+  final cachedStr = prefs.getString(cacheKey);
+  if (cachedStr != null) {
+    try {
+      final cachedJson = jsonDecode(cachedStr) as Map<String, dynamic>;
+      initialData = HomeData.fromJson(cachedJson);
+    } catch (e) {
+      debugPrint('HomeData cache decode error: $e');
     }
   }
 
@@ -289,100 +268,94 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
   }
   
   // 2. 裏でFirestoreから最新データを取得
-  final Map<String, dynamic> homeDataMap;
-  final List<String> blockedUids;
-  
   try {
     final initialParallelResults = await Future.wait([
       postService.getHomeData(),
       BlockService.instance.getBlockedUids(),
     ]);
-    homeDataMap = initialParallelResults[0] as Map<String, dynamic>;
-    blockedUids = initialParallelResults[1] as List<String>;
-  } catch (e) {
-    throw Exception('Error in initial phase (getHomeData or getBlockedUids): $e');
-  }
+    final homeDataMap = initialParallelResults[0] as Map<String, dynamic>;
+    final blockedUids = initialParallelResults[1] as List<String>;
 
-  final allFriendUids = (homeDataMap['friends'] as List<dynamic>?)?.cast<String>() ?? [];
+    final allFriendUids = (homeDataMap['friends'] as List<dynamic>?)?.cast<String>() ?? [];
 
-  // ブロックしたユーザーをフィードから除外
-  final friendUids = allFriendUids
-      .where((uid) => !blockedUids.contains(uid))
-      .toList();
+    // ブロックしたユーザーをフィードから除外
+    final friendUids = allFriendUids
+        .where((uid) => !blockedUids.contains(uid))
+        .toList();
 
-  // 自分のステータスも含めてフレンド情報を取得
-  final uidsToFetch = List<String>.from(friendUids);
-  if (!uidsToFetch.contains(myUid)) {
-    uidsToFetch.add(myUid);
-  }
+    // 自分のステータスも含めてフレンド情報を取得
+    final uidsToFetch = List<String>.from(friendUids);
+    if (!uidsToFetch.contains(myUid)) {
+      uidsToFetch.add(myUid);
+    }
 
-  final List<Post> feedPosts;
-  final List<Map<String, dynamic>> friendStatuses;
-
-  try {
-    // 2. フィード投稿とフレンドの詳細情報を一括（並列）で取得して高速化
+    // フィード投稿とフレンドの詳細情報を一括（並列）で取得して高速化
     final parallelResults = await Future.wait([
       postService.getAllFriendsPosts(friendUids, includeMe: false),
       postService.getFriendsListFromUids(uidsToFetch),
     ]);
-    feedPosts = parallelResults[0] as List<Post>;
-    friendStatuses = parallelResults[1] as List<Map<String, dynamic>>;
-  } catch (e) {
-    throw Exception('Error in friends phase (getAllFriendsPosts or getFriendsList): $e');
-  }
-  
-  final names = <String, String>{};
-  final photos = <String, String?>{};
-  final streaks = <String, int>{};
-  final badgeUrls = <String, String?>{};
-  final badgeAnimations = <String, String?>{};
-  for (final f in friendStatuses) {
-    final uid = f['uid'] as String;
-    names[uid] = f['username'] as String;
-    photos[uid] = f['photoUrl'] as String?;
-    streaks[uid] = (f['streak'] as num?)?.toInt() ?? 0;
-    badgeUrls[uid] = f['equippedBadgeUrl'] as String?;
-    badgeAnimations[uid] = f['equippedBadgeAnimation'] as String?;
-  }
+    final feedPosts = parallelResults[0] as List<Post>;
+    final friendStatuses = parallelResults[1] as List<Map<String, dynamic>>;
 
-  // 4. 投稿済みのフレンドを抽出
-  final postedFriends = <Map<String, dynamic>>[];
-  final seenUids = <String>{};
-  // フィード投稿から最新順に、まだ見ていないフレンドをピックアップ
-  for (final post in feedPosts) {
-    if (!seenUids.contains(post.userId)) {
-      seenUids.add(post.userId);
-      postedFriends.add({
-        'uid': post.userId,
-        'username': names[post.userId] ?? 'Unknown',
-        'photoUrl': photos[post.userId],
-      });
+    final names = <String, String>{};
+    final photos = <String, String?>{};
+    final streaks = <String, int>{};
+    final badgeUrls = <String, String?>{};
+    final badgeAnimations = <String, String?>{};
+    for (final f in friendStatuses) {
+      final uid = f['uid'] as String;
+      names[uid] = f['username'] as String;
+      photos[uid] = f['photoUrl'] as String?;
+      streaks[uid] = (f['streak'] as num?)?.toInt() ?? 0;
+      badgeUrls[uid] = f['equippedBadgeUrl'] as String?;
+      badgeAnimations[uid] = f['equippedBadgeAnimation'] as String?;
+    }
+
+    // 4. 投稿済みのフレンドを抽出
+    final postedFriends = <Map<String, dynamic>>[];
+    final seenUids = <String>{};
+    for (final post in feedPosts) {
+      if (!seenUids.contains(post.userId)) {
+        seenUids.add(post.userId);
+        postedFriends.add({
+          'uid': post.userId,
+          'username': names[post.userId] ?? 'Unknown',
+          'photoUrl': photos[post.userId],
+        });
+      }
+    }
+
+    final latestData = HomeData(
+      streak: homeDataMap['streak'] as int? ?? 0,
+      postedToday: homeDataMap['postedToday'] as bool? ?? false,
+      isAllTasksCompleted: homeDataMap['isAllTasksCompleted'] as bool? ?? false,
+      username: homeDataMap['username'] as String? ?? '',
+      tasks: (homeDataMap['tasks'] as List<dynamic>?)?.cast<AppTask>() ?? [],
+      followingUids: friendUids,
+      feedPosts: feedPosts,
+      postedFriends: postedFriends,
+      userNames: names,
+      userPhotos: photos,
+      userStreaks: streaks,
+      userBadgeUrls: badgeUrls,
+      userBadgeAnimations: badgeAnimations,
+      isRecommended: homeDataMap['isRecommended'] as bool? ?? false,
+      totalPosts: homeDataMap['totalPosts'] as int? ?? 0,
+    );
+
+    // 3. 取得した最新データをキャッシュに保存し、UIへ反映
+    prefs.setString(cacheKey, jsonEncode(latestData.toJson()));
+    prefs.setString('${cacheKey}_date', todayStr);
+    yield latestData;
+  } catch (e) {
+    debugPrint('HomeDataProvider background fetch error (fallback to cache): $e');
+    if (initialData != null) {
+      // キャッシュが存在する場合はキャッシュをそのまま維持
+      yield initialData;
+    } else {
+      rethrow;
     }
   }
-
-  final latestData = HomeData(
-    streak: homeDataMap['streak'] as int,
-    postedToday: homeDataMap['postedToday'] as bool,
-    isAllTasksCompleted: homeDataMap['isAllTasksCompleted'] as bool,
-    username: homeDataMap['username'] as String,
-    tasks: (homeDataMap['tasks'] as List<dynamic>).cast<AppTask>(),
-    followingUids: friendUids,
-    feedPosts: feedPosts,
-    postedFriends: postedFriends,
-    userNames: names,
-    userPhotos: photos,
-    userStreaks: streaks,
-    userBadgeUrls: badgeUrls,
-    userBadgeAnimations: badgeAnimations,
-    isRecommended: homeDataMap['isRecommended'] as bool? ?? false,
-    totalPosts: homeDataMap['totalPosts'] as int? ?? 0,
-  );
-
-  // 3. 取得した最新データをキャッシュに保存し、UIへ反映
-  prefs.setString(cacheKey, jsonEncode(latestData.toJson()));
-  prefs.setString('${cacheKey}_date', todayStr);
-  ref.read(homeDataLoadedProvider.notifier).state = true; // ロード完了フラグを設定
-  yield latestData;
 });
 
 /// キャッシュ内の特定の投稿のリアクション情報を更新します

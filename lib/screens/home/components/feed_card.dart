@@ -388,45 +388,42 @@ class FeedCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // V Fire ボタン＋カウント（表示専用）
+                        // V Fire ボタン＋カウント（表示専用 - Instagramスタイル）
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             GestureDetector(
                               onTap: () => onReaction(),
-                              child: Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  color: AppColors.pureWhite.withValues(alpha: 0.1),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.pureWhite.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: const Center(
+                              child: const SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: Center(
                                   child: VFlameIcon(
-                                    size: 40,
+                                    size: 30,
                                     isGlowing: true,
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 8), // 基準値
+                            const SizedBox(height: 2),
                             SizedBox(
-                              height: 16, // 高さを固定して中心を安定させる
+                              height: 16,
                               child: Consumer(
                                 builder: (context, ref, _) {
                                   final count = ref.watch(vfireProvider.select((state) => state.getAdjustedReactionCount(post)));
                                   return Text(
                                     '$count',
                                     style: GoogleFonts.outfit(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
                                       color: AppColors.pureWhite,
+                                      shadows: const [
+                                        Shadow(
+                                          color: Color(0x80000000),
+                                          blurRadius: 6,
+                                          offset: Offset(0, 1),
+                                        ),
+                                      ],
                                     ),
                                   );
                                 },

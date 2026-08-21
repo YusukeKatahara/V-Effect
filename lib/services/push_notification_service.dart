@@ -9,8 +9,10 @@ import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'analytics_service.dart';
+import '../config/routes.dart';
 import '../models/app_notification.dart';
 import '../main.dart';
+import '../screens/chat/direct_chat_screen.dart';
 import '../widgets/premium_notification_toast.dart';
 import 'friend_service.dart';
 import 'notification_service.dart';
@@ -325,7 +327,23 @@ class PushNotificationService {
         icon: _iconForType(typeStr),
         actions: actions,
         onTap: () {
-          if (fromUid != null) {
+          if (typeStr == 'directMessage') {
+            final chatId = message.data['chatId'] as String?;
+            final senderId = message.data['senderId'] as String?;
+            final senderName = message.data['senderName'] as String? ?? notification.title ?? 'フレンド';
+            final senderAvatarUrl = message.data['senderAvatarUrl'] as String?;
+            if (senderId != null) {
+              VEffectApp.navigatorKey.currentState?.pushNamed(
+                AppRoutes.directChat,
+                arguments: DirectChatScreenArgs(
+                  chatId: chatId,
+                  otherUid: senderId,
+                  otherName: senderName,
+                  otherPhotoUrl: senderAvatarUrl,
+                ),
+              );
+            }
+          } else if (fromUid != null) {
             VEffectApp.navigatorKey.currentState?.pushNamed(
               '/user-profile',
               arguments: fromUid,
@@ -340,7 +358,9 @@ class PushNotificationService {
   }
 
   IconData _iconForType(String? typeStr) {
-    if (typeStr == NotificationType.friendRequestReceived.name) {
+    if (typeStr == 'directMessage') {
+      return Icons.chat_bubble_rounded;
+    } else if (typeStr == NotificationType.friendRequestReceived.name) {
       return Icons.person_add;
     } else if (typeStr == NotificationType.friendRequestAccepted.name) {
       return Icons.how_to_reg;
@@ -370,6 +390,22 @@ class PushNotificationService {
 
     if (type == 'weekly_review' || type == 'weeklyReviewAvailable') {
       onWeeklyReviewNotificationTap?.call();
+    } else if (type == 'directMessage') {
+      final chatId = message.data['chatId'] as String?;
+      final senderId = message.data['senderId'] as String?;
+      final senderName = message.data['senderName'] as String? ?? message.notification?.title ?? 'フレンド';
+      final senderAvatarUrl = message.data['senderAvatarUrl'] as String?;
+      if (senderId != null) {
+        VEffectApp.navigatorKey.currentState?.pushNamed(
+          AppRoutes.directChat,
+          arguments: DirectChatScreenArgs(
+            chatId: chatId,
+            otherUid: senderId,
+            otherName: senderName,
+            otherPhotoUrl: senderAvatarUrl,
+          ),
+        );
+      }
     }
   }
 
@@ -816,44 +852,6 @@ class PushNotificationService {
     }
   }
 
-  /// 救済中のユーザーが投稿した際、フレンド全員へ SOS 通知を送信
-  Future<void> sendRescueNotificationToFriends({
-    required String uid,
-    required String username,
-  }) async {
-    try {
-      final friends = await FriendService.instance.getFriendsByUid(uid);
-      final isJa = PlatformDispatcher.instance.locale.languageCode == 'ja';
-
-      final title = isJa ? '🤝 $usernameが立ち上がった！' : '🤝 $username has risen!';
-      final body = isJa
-          ? '$usernameが諦めずに投稿！合計150VFIREで$usernameさんのストリークが復活します（まるで不死鳥のように！）'
-          : "$username didn't give up! Reach 150 VFIREs total to revive $username's streak (like a phoenix!)";
-
-      for (final friend in friends) {
-        final notificationId = 'rescue_${uid}_${friend.uid}_${DateTime.now().millisecondsSinceEpoch}';
-        final notification = AppNotification(
-          id: notificationId,
-          toUid: friend.uid,
-          fromUid: uid,
-          type: NotificationType.rescueRequested,
-          title: title,
-          body: body,
-          createdAt: DateTime.now(),
-          sendPush: true,
-          isRead: false,
-          relatedId: uid,
-        );
-
-        await _db
-            .collection('notifications')
-            .doc(notificationId)
-            .set(notification.toFirestore());
-      }
-    } catch (e) {
-      debugPrint('Error sending rescue notifications to friends: $e');
-    }
-  }
 
   /// 150 VFIRE到達でストリーク復活時、VFIREを贈ってくれたフレンド全員および本人に通知を送信
   Future<void> sendRescueRevivedNotification({

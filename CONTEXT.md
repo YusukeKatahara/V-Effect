@@ -7,14 +7,30 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-08-17
+- **Last Updated:** 2026-08-21
 - **Activeエージェント:** Antigravity (Gemini 3.7 Flash)
-- **Current Task:** Rescue Notification Delivery & UI Enhancement (Completed)
-- **Action:** ストリーク救済中のSOS通知および150 VFIRE達成時の復活通知が確実に届くよう、Firestore保存先パスの修正、ストリーク計算タイミングの調整、Cloud FunctionsおよびUI対応を完了。
+- **Current Task:** Instagram-Style Action Button Optimization (Completed)
+- **Action:** フィードカード右下の縦並びアクションボタンを、丸枠背景を排除した極限ミニマルな「Instagram リール型（白抜きアイコン＋ドロップシャドウ）」に完全最適化。タップ領域48px、右端マージン16px、アイコンサイズ28px（炎30px）で写真の主役感と操作性を両立。
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-08-21 (Antigravity)
+- **Instagram-Style Action Button Optimization (Instagramリール型・枠なしシャドウUIへの最適化):**
+  - **丸枠背景の撤廃とドロップシャドウ化 (`feed_card.dart`, `home_screen.dart`):** ボタンの丸枠コンテナ背景・ボーダーを排除し、白抜きアイコン（28px / 炎30px）にドロップシャドウ（`Shadow(blurRadius: 8, offset: Offset(0, 1))`）を直接適用。明るい写真でも暗い写真でもクッキリ視認できる設計。
+  - **右端マージンとタップ領域の最適化 (`home_screen.dart`):** 右端マージンを `right: 16` に詰め、タップ領域を `48x48 px` に調整。写真やキャプションの表示面積を最大化し、極めて洗練されたモダンなビジュアルを実現。
+
+### 2026-08-20 (Antigravity)
+- **Implement V-Direct (Text-Only Direct Messaging & Vertical Stack UI Optimization) (完全テキスト特化型DM機能とカード内縦並びアクションUIの最適化実装):**
+  - **炎ページヘッダーのDMアイコン置換 (`hero_tasks_screen.dart`, `direct_chat_icon.dart`):** 炎（タスク）ページのヘッダー右上のベル🔔を未読バッジ付きの `DirectChatIcon`（💬）に置き換え。ホーム画面（🔔通知）と炎画面（💬DM）で画面の役割を明確化。
+  - **フィードカード右下アクションの縦並び最適化 (`feed_card.dart`, `home_screen.dart`):** 右下アクションを上から `[ 💬 DM ]` → `[ 😊 絵文字 ]` → `[ 🔥 V FIRE ]` の縦並び（Vertical Stack）に再配置。右側の専有幅を56pxに縮小し、左側のキャプション（一言メッセージ）の横幅を大幅に拡大。カード上の 💬 タップでその投稿者との個別チャットへ即時遷移する導線を構築。
+  - **友達プロフィール画面のメッセージボタン (`user_profile_screen.dart`):** 相互フォロー関係にある友達のプロフィールに「💬 メッセージ」ボタンを追加。
+  - **ダイレクトチャット専用画面の実装 (`direct_chat_list_screen.dart`, `direct_chat_screen.dart`):** チャット一覧画面（直近メッセージ、未読バッジ、相互フォロー友達からの新規チャット作成シート）および1対1のテキストトーク画面（最大500文字、既読自動更新、通報・ブロック・チャット削除機能）を実装。
+  - **超低コスト・安全なデータモデル & サービス (`direct_chat.dart`, `direct_chat_service.dart`, `direct_chat_provider.dart`):** 画像送信を排除してStorage費用0円・画像検閲リスク0件を実現。相手の表示名やアバターURLをルームドキュメント内に非正規化保持することで一覧表示時のFirestore Read数を最小化。
+  - **Firestoreセキュリティルール (`firestore.rules`):** `direct_chats` および `messages` の読み書き制限（参加者本人のみ、テキスト500文字以内、isRead更新のみ許可）を追加。
+  - **Cloud Functions の FCM プッシュ通知 (`functions/index.js`):** メッセージ作成時に `sendDirectMessageNotification` トリガーで相手へプッシュ通知（「〇〇: メッセージ内容」）を即時送信。
+  - **多言語対応 (`app_ja.arb`, `app_en.arb`):** 日英両言語のメッセージキーを追加し `flutter gen-l10n` を実行。`flutter analyze lib/` にて全静的解析エラーゼロを確認。
 
 ### 2026-08-17 (Antigravity)
 - **Implement Rescue Notification Delivery & System Integration (ストリーク救済SOS通知および150 VFIRE復活通知の完全配信対応):**
@@ -75,10 +91,9 @@
     - [functions/index.js](file:///Users/rennlikeu/development/V-Effect/functions/index.js) 内の Mutual Fire クエリで必要とされていた Firestore 複合インデックス (`notifications` の `fromUid`, `toUid`, `type`, `createdAt`) を [firestore.indexes.json](file:///Users/rennlikeu/development/V-Effect/firestore.indexes.json) に追加・本番環境へデプロイ完了。
     - クエリ未インデックスによる `FAILED_PRECONDITION` 例外で `sendPushNotification` がクラッシュしてプッシュ通知が全滅していた現象に対し、Mutual Fire 判定を `try-catch` で保護し、例外発生時も後続の `sendPushToUser` プッシュ送信が100%確実に実行されるよう耐久性を強化。
     - [functions/index.js](file:///Users/rennlikeu/development/V-Effect/functions/index.js) の `sendPushNotification` にて、リアクション更新時（VFIREや絵文字の追加送付時）に `if (!before) return;` で2回目以降の通知がすべてブロックされていた仕様を解除。`reactionCount` や `body` の増加・変化時にリアルタイムで FCM プッシュ通知（`sendPushToUser`）が送出されるよう修正・デプロイを完了。
-    - [functions/index.js](file:///Users/rennlikeu/development/V-Effect/functions/index.js) にて前回の編集時に失われていた `const now = new Date();` 変数定義を復元し、`processPostNotifications` 内で発生していた `ReferenceError: now is not defined` クラッシュを修正。通常のタスク達成通知配信を完全復旧。
     - [streak_service.dart](file:///Users/rennlikeu/development/V-Effect/lib/services/streak_service.dart) にて、連続途切延時に即時0リセットを行わず 24時間の救済フラグ `isRescueActive` をセットするロジック、および7日連続投稿ごとのシールド付与（最大2個保有可能）を実装。
-    - [post_service.dart](file:///Users/rennlikeu/development/V-Effect/lib/services/post_service.dart) にて、救済中のユーザーが「二分間ルール」で投稿した際に `isRescuePost: true` を設定し、フレンド全員へ `🤝 〇〇が立ち上がった！`（英語: `🤝 {name} has risen!`）SOS通知を即時送信する処理を追加。
-    - 投稿に累計150 VFIRE以上が集まった瞬間に自動でストリークを完全復元し、協力してくれたフレンド全員に「🎉 〇〇さんのストリークが復活しました！」の感謝通知を配信するロジックを実装。
+    - [post_service.dart](file:///Users/rennlikeu/development/V-Effect/lib/services/post_service.dart) にて、救済中のユーザーが「二分間ルール」で投稿した際に `isRescuePost: true` を設定。フレンドへの救済通知は Cloud Functions（`processPostNotifications`）で一元配信（二重送信を防止）。
+    - 投稿に累計150 VFIRE以上が集まった瞬間のストリーク完全復元および感謝通知配信を Cloud Functions（`onPostUpdated`）へ移行。クライアント側からの他者DB不正書き込み（`permission-denied`）を完全に解消。
     - [rescue_speech_bubble.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/home/components/rescue_speech_bubble.dart) を新規作成し、[feed_card.dart](file:///Users/rennlikeu/development/V-Effect/lib/screens/home/components/feed_card.dart) のカード外直上（`top: -44`）に下向き三角形ポインター付きの赤〜オレンジネオン発光吹き出しバッジ（`🔥 合計150VFIREで救済！` / `🔥 Revive with 150 VFIREs!`）を表示するUIを実装。カード内テキストとのUI干渉・かぶりを100%解消。
     - [v_phoenix_rebirth_dialog.dart](file:///Users/rennlikeu/development/V-Effect/lib/widgets/v_phoenix_rebirth_dialog.dart) を新規作成。150 VFIRE達成時に全画面で黄金の不死鳥と重厚な振動（Haptics）による `REIGNITE` 演出ダイアログを実装。
     - [app_ja.arb](file:///Users/rennlikeu/development/V-Effect/lib/l10n/app_ja.arb) および [app_en.arb](file:///Users/rennlikeu/development/V-Effect/lib/l10n/app_en.arb) に行動心理学（プロスペクト理論・二分間ルール）に基づく全テキストを定義し、`flutter gen-l10n` にて多言語化対応を完了。

@@ -15,6 +15,7 @@ import '../models/season.dart';
 import '../widgets/shimmer_container.dart';
 import '../widgets/streak_flame.dart';
 import '../widgets/v_effect_header.dart';
+import '../widgets/direct_chat_icon.dart';
 import '../widgets/frictionless_page_scroll_physics.dart';
 import 'camera_screen.dart';
 import '../widgets/entropic_conversion_overlay.dart';
@@ -821,7 +822,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
             );
           },
         ),
-        trailing: const NotificationBellIcon(),
+        trailing: const DirectChatIcon(),
         hideLogo: _isSublimating,
       );
 

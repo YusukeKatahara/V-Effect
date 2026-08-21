@@ -2364,4 +2364,88 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileHeroPicksAction => 'Pick';
+
+  @override
+  String get directChatTitle => 'Messages';
+
+  @override
+  String get directChatNewChat => 'New Message';
+
+  @override
+  String get directChatSelectFriend => 'Select a friend to message';
+
+  @override
+  String get directChatNoMutualFriends => 'No mutual friends found';
+
+  @override
+  String get directChatEmptyTitle => 'No messages yet';
+
+  @override
+  String get directChatEmptyDesc => 'Send a cheer to your mutual friends!';
+
+  @override
+  String get directChatInputHint => 'Type a message...';
+
+  @override
+  String get directChatSend => 'Send';
+
+  @override
+  String get directChatSendMessage => 'Message';
+
+  @override
+  String get directChatMutualOnly => 'Only mutual followers can exchange messages';
+
+  @override
+  String get directChatBlock => 'Block User';
+
+  @override
+  String get directChatReport => 'Report User';
+
+  @override
+  String get directChatBlockConfirmTitle => 'Block this user?';
+
+  @override
+  String get directChatBlockConfirmDesc => 'Blocking will prevent messaging with this user.';
+
+  @override
+  String get directChatReportSuccess => 'Report received. Thank you for your feedback.';
+
+  @override
+  String get directChatDeleteRoom => 'Delete Chat';
+
+  @override
+  String get directChatDeleteRoomConfirm => 'Delete this chat history?';
+
+  @override
+  String get directChatCancel => 'Cancel';
+
+  @override
+  String get directChatDelete => 'Delete';
+
+  @override
+  String get directChatStreakDays => 'days';
+
+  @override
+  String get directChatSentNow => 'Just now';
+
+  @override
+  String get directChatQuickThanks => 'Thank you always!';
+
+  @override
+  String get directChatQuickTogether => 'Let\'s do our best together!';
+
+  @override
+  String get directChatCopied => 'Message copied';
+
+  @override
+  String get directChatToday => 'Today';
+
+  @override
+  String get directChatYesterday => 'Yesterday';
+
+  @override
+  String get directChatRead => 'Read';
+
+  @override
+  String get directChatCopy => 'Copy';
 }

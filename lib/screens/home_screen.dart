@@ -38,6 +38,7 @@ import '../widgets/v_phoenix_rebirth_dialog.dart';
 import '../widgets/upload_progress_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'main_shell.dart';
+import 'chat/direct_chat_screen.dart';
 import 'home/components/feed_card.dart';
 import 'home/components/guarded_state_layer.dart';
 import 'home/components/floating_flames_layer.dart';
@@ -1824,8 +1825,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           // 拡張リアクション エモジピルズ
                           if (item is Post && _reactionMenuOpen)
                             Positioned(
-                              bottom: 66, // 中心を84に合わせる (height約36 / 2 = 18)
-                              right: 140, // トグルボタン(88) + 幅(44) + 余白(8) = 140 から左へ展開
+                              bottom: 112, // 絵文字ボタンの中心高さに合わせる
+                              right: 68, // 絵文字ボタン(right 16 + width 48) + 余白(4) = 68 から左へ展開
                               child: AnimatedOpacity(
                                 opacity: _reactionMenuOpen ? 1.0 : 0.0,
                                 duration: const Duration(milliseconds: 200),
@@ -1887,8 +1888,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           // 絵文字＋ボタンのコーチマーク（初回のみ）
                           if (item is Post && _showSwipeGuide && !alreadyReacted)
                             Positioned(
-                              bottom: 110, // ＋ボタンの上
-                              right: 64, // しっぽが＋ボタンの中心（right: 110）を指すように調整
+                              bottom: 160,
+                              right: 16,
                               child: IgnorePointer(
                                 child: AnimatedBuilder(
                                   animation: _swipeGuideTranslation,
@@ -1926,7 +1927,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                       ),
                                       // 吹き出しのしっぽ
                                       Container(
-                                        margin: const EdgeInsets.only(right: 40),
+                                        margin: const EdgeInsets.only(right: 18),
                                         width: 12,
                                         height: 8,
                                         child: CustomPaint(
@@ -1939,13 +1940,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               ),
                             ),
 
-                          // ＋ または ✓ トグルボタン
+                          // 💬 ダイレクトメッセージ（DM）ボタン (最上段: 3段目, Instagramスタイル: 枠なし+影)
                           if (item is Post)
                             Positioned(
-                            bottom: 62, // 中心を84に合わせる (44 / 2 = 22)
-                            right: 88,
-                            width: 44,
-                            height: 44,
+                              bottom: 162,
+                              right: 16,
+                              width: 48,
+                              height: 48,
+                              child: Builder(
+                                builder: (context) {
+                                  final currentUid = FirebaseAuth.instance.currentUser?.uid;
+                                  final isMyPost = item.userId == currentUid;
+                                  if (isMyPost) return const SizedBox.shrink();
+
+                                  return GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () => _openDirectChatForPost(item),
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.chat_bubble_outline_rounded,
+                                        color: AppColors.pureWhite,
+                                        size: 28,
+                                        shadows: const [
+                                          Shadow(
+                                            color: Color(0x80000000),
+                                            blurRadius: 8,
+                                            offset: Offset(0, 1),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+
+                          // ＋ または ✓ トグルボタン (中段: 2段目, Instagramスタイル: 枠なし+影)
+                          if (item is Post)
+                            Positioned(
+                            bottom: 106,
+                            right: 16,
+                            width: 48,
+                            height: 48,
                             child: Opacity(
                               opacity: alreadyReacted ? 0.7 : 1.0,
                               child: AbsorbPointer(
@@ -1969,26 +2005,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                       turns: _reactionMenuOpen ? 0.125 : 0.0,
                                       duration:
                                           const Duration(milliseconds: 220),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: AppColors.pureWhite
-                                              .withValues(alpha: 0.1),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: alreadyReacted
-                                                ? AppColors.pureWhite
-                                                    .withValues(alpha: 0.4)
-                                                : AppColors.pureWhite
-                                                    .withValues(alpha: 0.15),
-                                            width: 1,
-                                          ),
-                                        ),
+                                      child: Center(
                                         child: Icon(
                                           alreadyReacted
                                               ? Icons.check_rounded
                                               : Icons.add_rounded,
                                           color: AppColors.pureWhite,
-                                          size: 24,
+                                          size: 28,
+                                          shadows: const [
+                                            Shadow(
+                                              color: Color(0x80000000),
+                                              blurRadius: 8,
+                                              offset: Offset(0, 1),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
@@ -1998,13 +2028,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             ),
                           ),
 
-                          // V Fire ボタン
+                          // V Fire ボタン (最下段: 1段目, Instagramスタイル)
                           if (item is Post)
                             Positioned(
-                            bottom: 32, // テキスト領域(16) + 間隔(8) + 本体(56) の中心を84に合わせる
-                            right: 20,
-                            width: 56,
-                            height: 80,
+                            bottom: 28,
+                            right: 16,
+                            width: 48,
+                            height: 72,
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () => _sendReaction(actualIndex),
@@ -2218,6 +2248,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     } else {
       return AppLocalizations.of(context)!.timeDaysAgo(difference.inDays);
     }
+  }
+
+  void _openDirectChatForPost(Post post) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null || post.userId == currentUid) return;
+
+    final username = _userNames[post.userId] ?? 'Unknown';
+    final photoUrl = _userPhotos[post.userId];
+    final streak = _userStreaks[post.userId] ?? 0;
+
+    _soundService.stopBgm();
+    Navigator.pushNamed(
+      context,
+      AppRoutes.directChat,
+      arguments: DirectChatScreenArgs(
+        otherUid: post.userId,
+        otherName: username,
+        otherPhotoUrl: photoUrl,
+        otherStreak: streak,
+      ),
+    );
   }
 }
 

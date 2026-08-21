@@ -30,6 +30,8 @@ import '../screens/security_settings_screen.dart';
 import '../screens/blog_post_detail_screen.dart';
 import '../screens/blog_post_editor_screen.dart';
 import '../screens/display_settings_screen.dart';
+import '../screens/chat/direct_chat_list_screen.dart';
+import '../screens/chat/direct_chat_screen.dart';
 
 
 
@@ -66,11 +68,18 @@ class AppRoutes {
   static const String onboardingFirstQuest  = '/onboarding/first-quest';
   static const String displaySettings       = '/display-settings';
   static const String vTimeline             = '/v-timeline';
+  static const String directChatList        = '/direct-chats';
+  static const String directChat            = '/direct-chat';
 
 
   static Map<String, WidgetBuilder> get routes => {
         wrapper: (context) => const AuthWrapper(),
         displaySettings: (context) => const DisplaySettingsScreen(),
+        directChatList: (context) => const DirectChatListScreen(),
+        directChat: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as DirectChatScreenArgs;
+          return DirectChatScreen(args: args);
+        },
         login: (context) => const LoginScreen(),
         register: (context) => const RegisterScreen(),
         home: (context) {

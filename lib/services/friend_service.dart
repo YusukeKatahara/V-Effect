@@ -476,6 +476,17 @@ class FriendService {
     return results;
   }
 
+  /// 指定UIDの相互フォローユーザー一覧を取得します
+  Future<List<AppUser>> getMutualFriends(String uid) async {
+    final user = await getUserByUid(uid);
+    if (user == null) return [];
+    final following = user.following.toSet();
+    final followers = user.followers.toSet();
+    final mutualUids = following.intersection(followers).toList();
+    if (mutualUids.isEmpty) return [];
+    return getUsersByUids(mutualUids);
+  }
+
   /// 現在のユーザーが対象ユーザーをフォローしているか確認します
   Future<bool> isFollowing(String targetUid) async {
     final myUid = _auth.currentUser!.uid;

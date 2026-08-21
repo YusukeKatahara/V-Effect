@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -555,15 +554,9 @@ class PostService {
 
     await Future.wait(writeFutures);
 
-    if (isRescueTriggeredOrActive) {
-      final username = userData['displayName'] ?? userData['username'] ?? 'フレンド';
-      PushNotificationService.instance.sendRescueNotificationToFriends(
-        uid: uid,
-        username: username,
-      ).catchError((e) {
-        debugPrint('Error sending rescue notification: $e');
-      });
-    }
+    // 救済通知（SOS通知）は Cloud Functions (processPostNotifications) 側で
+    // 誤投稿削除の防止および多言語・複数タスクバリエーションに対応して一元配信されるため、
+    // クライアント側からの重複送信は行いません。
 
     // Step4: Analytics イベント送信
     _analytics.logPostCreated(taskName: taskName);
@@ -708,52 +701,9 @@ class PostService {
       // 通知は1回にまとめて送信
       _sendReactionNotification(postId, flameIncrement: count).catchError((_) {});
 
-      // 救済投稿かつ 150 VFIRE 到達時の自動完全復活判定
-      docRef.get().then((snap) async {
-        if (!snap.exists) return;
-        final data = snap.data();
-        if (data == null) return;
-        final isRescue = data['isRescuePost'] == true;
-        final currentReactions = (data['reactionCount'] as num?)?.toInt() ?? 0;
-        final postUserId = data['userId'] as String? ?? targetUid;
-
-        if (isRescue && currentReactions >= 150 && postUserId.isNotEmpty) {
-          // 投稿の isRescuePost を解除
-          await docRef.update({'isRescuePost': false});
-
-          // ユーザーの isRescueActive を解除し、ストリークを元通り+1で完全復元
-          final userRef = _db.collection('users').doc(postUserId);
-          final userSnap = await userRef.get();
-          if (userSnap.exists) {
-            final userData = userSnap.data()!;
-            final currentStreak = (userData['streak'] as num?)?.toInt() ?? 0;
-            final prevStreak = (userData['prevStreak'] as num?)?.toInt() ?? currentStreak;
-            final restoredStreak = math.max(currentStreak, prevStreak + 1);
-
-            await userRef.update({
-              'isRescueActive': false,
-              'streak': restoredStreak,
-            });
-
-            // VFIREを贈ってくれたフレンド全員に感謝通知を送信
-            final username = userData['displayName'] ?? userData['username'] ?? 'フレンド';
-            final userReactions = data['userReactions'] as Map?;
-            final helperUids = userReactions != null
-                ? userReactions.keys.map((e) => e.toString()).toList()
-                : <String>[];
-
-            PushNotificationService.instance.sendRescueRevivedNotification(
-              targetUid: postUserId,
-              username: username,
-              helperUids: helperUids,
-            ).catchError((e) {
-              debugPrint('Error sending rescue revived push: $e');
-            });
-          }
-        }
-      }).catchError((e) {
-        debugPrint('Error checking rescue status: $e');
-      });
+      // 150 VFIRE到達時のストリーク完全復活および救済解除処理は、
+      // セキュリティおよび整合性を保証するため Cloud Functions (posts onUpdate) 側で
+      // 管理者権限（Admin SDK）を用いて安全に自動実行されます。
     } catch (e) {
       debugPrint('Flame increment failed: $e');
       rethrow; // 楽観的UI更新（画面側の仮表示）をロールバックできるよう呼び出し元へ例外を伝播
