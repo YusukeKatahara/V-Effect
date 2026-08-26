@@ -799,14 +799,10 @@ class PostService {
         if (isEmoji) {
           if (isEn) {
             title = '✨ Reaction';
-            body = reactionCount > 1
-                ? '$myUsername sent "$emoji" $reactionCount times to today\'s "$postTaskName"!'
-                : '$myUsername sent "$emoji" to today\'s "$postTaskName"!';
+            body = '$myUsername sent "$emoji" to today\'s "$postTaskName"!';
           } else {
             title = '✨ リアクション';
-            body = reactionCount > 1
-                ? '$myUsernameさんが今日の「$postTaskName」に「$emoji」を$reactionCount回贈りました！'
-                : '$myUsernameさんが今日の「$postTaskName」に「$emoji」を贈りました！';
+            body = '$myUsernameさんが今日の「$postTaskName」に「$emoji」を贈りました！';
           }
         } else {
           final random = Random();
