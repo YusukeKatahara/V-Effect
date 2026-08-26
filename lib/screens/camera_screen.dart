@@ -532,15 +532,14 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   }
 
   Future<void> _uploadPost() async {
-    if (_image == null) return;
+    if (_image == null || _isUploading) return;
+    setState(() => _isUploading = true);
+
     final taskName = _effectiveTaskName;
 
     // ── キャプチャ処理の実行 ──
-    // ローディング状態（_isUploading = true）になってUIが再描画・非活性化される前に、
     // 現在のプレビュー（ドラッグ＆ズームが適用されたもの）を確実にキャプチャします。
     final rawBytes = await _capturePng();
-
-    setState(() => _isUploading = true);
 
     try {
       final finalRawBytes = rawBytes ?? await _image!.readAsBytes();

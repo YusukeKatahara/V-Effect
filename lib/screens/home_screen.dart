@@ -2031,11 +2031,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           // V Fire ボタン (最下段: 1段目, Instagramスタイル)
                           if (item is Post)
                             Positioned(
-                            bottom: 28,
-                            right: 16,
-                            width: 48,
-                            height: 72,
-                            child: GestureDetector(
+                              bottom: 24,
+                              right: 16,
+                              width: 48,
+                              height: 80,
+                              child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () => _sendReaction(actualIndex),
                               // ── 長押し（ロングプレス）ジェスチャーの追加 ──

@@ -82,25 +82,36 @@ class AppNotification {
     // 1. 本文やタイトルから救済通知を判定するセーフティネット
     // （過去データや表記揺れで type が不一致の場合でも救済通知として正しく解釈）
     if (b.contains('150VFIRE') ||
+        b.contains('150V FIRE') ||
+        b.contains('150 VFIRE') ||
+        b.contains('150 V FIRE') ||
         b.contains('不死鳥') ||
         b.contains('ストリーク復活へ') ||
+        b.contains('ストリーク復活を後押し') ||
         b.contains('不屈の闘志') ||
         b.contains('完全覚醒') ||
+        b.contains('立ち上がる背中') ||
+        b.contains('Rising from the Ashes') ||
+        t.contains('立ち上がる背中') ||
         t.contains('立ち上がった') ||
         t.contains('has risen') ||
+        t.contains('Rising from the Ashes') ||
         t.contains('猛追') ||
         t.contains('完全覚醒') ||
         t.contains('不屈の闘志') ||
         t.contains('不死鳥') ||
         t.contains('on the Chase') ||
+        t.contains('On the Chase') ||
         t.contains('Wings of the Phoenix') ||
         t.contains('Fully Awakened') ||
         t.contains('Unyielding Spirit')) {
       return NotificationType.rescueRequested;
     }
     if (b.contains('ストリークが復活') ||
+        b.contains('ストリークが完全復活') ||
         b.contains('streak has been revived') ||
         t.contains('ストリークが復活') ||
+        t.contains('ストリーク完全復活') ||
         t.contains('Streak Revived')) {
       return NotificationType.rescueRevived;
     }

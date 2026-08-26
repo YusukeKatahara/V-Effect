@@ -292,7 +292,7 @@ class FeedCard extends StatelessWidget {
             Positioned(
               bottom: 32, // 絶対基準線の起点
               left: 20,
-              right: 20,
+              right: 16,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -389,12 +389,13 @@ class FeedCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         // V Fire ボタン＋カウント（表示専用 - Instagramスタイル）
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap: () => onReaction(),
-                              child: const SizedBox(
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => onReaction(),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(
                                 width: 48,
                                 height: 48,
                                 child: Center(
@@ -404,32 +405,32 @@ class FeedCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            SizedBox(
-                              height: 16,
-                              child: Consumer(
-                                builder: (context, ref, _) {
-                                  final count = ref.watch(vfireProvider.select((state) => state.getAdjustedReactionCount(post)));
-                                  return Text(
-                                    '$count',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.pureWhite,
-                                      shadows: const [
-                                        Shadow(
-                                          color: Color(0x80000000),
-                                          blurRadius: 6,
-                                          offset: Offset(0, 1),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
+                              const SizedBox(height: 2),
+                              SizedBox(
+                                height: 16,
+                                child: Consumer(
+                                  builder: (context, ref, _) {
+                                    final count = ref.watch(vfireProvider.select((state) => state.getAdjustedReactionCount(post)));
+                                    return Text(
+                                      '$count',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.pureWhite,
+                                        shadows: const [
+                                          Shadow(
+                                            color: Color(0x80000000),
+                                            blurRadius: 6,
+                                            offset: Offset(0, 1),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),

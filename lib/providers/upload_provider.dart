@@ -91,6 +91,9 @@ class UploadNotifier extends StateNotifier<UploadState> {
     String? bgmArtworkUrl,
     bool isPublic = false,
   }) async {
+    // 既にアップロード中の場合は多重実行を防止
+    if (state.status == UploadStatus.uploading) return;
+
     _dummyProgressTimer?.cancel();
     state = UploadState(
       status: UploadStatus.uploading,

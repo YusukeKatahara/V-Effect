@@ -37,6 +37,11 @@ class PostService {
   final StreakService _streakService = StreakService.instance;
   final AnalyticsService _analytics = AnalyticsService.instance;
 
+  /// 投稿の多重実行（連打や並行処理）を防止するためのロックフラグ
+  bool _isCreatingPost = false;
+  DateTime? _lastPostTime;
+  String? _lastPostTaskName;
+
   CollectionReference<Post> get _postsRef =>
       _db.collection('posts').withConverter<Post>(
             fromFirestore: (snapshot, _) => Post.fromFirestore(snapshot),
@@ -331,7 +336,26 @@ class PostService {
     String? bgmArtworkUrl,
     bool isPublic = false,
   }) async {
-    final uid = _auth.currentUser!.uid;
+    final now = DateTime.now();
+
+    // 既に投稿処理が進行中の場合、または同一タスクが3秒以内に連続投稿された場合は二重実行を防ぐ
+    if (_isCreatingPost) {
+      debugPrint('createPost: 既に投稿処理が進行中のため、多重リクエストを無視します。');
+      return {'newStreak': 0, 'isRecordUpdating': false};
+    }
+    if (_lastPostTime != null &&
+        _lastPostTaskName == taskName &&
+        now.difference(_lastPostTime!).inSeconds < 3) {
+      debugPrint('createPost: 直近3秒以内に同一タスクの投稿が実行されたため、二重投稿を遮断します。');
+      return {'newStreak': 0, 'isRecordUpdating': false};
+    }
+
+    _isCreatingPost = true;
+    _lastPostTime = now;
+    _lastPostTaskName = taskName;
+
+    try {
+      final uid = _auth.currentUser!.uid;
 
     // 複数回投稿を許容するため、タイムスタンプを付与
     final dateStr = DateHelper.toDateString(DateTime.now());
@@ -579,6 +603,9 @@ class PostService {
     WidgetService.instance.updateWidgetData();
 
     return streakResult;
+    } finally {
+      _isCreatingPost = false;
+    }
   }
 
 
@@ -740,16 +767,14 @@ class PostService {
     final myUserSnap = await _db.collection('users').doc(myUid).get();
     final myUsername = myUserSnap.data()?['username'] ?? 'フレンド';
 
+    // 相手の言語設定を確認
+    final receiverSnap = await _db.collection('users').doc(postOwnerId).get();
+    final receiverData = receiverSnap.data() ?? {};
+    final isEn = receiverData['language'] == 'en';
+
     // 1. 基本的な通知内容
     String title;
     String body;
-    bool sendPush = false;
-
-    // 相手の通知設定を確認
-    final receiverSnap = await _db.collection('users').doc(postOwnerId).get();
-    final receiverData = receiverSnap.data() ?? {};
-    final allowReaction = receiverData['reactionNotifications'] ?? true;
-    final allowVFire = receiverData['vFireNotifications'] ?? true;
 
     // 通知ドキュメントのIDを固定化し、トランザクションでアトミックに更新する
     final isEmoji = emoji != null;
@@ -772,31 +797,56 @@ class PostService {
         }
 
         if (isEmoji) {
-          title = '✨ リアクション！';
-          body = reactionCount > 1
-              ? '$myUsernameさんが今日の達成に「$emoji」を$reactionCount回贈りました！'
-              : '$myUsernameさんが今日の達成に「$emoji」を贈りました！';
-          sendPush = allowReaction;
+          if (isEn) {
+            title = '✨ Reaction';
+            body = reactionCount > 1
+                ? '$myUsername sent "$emoji" $reactionCount times to today\'s "$postTaskName"!'
+                : '$myUsername sent "$emoji" to today\'s "$postTaskName"!';
+          } else {
+            title = '✨ リアクション';
+            body = reactionCount > 1
+                ? '$myUsernameさんが今日の「$postTaskName」に「$emoji」を$reactionCount回贈りました！'
+                : '$myUsernameさんが今日の「$postTaskName」に「$emoji」を贈りました！';
+          }
         } else {
           final random = Random();
-          final variations = [
-            {
-              'title': '👹 やばい！',
-              'body': '「$postTaskName」によってあなたは$myUsernameさんを焚き付けてしまいました！$reactionCount回のV FIRE❗️',
-            },
-            {
-              'title': '⚡️ V EFFECT 発動！',
-              'body': 'あなたの「$postTaskName」が、$myUsernameさんのモチベーションに火をつけました！$reactionCount回のV FIRE🔥',
-            },
-            {
-              'title': '👏 スーパーヒーロー！',
-              'body': '$myUsernameさんから「$postTaskName」へ、$reactionCount回のV FIREが届いています！',
-            },
-          ];
-          final selected = variations[random.nextInt(variations.length)];
-          title = selected['title']!;
-          body = selected['body']!;
-          sendPush = allowVFire;
+          if (isEn) {
+            final variationsEn = [
+              {
+                'title': '🔥 Fired Up',
+                'body': '$myUsername sent $reactionCount V FIREs to "$postTaskName"! 🔥',
+              },
+              {
+                'title': '⚡️ Sparks Ignited',
+                'body': 'Your "$postTaskName" ignited $myUsername\'s motivation! $reactionCount V FIREs ⚡️',
+              },
+              {
+                'title': '👏 Passionate Flames',
+                'body': '$myUsername cheered your "$postTaskName" with $reactionCount blazing V FIREs! 🔥',
+              },
+            ];
+            final selected = variationsEn[random.nextInt(variationsEn.length)];
+            title = selected['title']!;
+            body = selected['body']!;
+          } else {
+            final variationsJa = [
+              {
+                'title': '👹 やばい！',
+                'body': '「$postTaskName」によってあなたは$myUsernameさんを焚き付けてしまいました！$reactionCount回のV FIRE❗️',
+              },
+              {
+                'title': '⚡️ V EFFECT 発動！',
+                'body': 'あなたの「$postTaskName」が、$myUsernameさんのモチベーションに火をつけました！$reactionCount回のV FIRE🔥',
+              },
+              {
+                'title': '👏 スーパーヒーロー！',
+                'body': '$myUsernameさんから「$postTaskName」へ、$reactionCount回のV FIREが届いています！',
+              },
+            ];
+            final selected = variationsJa[random.nextInt(variationsJa.length)];
+            title = selected['title']!;
+            body = selected['body']!;
+          }
         }
 
         final notifData = {
@@ -809,7 +859,7 @@ class PostService {
           'lastIncrement': currentIncrement, // 今回追加された送信数
           'title': title,
           'body': body,
-          'sendPush': sendPush, // プッシュ送出フラグ
+          'sendPush': true, // プッシュ送出フラグ（実際の配信可否はCloud Functionsが最新設定を見て判定）
           // isRead は既存が未読なら未読のまま、既読なら未読に戻す
           'isRead': false, 
           // timestamp は常に最新に更新（一覧で一番上にくるように）

@@ -130,7 +130,38 @@ class NotificationService {
       // --- マージ処理終了 ---
 
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return list;
+
+      // 🚀 【重複排除 (Deduplication)】
+      // 同一ID、同一関連ID(relatedId)、または同一送信元・同一本文・近接日時の重複通知を排除
+      final deduplicatedList = <AppNotification>[];
+      final seenIds = <String>{};
+
+      for (final notif in list) {
+        if (notif.id.isNotEmpty && seenIds.contains(notif.id)) {
+          continue;
+        }
+
+        final isDuplicate = deduplicatedList.any((existing) {
+          final isSameFrom = existing.fromUid != null && existing.fromUid == notif.fromUid;
+          final isSameType = existing.type == notif.type;
+          final isSameBody = existing.body == notif.body;
+          final isSameRelated = existing.relatedId != null &&
+              notif.relatedId != null &&
+              existing.relatedId == notif.relatedId;
+          final isCloseInTime =
+              existing.createdAt.difference(notif.createdAt).abs().inMinutes < 5;
+
+          return (isSameRelated && isSameType) ||
+              (isSameFrom && isSameType && isSameBody && isCloseInTime);
+        });
+
+        if (!isDuplicate) {
+          if (notif.id.isNotEmpty) seenIds.add(notif.id);
+          deduplicatedList.add(notif);
+        }
+      }
+
+      return deduplicatedList;
     }).handleError((e) {
       debugPrint('getMyNotifications error: $e');
       return <AppNotification>[];
@@ -148,10 +179,36 @@ class NotificationService {
         .where(AppNotification.fieldIsRead, isEqualTo: false)
         .snapshots()
         .map((snap) {
-      return snap.docs
+      final unreadList = snap.docs
           .map((doc) => doc.data())
-          .where((n) => n.createdAt.isAfter(threeDaysAgo))
-          .length;
+          .where((n) {
+            final isSeasonPushOnly = n.type == NotificationType.seasonTaskReceived || n.type == NotificationType.seasonTaskPushOnly;
+            return n.createdAt.isAfter(threeDaysAgo) && !isSeasonPushOnly;
+          })
+          .toList();
+
+      final deduplicatedUnread = <AppNotification>[];
+      for (final notif in unreadList) {
+        final isDuplicate = deduplicatedUnread.any((existing) {
+          final isSameFrom = existing.fromUid != null && existing.fromUid == notif.fromUid;
+          final isSameType = existing.type == notif.type;
+          final isSameBody = existing.body == notif.body;
+          final isSameRelated = existing.relatedId != null &&
+              notif.relatedId != null &&
+              existing.relatedId == notif.relatedId;
+          final isCloseInTime =
+              existing.createdAt.difference(notif.createdAt).abs().inMinutes < 5;
+
+          return (isSameRelated && isSameType) ||
+              (isSameFrom && isSameType && isSameBody && isCloseInTime);
+        });
+
+        if (!isDuplicate) {
+          deduplicatedUnread.add(notif);
+        }
+      }
+
+      return deduplicatedUnread.length;
     }).handleError((e) {
       debugPrint('getNotificationCount error: $e');
       return 0;

@@ -7,16 +7,23 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-08-21
+- **Last Updated:** 2026-08-23
 - **Activeエージェント:** Antigravity (Gemini 3.7 Flash)
-- **Current Task:** Instagram-Style Action Button Optimization (Completed)
-- **Action:** フィードカード右下の縦並びアクションボタンを、丸枠背景を排除した極限ミニマルな「Instagram リール型（白抜きアイコン＋ドロップシャドウ）」に完全最適化。タップ領域48px、右端マージン16px、アイコンサイズ28px（炎30px）で写真の主役感と操作性を両立。
+- **Current Task:** Fix Duplicate Notification Bug (Completed)
+- **Action:** 通知が2件重複して届く・表示される不具合の原因を特定し、クライアント投稿側（連打・多重実行ガード）、Cloud Functions（直近重複通知スキップ）、通知一覧画面（同一内容・近接日時の重複排除Deduplication）の3層防御による根本修正を実施。
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
 
-### 2026-08-21 (Antigravity)
+### 2026-08-23 (Antigravity)
+- **Fix Duplicate Notification Bug via Defense-in-Depth Architecture (通知重複バグの多層防御による根本改修):**
+  - **投稿画面の多重実行ガード (`camera_screen.dart`):** `_uploadPost()` の冒頭で `_isUploading` を即座にチェック・設定し、非同期キャプチャ（`_capturePng`）待機中の連打・多重スワイプによる二重投稿を完全に遮断。
+  - **アップロード処理の多重起動防止 (`upload_provider.dart`):** `startUpload()` に `if (state.status == UploadStatus.uploading) return;` を追加し、バックグラウンドアップロードの重複実行を防止。
+  - **投稿サービスの排他制御 (`post_service.dart`):** `createPost()` に `_isCreatingPost` フラグと短時間（3秒以内）の同一タスク連続実行ガードを導入。
+  - **Cloud Functions の通知二重生成防止 (`functions/index.js`):** `processPostNotifications` において、`friends` 配列の重複排除（`Set`）を実施し、同一送信者から同一フレンドへ直近2分以内に送信された同一タイプ通知が存在する場合は自動スキップする安全ロジックを追加。
+  - **通知一覧画面の重複排除 (`notification_service.dart`):** `getMyNotifications()` および `getNotificationCount()` において、同一ID、同一関連ID（`relatedId`）、または「同一送信元（`fromUid`）＋同一本文（`body`）＋5分以内の近接日時」の通知を自動的に1件に集約（Deduplication）して返却。
+  - **ユニットテスト追加 (`test/notification_deduplication_test.dart`):** 通知の重複排除ロジックおよび正常な別通知が維持されることを検証するテストを作成し、パスを確認。
 - **Instagram-Style Action Button Optimization (Instagramリール型・枠なしシャドウUIへの最適化):**
   - **丸枠背景の撤廃とドロップシャドウ化 (`feed_card.dart`, `home_screen.dart`):** ボタンの丸枠コンテナ背景・ボーダーを排除し、白抜きアイコン（28px / 炎30px）にドロップシャドウ（`Shadow(blurRadius: 8, offset: Offset(0, 1))`）を直接適用。明るい写真でも暗い写真でもクッキリ視認できる設計。
   - **右端マージンとタップ領域の最適化 (`home_screen.dart`):** 右端マージンを `right: 16` に詰め、タップ領域を `48x48 px` に調整。写真やキャプションの表示面積を最大化し、極めて洗練されたモダンなビジュアルを実現。

@@ -22,30 +22,44 @@ const REACTION_PUSH_DEBOUNCE_SECONDS = 30;
 const REACTION_LOCK_STALE_MS = 5 * 60 * 1000;
 
 /**
+/**
  * 指定ユーザーへ FCM プッシュを1通送信する。
  * 受信者のマスタープッシュ設定を確認し、無効トークンは取得元から削除する。
+ * 
+ * @param {string} toUid - 送信先ユーザーUID
+ * @param {string} title - 通知タイトル
+ * @param {string} body - 通知本文
+ * @param {Object} dataPayload - カスタムデータペイロード
+ * @param {Object} options - 送信オプション（collapseId等）
  */
-async function sendPushToUser(toUid, title, body, dataPayload = {}) {
+async function sendPushToUser(toUid, title, body, dataPayload = {}, options = {}) {
   const db = getFirestore();
 
   // 受信者の公開情報を取得（プッシュ通知設定の確認用）
   const userDoc = await db.collection("users").doc(toUid).get();
-  if (!userDoc.exists) return;
+  if (!userDoc.exists) {
+    console.log(`[Push] User ${toUid} does not exist. Skipping push.`);
+    return;
+  }
 
   const userData = userDoc.data();
 
   // マスターのプッシュ通知設定をチェック
   if (userData.pushNotifications === false) {
+    console.log(`[Push] User ${toUid} has master pushNotifications disabled. Skipping push.`);
     return;
   }
 
   // 通知タイプごとの詳細設定をチェック
   const type = dataPayload.type || "";
+  const isEmojiReaction = !!dataPayload.emoji && String(dataPayload.emoji).trim().length > 0;
   if (type === "reactionReceived") {
-    if (dataPayload.emoji && userData.reactionNotifications === false) {
+    if (isEmojiReaction && userData.reactionNotifications === false) {
+      console.log(`[Push] User ${toUid} has reactionNotifications disabled for emoji. Skipping.`);
       return;
     }
-    if (!dataPayload.emoji && userData.vFireNotifications === false) {
+    if (!isEmojiReaction && userData.vFireNotifications === false) {
+      console.log(`[Push] User ${toUid} has vFireNotifications disabled for V FIRE. Skipping.`);
       return;
     }
   }
@@ -53,7 +67,6 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}) {
   // fcmToken は private subcollection を優先参照。
   // 旧バージョンのアプリは users/{uid}.fcmToken（公開エリア）に書き込み続けるため、
   // 移行期間中は public 側にフォールバックする。
-  // どちらから取得したかを覚えておき、無効化時に正しい場所を削除する。
   const privateDoc = await db.collection("users").doc(toUid)
       .collection("private").doc("data").get();
   let fcmToken = privateDoc.exists ? privateDoc.data().fcmToken : null;
@@ -62,13 +75,16 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}) {
     fcmToken = userData.fcmToken || null;
     fcmTokenSource = "public";
   }
-  if (!fcmToken) return;
+  if (!fcmToken) {
+    console.log(`[Push] No FCM token found for user ${toUid}. Skipping push notification.`);
+    return;
+  }
 
   // 3日前の日時を計算（アプリ内の通知一覧の表示期限と同期させるため）
   const threeDaysAgo = new Date();
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-  // 宛先ユーザーの未読通知数を取得（インデックス不要で取得するため、メモリ上でフィルタリング）
+  // 宛先ユーザーの未読通知数を取得（インデックス不要の単一クエリ）
   let unreadCount = 0;
   try {
     const unreadSnap = await db.collection("notifications")
@@ -79,10 +95,9 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}) {
     unreadSnap.forEach((doc) => {
       const data = doc.data();
       const createdAt = data.createdAt ? data.createdAt.toDate() : null;
-      const type = data.type;
+      const t = data.type;
       
-      // シーズンタスク配信系（seasonTaskReceived / seasonTaskPushOnly）はアプリの通知画面では二重表示を防ぐために除外されているため、バッジカウントからも除外
-      const isSeasonPushOnly = type === "seasonTaskReceived" || type === "seasonTaskPushOnly";
+      const isSeasonPushOnly = t === "seasonTaskReceived" || t === "seasonTaskPushOnly";
       const isWithinThreeDays = createdAt && createdAt >= threeDaysAgo;
       
       if (isWithinThreeDays && !isSeasonPushOnly) {
@@ -91,7 +106,6 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}) {
     });
   } catch (error) {
     console.error(`Error calculating unread notification count for ${toUid}:`, error);
-    // エラー時はフォールバックとして 1 を設定
     unreadCount = 1;
   }
 
@@ -103,6 +117,9 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}) {
     }
   }
 
+  // スマート集約用の collapseId（最大64バイト）
+  const collapseId = options.collapseId ? String(options.collapseId).substring(0, 64) : undefined;
+
   // FCM メッセージを送信
   const message = {
     token: fcmToken,
@@ -113,22 +130,25 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}) {
     ...(Object.keys(stringData).length > 0 ? { data: stringData } : {}),
     android: {
       priority: "high",
+      ...(collapseId ? { collapseKey: collapseId } : {}),
       notification: {
-        channelId: "veffect_notifications",
+        channelId: type === "directMessage" ? "veffect_dm_channel" : "veffect_notifications",
         defaultSound: true,
+        notificationCount: unreadCount,
+        ...(collapseId ? { tag: collapseId } : {}),
       },
     },
     apns: {
       headers: {
         "apns-priority": "10",
         "apns-push-type": "alert",
+        ...(collapseId ? { "apns-collapse-id": collapseId } : {}),
       },
       payload: {
         aps: {
           sound: "default",
-          badge: unreadCount, // 動的な未読件数を設定
+          badge: unreadCount,
           ...(type === "directMessage" ? { "mutable-content": 1 } : {}),
-          // "content-available": 1, // バックグラウンド処理が必要な場合はコメントを外す
         },
       },
     },
@@ -136,10 +156,9 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}) {
 
   try {
     await getMessaging().send(message);
-    console.log(`Successfully sent message to ${toUid}`);
+    console.log(`[Push] Successfully sent push message to ${toUid} (type: ${type}, title: "${title}", collapseId: ${collapseId || "none"})`);
   } catch (error) {
-    console.error(`Error sending push notification to ${toUid}:`, error);
-    // トークンが無効な場合は取得元の場所から削除
+    console.error(`[Push] Error sending push notification to ${toUid}:`, error);
     if (
       error.code === "messaging/invalid-registration-token" ||
       error.code === "messaging/registration-token-not-registered"
@@ -152,7 +171,7 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}) {
           fcmToken: FieldValue.delete(),
         });
       }
-      console.log(`Deleted invalid FCM token for ${toUid} (source=${fcmTokenSource})`);
+      console.log(`[Push] Deleted invalid FCM token for ${toUid} (source=${fcmTokenSource})`);
     }
   }
 }
@@ -166,26 +185,32 @@ exports.sendPushNotification = onDocumentWritten(
     const after = event.data?.after?.data();
     if (!after) return; // 削除イベントは無視
 
-    const { toUid, title, body, sendPush, type, relatedId, fromUid } = after;
+    const { toUid, title, body, sendPush, type, relatedId, fromUid, emoji } = after;
     if (!toUid || !title) return;
-
-    // フロントエンドで指定されたプッシュ送出フラグをチェック
-    // sendPush が明示的に false の場合（受信者が当該通知をオフ）は送信しない
-    if (sendPush === false) return;
 
     const before = event.data?.before?.data();
     const isReaction = type === "reactionReceived";
+
+    // フロントエンドで指定されたプッシュ送出フラグをチェック
+    // ※リアクション通知（V FIRE / 絵文字）は古いアプリバージョンのクライアント側誤判定（sendPush: false）を
+    // 防ぐため、常に sendPushToUser 側で受信者の最新設定を確認して配信を決定する。
+    if (sendPush === false && !isReaction) {
+      console.log(`[PushTrigger] sendPush is explicitly false for ${event.params.notificationId}. Aborting push.`);
+      return;
+    }
 
     const payload = {
       type: type || "",
       relatedId: relatedId || "",
       fromUid: fromUid || "",
+      emoji: emoji || "",
     };
 
     // ── リアクション以外：従来通り「新規作成時のみ」即時送信 ──
     if (!isReaction) {
       if (before) return; // 更新（isRead 変更等）では送信しない
-      await sendPushToUser(toUid, title, body, payload);
+      const collapseId = relatedId ? `${type}_${relatedId}` : undefined;
+      await sendPushToUser(toUid, title, body, payload, { collapseId });
       return;
     }
 
@@ -195,15 +220,22 @@ exports.sendPushNotification = onDocumentWritten(
         const db = getFirestore();
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         
-        const recentReverse = await db.collection("notifications")
+        // インデックス不要にするため fromUid のみで取得し、メモリ上でチェック
+        const recentReverseSnap = await db.collection("notifications")
           .where("fromUid", "==", toUid)
-          .where("toUid", "==", fromUid)
-          .where("type", "==", "reactionReceived")
-          .where("createdAt", ">", twentyFourHoursAgo)
-          .limit(1)
+          .limit(30)
           .get();
           
-        if (!recentReverse.empty) {
+        let hasMutual = false;
+        recentReverseSnap.forEach(doc => {
+          const d = doc.data();
+          const cAt = d.createdAt ? d.createdAt.toDate() : null;
+          if (d.toUid === fromUid && d.type === "reactionReceived" && cAt && cAt >= twentyFourHoursAgo) {
+            hasMutual = true;
+          }
+        });
+
+        if (hasMutual) {
           const batch = db.batch();
           const ts = FieldValue.serverTimestamp();
           
@@ -225,21 +257,42 @@ exports.sendPushNotification = onDocumentWritten(
       }
     }
 
-    // ── リアクション通知の送信 ──
-    // 新規作成時（!before）、またはリアクション数・文面が更新された場合（reactionCount / body の変化）に送出
+    // ── リアクション通知の送信（collapseId で最新1通にスマート集約） ──
+    const reactionCollapseId = relatedId && fromUid ? `reaction_${relatedId}_${fromUid}` : undefined;
+
+    // 新規作成時（!before）、またはリアクション内容が更新された場合に送出
     if (!before) {
-      // 新規作成時は無条件でプッシュ通知を送信
-      await sendPushToUser(toUid, title, body, payload);
+      console.log(`[PushTrigger] New reaction notification created: ${event.params.notificationId}`);
+      await sendPushToUser(toUid, title, body, payload, { collapseId: reactionCollapseId });
     } else {
-      // ドキュメント更新時：単なる既読化（isRead 変更）等ではなく、
-      // リアクション数や本文が実際に増えた/変わった場合にプッシュ通知を再送出する
+      // 単なる既読化（isRead 変更のみ）の場合はプッシュを送信しない
+      const isReadChangedOnly = before.isRead === false && after.isRead === true &&
+          before.reactionCount === after.reactionCount &&
+          before.body === after.body &&
+          before.emoji === after.emoji;
+
+      if (isReadChangedOnly) {
+        return;
+      }
+
       const beforeCount = before.reactionCount || 0;
       const afterCount = after.reactionCount || 0;
       const beforeBody = before.body || "";
       const afterBody = after.body || "";
+      const beforeEmoji = before.emoji || "";
+      const afterEmoji = after.emoji || "";
 
-      if (afterCount > beforeCount || afterBody !== beforeBody) {
-        await sendPushToUser(toUid, title, body, payload);
+      // リアクション数が増えた、本文が変わった、絵文字が変わった、または未読にリセットされた場合に送信
+      const hasReactionUpdate = afterCount > beforeCount || 
+          afterBody !== beforeBody || 
+          afterEmoji !== beforeEmoji ||
+          (before.isRead === true && after.isRead === false);
+
+      if (hasReactionUpdate) {
+        console.log(`[PushTrigger] Reaction notification updated: ${event.params.notificationId} (count: ${afterCount}, emoji: ${afterEmoji})`);
+        await sendPushToUser(toUid, title, body, payload, { collapseId: reactionCollapseId });
+      } else {
+        console.log(`[PushTrigger] Reaction notification write did not warrant push: ${event.params.notificationId}`);
       }
     }
   }
@@ -982,7 +1035,6 @@ exports.processPostNotifications = onTaskDispatched(
     }
 
     const postData = postSnap.data();
-    // 救済投稿（SOSでストリーク復帰した投稿）であってもフレンドへ達成通知を送信するよう対応
     
     // 有効期限が切れている場合は除外
     const now = new Date();
@@ -998,7 +1050,7 @@ exports.processPostNotifications = onTaskDispatched(
     const username = userData.username || "フレンド";
     const currentStreak = userData.streak || 0;
 
-    // フレンド一覧の取得
+    // フレンド一覧の取得（重複排除および自分自身の除外）
     const rawFriends = userData.following || userData.friends;
     let friends = [];
     if (Array.isArray(rawFriends)) {
@@ -1006,34 +1058,54 @@ exports.processPostNotifications = onTaskDispatched(
     } else if (rawFriends && typeof rawFriends === "object") {
       friends = Object.keys(rawFriends);
     }
+    friends = [...new Set(friends.filter(fUid => fUid && fUid !== uid))];
 
     if (friends.length === 0) {
       return;
     }
 
-    // 3. 今日の投稿数をカウント
-    // UTCエポックミリ秒から日本時間(+9時間)の本日0:00 (UTC表現)を正確に算出
-    const nowMs = Date.now();
+    // 3. 今日の投稿数をカウント（投稿作成日時を基準に、時系列インデックスを正確に算出）
+    const postCreatedAt = postData.createdAt ? postData.createdAt.toDate() : new Date();
+
+    // UTCエポックミリ秒から日本時間(+9時間)の投稿日0:00 (UTC表現)を算出
     const jstOffsetMs = 9 * 60 * 60 * 1000;
-    const jstDate = new Date(nowMs + jstOffsetMs);
+    const jstPostDate = new Date(postCreatedAt.getTime() + jstOffsetMs);
     const startOfTodayUTC = new Date(
-      Date.UTC(jstDate.getUTCFullYear(), jstDate.getUTCMonth(), jstDate.getUTCDate()) - jstOffsetMs
+      Date.UTC(jstPostDate.getUTCFullYear(), jstPostDate.getUTCMonth(), jstPostDate.getUTCDate()) - jstOffsetMs
     );
 
     const postsSnap = await db.collection("posts")
       .where("userId", "==", uid)
-      .where("expiresAt", ">", new Date())
+      .where("createdAt", ">=", startOfTodayUTC)
       .get();
     
-    let todayPostCount = 0;
+    // 当該投稿作成日時（postCreatedAt）以前の有効な投稿を抽出
+    const validPosts = [];
     postsSnap.forEach(doc => {
       const p = doc.data();
-      if (p.createdAt && p.createdAt.toDate() >= startOfTodayUTC) {
-        todayPostCount++;
+      const cAt = p.createdAt ? p.createdAt.toDate() : null;
+      if (cAt && cAt.getTime() <= postCreatedAt.getTime()) {
+        validPosts.push({ id: doc.id, taskName: p.taskName || "", createdAt: cAt });
       }
     });
 
-    const isMilestone = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 130, 200, 365].includes(currentStreak);
+    // 時系列（古い順）にソート
+    validPosts.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+    // ユニークなタスク（または投稿）に基づき、今回の postId が本日何番目のタスクかを決定
+    let todayPostCount = 1;
+    const seenTasks = new Set();
+    for (let i = 0; i < validPosts.length; i++) {
+      const vp = validPosts[i];
+      seenTasks.add(vp.taskName || vp.id);
+      if (vp.id === postId) {
+        todayPostCount = seenTasks.size;
+        break;
+      }
+    }
+    if (todayPostCount < 1) todayPostCount = 1;
+
+    const isMilestone = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 130].includes(currentStreak);
 
     // 5. フレンドの状態を一括取得して言語設定等を確認する
     const friendRefs = friends.map(fUid => db.collection("users").doc(fUid));
@@ -1043,6 +1115,23 @@ exports.processPostNotifications = onTaskDispatched(
     friendSnaps.forEach(snap => {
       if (!snap.exists) return;
       friendDataMap[snap.id] = snap.data();
+    });
+
+    // 直近2分以内に同一ユーザーからフレンドへ送信された通知をチェック
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    const recentNotifsSnap = await db.collection("notifications")
+      .where("fromUid", "==", uid)
+      .limit(50)
+      .get();
+    
+    const recentNotifFriendMap = {};
+    recentNotifsSnap.forEach(doc => {
+      const data = doc.data();
+      const createdAt = data.createdAt ? data.createdAt.toDate() : null;
+      if (createdAt && createdAt >= twoMinutesAgo && data.toUid && 
+          (data.type === "friendTaskCompleted" || data.type === "rescueRequested" || data.type === "streakCelebration")) {
+        recentNotifFriendMap[data.toUid] = true;
+      }
     });
 
     // 節目（マイルストーン）の場合、既に各フレンド宛てにこのストリーク祝い通知を作成済みかチェック
@@ -1106,7 +1195,7 @@ exports.processPostNotifications = onTaskDispatched(
     ];
 
     // 午前中（朝4:00〜11:59）限定の「朝の光の中で (Ah)」通知を追加
-    const isMorning = jstDate.getUTCHours() >= 4 && jstDate.getUTCHours() < 12;
+    const isMorning = jstPostDate.getUTCHours() >= 4 && jstPostDate.getUTCHours() < 12;
     if (isMorning) {
       templates.push({
         title: '🌅 朝の光の中で (Ah)',
@@ -1129,73 +1218,69 @@ exports.processPostNotifications = onTaskDispatched(
     // ── 救済モード用通知テンプレート ──
     const rescueInitialTemplate = {
       title: '🤝 {username}が立ち上がった！',
-      body: '{username}が諦めずに投稿！合計150VFIREで{username}さんのストリークが復活します（まるで不死鳥のように！）'
+      body: '{username}が諦めずに投稿！合計150VFIREで{username}さんのストリークが復活します（まるで不死鳥のように！）',
     };
 
     const rescueMultipleTemplates = [
       {
         title: '🔥 {username}の猛追！本日{count}つ目の達成',
-        body: '諦める気はゼロ！{username}さんが本日{count}つ目のタスクを完遂してストリーク復活へ加速中！熱いVFIREで後押ししましょう⚡️'
+        body: '諦める気はゼロ！{username}さんが本日{count}つ目のタスクを完遂してストリーク復活へ加速中！熱いVFIREで後押ししましょう⚡️',
       },
       {
         title: '🪽 不死鳥の羽ばたき！',
-        body: '「ストリークは絶対に途切れさせない」——{username}さんが執念の本日{count}連続投稿！完全復活までVFIREを送り続けましょう🔥'
+        body: '「ストリークは絶対に途切れさせない」——{username}さんが執念の本日{count}連続投稿！完全復活までVFIREを送り続けましょう🔥',
       },
       {
         title: '⚡️ {username}が完全覚醒！本日{count}つ目',
-        body: 'ピンチをチャンスに変える圧倒的な行動力！{username}さんが本日{count}つ目のタスクを突破！この熱量に全力でVFIREをぶち込みましょう‼️'
+        body: 'ピンチをチャンスに変える圧倒的な行動力！{username}さんが本日{count}つ目のタスクを突破！この熱量に全力でVFIREをぶち込みましょう‼️',
       },
       {
         title: '🦾 不屈の闘志が炸裂！',
-        body: '{username}さんが本日{count}つ目のタスクをクリア！炎はどんどん大きくなっています。あと一息、VFIREで不死鳥を降臨させましょう🔥'
+        body: '{username}さんが本日{count}つ目のタスクをクリア！炎はどんどん大きくなっています。あと一息、VFIREで不死鳥を降臨させましょう🔥',
       },
     ];
 
     const enRescueInitialTemplate = {
-      title: '🤝 {username} has risen!',
-      body: "{username} didn't give up! Reach 150 VFIREs total to revive {username}'s streak (like a phoenix!)"
+      title: '🤝 Rising from the Ashes',
+      body: "{username} didn't give up! Reach 150 VFIREs total to revive {username}'s streak 🔥",
     };
 
     const enRescueMultipleTemplates = [
       {
-        title: '🔥 {username} on the Chase! Task #{count}',
-        body: "Refusing to back down! {username} crushed task #{count} today, speeding towards streak revival! Back them up with blazing VFIREs! ⚡️"
+        title: '🔥 On the Chase! Task #{count}',
+        body: "{username} is speeding towards streak revival with task #{count}! Fuel them with blazing VFIREs! ⚡️",
       },
       {
-        title: '🪽 Wings of the Phoenix!',
-        body: "'Never letting the streak die!' — {username} just stacked task #{count}! Keep fueling the fire until full rebirth! 🔥"
-      },
-      {
-        title: '⚡️ {username} Fully Awakened! Task #{count}',
-        body: "Turning crisis into power! {username} broke through task #{count}! Send all your VFIREs to match this unstoppable energy! ‼️"
+        title: '⚡️ Fully Awakened! Task #{count}',
+        body: "{username} broke through task #{count}! Send all your VFIREs to match this energy! ‼️",
       },
       {
         title: '🦾 Unyielding Spirit in Action!',
-        body: "{username} cleared task #{count} today! The flame is growing brighter. One more push with VFIREs to revive the phoenix! 🔥"
+        body: "{username} cleared task #{count} today! Keep fueling the fire until full rebirth! 🔥",
       },
     ];
 
     // 救済通知メッセージの生成ヘルパー
-    function getRescueNotification(lang, count, name) {
+    function getRescueNotification(lang, count, name, task) {
       let title = '';
       let body = '';
       if (lang === "en") {
         if (count > 1) {
           const tmpl = enRescueMultipleTemplates[Math.floor(Math.random() * enRescueMultipleTemplates.length)];
-          title = tmpl.title.replace('{username}', name).replace('{count}', count);
-          body = tmpl.body.replace('{username}', name).replace('{count}', count);
+          title = tmpl.title.replace(/{username}/g, name).replace(/{count}/g, count).replace(/{taskName}/g, task);
+          body = tmpl.body.replace(/{username}/g, name).replace(/{count}/g, count).replace(/{taskName}/g, task);
         } else {
-          title = enRescueInitialTemplate.title.replace('{username}', name);
-          body = enRescueInitialTemplate.body.replace('{username}', name);
+          title = enRescueInitialTemplate.title.replace(/{username}/g, name).replace(/{taskName}/g, task);
+          body = enRescueInitialTemplate.body.replace(/{username}/g, name).replace(/{taskName}/g, task);
         }
       } else {
         if (count > 1) {
           const tmpl = rescueMultipleTemplates[Math.floor(Math.random() * rescueMultipleTemplates.length)];
-          title = tmpl.title.replace('{username}', name).replace('{count}', count);
-          body = tmpl.body.replace('{username}', name).replace('{count}', count);
+          title = tmpl.title.replace(/{username}/g, name).replace(/{count}/g, count).replace(/{taskName}/g, task);
+          body = tmpl.body.replace(/{username}/g, name).replace(/{count}/g, count).replace(/{taskName}/g, task);
         } else {
-          title = rescueInitialTemplate.title.replace('{username}', name);
-          body = rescueInitialTemplate.body.replace('{username}', name);
+          title = rescueInitialTemplate.title.replace(/{username}/g, name).replace(/{taskName}/g, task);
+          body = rescueInitialTemplate.body.replace(/{username}/g, name).replace(/{taskName}/g, task);
         }
       }
       return { title, body };
@@ -1286,41 +1371,48 @@ exports.processPostNotifications = onTaskDispatched(
     }
 
     // 通常通知メッセージの生成ヘルパー
-    function getNormalNotification(lang, count, name) {
+    function getNormalNotification(lang, count, name, task) {
       let title = '';
       let body = '';
       if (lang === "en") {
         if (count > 1) {
           const tmpl = enMultipleTaskTemplates[Math.floor(Math.random() * enMultipleTaskTemplates.length)];
-          title = tmpl.title.replace('{username}', name).replace('{count}', count);
-          body = tmpl.body.replace('{username}', name).replace('{count}', count);
+          title = tmpl.title.replace(/{username}/g, name).replace(/{count}/g, count).replace(/{taskName}/g, task);
+          body = tmpl.body.replace(/{username}/g, name).replace(/{count}/g, count).replace(/{taskName}/g, task);
         } else {
           const tmpl = enTemplates[Math.floor(Math.random() * enTemplates.length)];
-          title = tmpl.title.replace('{username}', name);
-          body = tmpl.body.replace('{username}', name);
+          title = tmpl.title.replace(/{username}/g, name).replace(/{taskName}/g, task);
+          body = tmpl.body.replace(/{username}/g, name).replace(/{taskName}/g, task);
         }
       } else {
         if (count > 1) {
           const tmpl = multipleTaskTemplates[Math.floor(Math.random() * multipleTaskTemplates.length)];
-          title = tmpl.title.replace('{username}', name).replace('{count}', count);
-          body = tmpl.body.replace('{username}', name).replace('{count}', count);
+          title = tmpl.title.replace(/{username}/g, name).replace(/{count}/g, count).replace(/{taskName}/g, task);
+          body = tmpl.body.replace(/{username}/g, name).replace(/{count}/g, count).replace(/{taskName}/g, task);
         } else {
           const tmpl = templates[Math.floor(Math.random() * templates.length)];
-          title = tmpl.title.replace('{username}', name);
-          body = tmpl.body.replace('{username}', name);
+          title = tmpl.title.replace(/{username}/g, name).replace(/{taskName}/g, task);
+          body = tmpl.body.replace(/{username}/g, name).replace(/{taskName}/g, task);
         }
       }
       return { title, body };
     }
 
+    let hasWrites = false;
     friends.forEach((friendUid) => {
+      // 既に直近2分以内に同一フレンドへ通知が送信されていた場合はスキップ（二重投稿・重複タスクの二重通知防止）
+      if (recentNotifFriendMap[friendUid]) {
+        console.log(`Skipping duplicate notification for friend ${friendUid} from user ${uid}`);
+        return;
+      }
+
       const friendData = friendDataMap[friendUid] || {};
       const language = friendData.language === "en" ? "en" : "ja";
 
       const streakNotifId = `streak_${currentStreak}_${uid}_to_${friendUid}`;
       const isAlreadyCelebrated = !!celebratedFriendMap[streakNotifId];
 
-      // ストリークお祝い通知は、節目（マイルストーン）かつ本日1回目の投稿（todayPostCount === 1）かつ過去未送信の時のみ送信
+      // ストリークお祝い通知は、節目（マイルストーン）かつ本日1回目の投稿（todayPostCount === 1）かつ過去未送信の時のみ最優先で送信
       const shouldCelebrateStreak = isMilestone && todayPostCount === 1 && !isAlreadyCelebrated;
 
       // お祝い通知の場合はストリーク数固定のIDを使用し、通常通知の場合は投稿IDベースのIDを使用
@@ -1333,18 +1425,23 @@ exports.processPostNotifications = onTaskDispatched(
 
       const isRescue = postData.isRescuePost === true || userData.isRescueActive === true;
 
+      // ── 優先順位の厳格な適用 ──
       if (isRescue) {
+        // Priority 1 (救済中): 救済通知
         finalType = "rescueRequested";
-        const rescueContent = getRescueNotification(language, todayPostCount, username);
+        const rescueContent = getRescueNotification(language, todayPostCount, username, postTaskName);
         finalTitle = rescueContent.title;
         finalBody = rescueContent.body;
       } else if (shouldCelebrateStreak) {
+        // Priority 1 (最優先): 節目ストリークお祝い通知
+        finalType = "streakCelebration";
         const streakContent = getStreakNotification(language, currentStreak, username);
         finalTitle = streakContent.title;
         finalBody = streakContent.body;
-        finalType = "streakCelebration"; // ストリークお祝い時は type を streakCelebration に変更
       } else {
-        const normalContent = getNormalNotification(language, todayPostCount, username);
+        // Priority 2 / 3: 通常タスク達成通知 (1回目 / 2回目以降、朝限定含む)
+        finalType = "friendTaskCompleted";
+        const normalContent = getNormalNotification(language, todayPostCount, username, postTaskName);
         finalTitle = normalContent.title;
         finalBody = normalContent.body;
       }
@@ -1361,10 +1458,15 @@ exports.processPostNotifications = onTaskDispatched(
         isTopRunner: false,
         createdAt: FieldValue.serverTimestamp(),
       });
+      hasWrites = true;
     });
 
-    await batch.commit();
-    console.log(`Sent notifications for post ${postId} to ${friends.length} friends.`);
+    if (hasWrites) {
+      await batch.commit();
+      console.log(`Sent notifications for post ${postId} (index: ${todayPostCount}) to friends.`);
+    } else {
+      console.log(`No new notifications needed for post ${postId} (all deduplicated or empty).`);
+    }
   }
 );
 
@@ -2274,9 +2376,21 @@ exports.healUnprocessedPostNotifications = onSchedule(
 
         console.log(`[Self-Healing] Found post ${postId} missing notifications for ${missingFriends.length} friends. Healing...`);
 
+        // 欠落しているフレンドの言語設定等を取得
+        const friendRefs = missingFriends.map((fUid) => db.collection("users").doc(fUid));
+        const friendSnaps = friendRefs.length > 0 ? await db.getAll(...friendRefs) : [];
+        const friendDataMap = {};
+        friendSnaps.forEach((snap) => {
+          if (snap.exists) {
+            friendDataMap[snap.id] = snap.data();
+          }
+        });
+
         // 欠落しているフレンドへ通知作成
         const batch = db.batch();
         const isRescue = postData.isRescuePost === true;
+        const taskName = postData.taskName || "クエスト";
+
         missingFriends.forEach((fUid) => {
           const notifId = `post_${postId}_to_${fUid}`;
           const notifRef = db.collection("notifications").doc(notifId);
@@ -2287,6 +2401,11 @@ exports.healUnprocessedPostNotifications = onSchedule(
           let healedType = "friendTaskCompleted";
           let healedTitle = "🎬 実行の証明";
           let healedBody = `${username}さんが本日の『頑張り』をカタチにしました！あなたのスタートもいつでも待っています✨`;
+
+          if (isEn) {
+            healedTitle = "🎬 Action Speaks";
+            healedBody = `${username} turned their effort into action today! Ready when you are to make your move. ✨`;
+          }
 
           if (isRescue) {
             healedType = "rescueRequested";

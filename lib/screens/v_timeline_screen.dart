@@ -867,6 +867,21 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen>
                                                   child: const SizedBox(width: 150, height: 60),
                                                 ),
                                               ),
+                                              // V Fire ボタン (右下: 炎アイコン＋カウントのタップ・長押し領域)
+                                              Positioned(
+                                                right: 16,
+                                                bottom: 24,
+                                                width: 48,
+                                                height: 80,
+                                                child: GestureDetector(
+                                                  behavior: HitTestBehavior.opaque,
+                                                  onTap: () => _onFlameReaction(item),
+                                                  // ── 長押し（ロングプレス）ジェスチャー ──
+                                                  onLongPressStart: (_) => _startFlameAutoFire(item),
+                                                  onLongPressEnd: (_) => _stopFlameAutoFire(),
+                                                  onLongPressCancel: () => _stopFlameAutoFire(),
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
