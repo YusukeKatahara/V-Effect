@@ -257,43 +257,32 @@ exports.sendPushNotification = onDocumentWritten(
       }
     }
 
-    // ── リアクション通知の送信（collapseId で最新1通にスマート集約） ──
-    const reactionCollapseId = relatedId && fromUid ? `reaction_${relatedId}_${fromUid}` : undefined;
+    // ── リアクション通知の送信（絵文字とV FIREで別々のcollapseIdにし、64文字以内に安全に圧縮） ──
+    const isEmojiReaction = !!emoji && String(emoji).trim().length > 0;
+    const shortPostId = String(relatedId || "").slice(-16);
+    const shortFromUid = String(fromUid || "").slice(-16);
+    const reactionCollapseId = relatedId && fromUid 
+        ? `${isEmojiReaction ? "emj" : "vfr"}_${shortPostId}_${shortFromUid}` 
+        : undefined;
 
     // 新規作成時（!before）、またはリアクション内容が更新された場合に送出
     if (!before) {
-      console.log(`[PushTrigger] New reaction notification created: ${event.params.notificationId}`);
+      console.log(`[PushTrigger] New reaction notification created: ${event.params.notificationId} (isEmoji: ${isEmojiReaction})`);
       await sendPushToUser(toUid, title, body, payload, { collapseId: reactionCollapseId });
     } else {
-      // 単なる既読化（isRead 変更のみ）の場合はプッシュを送信しない
-      const isReadChangedOnly = before.isRead === false && after.isRead === true &&
+      // 単なる既読化（isRead が false -> true になり、内容変更なし）の場合はプッシュを送信しない
+      const isReadMarkOnly = before.isRead === false && after.isRead === true &&
           before.reactionCount === after.reactionCount &&
           before.body === after.body &&
           before.emoji === after.emoji;
 
-      if (isReadChangedOnly) {
+      if (isReadMarkOnly) {
+        console.log(`[PushTrigger] Reaction notification read-state change only: ${event.params.notificationId}. Skipping push.`);
         return;
       }
 
-      const beforeCount = before.reactionCount || 0;
-      const afterCount = after.reactionCount || 0;
-      const beforeBody = before.body || "";
-      const afterBody = after.body || "";
-      const beforeEmoji = before.emoji || "";
-      const afterEmoji = after.emoji || "";
-
-      // リアクション数が増えた、本文が変わった、絵文字が変わった、または未読にリセットされた場合に送信
-      const hasReactionUpdate = afterCount > beforeCount || 
-          afterBody !== beforeBody || 
-          afterEmoji !== beforeEmoji ||
-          (before.isRead === true && after.isRead === false);
-
-      if (hasReactionUpdate) {
-        console.log(`[PushTrigger] Reaction notification updated: ${event.params.notificationId} (count: ${afterCount}, emoji: ${afterEmoji})`);
-        await sendPushToUser(toUid, title, body, payload, { collapseId: reactionCollapseId });
-      } else {
-        console.log(`[PushTrigger] Reaction notification write did not warrant push: ${event.params.notificationId}`);
-      }
+      console.log(`[PushTrigger] Reaction notification updated/re-triggered: ${event.params.notificationId} (isEmoji: ${isEmojiReaction})`);
+      await sendPushToUser(toUid, title, body, payload, { collapseId: reactionCollapseId });
     }
   }
 );
