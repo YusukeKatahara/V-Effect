@@ -922,14 +922,14 @@ exports.onPostCreated = onDocumentCreated(
     const uid = data.userId;
     const taskName = data.taskName;
 
-    // 1. 通知タスクのエンキュー
+    // 1. 通知タスクのエンキュー（バッファタイム: 30秒）
     try {
       const queue = getFunctions().taskQueue("processPostNotifications");
       await queue.enqueue(
         { postId, uid },
-        { scheduleDelaySeconds: 60 }
+        { scheduleDelaySeconds: 30 }
       );
-      console.log(`Enqueued processPostNotifications for post ${postId}`);
+      console.log(`Enqueued processPostNotifications for post ${postId} with 30s delay`);
     } catch (error) {
       console.error("Failed to enqueue processPostNotifications:", error);
     }
