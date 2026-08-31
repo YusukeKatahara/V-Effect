@@ -441,10 +441,19 @@ class FriendService {
     });
   }
 
-  /// UIDでユーザーを1件取得します
+  final Map<String, AppUser> _userCache = {};
+
+  /// UIDでユーザーを1件取得します（インメモリキャッシュ対応）
   Future<AppUser?> getUserByUid(String uid) async {
+    if (_userCache.containsKey(uid)) {
+      return _userCache[uid];
+    }
     final snap = await _usersRef.doc(uid).get();
-    return snap.data();
+    final user = snap.data();
+    if (user != null) {
+      _userCache[uid] = user;
+    }
+    return user;
   }
 
   /// 指定UIDのフレンド（相互フォローまたはfriendsリスト）を一括取得します

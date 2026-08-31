@@ -442,8 +442,8 @@ class _AdminBadgeDistributeDialogState extends State<_AdminBadgeDistributeDialog
       
       if (targetUsersText.isNotEmpty) {
         final targetUserIds = targetUsersText.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-        for (var i = 0; i < targetUserIds.length; i += 10) {
-          final end = (i + 10 < targetUserIds.length) ? i + 10 : targetUserIds.length;
+        for (var i = 0; i < targetUserIds.length; i += 30) {
+          final end = (i + 30 < targetUserIds.length) ? i + 30 : targetUserIds.length;
           final chunk = targetUserIds.sublist(i, end);
           final snap = await db.collection('users').where('userId', whereIn: chunk).get();
           targetDocs.addAll(snap.docs);

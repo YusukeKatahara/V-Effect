@@ -1,25 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../config/app_colors.dart';
+import '../../../providers/rescue_achieved_provider.dart';
 
 /// カード外上部に配置される、下向きポインター（先端）付きのパルス発光救済吹き出しバッジ
-class RescueSpeechBubble extends StatefulWidget {
+class RescueSpeechBubble extends ConsumerStatefulWidget {
+  final String postId;
   final int currentCount;
   final int targetCount;
 
   const RescueSpeechBubble({
     super.key,
+    required this.postId,
     this.currentCount = 0,
     this.targetCount = 150,
   });
 
   @override
-  State<RescueSpeechBubble> createState() => _RescueSpeechBubbleState();
+  ConsumerState<RescueSpeechBubble> createState() => _RescueSpeechBubbleState();
 }
 
-class _RescueSpeechBubbleState extends State<RescueSpeechBubble>
+class _RescueSpeechBubbleState extends ConsumerState<RescueSpeechBubble>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
+  bool _wasSeenAtMount = false;
 
   @override
   void initState() {
@@ -27,7 +32,46 @@ class _RescueSpeechBubbleState extends State<RescueSpeechBubble>
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
+    );
+
+    // マウント時点で表示済み（過去に一度以上達成表示を見た）かどうかを判定
+    final isAlreadySeen = ref.read(rescueAchievedProvider).contains(widget.postId);
+    _wasSeenAtMount = isAlreadySeen;
+
+    final isAchieved = widget.currentCount >= widget.targetCount;
+    if (isAchieved) {
+      if (!_wasSeenAtMount) {
+        // 初回達成表示なので、次回以降の表示で消えるように既読フラグを保存
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ref.read(rescueAchievedProvider.notifier).markAsSeen(widget.postId);
+          }
+        });
+        _pulseController.repeat(reverse: true);
+      }
+    } else {
+      // 未達成（カウントダウン中）はパルスアニメーションを開始
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant RescueSpeechBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final isAchieved = widget.currentCount >= widget.targetCount;
+    final wasAchieved = oldWidget.currentCount >= widget.targetCount;
+
+    // 画面上で未達成から達成（150以上）に切り替わった場合
+    if (isAchieved && !wasAchieved && !_wasSeenAtMount) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(rescueAchievedProvider.notifier).markAsSeen(widget.postId);
+        }
+      });
+      if (!_pulseController.isAnimating) {
+        _pulseController.repeat(reverse: true);
+      }
+    }
   }
 
   @override
@@ -39,6 +83,12 @@ class _RescueSpeechBubbleState extends State<RescueSpeechBubble>
   @override
   Widget build(BuildContext context) {
     final isAchieved = widget.currentCount >= widget.targetCount;
+
+    // 救済達成 かつ マウント時点で表示済み（2回目以降の表示）の場合は非表示
+    if (isAchieved && _wasSeenAtMount) {
+      return const SizedBox.shrink();
+    }
+
     final remaining = (widget.targetCount - widget.currentCount).clamp(0, widget.targetCount);
 
     final borderColor = isAchieved ? AppColors.accentGold : Colors.redAccent;

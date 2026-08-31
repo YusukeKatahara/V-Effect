@@ -1587,10 +1587,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final cardWidth = constraints.maxWidth * 0.85;
+            final cardWidth = constraints.maxWidth * 0.94;
             final cardHeight = cardWidth * (16 / 9);
-            final maxCardHeight = (constraints.maxHeight - 40).clamp(0.0, cardHeight);
-            final finalCardWidth = maxCardHeight * (9 / 16);
+            final maxCardHeight = (constraints.maxHeight - 16).clamp(0.0, cardHeight);
+            final finalCardWidth = (maxCardHeight * (9 / 16)).clamp(0.0, constraints.maxWidth * 0.94);
 
             return GestureDetector(
               onVerticalDragUpdate: _onVerticalDragUpdate,
@@ -1732,17 +1732,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                             decoration: BoxDecoration(
-                                              color: Colors.black.withValues(alpha: 0.7),
-                                              borderRadius: BorderRadius.circular(12),
+                                              color: Colors.black.withValues(alpha: 0.65),
+                                              borderRadius: BorderRadius.circular(14),
                                               border: Border.all(
-                                                color: Colors.white.withValues(alpha: 0.1),
-                                                width: 0.5,
+                                                color: Colors.white.withValues(alpha: 0.16),
+                                                width: 0.8,
                                               ),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.3),
+                                                  color: Colors.black.withValues(alpha: 0.35),
                                                   blurRadius: 10,
-                                                  offset: const Offset(0, 4),
+                                                  offset: const Offset(0, 3),
                                                 ),
                                               ],
                                             ),
@@ -2113,10 +2113,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (smoothDepth > 3) return const SizedBox.shrink(); // パフォーマンス最適化
 
     final double scale = (1.0 - smoothDepth * 0.05 * _spreadFactor).clamp(0.8, 1.0);
-    final double offsetY = smoothDepth * -20.0 * _spreadFactor;
-    final double offsetX = relativePos * cardWidth * 1.2 * _spreadFactor;
+    final double offsetY = smoothDepth * -18.0 * _spreadFactor;
+    final double offsetX = relativePos * cardWidth * 1.06 * _spreadFactor;
     final double dimAlpha = (smoothDepth * 0.2 * _spreadFactor).clamp(0.0, 0.6);
-    final double rotateZ = relativePos * 0.1 * _spreadFactor;
+    final double rotateZ = relativePos * 0.07 * _spreadFactor;
 
     final item = _feedItems[index];
 
@@ -2155,7 +2155,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     child: IgnorePointer(
                       child: Container(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24),
+                          borderRadius: BorderRadius.circular(28),
                           gradient: LinearGradient(
                             colors: [
                               AppColors.white.withValues(alpha: 0.0),

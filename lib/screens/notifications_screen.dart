@@ -349,6 +349,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     try {
       // 🚀 【動的マージ対応】シーズンタスクを処理済み（非表示）にマークします
       await ref.read(userServiceProvider).markSeasonTaskAsProcessed(notif.relatedId!);
+      NotificationService.instance.invalidateSeasonCache();
       
       if (mounted) {
         setState(() {});

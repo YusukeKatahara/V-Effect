@@ -167,28 +167,28 @@ class PushNotificationService {
       final myUid = currentUser.uid;
       final threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
 
-      // 3日以内の未読通知数を取得（インデックス不要のクエリで取得し、メモリ上で絞り込み）
-      final snap = await _db
-          .collection('notifications')
-          .where('toUid', isEqualTo: myUid)
-          .where('isRead', isEqualTo: false)
-          .get();
-
+      // count() Aggregation クエリで高速・低通信量に未読数を取得
       int unreadCount = 0;
-      for (final doc in snap.docs) {
-        final data = doc.data();
-        final createdAtRaw = data['createdAt'];
-        final DateTime? createdAt = createdAtRaw is Timestamp
-            ? createdAtRaw.toDate()
-            : null;
-        final String? type = data['type'] as String?;
-
-        final isSeasonPushOnly = type == NotificationType.seasonTaskReceived.name ||
-            type == NotificationType.seasonTaskPushOnly.name;
-        final isWithinThreeDays = createdAt != null && createdAt.isAfter(threeDaysAgo);
-
-        if (isWithinThreeDays && !isSeasonPushOnly) {
-          unreadCount++;
+      try {
+        final countSnap = await _db
+            .collection('notifications')
+            .where('toUid', isEqualTo: myUid)
+            .where('isRead', isEqualTo: false)
+            .where('createdAt', isGreaterThanOrEqualTo: threeDaysAgo)
+            .count()
+            .get();
+        unreadCount = countSnap.count ?? 0;
+      } catch (_) {
+        try {
+          final fallbackSnap = await _db
+              .collection('notifications')
+              .where('toUid', isEqualTo: myUid)
+              .where('isRead', isEqualTo: false)
+              .count()
+              .get();
+          unreadCount = fallbackSnap.count ?? 0;
+        } catch (e) {
+          debugPrint('count query error: $e');
         }
       }
 

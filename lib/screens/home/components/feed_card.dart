@@ -58,7 +58,7 @@ class FeedCard extends StatelessWidget {
 
     final cardWidget = Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.6),
@@ -74,7 +74,7 @@ class FeedCard extends StatelessWidget {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -451,7 +451,7 @@ class FeedCard extends StatelessWidget {
               child: IgnorePointer(
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(28),
                     border: Border.all(
                       color: isTop
                           ? AppColors.accentGold.withValues(alpha: 0.8)
@@ -479,7 +479,10 @@ class FeedCard extends StatelessWidget {
             child: Consumer(
               builder: (context, ref, _) {
                 final count = ref.watch(vfireProvider.select((state) => state.getAdjustedReactionCount(post)));
-                return RescueSpeechBubble(currentCount: count);
+                return RescueSpeechBubble(
+                  postId: post.id,
+                  currentCount: count,
+                );
               },
             ),
           ),

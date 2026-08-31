@@ -68,6 +68,24 @@ class NotificationService {
     await _notificationsRef.add(notification);
   }
 
+  // シーズン情報のインメモリキャッシュ
+  List<QueryDocumentSnapshot<Map<String, dynamic>>>? _cachedSeasons;
+  DateTime? _seasonsCacheTime;
+  static const Duration _seasonsCacheTtl = Duration(minutes: 5);
+
+  // ユーザーの処理済みシーズンタスクIDキャッシュ
+  List<String>? _cachedProcessedSeasonTaskIds;
+  DateTime? _processedIdsCacheTime;
+  static const Duration _processedIdsCacheTtl = Duration(minutes: 1);
+
+  /// シーズン関連のキャッシュを明示的にクリア（シーズンタスク処理時など）
+  void invalidateSeasonCache() {
+    _cachedSeasons = null;
+    _seasonsCacheTime = null;
+    _cachedProcessedSeasonTaskIds = null;
+    _processedIdsCacheTime = null;
+  }
+
   Stream<List<AppNotification>> getMyNotifications() {
     final myUid = _auth.currentUser?.uid;
     if (myUid == null) return Stream.value([]);
@@ -86,42 +104,64 @@ class NotificationService {
           })
           .toList();
 
-      // --- ここからシーズンタスク動的マージ処理 ---
+      // --- ここからシーズンタスク動的マージ処理（キャッシュ利用で高速化） ---
       try {
-        final userDoc = await _db.collection('users').doc(myUid).get();
-        if (userDoc.exists) {
-          final userData = userDoc.data()!;
-          final processedSeasonTaskIds = (userData['processedSeasonTaskIds'] as List?)?.map((e) => e.toString()).toList() ?? [];
-          final now = DateTime.now();
+        final now = DateTime.now();
 
-          // 開催中のシーズンを取得
+        // 1. 処理済みシーズンタスクIDをキャッシュ付きで取得
+        List<String> processedSeasonTaskIds = _cachedProcessedSeasonTaskIds ?? [];
+        if (_cachedProcessedSeasonTaskIds == null ||
+            _processedIdsCacheTime == null ||
+            now.difference(_processedIdsCacheTime!) > _processedIdsCacheTtl) {
+          final userDoc = await _db.collection('users').doc(myUid).get();
+          if (userDoc.exists) {
+            final userData = userDoc.data();
+            if (userData != null) {
+              processedSeasonTaskIds = (userData['processedSeasonTaskIds'] as List?)
+                      ?.map((e) => e.toString())
+                      .toList() ??
+                  [];
+              _cachedProcessedSeasonTaskIds = processedSeasonTaskIds;
+              _processedIdsCacheTime = now;
+            }
+          }
+        }
+
+        // 2. 開催中シーズンをキャッシュ付きで取得
+        List<QueryDocumentSnapshot<Map<String, dynamic>>> seasonsDocs = _cachedSeasons ?? [];
+        if (_cachedSeasons == null ||
+            _seasonsCacheTime == null ||
+            now.difference(_seasonsCacheTime!) > _seasonsCacheTtl) {
           final seasonsSnap = await _db
               .collection('seasons')
               .where('startDate', isLessThanOrEqualTo: now)
               .get();
+          seasonsDocs = seasonsSnap.docs;
+          _cachedSeasons = seasonsDocs;
+          _seasonsCacheTime = now;
+        }
 
-          for (final seasonDoc in seasonsSnap.docs) {
-            final seasonData = seasonDoc.data();
-            final endDate = (seasonData['endDate'] as Timestamp?)?.toDate();
-            
-            // まだ処理されておらず、期間内（または endDate がない）のもの
-            if (!processedSeasonTaskIds.contains(seasonDoc.id) && 
-                (endDate == null || now.isBefore(endDate))) {
-              final taskName = seasonData['taskName'] as String? ?? 'シーズンタスク';
-              
-              list.add(AppNotification(
-                id: 'season_${seasonDoc.id}', // 疑似的なID
-                toUid: myUid,
-                type: NotificationType.seasonTaskDistributed,
-                title: '期間限定タスク',
-                body: '期間限定タスク「$taskName」が追加されました。',
-                relatedId: seasonDoc.id, // seasonIdを持たせる
-                isRead: false,
-                isProcessed: false,
-                sendPush: false,
-                createdAt: (seasonData['startDate'] as Timestamp).toDate(),
-              ));
-            }
+        for (final seasonDoc in seasonsDocs) {
+          final seasonData = seasonDoc.data();
+          final endDate = (seasonData['endDate'] as Timestamp?)?.toDate();
+
+          // まだ処理されておらず、期間内（または endDate がない）のもの
+          if (!processedSeasonTaskIds.contains(seasonDoc.id) &&
+              (endDate == null || now.isBefore(endDate))) {
+            final taskName = seasonData['taskName'] as String? ?? 'シーズンタスク';
+
+            list.add(AppNotification(
+              id: 'season_${seasonDoc.id}', // 疑似的なID
+              toUid: myUid,
+              type: NotificationType.seasonTaskDistributed,
+              title: '期間限定タスク',
+              body: '期間限定タスク「$taskName」が追加されました。',
+              relatedId: seasonDoc.id, // seasonIdを持たせる
+              isRead: false,
+              isProcessed: false,
+              sendPush: false,
+              createdAt: (seasonData['startDate'] as Timestamp).toDate(),
+            ));
           }
         }
       } catch (e) {

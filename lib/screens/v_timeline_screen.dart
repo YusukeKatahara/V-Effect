@@ -508,10 +508,10 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen>
     if (smoothDepth > 3) return const SizedBox.shrink(); // 描画パフォーマンス最適化
 
     final double scale = (1.0 - smoothDepth * 0.05).clamp(0.8, 1.0);
-    final double offsetY = smoothDepth * -20.0;
-    final double offsetX = relativePos * cardWidth * 1.2;
+    final double offsetY = smoothDepth * -18.0;
+    final double offsetX = relativePos * cardWidth * 1.06;
     final double dimAlpha = (smoothDepth * 0.2).clamp(0.0, 0.6);
-    final double rotateZ = relativePos * 0.1;
+    final double rotateZ = relativePos * 0.07;
 
     final item = _feedItems[index];
 
@@ -653,10 +653,10 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen>
                   padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top + 60),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final cardWidth = constraints.maxWidth * 0.85;
+                      final cardWidth = constraints.maxWidth * 0.94;
                       final cardHeight = cardWidth * (16 / 9);
-                      final maxCardHeight = (constraints.maxHeight - 40).clamp(0.0, cardHeight);
-                      final finalCardWidth = maxCardHeight * (9 / 16);
+                      final maxCardHeight = (constraints.maxHeight - 16).clamp(0.0, cardHeight);
+                      final finalCardWidth = (maxCardHeight * (9 / 16)).clamp(0.0, constraints.maxWidth * 0.94);
 
                       return GestureDetector(
                         behavior: HitTestBehavior.translucent,

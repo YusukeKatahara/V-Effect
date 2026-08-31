@@ -84,29 +84,29 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}, options = {}
   const threeDaysAgo = new Date();
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-  // 宛先ユーザーの未読通知数を取得（インデックス不要の単一クエリ）
-  let unreadCount = 0;
+  // 宛先ユーザーの未読通知数を高速・低コストに取得（count() Aggregation Query）
+  let unreadCount = 1;
   try {
-    const unreadSnap = await db.collection("notifications")
+    const unreadCountSnap = await db.collection("notifications")
         .where("toUid", "==", toUid)
         .where("isRead", "==", false)
+        .where("createdAt", ">=", threeDaysAgo)
+        .count()
         .get();
-
-    unreadSnap.forEach((doc) => {
-      const data = doc.data();
-      const createdAt = data.createdAt ? data.createdAt.toDate() : null;
-      const t = data.type;
-      
-      const isSeasonPushOnly = t === "seasonTaskReceived" || t === "seasonTaskPushOnly";
-      const isWithinThreeDays = createdAt && createdAt >= threeDaysAgo;
-      
-      if (isWithinThreeDays && !isSeasonPushOnly) {
-        unreadCount++;
-      }
-    });
+    unreadCount = Math.max(unreadCountSnap.data().count, 1);
   } catch (error) {
-    console.error(`Error calculating unread notification count for ${toUid}:`, error);
-    unreadCount = 1;
+    // 複合インデックス未構築時やエラー時は単一フィールドの count() でフォールバック
+    try {
+      const fallbackSnap = await db.collection("notifications")
+          .where("toUid", "==", toUid)
+          .where("isRead", "==", false)
+          .count()
+          .get();
+      unreadCount = Math.max(fallbackSnap.data().count, 1);
+    } catch (e) {
+      console.error(`Error calculating unread notification count for ${toUid}:`, e);
+      unreadCount = 1;
+    }
   }
 
   // FCMの仕様上、すべてのカスタムデータは文字列である必要があります
@@ -1024,6 +1024,7 @@ exports.processPostNotifications = onTaskDispatched(
     }
 
     const postData = postSnap.data();
+    const postTaskName = postData.taskName || "クエスト";
     
     // 有効期限が切れている場合は除外
     const now = new Date();
@@ -1388,6 +1389,8 @@ exports.processPostNotifications = onTaskDispatched(
     }
 
     let hasWrites = false;
+    const directPushPromises = [];
+
     friends.forEach((friendUid) => {
       // 既に直近2分以内に同一フレンドへ通知が送信されていた場合はスキップ（二重投稿・重複タスクの二重通知防止）
       if (recentNotifFriendMap[friendUid]) {
@@ -1435,6 +1438,7 @@ exports.processPostNotifications = onTaskDispatched(
         finalBody = normalContent.body;
       }
 
+      // Firestore には通知レコードを保存（sendPush: false で保存してトリガーの多重起動を防止）
       batch.set(notifRef, {
         toUid: friendUid,
         fromUid: uid,
@@ -1442,17 +1446,33 @@ exports.processPostNotifications = onTaskDispatched(
         relatedId: postId,
         title: finalTitle,
         body: finalBody,
-        sendPush: true,
+        sendPush: false,
         isRead: false,
         isTopRunner: false,
         createdAt: FieldValue.serverTimestamp(),
       });
       hasWrites = true;
+
+      // 多段階リレーをスキップし、この場で直接 FCM プッシュ通知を並列送信
+      directPushPromises.push(
+        sendPushToUser(
+          friendUid,
+          finalTitle,
+          finalBody,
+          {
+            type: finalType,
+            relatedId: postId,
+            fromUid: uid,
+          },
+          { collapseId: `${finalType}_${postId}` }
+        )
+      );
     });
 
     if (hasWrites) {
       await batch.commit();
-      console.log(`Sent notifications for post ${postId} (index: ${todayPostCount}) to friends.`);
+      await Promise.all(directPushPromises);
+      console.log(`Sent notifications and direct push for post ${postId} (index: ${todayPostCount}) to ${directPushPromises.length} friends.`);
     } else {
       console.log(`No new notifications needed for post ${postId} (all deduplicated or empty).`);
     }

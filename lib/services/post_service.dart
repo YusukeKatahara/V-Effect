@@ -648,7 +648,7 @@ class PostService {
       return;
     }
 
-    final limitedFriends = friends.take(10).toList();
+    final limitedFriends = friends.take(30).toList();
 
     yield* _postsRef
         .where(Post.fieldUserId, whereIn: limitedFriends)
@@ -1008,12 +1008,13 @@ class PostService {
 
     if (targetUids.isEmpty) return [];
 
-    // Firestoreの `in` クエリは最大10件までの制限があるため、10件ごとに分割
+    // Firestore の whereIn は最大30件までのため、30件ずつのチャンクに分割して一括取得
+    const int chunkSize = 30;
     final List<Future<QuerySnapshot>> futures = [];
-    for (var i = 0; i < targetUids.length; i += 10) {
+    for (var i = 0; i < targetUids.length; i += chunkSize) {
       final chunk = targetUids.sublist(
         i,
-        i + 10 > targetUids.length ? targetUids.length : i + 10,
+        i + chunkSize > targetUids.length ? targetUids.length : i + chunkSize,
       );
       futures.add(
         _db

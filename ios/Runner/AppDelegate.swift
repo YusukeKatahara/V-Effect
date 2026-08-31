@@ -6,20 +6,27 @@ import google_mobile_ads
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
+  lazy var flutterEngine = FlutterEngine(name: "veffect_flutter_engine")
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    flutterEngine.run()
+    GeneratedPluginRegistrant.register(with: self.flutterEngine)
+
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
     }
-    
-    let controller : FlutterViewController = window?.rootViewController as! FlutterViewController
-    let channel = FlutterMethodChannel(name: "com.veffect.app/live_activity", binaryMessenger: controller.binaryMessenger)
-    
+
+    let channel = FlutterMethodChannel(
+      name: "com.veffect.app/live_activity",
+      binaryMessenger: flutterEngine.binaryMessenger
+    )
+
     channel.setMethodCallHandler({
       [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
-      
+
       switch call.method {
       case "startActivity":
         if #available(iOS 16.2, *) {
@@ -31,15 +38,15 @@ import google_mobile_ads
             result(FlutterError(code: "INVALID_ARGUMENT", message: "Arguments missing", details: nil))
             return
           }
-          
+
           let imageBytesData = args["imageBytes"] as? FlutterStandardTypedData
           let data = imageBytesData?.data
-          
+
           self?.startLiveActivity(taskName: taskName, progress: progress, status: status, statusMessage: statusMessage, imageBytes: data, result: result)
         } else {
           result(FlutterError(code: "UNSUPPORTED_PLATFORM", message: "iOS 16.1 or higher is required", details: nil))
         }
-        
+
       case "updateActivity":
         if #available(iOS 16.2, *) {
           guard let args = call.arguments as? [String: Any],
@@ -53,7 +60,7 @@ import google_mobile_ads
         } else {
           result(FlutterError(code: "UNSUPPORTED_PLATFORM", message: "iOS 16.1 or higher is required", details: nil))
         }
-        
+
       case "stopActivity":
         if #available(iOS 16.2, *) {
           guard let args = call.arguments as? [String: Any],
@@ -67,14 +74,12 @@ import google_mobile_ads
         } else {
           result(FlutterError(code: "UNSUPPORTED_PLATFORM", message: "iOS 16.1 or higher is required", details: nil))
         }
-        
+
       default:
         result(FlutterMethodNotImplemented)
       }
     })
-    
-    GeneratedPluginRegistrant.register(with: self)
-    
+
     // カスタム広告ファクトリを "customNativeAd" というIDで登録
     let factory = MyNativeAdFactory()
     FLTGoogleMobileAdsPlugin.registerNativeAdFactory(
@@ -82,8 +87,16 @@ import google_mobile_ads
         factoryId: "customNativeAd",
         nativeAdFactory: factory
     )
-    
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  override func application(
+    _ application: UIApplication,
+    configurationForConnecting connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
   }
 
   // MARK: - Live Activity Management
