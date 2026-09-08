@@ -1,14 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
-/// リアクションの種類
-enum ReactionType {
-  /// 通常の炎 (VFIRE) - 連打可能、Firestore では reactionCount として記録
-  flame,
-  /// 絵文字リアクション - ユーザーごとに1種類まで
-  emoji,
-}
-
 /// Firestore の posts コレクションに対応するデータモデル
 class Post {
   final String id;
@@ -281,14 +273,5 @@ class Post {
       isSecret: isSecret ?? this.isSecret,
       isPublic: isPublic ?? this.isPublic,
     );
-  }
-
-  /// 期限までの残り時間を日本語テキストで返します
-  String get remainingText {
-    final remaining = expiresAt.difference(DateTime.now());
-    if (remaining.isNegative) return '期限切れ';
-    return remaining.inHours > 0
-        ? 'あと${remaining.inHours}時間'
-        : 'あと${remaining.inMinutes}分';
   }
 }

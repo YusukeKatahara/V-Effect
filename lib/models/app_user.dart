@@ -45,7 +45,6 @@ class AppUser {
   final Map<String, DateTime> mutualFires;
 
   // ── フィールド名定数 ──
-  static const String fieldUid = 'uid';
   static const String fieldEmail = 'email';
   static const String fieldUsername = 'username';
   static const String fieldUsernameLower = 'usernameLower';

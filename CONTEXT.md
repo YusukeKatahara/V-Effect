@@ -7,14 +7,23 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-08-23
-- **Activeエージェント:** Antigravity (Gemini 3.7 Flash)
-- **Current Task:** Fix Duplicate Notification Bug (Completed)
-- **Action:** 通知が2件重複して届く・表示される不具合の原因を特定し、クライアント投稿側（連打・多重実行ガード）、Cloud Functions（直近重複通知スキップ）、通知一覧画面（同一内容・近接日時の重複排除Deduplication）の3層防御による根本修正を実施。
+- **Last Updated:** 2026-09-08
+- **Activeエージェント:** Antigravity (Gemini 3.8 Flash)
+- **Current Task:** Implement Instagram Story-Style Post Reply in Direct Chat (Completed)
+- **Action:** 投稿カードの💬アイコンからチャットに遷移した際、Instagramのストーリーズ返信のように対象の投稿写真やタスク名に言及・引用してメッセージを送信・表示できる仕組みを完全実装。
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-09-08 (Antigravity)
+- **Implement Instagram Story-Style Post Reply in Direct Chat (Instagramストーリーズ返信風の投稿言及・引用チャット機能の実装):**
+  - **投稿からの情報引き継ぎ (`home_screen.dart`, `direct_chat_screen.dart`):** タイムライン投稿カードの 💬 アイコンをタップした際、`DirectChatScreenArgs` に投稿ID（`replyPostId`）、写真URL（`replyPostImageUrl`）、タスク名（`replyPostTaskName`）を渡すよう拡張。
+  - **返信プレビューバー (`direct_chat_screen.dart`):** チャット画面遷移時に、入力バー直上に「〇〇の投稿に返信中」プレビューバー（38x38角丸写真サムネイル＋タスク名＋解除×ボタン）を表示し、自動でキーボードを開いて即時入力できるよう改善。
+  - **データモデル＆サービス拡張 (`direct_chat.dart`, `direct_chat_service.dart`):** `DirectChatMessage` に `replyPostId`, `replyPostImageUrl`, `replyPostTaskName` フィールドを追加し、Firestore保存・復元処理を実装。過去の通常メッセージとの完全な後方互換性を担保。
+  - **ストーリーズ返信風吹き出しUI & 拡大モーダル (`direct_chat_screen.dart`):** 返信付きメッセージの吹き出し上部に、「〇〇の投稿に返信しました」（相手側は「あなたの投稿に返信しました」）ヘッダー、角丸12pxの投稿写真（高さ150px）、タスク名バッジ、全画面拡大ヒントを表示し、直下にメッセージテキストを結合。写真をタップすると全画面画像ビューアー（ピンチズーム対応）が開くリッチなUXを実現。
+  - **多言語リソース対応 (`app_ja.arb`, `app_en.arb`):** 日英両言語で必要な返信用文言（`directChatReplyingTo`, `directChatRepliedTo`, `directChatRepliedToYou`, `directChatCancelReply`）を追加し `flutter gen-l10n` を実行。`flutter analyze lib/` にて全静的解析エラーゼロを確認。
+
 
 ### 2026-08-23 (Antigravity)
 - **Fix Duplicate Notification Bug via Defense-in-Depth Architecture (通知重複バグの多層防御による根本改修):**

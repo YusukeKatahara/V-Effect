@@ -10,7 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/vfire_provider.dart';
 import 'rescue_speech_bubble.dart';
 import 'top_runner_badge.dart';
-import '../../../../widgets/v_flame_icon.dart';
+import '../../../widgets/v_flame_icon.dart';
 
 /// フィード画面に表示される各投稿のカード型UIコンポーネント。
 class FeedCard extends StatelessWidget {
@@ -273,7 +273,7 @@ class FeedCard extends StatelessWidget {
               bottom: 0,
               left: 0,
               right: 0,
-              height: 240,
+              height: 250,
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -288,9 +288,9 @@ class FeedCard extends StatelessWidget {
               ),
             ),
 
-            // ユーザー情報とタスク情報 (Zenly-style Thought Bubble)
+            // ユーザー情報とタスク情報 (Zenly-style Thought Bubble / Content Floor)
             Positioned(
-              bottom: 32, // 絶対基準線の起点
+              bottom: 60, // ピルバーの上に美しく寄り添う引き締まった基準線
               left: 20,
               right: 16,
               child: Row(

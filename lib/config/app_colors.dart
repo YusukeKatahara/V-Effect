@@ -10,17 +10,6 @@ class AppColors {
   // ── Absolute Monochrome Constants ─────────────────
   static const Color pureWhite = Color(0xFFFFFFFF);
   static const Color pureBlack = Color(0xFF000000);
-  static const Color lightGrey95 = Color(0xFFF2F2F2);
-  static const Color lightGrey90 = Color(0xFFE6E6E6);
-  static const Color lightGrey85 = Color(0xFFD9D9D9);
-  static const Color lightGrey70 = Color(0xFFB3B3B3);
-  static const Color lightGrey55 = Color(0xFF666666);
-  static const Color lightGrey50 = Color(0xFF808080);
-  static const Color lightGrey30 = Color(0xFF4D4D4D);
-  static const Color darkGrey15 = Color(0xFF262626);
-  static const Color darkGrey20 = Color(0xFF333333);
-  static const Color darkGrey08 = Color(0xFF141414);
-  static const Color darkGrey10 = Color(0xFF1A1A1A);
 
   static ThemeMode _themeMode = ThemeMode.dark;
 

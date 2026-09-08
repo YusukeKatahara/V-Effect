@@ -18,6 +18,12 @@ class DirectChatScreenArgs {
   final String otherName;
   final String? otherPhotoUrl;
   final int? otherStreak;
+  /// 言及・引用元の投稿ID（Instagramストーリーズ返信風UI用）
+  final String? replyPostId;
+  /// 言及・引用元の投稿画像URL
+  final String? replyPostImageUrl;
+  /// 言及・引用元のタスク名
+  final String? replyPostTaskName;
 
   const DirectChatScreenArgs({
     this.chatId,
@@ -25,6 +31,9 @@ class DirectChatScreenArgs {
     required this.otherName,
     this.otherPhotoUrl,
     this.otherStreak,
+    this.replyPostId,
+    this.replyPostImageUrl,
+    this.replyPostTaskName,
   });
 }
 
@@ -48,6 +57,11 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
   late String _chatId;
   bool _isSending = false;
 
+  /// 現在返信対象となっている投稿の情報
+  String? _replyPostId;
+  String? _replyPostImageUrl;
+  String? _replyPostTaskName;
+
   @override
   void initState() {
     super.initState();
@@ -55,9 +69,18 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
     _chatId = widget.args.chatId ??
         DirectChatRoom.generateRoomId(currentUid, widget.args.otherUid);
 
-    // 画面を開いたときに既読処理を実行
+    // 引数から投稿返信情報を受け取る
+    _replyPostId = widget.args.replyPostId;
+    _replyPostImageUrl = widget.args.replyPostImageUrl;
+    _replyPostTaskName = widget.args.replyPostTaskName;
+
+    // 画面を開いたときに既読処理とフォーカスを実行
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _markRead();
+      // 投稿からの返信として開かれた場合は自動で入力欄にフォーカス
+      if (_replyPostImageUrl != null && _replyPostImageUrl!.isNotEmpty) {
+        _focusNode.requestFocus();
+      }
     });
   }
 
@@ -92,7 +115,17 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
         : (userDoc?.username?.isNotEmpty == true ? userDoc!.username! : 'User');
     final myPhoto = userDoc?.photoUrl;
 
-    setState(() => _isSending = true);
+    final currentReplyId = _replyPostId;
+    final currentReplyImageUrl = _replyPostImageUrl;
+    final currentReplyTaskName = _replyPostTaskName;
+
+    setState(() {
+      _isSending = true;
+      // 送信開始時に返信プレビューをクリア
+      _replyPostId = null;
+      _replyPostImageUrl = null;
+      _replyPostTaskName = null;
+    });
     _textController.clear();
     HapticFeedback.lightImpact();
 
@@ -112,6 +145,9 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
               name: widget.args.otherName,
               photoUrl: widget.args.otherPhotoUrl,
             ),
+            replyPostId: currentReplyId,
+            replyPostImageUrl: currentReplyImageUrl,
+            replyPostTaskName: currentReplyTaskName,
           );
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -670,7 +706,110 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
     );
   }
 
-  /// 個別のメッセージ吹き出し（Bubble）
+  /// 投稿画像の全画面プレビューモーダル
+  void _showFullImageModal(BuildContext context, String imageUrl, String? taskName) {
+    HapticFeedback.lightImpact();
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.92),
+      builder: (ctx) => Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            // ピンチズーム可能な画像ビューアー
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4.0,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.contain,
+                  placeholder: (context, url) => Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.accentGold,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Icon(
+                    Icons.broken_image_rounded,
+                    color: AppColors.textMuted,
+                    size: 48,
+                  ),
+                ),
+              ),
+            ),
+
+            // 上部ヘッダー（閉じるボタン & タスク名）
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.close_rounded, color: Colors.white, size: 24),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ),
+                      if (taskName != null && taskName.isNotEmpty) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.accentGold.withValues(alpha: 0.5),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: AppColors.accentGold,
+                                  size: 14,
+                                ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    taskName,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 個別のメッセージ吹き出し（Bubble - Instagramストーリーズ返信対応）
   Widget _buildMessageBubble({
     required BuildContext context,
     required DirectChatMessage message,
@@ -680,6 +819,7 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
   }) {
     final l10n = AppLocalizations.of(context)!;
     final timeStr = DateFormat('HH:mm').format(message.createdAt);
+    final hasReplyPost = message.replyPostImageUrl != null && message.replyPostImageUrl!.isNotEmpty;
 
     // 連続メッセージに応じた吹き出し角丸の計算
     final borderRadius = BorderRadius.only(
@@ -688,6 +828,184 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
       bottomLeft: Radius.circular(isMe ? 18 : (isLastInGroup ? 6 : 6)),
       bottomRight: Radius.circular(isMe ? (isLastInGroup ? 6 : 6) : 18),
     );
+
+    // 吹き出しの中身ウィジェット
+    Widget bubbleContent;
+    if (hasReplyPost) {
+      bubbleContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. ストーリーズ返信コンテキストラベル
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.auto_stories_rounded,
+                  size: 13,
+                  color: isMe
+                      ? Colors.black.withValues(alpha: 0.7)
+                      : AppColors.accentGold,
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    isMe
+                        ? l10n.directChatRepliedTo(widget.args.otherName)
+                        : l10n.directChatRepliedToYou,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isMe
+                          ? Colors.black.withValues(alpha: 0.75)
+                          : AppColors.accentGold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 2. 投稿写真の角丸サムネイルカード（タップで全画面プレビュー）
+          GestureDetector(
+            onTap: () => _showFullImageModal(
+              context,
+              message.replyPostImageUrl!,
+              message.replyPostTaskName,
+            ),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 150,
+                    width: double.infinity,
+                    color: Colors.black26,
+                    child: CachedNetworkImage(
+                      imageUrl: message.replyPostImageUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: AppColors.isDark ? AppColors.grey20 : AppColors.grey85,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: AppColors.isDark ? AppColors.grey20 : AppColors.grey85,
+                        child: Icon(
+                          Icons.broken_image_rounded,
+                          color: AppColors.textMuted,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 写真上のタスク名バッジ
+                if (message.replyPostTaskName != null &&
+                    message.replyPostTaskName!.isNotEmpty)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.accentGold.withValues(alpha: 0.6),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 11,
+                            color: AppColors.accentGold,
+                          ),
+                          const SizedBox(width: 4),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 150),
+                            child: Text(
+                              message.replyPostTaskName!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // 右下の全画面拡大ヒントアイコン
+                Positioned(
+                  bottom: 6,
+                  right: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.fullscreen_rounded,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 3. 返信メッセージテキスト
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              message.text,
+              style: TextStyle(
+                fontSize: 14.5,
+                height: 1.4,
+                color: isMe
+                    ? Colors.black
+                    : (AppColors.isDark ? AppColors.pureWhite : Colors.black87),
+                fontWeight: isMe ? FontWeight.w600 : FontWeight.w400,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      bubbleContent = Text(
+        message.text,
+        style: TextStyle(
+          fontSize: 14.5,
+          height: 1.4,
+          color: isMe
+              ? Colors.black
+              : (AppColors.isDark ? AppColors.pureWhite : Colors.black87),
+          fontWeight: isMe ? FontWeight.w600 : FontWeight.w400,
+          letterSpacing: -0.1,
+        ),
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.only(
@@ -760,7 +1078,7 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
               onLongPress: () => _copyMessage(context, message.text),
               child: Container(
                 constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.72,
+                  maxWidth: MediaQuery.of(context).size.width * (hasReplyPost ? 0.76 : 0.72),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
@@ -782,18 +1100,7 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
                     ),
                   ],
                 ),
-                child: Text(
-                  message.text,
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    height: 1.4,
-                    color: isMe
-                        ? Colors.black
-                        : (AppColors.isDark ? AppColors.pureWhite : Colors.black87),
-                    fontWeight: isMe ? FontWeight.w600 : FontWeight.w400,
-                    letterSpacing: -0.1,
-                  ),
-                ),
+                child: bubbleContent,
               ),
             ),
           ),
@@ -816,6 +1123,114 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
     );
   }
 
+  /// 「投稿への返信」プレビューバー（Instagramストーリーズ返信風）
+  Widget _buildReplyBar(BuildContext context, AppLocalizations l10n) {
+    if (_replyPostImageUrl == null || _replyPostImageUrl!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: AppColors.isDark ? AppColors.grey15 : AppColors.grey10,
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.isDark ? AppColors.grey20 : AppColors.grey70,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // 小さな投稿サムネイル
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: CachedNetworkImage(
+              imageUrl: _replyPostImageUrl!,
+              width: 38,
+              height: 38,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                width: 38,
+                height: 38,
+                color: AppColors.grey20,
+              ),
+              errorWidget: (context, url, error) => Container(
+                width: 38,
+                height: 38,
+                color: AppColors.grey20,
+                child: const Icon(Icons.image_not_supported_rounded, size: 18, color: Colors.white54),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // 返信コンテキスト情報
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.auto_stories_rounded,
+                      size: 13,
+                      color: AppColors.accentGold,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        l10n.directChatReplyingTo(widget.args.otherName),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.accentGold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                if (_replyPostTaskName != null && _replyPostTaskName!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      _replyPostTaskName!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // 返信キャンセルボタン
+          IconButton(
+            icon: Icon(
+              Icons.close_rounded,
+              color: AppColors.textSecondary,
+              size: 20,
+            ),
+            tooltip: l10n.directChatCancelReply,
+            onPressed: () {
+              setState(() {
+                _replyPostId = null;
+                _replyPostImageUrl = null;
+                _replyPostTaskName = null;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 下部テキスト入力バー（Composer）
   Widget _buildMessageComposer(BuildContext context, AppLocalizations l10n) {
     return Container(
@@ -830,101 +1245,109 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
       ),
       child: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // テキスト入力欄
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.isDark ? AppColors.grey10 : AppColors.grey05,
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: AppColors.isDark ? AppColors.grey20 : AppColors.grey70,
-                      width: 0.8,
-                    ),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                  child: TextField(
-                    controller: _textController,
-                    focusNode: _focusNode,
-                    maxLength: 500,
-                    maxLines: 4,
-                    minLines: 1,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      color: AppColors.textPrimary,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: l10n.directChatInputHint,
-                      hintStyle: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textMuted,
-                      ),
-                      filled: false,
-                      fillColor: Colors.transparent,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      isDense: true,
-                      counterText: '',
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 返信中の投稿プレビューバー
+            _buildReplyBar(context, l10n),
 
-              // 送信ボタン（入力文字の有無で動的にスタイル変化）
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _textController,
-                  builder: (context, value, child) {
-                    final hasText = value.text.trim().isNotEmpty;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      width: 36,
-                      height: 36,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // テキスト入力欄
+                  Expanded(
+                    child: Container(
                       decoration: BoxDecoration(
-                        color: hasText
-                            ? AppColors.accentGold
-                            : (AppColors.isDark ? AppColors.grey20 : AppColors.grey20),
-                        shape: BoxShape.circle,
-                        boxShadow: hasText
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.accentGold.withValues(alpha: 0.35),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.arrow_upward_rounded,
-                          color: hasText
-                              ? Colors.black
-                              : (AppColors.isDark ? AppColors.grey50 : AppColors.grey50),
-                          size: 20,
+                        color: AppColors.isDark ? AppColors.grey10 : AppColors.grey05,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: AppColors.isDark ? AppColors.grey20 : AppColors.grey70,
+                          width: 0.8,
                         ),
-                        onPressed: (_isSending || !hasText) ? null : _sendMessage,
-                        padding: EdgeInsets.zero,
                       ),
-                    );
-                  },
-                ),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                      child: TextField(
+                        controller: _textController,
+                        focusNode: _focusNode,
+                        maxLength: 500,
+                        maxLines: 4,
+                        minLines: 1,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: l10n.directChatInputHint,
+                          hintStyle: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textMuted,
+                          ),
+                          filled: false,
+                          fillColor: Colors.transparent,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          focusedErrorBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          isDense: true,
+                          counterText: '',
+                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // 送信ボタン（入力文字の有無で動的にスタイル変化）
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _textController,
+                      builder: (context, value, child) {
+                        final hasText = value.text.trim().isNotEmpty;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: hasText
+                                ? AppColors.accentGold
+                                : (AppColors.isDark ? AppColors.grey20 : AppColors.grey20),
+                            shape: BoxShape.circle,
+                            boxShadow: hasText
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.accentGold.withValues(alpha: 0.35),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.arrow_upward_rounded,
+                              color: hasText
+                                  ? Colors.black
+                                  : (AppColors.isDark ? AppColors.grey50 : AppColors.grey50),
+                              size: 20,
+                            ),
+                            onPressed: (_isSending || !hasText) ? null : _sendMessage,
+                            padding: EdgeInsets.zero,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

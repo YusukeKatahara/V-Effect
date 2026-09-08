@@ -4720,6 +4720,30 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'コピー'**
   String get directChatCopy;
+
+  /// No description provided for @directChatReplyingTo.
+  ///
+  /// In ja, this message translates to:
+  /// **'{name}の投稿に返信中'**
+  String directChatReplyingTo(String name);
+
+  /// No description provided for @directChatRepliedTo.
+  ///
+  /// In ja, this message translates to:
+  /// **'{name}の投稿に返信しました'**
+  String directChatRepliedTo(String name);
+
+  /// No description provided for @directChatRepliedToYou.
+  ///
+  /// In ja, this message translates to:
+  /// **'あなたの投稿に返信しました'**
+  String get directChatRepliedToYou;
+
+  /// No description provided for @directChatCancelReply.
+  ///
+  /// In ja, this message translates to:
+  /// **'返信をキャンセル'**
+  String get directChatCancelReply;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

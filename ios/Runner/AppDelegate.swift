@@ -83,7 +83,7 @@ import google_mobile_ads
     // カスタム広告ファクトリを "customNativeAd" というIDで登録
     let factory = MyNativeAdFactory()
     FLTGoogleMobileAdsPlugin.registerNativeAdFactory(
-        self,
+        flutterEngine,
         factoryId: "customNativeAd",
         nativeAdFactory: factory
     )

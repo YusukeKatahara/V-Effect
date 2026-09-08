@@ -1121,6 +1121,24 @@
   "directChatToday": "Today",
   "directChatYesterday": "Yesterday",
   "directChatRead": "Read",
-  "directChatCopy": "Copy"
+  "directChatCopy": "Copy",
+  "directChatReplyingTo": "Replying to {name}'s post",
+  "@directChatReplyingTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "directChatRepliedTo": "Replied to {name}'s post",
+  "@directChatRepliedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "directChatRepliedToYou": "Replied to your post",
+  "directChatCancelReply": "Cancel reply"
 }
 

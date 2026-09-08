@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../config/app_colors.dart';
-import '../../../../widgets/v_flame_icon.dart';
+import '../../../widgets/v_flame_icon.dart';
 
 /// 連打したときに画面下部から炎が浮かび上がるエフェクトレイヤー。
 class FloatingFlamesLayer extends StatefulWidget {

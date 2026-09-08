@@ -1121,7 +1121,25 @@
   "directChatToday": "今日",
   "directChatYesterday": "昨日",
   "directChatRead": "既読",
-  "directChatCopy": "コピー"
+  "directChatCopy": "コピー",
+  "directChatReplyingTo": "{name}の投稿に返信中",
+  "@directChatReplyingTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "directChatRepliedTo": "{name}の投稿に返信しました",
+  "@directChatRepliedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "directChatRepliedToYou": "あなたの投稿に返信しました",
+  "directChatCancelReply": "返信をキャンセル"
 }
 
 

@@ -2448,4 +2448,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get directChatCopy => 'Copy';
+
+  @override
+  String directChatReplyingTo(String name) {
+    return 'Replying to $name\'s post';
+  }
+
+  @override
+  String directChatRepliedTo(String name) {
+    return 'Replied to $name\'s post';
+  }
+
+  @override
+  String get directChatRepliedToYou => 'Replied to your post';
+
+  @override
+  String get directChatCancelReply => 'Cancel reply';
 }

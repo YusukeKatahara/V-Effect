@@ -362,7 +362,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ),
     );
     _nativeAds[globalIndex] = ad;
-    ad.load();
+    try {
+      ad.load().catchError((error) {
+        debugPrint('NativeAd load error at globalIndex $globalIndex: $error');
+        if (mounted) {
+          setState(() {
+            _adLoadStatus[globalIndex] = false;
+          });
+        }
+      });
+    } catch (e) {
+      debugPrint('NativeAd sync load error at globalIndex $globalIndex: $e');
+      if (mounted) {
+        setState(() {
+          _adLoadStatus[globalIndex] = false;
+        });
+      }
+    }
 
     // 新しい広告がロードされた際にもクリーンアップを走らせる
     _cleanupRemoteAds(_focusedGlobalIndex);
@@ -1490,6 +1506,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
               ),
             ),
+
+          // 7. Weekly Review & アナウンスメント 浮遊HUDレイヤー
+          Positioned(
+            top: MediaQuery.paddingOf(context).top + 52.0,
+            left: 12,
+            right: 12,
+            child: AnnouncementArea(onOpenWeeklyReview: _openWeeklyReview),
+          ),
         ],
       ),
     ));
@@ -1500,12 +1524,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// プロバイダーの AsyncValue に依存しないため、リフレッシュ中もちらつかない。
   Widget _buildMainContent(UploadState uploadState) {
     return SafeArea(
+      bottom: false, // 下部の不要な強制マージンを解除し、Vタイムラインとカード位置・サイズを完全同期
       child: Column(
         children: [
           const UploadProgressBar(), // 最上部にアップロード進捗バーを表示
           _buildTitleBar(),
           const FriendRequestBanner(),
-          AnnouncementArea(onOpenWeeklyReview: _openWeeklyReview),
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 800),
@@ -1796,9 +1820,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   ),
                                 ),
 
-                          // 2. アバタータップエリア (中心をVFIREと合わせる: bottom 32 + text 16 + gap 16 + avatar 40 = 104 -> center 84)
+                          // 2. アバタータップエリア (中心をVFIREと合わせる: bottom 60 + text 16 + gap 16 + avatar 40 = 132 -> center 112)
                           Positioned(
-                            bottom: 32,
+                            bottom: 60,
                             left: 20,
                             width: 60,
                             height: 72,
@@ -1825,7 +1849,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           // 拡張リアクション エモジピルズ
                           if (item is Post && _reactionMenuOpen)
                             Positioned(
-                              bottom: 112, // 絵文字ボタンの中心高さに合わせる
+                              bottom: 140, // 絵文字ボタンの中心高さに合わせる
                               right: 68, // 絵文字ボタン(right 16 + width 48) + 余白(4) = 68 から左へ展開
                               child: AnimatedOpacity(
                                 opacity: _reactionMenuOpen ? 1.0 : 0.0,
@@ -1888,7 +1912,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           // 絵文字＋ボタンのコーチマーク（初回のみ）
                           if (item is Post && _showSwipeGuide && !alreadyReacted)
                             Positioned(
-                              bottom: 160,
+                              bottom: 188,
                               right: 16,
                               child: IgnorePointer(
                                 child: AnimatedBuilder(
@@ -1943,7 +1967,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           // 💬 ダイレクトメッセージ（DM）ボタン (最上段: 3段目, Instagramスタイル: 枠なし+影)
                           if (item is Post)
                             Positioned(
-                              bottom: 162,
+                              bottom: 190,
                               right: 16,
                               width: 48,
                               height: 48,
@@ -1978,7 +2002,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           // ＋ または ✓ トグルボタン (中段: 2段目, Instagramスタイル: 枠なし+影)
                           if (item is Post)
                             Positioned(
-                            bottom: 106,
+                            bottom: 134,
                             right: 16,
                             width: 48,
                             height: 48,
@@ -2031,7 +2055,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           // V Fire ボタン (最下段: 1段目, Instagramスタイル)
                           if (item is Post)
                             Positioned(
-                              bottom: 24,
+                              bottom: 52,
                               right: 16,
                               width: 48,
                               height: 80,
@@ -2267,6 +2291,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         otherName: username,
         otherPhotoUrl: photoUrl,
         otherStreak: streak,
+        replyPostId: post.id,
+        replyPostImageUrl: post.thumbnailUrl ?? post.imageUrl,
+        replyPostTaskName: post.taskName,
       ),
     );
   }

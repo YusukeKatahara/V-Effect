@@ -2448,4 +2448,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get directChatCopy => 'コピー';
+
+  @override
+  String directChatReplyingTo(String name) {
+    return '$nameの投稿に返信中';
+  }
+
+  @override
+  String directChatRepliedTo(String name) {
+    return '$nameの投稿に返信しました';
+  }
+
+  @override
+  String get directChatRepliedToYou => 'あなたの投稿に返信しました';
+
+  @override
+  String get directChatCancelReply => '返信をキャンセル';
 }

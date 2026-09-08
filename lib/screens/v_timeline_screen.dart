@@ -267,7 +267,23 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen>
       ),
     );
     _nativeAds[globalIndex] = ad;
-    ad.load();
+    try {
+      ad.load().catchError((error) {
+        debugPrint('V-Timeline NativeAd load error: $error');
+        if (mounted) {
+          setState(() {
+            _adLoadStatus[globalIndex] = false;
+          });
+        }
+      });
+    } catch (e) {
+      debugPrint('V-Timeline NativeAd sync load error: $e');
+      if (mounted) {
+        setState(() {
+          _adLoadStatus[globalIndex] = false;
+        });
+      }
+    }
   }
 
   void _preloadAdsNearFocusedIndex() {
@@ -743,7 +759,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen>
                                                 top: 0,
                                                 left: 0,
                                                 right: 0,
-                                                bottom: 80,
+                                                bottom: 108,
                                                 child: GestureDetector(
                                                   behavior: HitTestBehavior.opaque,
                                                   onTap: () => _onFlameReaction(item),
@@ -850,7 +866,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen>
                                               // 左下ユーザーアバタータップ（プロフィール遷移）
                                               Positioned(
                                                 left: 20,
-                                                bottom: 20,
+                                                bottom: 60,
                                                 child: GestureDetector(
                                                   behavior: HitTestBehavior.opaque,
                                                   onTap: () {
@@ -870,7 +886,7 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen>
                                               // V Fire ボタン (右下: 炎アイコン＋カウントのタップ・長押し領域)
                                               Positioned(
                                                 right: 16,
-                                                bottom: 24,
+                                                bottom: 52,
                                                 width: 48,
                                                 height: 80,
                                                 child: GestureDetector(

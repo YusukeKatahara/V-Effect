@@ -187,6 +187,20 @@ class DirectChatMessage {
   final String text;
   final DateTime createdAt;
   final bool isRead;
+  /// 言及・引用された投稿のID（ストーリーズ返信風UI用）
+  final String? replyPostId;
+  /// 言及・引用された投稿の画像URL（サムネイル優先）
+  final String? replyPostImageUrl;
+  /// 言及・引用された投稿のタスク名（例：「感謝を伝える」）
+  final String? replyPostTaskName;
+
+  static const String fieldSenderId = 'senderId';
+  static const String fieldText = 'text';
+  static const String fieldCreatedAt = 'createdAt';
+  static const String fieldIsRead = 'isRead';
+  static const String fieldReplyPostId = 'replyPostId';
+  static const String fieldReplyPostImageUrl = 'replyPostImageUrl';
+  static const String fieldReplyPostTaskName = 'replyPostTaskName';
 
   const DirectChatMessage({
     required this.id,
@@ -194,13 +208,16 @@ class DirectChatMessage {
     required this.text,
     required this.createdAt,
     this.isRead = false,
+    this.replyPostId,
+    this.replyPostImageUrl,
+    this.replyPostTaskName,
   });
 
   factory DirectChatMessage.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
 
     DateTime parsedDate = DateTime.now();
-    final rawDate = data['createdAt'];
+    final rawDate = data[fieldCreatedAt];
     if (rawDate is Timestamp) {
       parsedDate = rawDate.toDate();
     } else if (rawDate is String) {
@@ -209,19 +226,27 @@ class DirectChatMessage {
 
     return DirectChatMessage(
       id: doc.id,
-      senderId: (data['senderId'] as String?) ?? '',
-      text: (data['text'] as String?) ?? '',
+      senderId: (data[fieldSenderId] as String?) ?? '',
+      text: (data[fieldText] as String?) ?? '',
       createdAt: parsedDate,
-      isRead: (data['isRead'] as bool?) ?? false,
+      isRead: (data[fieldIsRead] as bool?) ?? false,
+      replyPostId: data[fieldReplyPostId] as String?,
+      replyPostImageUrl: data[fieldReplyPostImageUrl] as String?,
+      replyPostTaskName: data[fieldReplyPostTaskName] as String?,
     );
   }
 
   Map<String, dynamic> toFirestore() {
-    return {
-      'senderId': senderId,
-      'text': text,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'isRead': isRead,
+    final map = <String, dynamic>{
+      fieldSenderId: senderId,
+      fieldText: text,
+      fieldCreatedAt: Timestamp.fromDate(createdAt),
+      fieldIsRead: isRead,
     };
+    if (replyPostId != null) map[fieldReplyPostId] = replyPostId;
+    if (replyPostImageUrl != null) map[fieldReplyPostImageUrl] = replyPostImageUrl;
+    if (replyPostTaskName != null) map[fieldReplyPostTaskName] = replyPostTaskName;
+    return map;
   }
 }
+

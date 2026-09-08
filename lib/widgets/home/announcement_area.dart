@@ -41,17 +41,16 @@ class AnnouncementArea extends ConsumerWidget {
 
 
     if (banners.isEmpty) {
-      return const SizedBox(height: 76);
+      return const SizedBox.shrink();
     }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         for (int i = 0; i < banners.length; i++) ...[
-          if (i > 0) const SizedBox(height: 4),
+          if (i > 0) const SizedBox(height: 6),
           banners[i],
         ],
-        if (banners.length == 1 && hasUnreadBlog) const SizedBox(height: 12),
       ],
     );
   }

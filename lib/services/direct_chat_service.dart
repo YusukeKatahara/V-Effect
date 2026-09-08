@@ -119,6 +119,9 @@ class DirectChatService {
     required String text,
     required DirectChatParticipant senderInfo,
     required DirectChatParticipant receiverInfo,
+    String? replyPostId,
+    String? replyPostImageUrl,
+    String? replyPostTaskName,
   }) async {
     final trimmedText = text.trim();
     if (trimmedText.isEmpty) return;
@@ -135,6 +138,9 @@ class DirectChatService {
       text: trimmedText,
       createdAt: now,
       isRead: false,
+      replyPostId: replyPostId,
+      replyPostImageUrl: replyPostImageUrl,
+      replyPostTaskName: replyPostTaskName,
     );
 
     final batch = _firestore.batch();
