@@ -326,6 +326,8 @@ class UserService {
     bool? protectionNotifications,
     bool? vFireNotifications,
     bool? streakWarningNotifications,
+    bool? dmNotifications,
+    bool? dmMessagePreview,
     bool? isPrivateAccount,
   }) async {
     final uid = _auth.currentUser?.uid;
@@ -337,6 +339,8 @@ class UserService {
     if (protectionNotifications != null) data[AppUser.fieldProtectionNotifications] = protectionNotifications;
     if (vFireNotifications != null) data[AppUser.fieldVFireNotifications] = vFireNotifications;
     if (streakWarningNotifications != null) data[AppUser.fieldStreakWarningNotifications] = streakWarningNotifications;
+    if (dmNotifications != null) data[AppUser.fieldDmNotifications] = dmNotifications;
+    if (dmMessagePreview != null) data[AppUser.fieldDmMessagePreview] = dmMessagePreview;
     if (isPrivateAccount != null) data[AppUser.fieldIsPrivateAccount] = isPrivateAccount;
 
     if (data.isNotEmpty) {

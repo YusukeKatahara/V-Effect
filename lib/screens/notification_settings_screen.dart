@@ -25,6 +25,8 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
   bool _vFireNotifications = true;
   bool _protectionNotifications = false;
   bool _streakWarningNotifications = false;
+  bool _dmNotifications = true;
+  bool _dmMessagePreview = true;
   bool _isLoading = true;
 
   @override
@@ -47,6 +49,8 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
               _vFireNotifications = data['vFireNotifications'] ?? true;
               _protectionNotifications = data['protectionNotifications'] ?? false;
               _streakWarningNotifications = data['streakWarningNotifications'] ?? false;
+              _dmNotifications = data['dmNotifications'] ?? true;
+              _dmMessagePreview = data['dmMessagePreview'] ?? true;
               _isLoading = false;
             });
           }
@@ -149,11 +153,14 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
           _vFireNotifications = value;
           _protectionNotifications = value;
           _streakWarningNotifications = value;
+          _dmNotifications = value;
           break;
         case 'reactionNotifications': _reactionNotifications = value; break;
         case 'vFireNotifications': _vFireNotifications = value; break;
         case 'protectionNotifications': _protectionNotifications = value; break;
         case 'streakWarningNotifications': _streakWarningNotifications = value; break;
+        case 'dmNotifications': _dmNotifications = value; break;
+        case 'dmMessagePreview': _dmMessagePreview = value; break;
       }
     });
 
@@ -166,6 +173,7 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
           vFireNotifications: value,
           protectionNotifications: value,
           streakWarningNotifications: value,
+          dmNotifications: value,
         );
       } else {
         // 個別スイッチ：その項目のみ更新
@@ -174,6 +182,8 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
           vFireNotifications: key == 'vFireNotifications' ? value : null,
           protectionNotifications: key == 'protectionNotifications' ? value : null,
           streakWarningNotifications: key == 'streakWarningNotifications' ? value : null,
+          dmNotifications: key == 'dmNotifications' ? value : null,
+          dmMessagePreview: key == 'dmMessagePreview' ? value : null,
         );
       }
     } catch (e) {
@@ -228,6 +238,22 @@ class _NotificationSettingsScreenState extends ConsumerState<NotificationSetting
                 _streakWarningNotifications,
                 (v) => _updateSetting('streakWarningNotifications', v),
               ),
+              _buildSwitch(
+                AppLocalizations.of(context)!.notificationSettingsDm,
+                AppLocalizations.of(context)!.notificationSettingsDmDesc,
+                _dmNotifications,
+                (v) => _updateSetting('dmNotifications', v),
+              ),
+              if (_dmNotifications)
+                Padding(
+                  padding: const EdgeInsets.only(left: 16.0),
+                  child: _buildSwitch(
+                    AppLocalizations.of(context)!.notificationSettingsDmMessagePreview,
+                    AppLocalizations.of(context)!.notificationSettingsDmMessagePreviewDesc,
+                    _dmMessagePreview,
+                    (v) => _updateSetting('dmMessagePreview', v),
+                  ),
+                ),
               if (kDebugMode) ...[
                 Divider(color: AppColors.grey30, height: 40),
                 Padding(

@@ -6,6 +6,7 @@ class PremiumNotificationToast extends StatefulWidget {
   final String title;
   final String body;
   final IconData icon;
+  final String? avatarUrl;
   final VoidCallback? onTap;
   final List<ToastAction>? actions;
 
@@ -14,6 +15,7 @@ class PremiumNotificationToast extends StatefulWidget {
     required this.title,
     required this.body,
     required this.icon,
+    this.avatarUrl,
     this.onTap,
     this.actions,
   });
@@ -23,6 +25,7 @@ class PremiumNotificationToast extends StatefulWidget {
     required String title,
     required String body,
     required IconData icon,
+    String? avatarUrl,
     VoidCallback? onTap,
     List<ToastAction>? actions,
   }) {
@@ -36,6 +39,7 @@ class PremiumNotificationToast extends StatefulWidget {
         title: title,
         body: body,
         icon: icon,
+        avatarUrl: avatarUrl,
         onTap: () {
           if (overlayEntry.mounted) {
             overlayEntry.remove();
@@ -139,18 +143,47 @@ class _PremiumNotificationToastState extends State<PremiumNotificationToast>
                       padding: const EdgeInsets.all(16.0),
                       child: Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.accentGold.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
+                          if (widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty)
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.accentGold.withValues(alpha: 0.6),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: ClipOval(
+                                child: Image.network(
+                                  widget.avatarUrl!,
+                                  width: 44,
+                                  height: 44,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    color: AppColors.accentGold.withValues(alpha: 0.1),
+                                    child: Icon(
+                                      widget.icon,
+                                      color: AppColors.accentGold,
+                                      size: 22,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentGold.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                widget.icon,
+                                color: AppColors.accentGold,
+                                size: 24,
+                              ),
                             ),
-                            child: Icon(
-                              widget.icon,
-                              color: AppColors.accentGold,
-                              size: 24,
-                            ),
-                          ),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(

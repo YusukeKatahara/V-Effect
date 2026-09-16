@@ -57,6 +57,17 @@ class PushNotificationService {
     importance: Importance.high,
   );
 
+  /// Android のダイレクトメッセージ通知チャンネル（最優先・専用サウンド）
+  static const AndroidNotificationChannel _dmChannel = AndroidNotificationChannel(
+    'veffect_dm_channel_v2',
+    'ダイレクトメッセージ',
+    description: 'フレンドからのダイレクトメッセージ通知',
+    importance: Importance.max,
+    enableVibration: true,
+    playSound: true,
+    sound: RawResourceAndroidNotificationSound('dm_notification'),
+  );
+
   /// 初期化（アプリ起動時に1回呼び出す）
   Future<void> initialize() async {
     if (_initialized) return;
@@ -257,13 +268,16 @@ class PushNotificationService {
 
     await _localNotifications.initialize(settings);
 
-    // Android の通知チャンネルを作成
+    // Android の通知チャンネルを作成（一般通知とDM専用チャンネル）
     final androidPlugin =
         _localNotifications
             .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin
             >();
+    // 旧チャンネル設定を削除してサウンド設定を最新化
+    await androidPlugin?.deleteNotificationChannel('veffect_dm_channel');
     await androidPlugin?.createNotificationChannel(_channel);
+    await androidPlugin?.createNotificationChannel(_dmChannel);
   }
 
   /// フォアグラウンドで通知を受信した場合の処理
@@ -280,51 +294,80 @@ class PushNotificationService {
       final fromUid = message.data['fromUid'] as String?;
 
       List<ToastAction>? actions;
-      
-      // 中略... (actions の設定ロジックは維持)
+      String? avatarUrl;
 
-    // フォローリクエストの場合は承認ボタンを出す
-    if (typeStr == NotificationType.friendRequestReceived.name &&
-        relatedId != null) {
-      actions = [
-        ToastAction(
-          label: '承認',
-          isPrimary: true,
-          onPressed: () async {
-            try {
-              final friendService = FriendService.instance;
-              final request = await friendService.getRequestById(relatedId);
-              if (request != null) {
-                await friendService.acceptRequest(request);
-                // 通知を既読にする
-                final notifSnap = await FirebaseFirestore.instance
-                    .collection('notifications')
-                    .where('relatedId', isEqualTo: relatedId)
-                    .where('type', isEqualTo: typeStr)
-                    .limit(1)
-                    .get();
-                if (notifSnap.docs.isNotEmpty) {
-                  await NotificationService.instance
-                      .deleteNotification(notifSnap.docs.first.id);
-                }
+      // ダイレクトメッセージの場合はアバター画像と返信アクションを設定
+      if (typeStr == 'directMessage') {
+        final chatId = message.data['chatId'] as String?;
+        final senderId = message.data['senderId'] as String?;
+        final senderName = message.data['senderName'] as String? ?? notification.title ?? 'フレンド';
+        final senderAvatarUrl = message.data['senderAvatarUrl'] as String?;
+        avatarUrl = senderAvatarUrl;
+
+        actions = [
+          ToastAction(
+            label: '返信する',
+            isPrimary: true,
+            onPressed: () {
+              if (senderId != null) {
+                VEffectApp.navigatorKey.currentState?.pushNamed(
+                  AppRoutes.directChat,
+                  arguments: DirectChatScreenArgs(
+                    chatId: chatId,
+                    otherUid: senderId,
+                    otherName: senderName,
+                    otherPhotoUrl: senderAvatarUrl,
+                  ),
+                );
               }
-            } catch (e) {
-              debugPrint('Toast accept error: $e');
-            }
-          },
-        ),
-        ToastAction(
-          label: 'あとで',
-          onPressed: () {},
-        ),
-      ];
-    }
+            },
+          ),
+        ];
+      }
+
+      // フォローリクエストの場合は承認ボタンを出す
+      if (typeStr == NotificationType.friendRequestReceived.name &&
+          relatedId != null) {
+        actions = [
+          ToastAction(
+            label: '承認',
+            isPrimary: true,
+            onPressed: () async {
+              try {
+                final friendService = FriendService.instance;
+                final request = await friendService.getRequestById(relatedId);
+                if (request != null) {
+                  await friendService.acceptRequest(request);
+                  // 通知を既読にする
+                  final notifSnap = await FirebaseFirestore.instance
+                      .collection('notifications')
+                      .where('relatedId', isEqualTo: relatedId)
+                      .where('type', isEqualTo: typeStr)
+                      .limit(1)
+                      .get();
+                  if (notifSnap.docs.isNotEmpty) {
+                    await NotificationService.instance
+                        .deleteNotification(notifSnap.docs.first.id);
+                  }
+                }
+              } catch (e) {
+                debugPrint('Toast accept error: $e');
+              }
+            },
+          ),
+          ToastAction(
+            label: 'あとで',
+            onPressed: () {},
+          ),
+        ];
+      }
 
       PremiumNotificationToast.show(
         context,
         title: notification.title ?? '',
         body: notification.body ?? '',
         icon: _iconForType(typeStr),
+        avatarUrl: avatarUrl,
         actions: actions,
         onTap: () {
           if (typeStr == 'directMessage') {

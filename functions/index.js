@@ -64,6 +64,11 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}, options = {}
     }
   }
 
+  if (type === "directMessage" && userData.dmNotifications === false) {
+    console.log(`[Push] User ${toUid} has dmNotifications disabled. Skipping push.`);
+    return;
+  }
+
   // fcmToken は private subcollection を優先参照。
   // 旧バージョンのアプリは users/{uid}.fcmToken（公開エリア）に書き込み続けるため、
   // 移行期間中は public 側にフォールバックする。
@@ -132,8 +137,8 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}, options = {}
       priority: "high",
       ...(collapseId ? { collapseKey: collapseId } : {}),
       notification: {
-        channelId: type === "directMessage" ? "veffect_dm_channel" : "veffect_notifications",
-        defaultSound: true,
+        channelId: type === "directMessage" ? "veffect_dm_channel_v2" : "veffect_notifications",
+        ...(type === "directMessage" ? { sound: "dm_notification" } : { defaultSound: true }),
         notificationCount: unreadCount,
         ...(collapseId ? { tag: collapseId } : {}),
       },
@@ -146,8 +151,9 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}, options = {}
       },
       payload: {
         aps: {
-          sound: "default",
+          sound: type === "directMessage" ? "dm_notification.wav" : "default",
           badge: unreadCount,
+          threadId: type === "directMessage" ? `dm_${stringData.chatId || "chat"}` : "veffect_notifications",
           ...(type === "directMessage" ? { "mutable-content": 1 } : {}),
         },
       },
@@ -2489,17 +2495,32 @@ exports.sendDirectMessageNotification = onDocumentCreated(
       const senderInfo = participantDetails[senderId] || {};
       const senderName = senderInfo.name || "フレンド";
 
+      // 受信者のプライバシー設定（メッセージ内容プレビュー表示）を確認
+      const recipientDoc = await db.collection("users").doc(recipientUid).get();
+      const recipientData = recipientDoc.exists ? recipientDoc.data() : {};
+      const showPreview = recipientData.dmMessagePreview !== false;
+      const isEn = recipientData.language === "en";
+      const pushBody = showPreview 
+        ? text 
+        : (isEn ? "You have a new message" : "新着メッセージがあります");
+
       // 相手へプッシュ通知を送信（アバターURLを含めることでCommunication Notificationsに対応）
+      // タイトルに 💬 を付与して通常通知やロック画面でも一目でDMと認識できるようにし、
+      // collapseId で同一チャットの連続メッセージをスマートに集約・上書き更新する
+      const pushTitle = `💬 ${senderName}`;
       await sendPushToUser(
         recipientUid,
-        senderName,
-        text,
+        pushTitle,
+        pushBody,
         {
           type: "directMessage",
           chatId: chatId,
           senderId: senderId,
           senderName: senderName,
           senderAvatarUrl: senderInfo.photoUrl || "",
+        },
+        {
+          collapseId: `dm_${chatId}`,
         }
       );
     } catch (error) {

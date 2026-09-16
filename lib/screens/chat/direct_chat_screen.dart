@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,9 @@ import '../../l10n/app_localizations.dart';
 import '../../models/direct_chat.dart';
 import '../../providers/direct_chat_provider.dart';
 import '../../providers/service_providers.dart';
+import '../../utils/date_helper.dart';
+import 'components/reaction_picker_sheet.dart';
+import 'components/smart_cheer_bar.dart';
 
 /// 個別チャット画面の起動パラメータ
 class DirectChatScreenArgs {
@@ -62,6 +66,11 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
   String? _replyPostImageUrl;
   String? _replyPostTaskName;
 
+  /// 2人の共通継続日数（ペアストリーク）
+  int _pairStreak = 0;
+  /// 相手が今日投稿達成しているか（ポジティブ表示用）
+  bool _otherPostedToday = false;
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +83,9 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
     _replyPostImageUrl = widget.args.replyPostImageUrl;
     _replyPostTaskName = widget.args.replyPostTaskName;
 
+    // ヘッダー用のペアストリークおよび今日達成ステータスを取得
+    _loadPairHeaderInfo();
+
     // 画面を開いたときに既読処理とフォーカスを実行
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _markRead();
@@ -82,6 +94,37 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
         _focusNode.requestFocus();
       }
     });
+  }
+
+  /// ヘッダーに表示するペアストリーク情報と今日達成状況を読み込む
+  Future<void> _loadPairHeaderInfo() async {
+    final currentUid = ref.read(currentAuthUidProvider);
+    if (currentUid == null || currentUid.isEmpty) return;
+
+    try {
+      final friendService = ref.read(friendServiceProvider);
+      final results = await Future.wait([
+        friendService.getUserByUid(currentUid),
+        friendService.getUserByUid(widget.args.otherUid),
+      ]);
+      final myUser = results[0];
+      final otherUser = results[1];
+
+      final today = DateHelper.toDateString(DateTime.now());
+      final otherPosted = otherUser?.lastPostedDate == today;
+      final myStreak = myUser?.streak ?? 0;
+      final otherStreak = otherUser?.streak ?? (widget.args.otherStreak ?? 0);
+      final pair = (myStreak > 0 && otherStreak > 0) ? math.min(myStreak, otherStreak) : 0;
+
+      if (mounted) {
+        setState(() {
+          _pairStreak = pair;
+          _otherPostedToday = otherPosted;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading pair header info: $e');
+    }
   }
 
   @override
@@ -180,6 +223,47 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
   /// クイックエール（ワンタップ送信）
   Future<void> _sendQuickCheer(String text) async {
     await _sendText(text);
+  }
+
+  /// メッセージのダブルタップ処理（即時V-FIRE付与）
+  void _onMessageDoubleTap(DirectChatMessage message) {
+    final currentUid = ref.read(currentAuthUidProvider);
+    if (currentUid == null || currentUid.isEmpty) return;
+
+    HapticFeedback.mediumImpact();
+    ref.read(directChatServiceProvider).toggleReaction(
+          chatId: _chatId,
+          messageId: message.id,
+          uid: currentUid,
+          emoji: '🔥',
+        );
+  }
+
+  /// メッセージ長押し時の絵文字リアクションパレット表示
+  void _onMessageLongPress(BuildContext context, DirectChatMessage message) {
+    HapticFeedback.mediumImpact();
+    final currentUid = ref.read(currentAuthUidProvider) ?? '';
+    final myCurrentReaction = message.reactions[currentUid];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => ReactionPickerSheet(
+        myCurrentReaction: myCurrentReaction,
+        onReactionSelected: (emoji) {
+          ref.read(directChatServiceProvider).toggleReaction(
+                chatId: _chatId,
+                messageId: message.id,
+                uid: currentUid,
+                emoji: emoji,
+              );
+        },
+        onCopy: () => _copyMessage(context, message.text),
+      ),
+    );
   }
 
   /// メッセージ長押しでのコピー処理
@@ -410,36 +494,95 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: AppColors.grey20,
-                    backgroundImage: widget.args.otherPhotoUrl != null
-                        ? CachedNetworkImageProvider(widget.args.otherPhotoUrl!)
-                        : null,
-                    child: widget.args.otherPhotoUrl == null
-                        ? Text(
-                            widget.args.otherName.isNotEmpty
-                                ? widget.args.otherName[0].toUpperCase()
-                                : '?',
-                            style: TextStyle(
-                              color: AppColors.pureWhite,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          )
-                        : null,
+                  // アバター（今日達成時はゴールドリング付き）
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: _otherPostedToday
+                          ? Border.all(color: AppColors.accentGold, width: 2)
+                          : null,
+                      boxShadow: _otherPostedToday
+                          ? [
+                              BoxShadow(
+                                color: AppColors.accentGold.withValues(alpha: 0.35),
+                                blurRadius: 6,
+                                spreadRadius: 0.5,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    padding: _otherPostedToday ? const EdgeInsets.all(2) : EdgeInsets.zero,
+                    child: CircleAvatar(
+                      radius: 17,
+                      backgroundColor: AppColors.grey20,
+                      backgroundImage: widget.args.otherPhotoUrl != null
+                          ? CachedNetworkImageProvider(widget.args.otherPhotoUrl!)
+                          : null,
+                      child: widget.args.otherPhotoUrl == null
+                          ? Text(
+                              widget.args.otherName.isNotEmpty
+                                  ? widget.args.otherName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                color: AppColors.pureWhite,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            )
+                          : null,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      widget.args.otherName,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.args.otherName,
+                          style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        // ペアストリーク表示（0日でも「🤝 0日ペアストリーク」と表示。未完了時は何も出さず達成時のみ「今日達成 ✨」を表示）
+                        Padding(
+                          padding: const EdgeInsets.only(top: 1.5),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '🤝 ${l10n.directChatPairStreak(_pairStreak)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              if (_otherPostedToday) ...[
+                                Text(
+                                  ' • ',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                                Text(
+                                  l10n.directChatTodayCompleted,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.accentGold,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -818,6 +961,7 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
     required bool isLastInGroup,
   }) {
     final l10n = AppLocalizations.of(context)!;
+    final currentUid = ref.read(currentAuthUidProvider) ?? '';
     final timeStr = DateFormat('HH:mm').format(message.createdAt);
     final hasReplyPost = message.replyPostImageUrl != null && message.replyPostImageUrl!.isNotEmpty;
 
@@ -1072,36 +1216,52 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
             ),
           ],
 
-          // メッセージ吹き出し本体（長押しでコピー可能）
+          // メッセージ吹き出し本体（ダブルタップでV-FIRE、長押しでリアクションパレット）
           Flexible(
-            child: GestureDetector(
-              onLongPress: () => _copyMessage(context, message.text),
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * (hasReplyPost ? 0.76 : 0.72),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isMe
-                      ? AppColors.accentGold
-                      : (AppColors.isDark ? AppColors.grey15 : AppColors.grey10),
-                  borderRadius: borderRadius,
-                  border: isMe
-                      ? null
-                      : Border.all(
-                          color: AppColors.isDark ? AppColors.grey20 : AppColors.grey70,
-                          width: 0.5,
-                        ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isMe ? 0.1 : 0.03),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
+            child: Column(
+              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onDoubleTap: () => _onMessageDoubleTap(message),
+                  onLongPress: () => _onMessageLongPress(context, message),
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * (hasReplyPost ? 0.76 : 0.72),
                     ),
-                  ],
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isMe
+                          ? AppColors.accentGold
+                          : (AppColors.isDark ? AppColors.grey15 : AppColors.grey10),
+                      borderRadius: borderRadius,
+                      border: isMe
+                          ? null
+                          : Border.all(
+                              color: AppColors.isDark ? AppColors.grey20 : AppColors.grey70,
+                              width: 0.5,
+                            ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isMe ? 0.1 : 0.03),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: bubbleContent,
+                  ),
                 ),
-                child: bubbleContent,
-              ),
+
+                // 吹き出し下のリアクションバッジ（リアクションが付いている場合のみ表示）
+                if (message.reactions.isNotEmpty)
+                  _buildReactionBadge(
+                    context: context,
+                    message: message,
+                    currentUid: currentUid,
+                    isMe: isMe,
+                  ),
+              ],
             ),
           ),
 
@@ -1119,6 +1279,84 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  /// メッセージに付与されたリアクションバッジのUI
+  Widget _buildReactionBadge({
+    required BuildContext context,
+    required DirectChatMessage message,
+    required String currentUid,
+    required bool isMe,
+  }) {
+    if (message.reactions.isEmpty) return const SizedBox.shrink();
+
+    final emojiCounts = <String, int>{};
+    for (final emoji in message.reactions.values) {
+      emojiCounts[emoji] = (emojiCounts[emoji] ?? 0) + 1;
+    }
+
+    final isMyReaction = message.reactions.containsKey(currentUid);
+    final isDark = AppColors.isDark;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: GestureDetector(
+        onTap: () {
+          if (isMyReaction) {
+            HapticFeedback.lightImpact();
+            final myEmoji = message.reactions[currentUid]!;
+            ref.read(directChatServiceProvider).toggleReaction(
+                  chatId: _chatId,
+                  messageId: message.id,
+                  uid: currentUid,
+                  emoji: myEmoji,
+                );
+          } else {
+            _onMessageLongPress(context, message);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.grey20 : AppColors.pureWhite,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isMyReaction
+                  ? AppColors.accentGold
+                  : (isDark ? AppColors.grey30 : AppColors.grey70),
+              width: isMyReaction ? 1.2 : 0.6,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                emojiCounts.keys.join(' '),
+                style: const TextStyle(fontSize: 12),
+              ),
+              if (message.reactions.length > 1) ...[
+                const SizedBox(width: 4),
+                Text(
+                  '${message.reactions.length}',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: isMyReaction ? AppColors.accentGold : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1250,6 +1488,21 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
           children: [
             // 返信中の投稿プレビューバー
             _buildReplyBar(context, l10n),
+
+            // スマート・エールバー（文字入力が空のときに表示）
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _textController,
+              builder: (context, value, _) {
+                // 入力欄に文字が入っているときは非表示にしてメッセージ欄の表示領域を広げる
+                if (value.text.trim().isNotEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return SmartCheerBar(
+                  isReplying: _replyPostImageUrl != null && _replyPostImageUrl!.isNotEmpty,
+                  onCheerSelected: (cheer) => _sendQuickCheer(cheer),
+                );
+              },
+            ),
 
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),

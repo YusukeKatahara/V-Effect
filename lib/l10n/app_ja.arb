@@ -261,6 +261,10 @@
   "notificationSettingsShieldDesc": "シールドによるストリーク維持のお知らせ",
   "notificationSettingsStreakWarning": "ストリーク危機通知を許可",
   "notificationSettingsStreakWarningDesc": "夜になってもタスクが完了していない時のリマインダー",
+  "notificationSettingsDm": "ダイレクトメッセージ通知を許可",
+  "notificationSettingsDmDesc": "フレンドからメッセージが届いたとき",
+  "notificationSettingsDmMessagePreview": "メッセージ内容を表示",
+  "notificationSettingsDmMessagePreviewDesc": "通知にメッセージのプレビューを含める（OFFで覗き見防止）",
   "notificationSettingsDebugTitle": "開発者向けデバッグ機能",
   "notificationSettingsDebugResetTitle": "通知プレ・ダイアログの表示フラグをリセット",
   "notificationSettingsDebugResetDesc": "「一度のみ表示」の制限フラグを消去します",
@@ -1139,7 +1143,22 @@
     }
   },
   "directChatRepliedToYou": "あなたの投稿に返信しました",
-  "directChatCancelReply": "返信をキャンセル"
+  "directChatCancelReply": "返信をキャンセル",
+  "directChatCheerNiceFight": "ナイスファイト！🔥",
+  "directChatCheerInspired": "さすが！刺激もらった👏",
+  "directChatCheerLookingGood": "今日も最高にかっこいい✨",
+  "directChatCheerKeepGoing": "この調子で突っ走ろう🚀",
+  "directChatCheerLetsDoThis": "今日も頑張ろう🔥",
+  "directChatCheerAlwaysSupporting": "いつも応援してるよ！💪",
+  "directChatCheerStreakMaster": "継続の鬼だね👑",
+  "directChatCheerGrateful": "感謝！いつもありがとう🤝",
+  "directChatPairStreak": "{count}日ペアストリーク",
+  "@directChatPairStreak": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "directChatTodayCompleted": "今日達成 ✨"
 }
 
 

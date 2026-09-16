@@ -573,6 +573,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get notificationSettingsStreakWarningDesc => '夜になってもタスクが完了していない時のリマインダー';
 
   @override
+  String get notificationSettingsDm => 'ダイレクトメッセージ通知を許可';
+
+  @override
+  String get notificationSettingsDmDesc => 'フレンドからメッセージが届いたとき';
+
+  @override
+  String get notificationSettingsDmMessagePreview => 'メッセージ内容を表示';
+
+  @override
+  String get notificationSettingsDmMessagePreviewDesc => '通知にメッセージのプレビューを含める（OFFで覗き見防止）';
+
+  @override
   String get notificationSettingsDebugTitle => '開発者向けデバッグ機能';
 
   @override
@@ -2464,4 +2476,36 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get directChatCancelReply => '返信をキャンセル';
+
+  @override
+  String get directChatCheerNiceFight => 'ナイスファイト！🔥';
+
+  @override
+  String get directChatCheerInspired => 'さすが！刺激もらった👏';
+
+  @override
+  String get directChatCheerLookingGood => '今日も最高にかっこいい✨';
+
+  @override
+  String get directChatCheerKeepGoing => 'この調子で突っ走ろう🚀';
+
+  @override
+  String get directChatCheerLetsDoThis => '今日も頑張ろう🔥';
+
+  @override
+  String get directChatCheerAlwaysSupporting => 'いつも応援してるよ！💪';
+
+  @override
+  String get directChatCheerStreakMaster => '継続の鬼だね👑';
+
+  @override
+  String get directChatCheerGrateful => '感謝！いつもありがとう🤝';
+
+  @override
+  String directChatPairStreak(int count) {
+    return '$count日ペアストリーク';
+  }
+
+  @override
+  String get directChatTodayCompleted => '今日達成 ✨';
 }

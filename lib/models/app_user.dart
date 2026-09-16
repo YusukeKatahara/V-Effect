@@ -33,6 +33,8 @@ class AppUser {
   final bool reactionNotifications;
   final bool protectionNotifications;
   final bool vFireNotifications;
+  final bool dmNotifications;
+  final bool dmMessagePreview;
   final bool isPrivateAccount;
   final String? equippedBadgeUrl;
   final String? equippedBadgeAnimation;
@@ -87,6 +89,8 @@ class AppUser {
   static const String fieldFriends = 'friends';
   static const String fieldBlockedUsers = 'blockedUsers';
   static const String fieldStreakWarningNotifications = 'streakWarningNotifications';
+  static const String fieldDmNotifications = 'dmNotifications';
+  static const String fieldDmMessagePreview = 'dmMessagePreview';
   static const String fieldOnboardingStep = 'onboardingStep';
   static const String fieldMutualFires = 'mutualFires';
 
@@ -118,6 +122,8 @@ class AppUser {
     this.reactionNotifications = true,
     this.protectionNotifications = false,
     this.vFireNotifications = true,
+    this.dmNotifications = true,
+    this.dmMessagePreview = true,
     this.isPrivateAccount = false,
     this.equippedBadgeUrl,
     this.equippedBadgeAnimation,
@@ -224,6 +230,8 @@ class AppUser {
         reactionNotifications: data[fieldReactionNotifications] ?? true,
         protectionNotifications: data[fieldProtectionNotifications] ?? false,
         vFireNotifications: data[fieldVFireNotifications] ?? true,
+        dmNotifications: data[fieldDmNotifications] ?? true,
+        dmMessagePreview: data[fieldDmMessagePreview] ?? true,
         isPrivateAccount: data[fieldIsPrivateAccount] == true,
         equippedBadgeUrl: safeString(data[fieldEquippedBadgeUrl]),
         equippedBadgeAnimation: safeString(data[fieldEquippedBadgeAnimation]),
@@ -270,6 +278,8 @@ class AppUser {
       fieldReactionNotifications: reactionNotifications,
       fieldProtectionNotifications: protectionNotifications,
       fieldVFireNotifications: vFireNotifications,
+      fieldDmNotifications: dmNotifications,
+      fieldDmMessagePreview: dmMessagePreview,
       fieldIsPrivateAccount: isPrivateAccount,
       fieldEquippedBadgeUrl: equippedBadgeUrl,
       fieldEquippedBadgeAnimation: equippedBadgeAnimation,
@@ -313,6 +323,8 @@ class AppUser {
     bool? reactionNotifications,
     bool? protectionNotifications,
     bool? vFireNotifications,
+    bool? dmNotifications,
+    bool? dmMessagePreview,
     bool? isPrivateAccount,
     String? equippedBadgeUrl,
     String? equippedBadgeAnimation,
@@ -352,6 +364,8 @@ class AppUser {
       reactionNotifications: reactionNotifications ?? this.reactionNotifications,
       protectionNotifications: protectionNotifications ?? this.protectionNotifications,
       vFireNotifications: vFireNotifications ?? this.vFireNotifications,
+      dmNotifications: dmNotifications ?? this.dmNotifications,
+      dmMessagePreview: dmMessagePreview ?? this.dmMessagePreview,
       isPrivateAccount: isPrivateAccount ?? this.isPrivateAccount,
       equippedBadgeUrl: equippedBadgeUrl ?? this.equippedBadgeUrl,
       equippedBadgeAnimation: equippedBadgeAnimation ?? this.equippedBadgeAnimation,

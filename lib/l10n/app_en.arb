@@ -261,6 +261,10 @@
   "notificationSettingsShieldDesc": "When a shield protects your streak",
   "notificationSettingsStreakWarning": "Enable Streak Risk Notifications",
   "notificationSettingsStreakWarningDesc": "Reminder if your task isn't done by evening",
+  "notificationSettingsDm": "Enable Direct Message Notifications",
+  "notificationSettingsDmDesc": "When you receive a message from friends",
+  "notificationSettingsDmMessagePreview": "Show Message Preview",
+  "notificationSettingsDmMessagePreviewDesc": "Include message preview in notifications (Hide to prevent peeking)",
   "notificationSettingsDebugTitle": "Developer Debug Tools",
   "notificationSettingsDebugResetTitle": "Reset Notification Pre-Dialog Flag",
   "notificationSettingsDebugResetDesc": "Clears the 'show once' restriction flag",
@@ -1139,6 +1143,21 @@
     }
   },
   "directChatRepliedToYou": "Replied to your post",
-  "directChatCancelReply": "Cancel reply"
+  "directChatCancelReply": "Cancel reply",
+  "directChatCheerNiceFight": "Great fight! 🔥",
+  "directChatCheerInspired": "So inspiring! 👏",
+  "directChatCheerLookingGood": "Looking awesome today ✨",
+  "directChatCheerKeepGoing": "Keep this momentum! 🚀",
+  "directChatCheerLetsDoThis": "Let's crush today 🔥",
+  "directChatCheerAlwaysSupporting": "Always rooting for you! 💪",
+  "directChatCheerStreakMaster": "Streak master! 👑",
+  "directChatCheerGrateful": "Thank you always 🤝",
+  "directChatPairStreak": "{count}-day pair streak",
+  "@directChatPairStreak": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "directChatTodayCompleted": "Done today ✨"
 }
 

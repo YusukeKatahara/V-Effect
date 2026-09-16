@@ -223,4 +223,34 @@ class DirectChatService {
     batch.delete(roomRef);
     await batch.commit();
   }
+
+  /// メッセージへのリアクションをトグル（追加・更新・削除）
+  Future<void> toggleReaction({
+    required String chatId,
+    required String messageId,
+    required String uid,
+    required String emoji,
+  }) async {
+    if (chatId.isEmpty || messageId.isEmpty || uid.isEmpty) return;
+    try {
+      final messageRef = _chatsCollection.doc(chatId).collection('messages').doc(messageId);
+      final docSnap = await messageRef.get();
+      if (!docSnap.exists) return;
+
+      final reactions = (docSnap.data()?['reactions'] as Map<String, dynamic>?) ?? {};
+      if (reactions[uid] == emoji) {
+        // 同じ絵文字が既に付いている場合は解除（削除）
+        await messageRef.update({
+          'reactions.$uid': FieldValue.delete(),
+        });
+      } else {
+        // 新規付与または別絵文字へ更新
+        await messageRef.update({
+          'reactions.$uid': emoji,
+        });
+      }
+    } catch (e) {
+      debugPrint('DirectChatService toggleReaction error: $e');
+    }
+  }
 }

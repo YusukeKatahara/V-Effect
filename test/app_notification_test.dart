@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:v_effect/models/app_notification.dart';
+import 'package:v_effect/models/app_user.dart';
 
 void main() {
   group('AppNotification parsing tests', () {
@@ -58,7 +59,7 @@ void main() {
         'fromUid': 'userB',
         'type': 'unknownType',
         'title': '🔥 りくの猛追！本日2つ目の達成',
-        'body': '諦める気はゼロ！りくさんが本日2つ目のタスクを完遂してストリーク復活へ加速中！熱いVFIREで後押ししましょう⚡️',
+        'body': '不屈の闘志で本日2回目の投稿！あと100VFIREで完全覚醒へ',
       });
 
       expect(notif.type, NotificationType.rescueRequested);
@@ -74,6 +75,41 @@ void main() {
       });
 
       expect(notif.type, NotificationType.friendRequestReceived);
+    });
+  });
+
+  group('AppUser DM notification settings tests', () {
+    test('default values are true when omitted', () {
+      const user = AppUser(uid: 'user_123');
+      expect(user.dmNotifications, isTrue);
+      expect(user.dmMessagePreview, isTrue);
+
+      final parsed = AppUser.fromMap('user_123', {});
+      expect(parsed.dmNotifications, isTrue);
+      expect(parsed.dmMessagePreview, isTrue);
+    });
+
+    test('parses dmNotifications and dmMessagePreview correctly from map', () {
+      final user = AppUser.fromMap('user_123', {
+        AppUser.fieldDmNotifications: false,
+        AppUser.fieldDmMessagePreview: false,
+      });
+      expect(user.dmNotifications, isFalse);
+      expect(user.dmMessagePreview, isFalse);
+
+      final firestoreMap = user.toFirestore();
+      expect(firestoreMap[AppUser.fieldDmNotifications], isFalse);
+      expect(firestoreMap[AppUser.fieldDmMessagePreview], isFalse);
+    });
+
+    test('copyWith updates dmNotifications and dmMessagePreview', () {
+      const user = AppUser(uid: 'user_123');
+      final updated = user.copyWith(
+        dmNotifications: false,
+        dmMessagePreview: false,
+      );
+      expect(updated.dmNotifications, isFalse);
+      expect(updated.dmMessagePreview, isFalse);
     });
   });
 }

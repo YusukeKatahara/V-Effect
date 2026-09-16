@@ -7,16 +7,32 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-09-08
+- **Last Updated:** 2026-09-16
 - **Activeエージェント:** Antigravity (Gemini 3.8 Flash)
-- **Current Task:** Implement Instagram Story-Style Post Reply in Direct Chat (Completed)
-- **Action:** 投稿カードの💬アイコンからチャットに遷移した際、Instagramのストーリーズ返信のように対象の投稿写真やタスク名に言及・引用してメッセージを送信・表示できる仕組みを完全実装。
+- **Current Task:** Implement Direct Chat Step 3: Pair Streak & Positive-Only Today Status in Header (Completed)
+- **Action:** 個別チャット画面のAppBarに、個人の日数を晒さず2人の継続を称える「ペアストリーク（🤝 N日ペア）」および、今日達成時のみ表示される「今日達成 ✨」（アバター光彩リング）を完全実装。未完了時は非表示にするノーギルト設計を徹底。
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
 
-### 2026-09-08 (Antigravity)
+### 2026-09-16 (Antigravity)
+- **Implement Direct Chat Step 3: Pair Streak & Positive-Only Today Status (ヘッダーのペアストリーク＆今日達成ステータス表示の実装):**
+  - **心理的安全性を徹底したノーギルト設計:** 個人のストリーク日数を一方的に晒すのを避け、2人が共に継続している日数（`min(myStreak, otherStreak)`）を「🤝 N日ペア」として表示。相手が今日未完了の場合はネガティブな文字を一切出さず完全に非表示。
+  - **今日達成のゴールドリング & バッジ:** 相手が今日投稿達成している場合のみ、アバター周囲にゴールドの光彩リング（`AppColors.accentGold`）と「今日達成 ✨」のサブタイトルを表示。
+  - **多言語化対応 (`app_ja.arb`, `app_en.arb`):** `directChatPairStreak`, `directChatTodayCompleted` を追加し `flutter gen-l10n` を同期。
+  - **静的解析・テスト検証:** `flutter analyze lib/`（静的解析エラーゼロ）および `flutter test`（全26件テスト全勝）を確認。
+- **Implement Direct Chat Step 2: Double-Tap V-FIRE & Emoji Reactions (メッセージへのダブルタップV-FIRE付与＆絵文字リアクションの実装):**
+  - **データモデル & サービス拡張 (`direct_chat.dart`, `direct_chat_service.dart`):** `DirectChatMessage` に `reactions: Map<String, String>`（UID -> 絵文字）を追加。`toggleReaction` メソッドによりアトミックにトグル・更新・削除を実行。
+  - **ダブルタップ V-FIRE (`direct_chat_screen.dart`):** メッセージをダブルタップすると、過剰なアニメーションを出さずシンプルに `HapticFeedback.mediumImpact()` の振動とともに即座に `🔥` を付与・解除（トグル）するクリーン＆高速なUXへ調整。
+  - **絵文字リアクションパレット (`reaction_picker_sheet.dart`):** 長押し時に下部からフローティングパレットが開き、V EFFECT特化の6大称賛絵文字（`🔥`, `👏`, `👑`, `💪`, `✨`, `🤝`）から選択可能。コピー機能も統合。
+  - **リアクションバッジ (`direct_chat_screen.dart`):** 吹き出し下部にピル型バッジ（例: `🔥 1`, `🔥 👏 2`）を表示。自分のリアクション時はゴールド枠で強調し、タップで即時解除可能。
+  - **静的解析・テスト検証:** `flutter analyze lib/`（静的解析エラーゼロ）および `flutter test`（全26件テスト全勝）を確認。
+- **Implement Direct Chat Step 1: Context-Adaptive Smart Cheer Bar (キーボード上の文脈適応型スマート・エールバーの実装):**
+  - **スマート・エールバー (`smart_cheer_bar.dart`):** テキスト入力欄直上に横スクロール可能なエールチップ群を配置。タップ時に触覚フィードバック（`HapticFeedback.lightImpact()`）を伴い、即時送信。
+  - **文脈適応（Context-Aware）:** 投稿引用返信時（「ナイスファイト！🔥」「さすが！刺激もらった👏」等）と通常時（「今日も頑張ろう🔥」「いつも応援してるよ！💪」等）で表示内容を自動切り替え。
+  - **スマート開閉 (`direct_chat_screen.dart`):** `ValueListenableBuilder<TextEditingValue>` により、入力欄に文字が入ると自動的に隠れてチャット一覧の閲覧領域を最大化。
+  - **多言語対応 (`app_ja.arb`, `app_en.arb`):** 日英各4種類（計8個）のエール文言を追加し `flutter gen-l10n` を同期。`flutter analyze lib/` にて全解析エラーゼロを確認。
 - **Implement Instagram Story-Style Post Reply in Direct Chat (Instagramストーリーズ返信風の投稿言及・引用チャット機能の実装):**
   - **投稿からの情報引き継ぎ (`home_screen.dart`, `direct_chat_screen.dart`):** タイムライン投稿カードの 💬 アイコンをタップした際、`DirectChatScreenArgs` に投稿ID（`replyPostId`）、写真URL（`replyPostImageUrl`）、タスク名（`replyPostTaskName`）を渡すよう拡張。
   - **返信プレビューバー (`direct_chat_screen.dart`):** チャット画面遷移時に、入力バー直上に「〇〇の投稿に返信中」プレビューバー（38x38角丸写真サムネイル＋タスク名＋解除×ボタン）を表示し、自動でキーボードを開いて即時入力できるよう改善。

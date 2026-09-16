@@ -193,6 +193,8 @@ class DirectChatMessage {
   final String? replyPostImageUrl;
   /// 言及・引用された投稿のタスク名（例：「感謝を伝える」）
   final String? replyPostTaskName;
+  /// メッセージに付与されたリアクション（uid -> emoji）
+  final Map<String, String> reactions;
 
   static const String fieldSenderId = 'senderId';
   static const String fieldText = 'text';
@@ -201,6 +203,7 @@ class DirectChatMessage {
   static const String fieldReplyPostId = 'replyPostId';
   static const String fieldReplyPostImageUrl = 'replyPostImageUrl';
   static const String fieldReplyPostTaskName = 'replyPostTaskName';
+  static const String fieldReactions = 'reactions';
 
   const DirectChatMessage({
     required this.id,
@@ -211,6 +214,7 @@ class DirectChatMessage {
     this.replyPostId,
     this.replyPostImageUrl,
     this.replyPostTaskName,
+    this.reactions = const {},
   });
 
   factory DirectChatMessage.fromFirestore(DocumentSnapshot doc) {
@@ -224,6 +228,16 @@ class DirectChatMessage {
       parsedDate = DateTime.tryParse(rawDate) ?? DateTime.now();
     }
 
+    final rawReactions = data[fieldReactions] as Map<String, dynamic>?;
+    final parsedReactions = <String, String>{};
+    if (rawReactions != null) {
+      rawReactions.forEach((key, value) {
+        if (value is String) {
+          parsedReactions[key] = value;
+        }
+      });
+    }
+
     return DirectChatMessage(
       id: doc.id,
       senderId: (data[fieldSenderId] as String?) ?? '',
@@ -233,6 +247,7 @@ class DirectChatMessage {
       replyPostId: data[fieldReplyPostId] as String?,
       replyPostImageUrl: data[fieldReplyPostImageUrl] as String?,
       replyPostTaskName: data[fieldReplyPostTaskName] as String?,
+      reactions: parsedReactions,
     );
   }
 
@@ -246,6 +261,7 @@ class DirectChatMessage {
     if (replyPostId != null) map[fieldReplyPostId] = replyPostId;
     if (replyPostImageUrl != null) map[fieldReplyPostImageUrl] = replyPostImageUrl;
     if (replyPostTaskName != null) map[fieldReplyPostTaskName] = replyPostTaskName;
+    if (reactions.isNotEmpty) map[fieldReactions] = reactions;
     return map;
   }
 }

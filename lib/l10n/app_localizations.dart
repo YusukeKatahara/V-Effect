@@ -1163,6 +1163,30 @@ abstract class AppLocalizations {
   /// **'夜になってもタスクが完了していない時のリマインダー'**
   String get notificationSettingsStreakWarningDesc;
 
+  /// No description provided for @notificationSettingsDm.
+  ///
+  /// In ja, this message translates to:
+  /// **'ダイレクトメッセージ通知を許可'**
+  String get notificationSettingsDm;
+
+  /// No description provided for @notificationSettingsDmDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'フレンドからメッセージが届いたとき'**
+  String get notificationSettingsDmDesc;
+
+  /// No description provided for @notificationSettingsDmMessagePreview.
+  ///
+  /// In ja, this message translates to:
+  /// **'メッセージ内容を表示'**
+  String get notificationSettingsDmMessagePreview;
+
+  /// No description provided for @notificationSettingsDmMessagePreviewDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'通知にメッセージのプレビューを含める（OFFで覗き見防止）'**
+  String get notificationSettingsDmMessagePreviewDesc;
+
   /// No description provided for @notificationSettingsDebugTitle.
   ///
   /// In ja, this message translates to:
@@ -4744,6 +4768,66 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'返信をキャンセル'**
   String get directChatCancelReply;
+
+  /// No description provided for @directChatCheerNiceFight.
+  ///
+  /// In ja, this message translates to:
+  /// **'ナイスファイト！🔥'**
+  String get directChatCheerNiceFight;
+
+  /// No description provided for @directChatCheerInspired.
+  ///
+  /// In ja, this message translates to:
+  /// **'さすが！刺激もらった👏'**
+  String get directChatCheerInspired;
+
+  /// No description provided for @directChatCheerLookingGood.
+  ///
+  /// In ja, this message translates to:
+  /// **'今日も最高にかっこいい✨'**
+  String get directChatCheerLookingGood;
+
+  /// No description provided for @directChatCheerKeepGoing.
+  ///
+  /// In ja, this message translates to:
+  /// **'この調子で突っ走ろう🚀'**
+  String get directChatCheerKeepGoing;
+
+  /// No description provided for @directChatCheerLetsDoThis.
+  ///
+  /// In ja, this message translates to:
+  /// **'今日も頑張ろう🔥'**
+  String get directChatCheerLetsDoThis;
+
+  /// No description provided for @directChatCheerAlwaysSupporting.
+  ///
+  /// In ja, this message translates to:
+  /// **'いつも応援してるよ！💪'**
+  String get directChatCheerAlwaysSupporting;
+
+  /// No description provided for @directChatCheerStreakMaster.
+  ///
+  /// In ja, this message translates to:
+  /// **'継続の鬼だね👑'**
+  String get directChatCheerStreakMaster;
+
+  /// No description provided for @directChatCheerGrateful.
+  ///
+  /// In ja, this message translates to:
+  /// **'感謝！いつもありがとう🤝'**
+  String get directChatCheerGrateful;
+
+  /// No description provided for @directChatPairStreak.
+  ///
+  /// In ja, this message translates to:
+  /// **'{count}日ペアストリーク'**
+  String directChatPairStreak(int count);
+
+  /// No description provided for @directChatTodayCompleted.
+  ///
+  /// In ja, this message translates to:
+  /// **'今日達成 ✨'**
+  String get directChatTodayCompleted;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
