@@ -178,7 +178,7 @@ class HomeData {
       'userBadgeAnimations': userBadgeAnimations,
       'isRecommended': isRecommended,
       'totalPosts': totalPosts,
-      'user': user != null ? {'uid': user!.uid, ...user!.toFirestore()} : null,
+      'user': user != null ? {'uid': user!.uid, ...user!.toJson()} : null,
       'taskSchedules': taskSchedules,
     };
   }
@@ -410,8 +410,12 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
     );
 
     // 3. 取得した最新データをキャッシュに保存し、UIへ反映
-    prefs.setString(cacheKey, jsonEncode(latestData.toJson()));
-    prefs.setString('${cacheKey}_date', todayStr);
+    try {
+      prefs.setString(cacheKey, jsonEncode(latestData.toJson()));
+      prefs.setString('${cacheKey}_date', todayStr);
+    } catch (cacheError) {
+      debugPrint('Failed to save HomeData cache (non-fatal): $cacheError');
+    }
     yield latestData;
   } catch (e) {
     debugPrint('HomeDataProvider background fetch error (fallback to cache): $e');

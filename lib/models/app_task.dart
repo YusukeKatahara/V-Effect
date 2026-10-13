@@ -85,6 +85,24 @@ class AppTask {
     };
   }
 
+  /// JSON（ローカルキャッシュ SharedPreferences）保存用の安全な Map を返します。
+  /// （Timestamp の代わりに ISO8601 文字列を使用し、jsonEncode でクラッシュしないようにします）
+  Map<String, dynamic> toJson() {
+    return {
+      fieldId: id,
+      fieldTitle: title,
+      if (trigger != null) fieldTrigger: trigger,
+      fieldFrequencyType: frequencyType.name,
+      fieldTargetCount: targetCount,
+      fieldIsOneTime: isOneTime,
+      fieldIsSeason: isSeason,
+      if (seasonId != null) fieldSeasonId: seasonId,
+      fieldCompletedAt: completedAt?.toIso8601String(),
+      fieldIsSecret: isSecret,
+      if (reminderTime != null) fieldReminderTime: reminderTime,
+    };
+  }
+
   factory AppTask.fromFirestore(dynamic data) {
     if (data is String) {
       return AppTask(
@@ -112,6 +130,17 @@ class AppTask {
 
       final parsedTargetCount = (map[fieldTargetCount] as num?)?.toInt() ?? 1;
 
+      // 💡 completedAt は Timestamp, ISO8601 String, または DateTime のいずれでも安全に復元可能にする
+      DateTime? parsedCompletedAt;
+      final rawCompletedAt = map[fieldCompletedAt];
+      if (rawCompletedAt is Timestamp) {
+        parsedCompletedAt = rawCompletedAt.toDate();
+      } else if (rawCompletedAt is String) {
+        parsedCompletedAt = DateTime.tryParse(rawCompletedAt);
+      } else if (rawCompletedAt is DateTime) {
+        parsedCompletedAt = rawCompletedAt;
+      }
+
       return AppTask(
         id: map[fieldId]?.toString() ?? '',
         title: map[fieldTitle]?.toString() ?? '',
@@ -121,7 +150,7 @@ class AppTask {
         isOneTime: map[fieldIsOneTime] == true,
         isSeason: map[fieldIsSeason] == true,
         seasonId: map[fieldSeasonId]?.toString(),
-        completedAt: (map[fieldCompletedAt] as Timestamp?)?.toDate(),
+        completedAt: parsedCompletedAt,
         isSecret: map[fieldIsSecret] == true,
         reminderTime: map[fieldReminderTime]?.toString(),
       );

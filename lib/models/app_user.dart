@@ -172,7 +172,12 @@ class AppUser {
           final map = <String, DateTime>{};
           for (final entry in raw.entries) {
             if (entry.value is Timestamp) {
-              map[entry.key] = (entry.value as Timestamp).toDate();
+              map[entry.key.toString()] = (entry.value as Timestamp).toDate();
+            } else if (entry.value is String) {
+              final parsed = DateTime.tryParse(entry.value.toString());
+              if (parsed != null) map[entry.key.toString()] = parsed;
+            } else if (entry.value is DateTime) {
+              map[entry.key.toString()] = entry.value as DateTime;
             }
           }
           return map;
@@ -310,6 +315,52 @@ class AppUser {
       fieldIsRecommended: isRecommended,
       // mutualFires はクライアントから書き込まれる想定はないが、保存時のためにTimestampに変換する
       fieldMutualFires: mutualFires.map((key, value) => MapEntry(key, Timestamp.fromDate(value))),
+      fieldTaskSchedules: taskSchedules,
+    };
+  }
+
+  /// JSON（SharedPreferences キャッシュ）保存用の安全な Map を返します。
+  /// （Timestamp の代わりに ISO8601 文字列を使用し、jsonEncode でクラッシュしないようにします）
+  Map<String, dynamic> toJson() {
+    return {
+      fieldEmail: email,
+      fieldUsername: username,
+      fieldUserId: userId,
+      fieldDisplayName: displayName,
+      fieldBirthDate: birthDate,
+      fieldGender: gender,
+      fieldPhotoUrl: photoUrl,
+      fieldStreak: streak,
+      fieldStreakProtections: streakProtections,
+      fieldTotalPosts: totalPosts,
+      fieldLastPostedDate: lastPostedDate,
+      fieldFollowing: following,
+      fieldFollowers: followers,
+      fieldRecentPostDates: recentPostDates,
+      fieldTasks: tasks.map((t) => t.toJson()).toList(),
+      fieldHeroPicks: heroPicks.map((p) => p.toMap()).toList(),
+      fieldOccupation: occupation,
+      fieldProfileCompleted: profileCompleted,
+      fieldTemplateCompleted: templateCompleted,
+      fieldOnboardingCompleted: onboardingCompleted,
+      fieldLastProfileEditDate: lastProfileEditDate,
+      fieldPushNotifications: pushNotifications,
+      fieldFocusTimeNotifications: focusTimeNotifications,
+      fieldReactionNotifications: reactionNotifications,
+      fieldProtectionNotifications: protectionNotifications,
+      fieldVFireNotifications: vFireNotifications,
+      fieldDmNotifications: dmNotifications,
+      fieldDmMessagePreview: dmMessagePreview,
+      fieldIsPrivateAccount: isPrivateAccount,
+      fieldEquippedBadgeUrl: equippedBadgeUrl,
+      fieldEquippedBadgeAnimation: equippedBadgeAnimation,
+      fieldOwnedBadges: ownedBadges,
+      fieldInstagramId: instagramId,
+      fieldWebsiteUrl: websiteUrl,
+      fieldProcessedSeasonTaskIds: processedSeasonTaskIds,
+      fieldTotalPostsMigrated: totalPostsMigrated,
+      fieldIsRecommended: isRecommended,
+      fieldMutualFires: mutualFires.map((key, value) => MapEntry(key, value.toIso8601String())),
       fieldTaskSchedules: taskSchedules,
     };
   }
