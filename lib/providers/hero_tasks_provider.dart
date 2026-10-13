@@ -9,6 +9,7 @@ import '../models/season.dart';
 import '../services/post_service.dart';
 import '../services/user_service.dart';
 import '../screens/hero_tasks/components/hero_task_item.dart';
+import '../utils/date_helper.dart';
 
 /// 炎画面（HeroTasksScreen）で表示する主要なデータを一括管理するデータクラス
 class HeroTasksData {
@@ -140,10 +141,13 @@ final heroTasksDataProvider = FutureProvider.autoDispose<HeroTasksData>((ref) as
     // 3. 各タスクの進捗状況（HeroTaskItem）をビルド
     final List<HeroTaskItem> items = [];
     final Set<String> uidsToFetch = {};
+    final todayStr = DateHelper.toDateString(DateTime.now());
+    final scheduledTaskIds = appUser?.taskSchedules[todayStr] ?? [];
     
     for (final task in allTasks) {
       final taskPosts = postedPosts.where((p) => p.taskName == task.title).toList();
       final sId = task.seasonId ?? 'debug_season_test';
+      final isCommittedToday = scheduledTaskIds.contains(task.id) || scheduledTaskIds.contains(task.title);
       
       // リアクションをしたユーザーのIDを収集する
       for (final post in taskPosts) {
@@ -162,6 +166,7 @@ final heroTasksDataProvider = FutureProvider.autoDispose<HeroTasksData>((ref) as
             ? (seasonsMap[sId] ?? seasonsMap['debug_season'] ?? seasonsMap['debug_season_test'])
             : null,
         currentSeasonCount: task.isSeason ? (seasonPostsCountMap[sId] ?? 0) : 0,
+        isCommittedToday: isCommittedToday,
       ));
     }
 

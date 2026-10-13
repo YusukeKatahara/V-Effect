@@ -76,6 +76,101 @@ void main() {
 
       expect(notif.type, NotificationType.friendRequestReceived);
     });
+
+    test('directMessage is parsed correctly when type matches', () {
+      final notif = AppNotification.fromMap('id7', {
+        'toUid': 'userA',
+        'fromUid': 'userB',
+        'type': 'directMessage',
+        'title': 'りく',
+        'body': 'こんにちは！',
+        'relatedId': 'chat_123',
+        'reactionCount': 3,
+      });
+
+      expect(notif.type, NotificationType.directMessage);
+      expect(notif.reactionCount, 3);
+      expect(notif.relatedId, 'chat_123');
+    });
+
+    test('directMessage aliases (dm, direct_message) are parsed correctly', () {
+      final notifDm = AppNotification.fromMap('id8', {
+        'toUid': 'userA',
+        'fromUid': 'userB',
+        'type': 'dm',
+        'title': 'りく',
+        'body': 'テストメッセージ',
+      });
+      expect(notifDm.type, NotificationType.directMessage);
+
+      final notifSnake = AppNotification.fromMap('id9', {
+        'toUid': 'userA',
+        'fromUid': 'userB',
+        'type': 'direct_message',
+        'title': 'りく',
+        'body': 'テストメッセージ2',
+      });
+      expect(notifSnake.type, NotificationType.directMessage);
+    });
+
+    test('reactionReceived notification correctly parses sendPush false for in-app-only alerts', () {
+      final notif = AppNotification.fromMap('reaction_1', {
+        'toUid': 'userA',
+        'fromUid': 'userB',
+        'relatedId': 'post_123',
+        'type': 'reactionReceived',
+        'emoji': '🔥',
+        'reactionCount': 10,
+        'title': '⚡️ V EFFECT 発動！',
+        'body': 'あなたの「タスク」が、userBさんのモチベーションに火をつけました！10回のV FIRE🔥',
+        'sendPush': false,
+        'isRead': false,
+      });
+
+      expect(notif.type, NotificationType.reactionReceived);
+      expect(notif.sendPush, isFalse);
+      expect(notif.isRead, isFalse);
+      expect(notif.reactionCount, 10);
+      expect(notif.emoji, '🔥');
+    });
+
+    test('reactionReceived notification toFirestore preserves sendPush false', () {
+      final notif = AppNotification(
+        id: 'reaction_1',
+        toUid: 'userA',
+        fromUid: 'userB',
+        relatedId: 'post_123',
+        type: NotificationType.reactionReceived,
+        emoji: '🔥',
+        reactionCount: 15,
+        title: '⚡️ V EFFECT 発動！',
+        body: 'あなたの「タスク」が、userBさんのモチベーションに火をつけました！',
+        sendPush: false,
+        isRead: false,
+        createdAt: DateTime.now(),
+      );
+
+      final map = notif.toFirestore();
+      expect(map[AppNotification.fieldSendPush], isFalse);
+      expect(map[AppNotification.fieldType], 'reactionReceived');
+      expect(map[AppNotification.fieldIsRead], isFalse);
+      expect(map[AppNotification.fieldReactionCount], 15);
+    });
+
+    test('legacy reactionReceived notification without sendPush defaults to true in client parser', () {
+      final notif = AppNotification.fromMap('legacy_reaction', {
+        'toUid': 'userA',
+        'fromUid': 'userB',
+        'relatedId': 'post_123',
+        'type': 'reactionReceived',
+        'reactionCount': 1,
+        'title': 'リアクション',
+        'body': 'リアクションが届きました',
+      });
+
+      expect(notif.type, NotificationType.reactionReceived);
+      expect(notif.sendPush, isTrue); // レガシーデータはクライアントパーサでデフォルトtrue
+    });
   });
 
   group('AppUser DM notification settings tests', () {

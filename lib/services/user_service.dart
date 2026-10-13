@@ -645,5 +645,40 @@ class UserService {
       return false;
     }
   }
+
+  /// 指定日のタスク予定（習慣コミットメント）を更新・保存します
+  ///
+  /// [dateStr]: 'yyyy-MM-dd' 形式の日付文字列
+  /// [taskIds]: 予約するタスクIDまたはタスク名のリスト
+  Future<void> updateTaskSchedule(String dateStr, List<String> taskIds) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final userDocRef = _db.collection('users').doc(uid);
+
+    try {
+      if (taskIds.isEmpty) {
+        // 空のリストの場合はFirestoreからキーを削除（ストレージ節約）
+        await userDocRef.update({
+          '${AppUser.fieldTaskSchedules}.$dateStr': FieldValue.delete(),
+        });
+      } else {
+        await userDocRef.set({
+          AppUser.fieldTaskSchedules: {
+            dateStr: taskIds,
+          },
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint('Error updating task schedule for $dateStr: $e');
+      // 削除時に対象キーやフィールドが存在しない場合のエラーは安全に無視（すでに未存在）
+      if (taskIds.isNotEmpty) {
+        rethrow;
+      }
+    }
+
+    _updateController.add(null);
+  }
 }
+
 

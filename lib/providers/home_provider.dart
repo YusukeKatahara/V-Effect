@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post.dart';
 import '../models/app_task.dart';
+import '../models/app_user.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +27,8 @@ class HomeData {
   final Map<String, String?> userBadgeAnimations; // userId -> badgeAnimation
   final bool isRecommended;
   final int totalPosts;
+  final AppUser? user;
+  final Map<String, List<String>> taskSchedules;
 
   HomeData({
     required this.streak,
@@ -43,6 +46,8 @@ class HomeData {
     required this.userBadgeAnimations,
     required this.isRecommended,
     required this.totalPosts,
+    this.user,
+    this.taskSchedules = const {},
   });
 
   @override
@@ -64,7 +69,9 @@ class HomeData {
           _mapEquals(userBadgeUrls, other.userBadgeUrls) &&
           _mapEquals(userBadgeAnimations, other.userBadgeAnimations) &&
           isRecommended == other.isRecommended &&
-          totalPosts == other.totalPosts;
+          totalPosts == other.totalPosts &&
+          _userEquals(user, other.user) &&
+          _mapEquals(taskSchedules, other.taskSchedules);
 
   @override
   int get hashCode =>
@@ -82,9 +89,12 @@ class HomeData {
       userBadgeUrls.hashCode ^
       userBadgeAnimations.hashCode ^
       isRecommended.hashCode ^
-      totalPosts.hashCode;
+      totalPosts.hashCode ^
+      user.hashCode ^
+      taskSchedules.hashCode;
 
   bool _listEquals(List? a, List? b) {
+    if (identical(a, b)) return true;
     if (a == null) return b == null;
     if (b == null || a.length != b.length) return false;
     for (int i = 0; i < a.length; i++) {
@@ -94,12 +104,34 @@ class HomeData {
   }
 
   bool _mapEquals(Map? a, Map? b) {
+    if (identical(a, b)) return true;
     if (a == null) return b == null;
     if (b == null || a.length != b.length) return false;
     for (final key in a.keys) {
-      if (a[key] != b[key]) return false;
+      if (!b.containsKey(key)) return false;
+      final valA = a[key];
+      final valB = b[key];
+      if (valA is List && valB is List) {
+        if (!_listEquals(valA, valB)) return false;
+      } else if (valA is Map && valB is Map) {
+        if (!_mapEquals(valA, valB)) return false;
+      } else if (valA != valB) {
+        return false;
+      }
     }
     return true;
+  }
+
+  bool _userEquals(AppUser? a, AppUser? b) {
+    if (identical(a, b)) return true;
+    if (a == null) return b == null;
+    if (b == null) return false;
+    return a.uid == b.uid &&
+        a.username == b.username &&
+        a.displayName == b.displayName &&
+        a.streak == b.streak &&
+        a.streakProtections == b.streakProtections &&
+        _mapEquals(a.taskSchedules, b.taskSchedules);
   }
 
   Map<String, dynamic> toJson() {
@@ -111,7 +143,8 @@ class HomeData {
       'tasks': tasks.map((t) => {
         'title': t.title,
         'trigger': t.trigger,
-
+        'frequencyType': t.frequencyType.name,
+        'targetCount': t.targetCount,
         'isOneTime': t.isOneTime,
         'isSeason': t.isSeason,
         'seasonId': t.seasonId,
@@ -145,6 +178,8 @@ class HomeData {
       'userBadgeAnimations': userBadgeAnimations,
       'isRecommended': isRecommended,
       'totalPosts': totalPosts,
+      'user': user != null ? {'uid': user!.uid, ...user!.toFirestore()} : null,
+      'taskSchedules': taskSchedules,
     };
   }
 
@@ -154,15 +189,25 @@ class HomeData {
       postedToday: json['postedToday'] as bool? ?? false,
       isAllTasksCompleted: json['isAllTasksCompleted'] as bool? ?? false,
       username: json['username'] as String? ?? '',
-      tasks: (json['tasks'] as List<dynamic>? ?? []).map((t) => AppTask(
-        title: t['title'] as String? ?? '',
-        trigger: t['trigger'] as String?,
-
-        isOneTime: t['isOneTime'] as bool? ?? false,
-        isSeason: t['isSeason'] as bool? ?? false,
-        seasonId: t['seasonId'] as String?,
-        completedAt: t['completedAt'] != null ? DateTime.tryParse(t['completedAt']) : null,
-      )).toList(),
+      tasks: (json['tasks'] as List<dynamic>? ?? []).map((t) {
+        final freqStr = t['frequencyType']?.toString();
+        TaskFrequencyType freq = TaskFrequencyType.daily;
+        if (freqStr == 'weeklyTarget' || freqStr == 'weekly') {
+          freq = TaskFrequencyType.weeklyTarget;
+        } else if (freqStr == 'monthlyTarget' || freqStr == 'monthly') {
+          freq = TaskFrequencyType.monthlyTarget;
+        }
+        return AppTask(
+          title: t['title'] as String? ?? '',
+          trigger: t['trigger'] as String?,
+          frequencyType: freq,
+          targetCount: (t['targetCount'] as num?)?.toInt() ?? 1,
+          isOneTime: t['isOneTime'] as bool? ?? false,
+          isSeason: t['isSeason'] as bool? ?? false,
+          seasonId: t['seasonId'] as String?,
+          completedAt: t['completedAt'] != null ? DateTime.tryParse(t['completedAt']) : null,
+        );
+      }).toList(),
       followingUids: (json['followingUids'] as List<dynamic>? ?? []).cast<String>(),
       feedPosts: (json['feedPosts'] as List<dynamic>? ?? []).map((p) => Post(
          id: p['id'] as String? ?? '',
@@ -191,6 +236,19 @@ class HomeData {
       userBadgeAnimations: Map<String, String?>.from(json['userBadgeAnimations'] ?? {}),
       isRecommended: json['isRecommended'] as bool? ?? false,
       totalPosts: json['totalPosts'] as int? ?? 0,
+      user: json['user'] != null && json['user'] is Map<String, dynamic>
+          ? AppUser.fromMap(
+              (json['user'] as Map<String, dynamic>)['uid'] as String? ?? '',
+              json['user'] as Map<String, dynamic>,
+            )
+          : null,
+      taskSchedules: (json['taskSchedules'] as Map<String, dynamic>?)?.map(
+            (k, v) => MapEntry(
+              k,
+              (v as List<dynamic>).map((e) => e.toString()).toList(),
+            ),
+          ) ??
+          const {},
     );
   }
 }
@@ -262,6 +320,8 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
         userBadgeAnimations: initialData.userBadgeAnimations,
         isRecommended: initialData.isRecommended,
         totalPosts: initialData.totalPosts,
+        user: initialData.user,
+        taskSchedules: initialData.taskSchedules,
       );
     }
     yield initialData;
@@ -341,6 +401,12 @@ final homeDataProvider = StreamProvider.autoDispose<HomeData>((ref) async* {
       userBadgeAnimations: badgeAnimations,
       isRecommended: homeDataMap['isRecommended'] as bool? ?? false,
       totalPosts: homeDataMap['totalPosts'] as int? ?? 0,
+      user: homeDataMap['user'] as AppUser?,
+      taskSchedules: (homeDataMap['taskSchedules'] as Map<String, dynamic>?)?.map(
+            (k, v) => MapEntry(k, (v as List<dynamic>).map((e) => e.toString()).toList()),
+          ) ??
+          (homeDataMap['user'] as AppUser?)?.taskSchedules ??
+          const {},
     );
 
     // 3. 取得した最新データをキャッシュに保存し、UIへ反映
@@ -410,6 +476,8 @@ Future<void> updateHomeDataCacheWithReaction(
       userBadgeAnimations: homeData.userBadgeAnimations,
       isRecommended: homeData.isRecommended,
       totalPosts: homeData.totalPosts,
+      user: homeData.user,
+      taskSchedules: homeData.taskSchedules,
     );
 
     await prefs.setString(cacheKey, jsonEncode(updatedHomeData.toJson()));

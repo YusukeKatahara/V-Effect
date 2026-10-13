@@ -127,3 +127,182 @@ class SliverAddTaskSlot extends StatelessWidget {
     );
   }
 }
+
+/// ヒーロータスク一覧の表示フィルター
+enum TaskListFilter {
+  all,
+  today,
+  weekly,
+  monthly,
+}
+
+/// タスク一覧のカテゴリー切り替えピル（ALL / TODAY / WEEKLY / MONTHLY）
+class SliverTaskFilterPills extends StatelessWidget {
+  const SliverTaskFilterPills({
+    super.key,
+    required this.selectedFilter,
+    required this.onSelectFilter,
+    required this.counts,
+  });
+
+  final TaskListFilter selectedFilter;
+  final ValueChanged<TaskListFilter> onSelectFilter;
+  final Map<TaskListFilter, int> counts;
+
+  String _labelFor(TaskListFilter filter) {
+    switch (filter) {
+      case TaskListFilter.all:
+        return 'ALL';
+      case TaskListFilter.today:
+        return 'TODAY';
+      case TaskListFilter.weekly:
+        return 'WEEKLY';
+      case TaskListFilter.monthly:
+        return 'MONTHLY';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: TaskListFilter.values.map((filter) {
+              final isSelected = selectedFilter == filter;
+              final count = counts[filter] ?? 0;
+              final label = _labelFor(filter);
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => onSelectFilter(filter),
+                    borderRadius: BorderRadius.circular(20),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutExpo,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.accentGold
+                            : AppColors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.accentGold
+                              : AppColors.white.withValues(alpha: 0.08),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            label,
+                            style: TextStyle(
+                              color: isSelected ? AppColors.black : AppColors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$count',
+                            style: TextStyle(
+                              color: isSelected
+                                  ? AppColors.black.withValues(alpha: 0.7)
+                                  : AppColors.grey50,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// フィルター適用時に該当タスクが無い場合のカード
+class SliverFilteredEmptyCard extends StatelessWidget {
+  const SliverFilteredEmptyCard({
+    super.key,
+    required this.filter,
+    required this.onAddTask,
+  });
+
+  final TaskListFilter filter;
+  final VoidCallback onAddTask;
+
+  @override
+  Widget build(BuildContext context) {
+    String title;
+    switch (filter) {
+      case TaskListFilter.today:
+        title = '今日のタスクはありません';
+        break;
+      case TaskListFilter.weekly:
+        title = '週の目標タスクはありません';
+        break;
+      case TaskListFilter.monthly:
+        title = '月の目標タスクはありません';
+        break;
+      case TaskListFilter.all:
+        title = 'タスクがありません';
+        break;
+    }
+
+    return SliverToBoxAdapter(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.white.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.white.withValues(alpha: 0.06),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: AppColors.grey50,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: onAddTask,
+              icon: Icon(Icons.add, size: 16, color: AppColors.accentGold),
+              label: Text(
+                'このカテゴリーに追加',
+                style: TextStyle(
+                  color: AppColors.accentGold,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

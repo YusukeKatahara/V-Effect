@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/service_providers.dart';
 import '../providers/dev_blog_provider.dart';
 import '../providers/language_provider.dart';
+import 'chat/direct_chat_screen.dart';
 
 /// 通知画面
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -103,6 +104,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         return Icons.volunteer_activism;
       case NotificationType.rescueRevived:
         return Icons.local_fire_department;
+      case NotificationType.directMessage:
+        return Icons.chat_bubble_outline;
     }
   }
 
@@ -131,6 +134,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       case NotificationType.rescueRequested:
         return AppColors.accentGoldLight;
       case NotificationType.rescueRevived:
+        return AppColors.accentGold;
+      case NotificationType.directMessage:
         return AppColors.accentGold;
     }
   }
@@ -183,6 +188,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       badge = _buildBadge('🤝');
     } else if (notif.type == NotificationType.rescueRevived) {
       badge = _buildBadge('🔥');
+    } else if (notif.type == NotificationType.directMessage) {
+      final displayContent = notif.reactionCount > 1
+          ? '💬 ${notif.reactionCount}'
+          : '💬';
+      badge = _buildBadge(displayContent);
     }
 
     if (badge == null) return avatarBody;
@@ -363,6 +373,36 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     } catch (e) {
       debugPrint('Season Task Details Process Error: $e');
     }
+  }
+
+  /// DM通知タップ時に該当チャット画面へ遷移し、通知を既読（消去）する
+  Future<void> _handleDirectMessageTap(AppNotification notif) async {
+    final fromUid = notif.fromUid;
+    if (fromUid == null || fromUid.isEmpty) return;
+
+    // 通知一覧から即座に消去（チャットを開くため通知欄をスッキリ保つ）
+    _notificationService.deleteNotification(notif.id).catchError((_) {});
+
+    final user = await _friendService.getUserByUid(fromUid);
+    final otherName = user?.displayName?.isNotEmpty == true
+        ? user!.displayName!
+        : (notif.title.isNotEmpty ? notif.title : 'フレンド');
+    final otherPhotoUrl = user?.photoUrl;
+    final otherStreak = user?.streak;
+
+    if (!mounted) return;
+
+    Navigator.pushNamed(
+      context,
+      AppRoutes.directChat,
+      arguments: DirectChatScreenArgs(
+        chatId: notif.relatedId,
+        otherUid: fromUid,
+        otherName: otherName,
+        otherPhotoUrl: otherPhotoUrl,
+        otherStreak: otherStreak,
+      ),
+    );
   }
 
   Widget _buildFriendRequestTrailing(AppNotification notif) {
@@ -626,7 +666,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                 : Colors.transparent,
                         child: InkWell(
                           onTap: () {
-                            if (notif.type == NotificationType.streakCelebration ||
+                            if (notif.type == NotificationType.directMessage) {
+                              _handleDirectMessageTap(notif);
+                            } else if (notif.type == NotificationType.streakCelebration ||
                                 notif.fromUid == 'system') {
                               StreakCelebrationDialog.show(context, notif);
                             } else if (notif.fromUid != null) {
@@ -712,6 +754,40 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   /// 通知本文をリッチテキストで構築（特定のキーワードを太字やゴールドにする）
   Widget _buildNotificationBody(AppNotification notif, bool isUnread) {
+    if (notif.type == NotificationType.directMessage) {
+      final senderName = notif.title.isNotEmpty ? notif.title : (notif.fromUid ?? 'フレンド');
+      final l10n = AppLocalizations.of(context)!;
+      final summaryText = notif.reactionCount > 1
+          ? l10n.notificationsDmMultiple(senderName, notif.reactionCount)
+          : l10n.notificationsDmSingle(senderName);
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            summaryText,
+            style: TextStyle(
+              color: isUnread ? AppColors.white : AppColors.textSecondary,
+              fontSize: 14,
+              fontWeight: isUnread ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+          if (notif.body.isNotEmpty && notif.body != summaryText) ...[
+            const SizedBox(height: 3),
+            Text(
+              notif.body,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+
     final body = notif.body;
     List<TextSpan> spans = [];
 

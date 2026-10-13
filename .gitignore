@@ -87,4 +87,6 @@ ios/Flutter/flutter_export_environment.sh
 ORIGINAL_REQUEST.md
 PROJECT.md
 scratch/
+.firebase/
+
 

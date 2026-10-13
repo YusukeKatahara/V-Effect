@@ -1385,7 +1385,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenTrendTitle => '📈 ウィークリートレンド習慣';
 
   @override
+  String get profileScreenTrendSubtitle => '仲間が今週多く挑戦している習慣です。タップして自分の目標に追加できます。';
+
+  @override
   String get profileScreenTrendEmpty => 'トレンドデータがまだありません。';
+
+  @override
+  String profileScreenPracticingCount(int count) {
+    return '$count人が実践中';
+  }
+
+  @override
+  String get profileScreenTaskAlreadyAdded => '登録済';
 
   @override
   String get profileScreenTimeUpdateFailed => '時刻の更新に失敗しました';
@@ -2508,4 +2519,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get directChatTodayCompleted => '今日達成 ✨';
+
+  @override
+  String notificationsDmSingle(String name) {
+    return '$nameさんからメッセージが届いています';
+  }
+
+  @override
+  String notificationsDmMultiple(String name, int count) {
+    return '$nameさんから$count通のメッセージが届いています';
+  }
 }

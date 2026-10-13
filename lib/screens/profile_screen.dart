@@ -13,6 +13,7 @@ import '../services/user_service.dart';
 import '../services/post_service.dart';
 import '../services/sound_service.dart';
 import '../widgets/v_effect_header.dart';
+import '../utils/date_helper.dart';
 
 import '../widgets/season_hint_modal.dart';
 import '../models/season.dart';
@@ -37,6 +38,7 @@ import 'profile/components/task_section.dart';
 import 'profile/components/trending_tasks_bottom_sheet.dart';
 import 'profile/components/quest_card.dart';
 import 'profile/components/hero_picks_section.dart';
+import 'profile/components/habit_planner_sheet.dart';
 
 
 
@@ -58,10 +60,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic> _privateData = {};
   Map<String, Season> _seasonsMap = {};
   Map<String, int> _seasonPostsCountMap = {};
+  TaskListFilter _taskFilter = TaskListFilter.all;
+  Map<String, int> _weeklyPostsCountMap = {};
+  Map<String, int> _monthlyPostsCountMap = {};
   Stream<DocumentSnapshot>? _userStream;
   List<Map<String, dynamic>> _trendingTasks = [];
   StreamSubscription<void>? _postUpdateSubscription;
   StreamSubscription<void>? _userUpdateSubscription;
+
+  /// 選択中のフィルターに応じたヒーロータスク一覧
+  List<AppTask> get _filteredTasks {
+    if (_user == null) return [];
+    switch (_taskFilter) {
+      case TaskListFilter.all:
+        return _user!.tasks;
+      case TaskListFilter.today:
+        return _user!.tasks.where((t) => t.isDaily || t.isOneTime || t.isSeason).toList();
+      case TaskListFilter.weekly:
+        return _user!.tasks.where((t) => t.isWeekly).toList();
+      case TaskListFilter.monthly:
+        return _user!.tasks.where((t) => t.isMonthly).toList();
+    }
+  }
+
+  /// 各フィルターカテゴリーごとのタスク数カウント
+  Map<TaskListFilter, int> get _taskFilterCounts {
+    final tasks = _user?.tasks ?? [];
+    return {
+      TaskListFilter.all: tasks.length,
+      TaskListFilter.today: tasks.where((t) => t.isDaily || t.isOneTime || t.isSeason).length,
+      TaskListFilter.weekly: tasks.where((t) => t.isWeekly).length,
+      TaskListFilter.monthly: tasks.where((t) => t.isMonthly).length,
+    };
+  }
+
+  /// フィルターに応じたタスク作成時の初期頻度
+  TaskFrequencyType? _initialFrequencyForFilter(TaskListFilter filter) {
+    switch (filter) {
+      case TaskListFilter.weekly:
+        return TaskFrequencyType.weeklyTarget;
+      case TaskListFilter.monthly:
+        return TaskFrequencyType.monthlyTarget;
+      case TaskListFilter.today:
+        return TaskFrequencyType.daily;
+      case TaskListFilter.all:
+        return null;
+    }
+  }
 
   @override
   void initState() {
@@ -183,6 +228,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // 今日の投稿を取得
         final todayPosts = await _postService.getFriendPostsList(uid);
 
+        // 週次・月次の達成進捗計算用投稿を取得（週初め、または月初めの古い方から）
+        final now = DateTime.now();
+        final startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        final earliestDate = startOfWeek.isBefore(startOfMonth) ? startOfWeek : startOfMonth;
+
+        final periodPosts = await _postService.getMyPostsSince(earliestDate);
+
         // 再ロード（削除された可能性があるため）
         final freshDoc =
             await FirebaseFirestore.instance.collection('users').doc(uid).get();
@@ -211,10 +264,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
           await _userService.updateProfile(tasks: mergedTasks);
         }
 
+        // 投稿をマージして週次・月次の達成日数を集計
+        final allProgressPostsMap = <String, Post>{};
+        for (final p in periodPosts) {
+          allProgressPostsMap[p.id] = p;
+        }
+        for (final p in todayPosts) {
+          allProgressPostsMap[p.id] = p;
+        }
+        final allProgressPosts = allProgressPostsMap.values.toList();
+
+        final endOfWeek = startOfWeek.add(const Duration(days: 7));
+        final endOfMonth = DateTime(now.year, now.month + 1, 1);
+
+        final Map<String, int> weeklyMap = {};
+        final Map<String, int> monthlyMap = {};
+
+        for (final t in mergedTasks) {
+          final weekPosts = allProgressPosts.where((p) {
+            final isMatch = (p.taskId != null && p.taskId == t.id) || p.taskName == t.title;
+            if (!isMatch) return false;
+            return (p.createdAt.isAfter(startOfWeek) || p.createdAt.isAtSameMomentAs(startOfWeek)) &&
+                   p.createdAt.isBefore(endOfWeek);
+          });
+          final uniqueWeekDays = weekPosts.map((p) => DateHelper.toDateString(p.createdAt)).toSet().length;
+          if (t.id.isNotEmpty) weeklyMap[t.id] = uniqueWeekDays;
+          weeklyMap[t.title] = uniqueWeekDays;
+
+          final monthPosts = allProgressPosts.where((p) {
+            final isMatch = (p.taskId != null && p.taskId == t.id) || p.taskName == t.title;
+            if (!isMatch) return false;
+            return (p.createdAt.isAfter(startOfMonth) || p.createdAt.isAtSameMomentAs(startOfMonth)) &&
+                   p.createdAt.isBefore(endOfMonth);
+          });
+          final uniqueMonthDays = monthPosts.map((p) => DateHelper.toDateString(p.createdAt)).toSet().length;
+          if (t.id.isNotEmpty) monthlyMap[t.id] = uniqueMonthDays;
+          monthlyMap[t.title] = uniqueMonthDays;
+        }
+
         if (mounted) {
           setState(() {
             _user = freshRawUser.copyWith(tasks: mergedTasks);
             _todayPosts = todayPosts;
+            _weeklyPostsCountMap = weeklyMap;
+            _monthlyPostsCountMap = monthlyMap;
             _seasonsMap = newSeasonsMap;
             _seasonPostsCountMap = newSeasonPostsCountMap;
             _loading = false;
@@ -235,13 +328,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 
   // ---── ヒーロータスクの追加 ──
-  Future<void> _addTask({String? initialTitle}) async {
+  Future<void> _addTask({String? initialTitle, TaskFrequencyType? initialFrequency}) async {
     final controller = TextEditingController(text: initialTitle);
     final triggerController = TextEditingController();
 
     bool isOneTime = false;
     bool isSecret = false;
     String? selectedReminderTime;
+    TaskFrequencyType selectedFrequency = initialFrequency ?? TaskFrequencyType.daily;
+    int targetCount = selectedFrequency == TaskFrequencyType.weeklyTarget
+        ? 3
+        : (selectedFrequency == TaskFrequencyType.monthlyTarget ? 8 : 1);
 
     // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -319,8 +416,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                                                _buildHabitPreviewForDialog(triggerController, controller),
+                        _buildHabitPreviewForDialog(triggerController, controller),
                         const SizedBox(height: 12),
+                        // --- 達成頻度（毎日 / 週○回 / 月○回） ---
+                        if (!isOneTime) ...[
+                          _buildFrequencySelector(
+                            selectedFrequency: selectedFrequency,
+                            targetCount: targetCount,
+                            setModalState: setModalState,
+                            onChanged: (newFreq, newCount) {
+                              selectedFrequency = newFreq;
+                              targetCount = newCount;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         // --- リマインダー時間（プリセット＋カスタム） ---
                         Text(
                           AppLocalizations.of(context)!.taskReminderTitle,
@@ -473,6 +583,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                              onPressed: () => Navigator.pop(ctx, {
                                 'title': controller.text,
                                 'trigger': triggerController.text,
+                                'frequencyType': selectedFrequency,
+                                'targetCount': targetCount,
                                 'isOneTime': isOneTime,
                                 'isSecret': isSecret,
                                 'reminderTime': selectedReminderTime,
@@ -500,7 +612,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final newTask = AppTask(
         title: title.isEmpty ? 'Test Season Task' : title,
         trigger: result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim(),
-
+        frequencyType: (result['frequencyType'] as TaskFrequencyType?) ?? TaskFrequencyType.daily,
+        targetCount: (result['targetCount'] as int?) ?? 1,
         isOneTime: result['isOneTime'] as bool,
         isSeason: isDebugSeason,
         seasonId: isDebugSeason ? 'debug_season_test' : null,
@@ -529,6 +642,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     bool isOneTime = task.isOneTime;
     bool isSecret = task.isSecret;
     String? selectedReminderTime = task.reminderTime;
+    TaskFrequencyType selectedFrequency = task.frequencyType;
+    int targetCount = task.targetCount;
 
     // AlertDialogからshowModalBottomSheetに変更し、キーボードの真上にせり上がるように設定
     final result = await showModalBottomSheet<Map<String, dynamic>>(
@@ -608,6 +723,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 8),
                         _buildHabitPreviewForDialog(triggerController, controller),
                         const SizedBox(height: 12),
+                        // --- 達成頻度（毎日 / 週○回 / 月○回） ---
+                        if (!isOneTime) ...[
+                          _buildFrequencySelector(
+                            selectedFrequency: selectedFrequency,
+                            targetCount: targetCount,
+                            setModalState: setModalState,
+                            onChanged: (newFreq, newCount) {
+                              selectedFrequency = newFreq;
+                              targetCount = newCount;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         // --- リマインダー時間（プリセット＋カスタム） ---
                         Text(
                           AppLocalizations.of(context)!.taskReminderTitle,
@@ -760,6 +888,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                              onPressed: () => Navigator.pop(ctx, {
                                 'title': controller.text,
                                 'trigger': triggerController.text,
+                                'frequencyType': selectedFrequency,
+                                'targetCount': targetCount,
                                 'isOneTime': isOneTime,
                                 'isSecret': isSecret,
                                 'reminderTime': selectedReminderTime,
@@ -786,10 +916,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final newTrigger = result['trigger']?.toString().trim().isEmpty == true ? null : result['trigger']?.toString().trim();
 
       final newReminderTime = result['reminderTime'] as String?;
+      final newFrequencyType = (result['frequencyType'] as TaskFrequencyType?) ?? task.frequencyType;
+      final newTargetCount = (result['targetCount'] as int?) ?? task.targetCount;
       updatedTasks[index] = task.copyWith(
         title: newTitle,
         trigger: newTrigger,
         clearTrigger: newTrigger == null,
+        frequencyType: newFrequencyType,
+        targetCount: newTargetCount,
         isOneTime: result['isOneTime'] as bool,
         isSecret: result['isSecret'] as bool? ?? false,
         reminderTime: newReminderTime,
@@ -803,6 +937,168 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       _loadProfile();
     }
+  }
+
+  /// 達成頻度（毎日 / 週○回 / 月○回）と目標回数の入力セクション
+  Widget _buildFrequencySelector({
+    required TaskFrequencyType selectedFrequency,
+    required int targetCount,
+    required void Function(void Function()) setModalState,
+    required void Function(TaskFrequencyType newFrequency, int newTargetCount) onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '達成ペース',
+          style: TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _buildFrequencyChip(
+              label: '毎日',
+              isSelected: selectedFrequency == TaskFrequencyType.daily,
+              onTap: () {
+                setModalState(() {
+                  onChanged(TaskFrequencyType.daily, 1);
+                });
+              },
+            ),
+            const SizedBox(width: 8),
+            _buildFrequencyChip(
+              label: '週○回',
+              isSelected: selectedFrequency == TaskFrequencyType.weeklyTarget,
+              onTap: () {
+                setModalState(() {
+                  final newCount = (targetCount < 1 || targetCount > 7) ? 3 : targetCount;
+                  onChanged(TaskFrequencyType.weeklyTarget, newCount);
+                });
+              },
+            ),
+            const SizedBox(width: 8),
+            _buildFrequencyChip(
+              label: '月○回',
+              isSelected: selectedFrequency == TaskFrequencyType.monthlyTarget,
+              onTap: () {
+                setModalState(() {
+                  final newCount = (targetCount < 1 || targetCount > 31) ? 8 : targetCount;
+                  onChanged(TaskFrequencyType.monthlyTarget, newCount);
+                });
+              },
+            ),
+          ],
+        ),
+        if (selectedFrequency != TaskFrequencyType.daily) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.grey20,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.white.withValues(alpha: 0.08)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  selectedFrequency == TaskFrequencyType.weeklyTarget ? '週あたりの目標' : '月あたりの目標',
+                  style: TextStyle(color: AppColors.grey50, fontSize: 12),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      icon: Icon(
+                        Icons.remove_circle_outline,
+                        size: 20,
+                        color: targetCount > 1 ? AppColors.white : AppColors.grey30,
+                      ),
+                      onPressed: targetCount > 1
+                          ? () {
+                              setModalState(() {
+                                onChanged(selectedFrequency, targetCount - 1);
+                              });
+                            }
+                          : null,
+                    ),
+                    Container(
+                      constraints: const BoxConstraints(minWidth: 50),
+                      alignment: Alignment.center,
+                      child: Text(
+                        selectedFrequency == TaskFrequencyType.weeklyTarget
+                            ? '$targetCount 回 / 週'
+                            : '$targetCount 回 / 月',
+                        style: TextStyle(
+                          color: AppColors.accentGold,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      icon: Icon(
+                        Icons.add_circle_outline,
+                        size: 20,
+                        color: (selectedFrequency == TaskFrequencyType.weeklyTarget ? targetCount < 7 : targetCount < 31)
+                            ? AppColors.white
+                            : AppColors.grey30,
+                      ),
+                      onPressed: (selectedFrequency == TaskFrequencyType.weeklyTarget ? targetCount < 7 : targetCount < 31)
+                          ? () {
+                              setModalState(() {
+                                onChanged(selectedFrequency, targetCount + 1);
+                              });
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildFrequencyChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.accentGold : AppColors.grey20,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? AppColors.accentGold : AppColors.white.withValues(alpha: 0.1),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.black : Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // ---── 習慣化のコツをポップアップ表示 ──
@@ -1224,7 +1520,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         showTrendingTasksBottomSheet(
                           context,
                           trendingTasks: _trendingTasks,
-                          onAddTask: _addTask,
+                          onAddTask: ({String? initialTitle}) => _addTask(
+                            initialTitle: initialTitle,
+                            initialFrequency: _initialFrequencyForFilter(_taskFilter),
+                          ),
+                          existingTaskTitles:
+                              _user?.tasks.map((t) => t.title).toList() ?? [],
                         );
                       },
                     ),
@@ -1236,77 +1537,161 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       key: const ValueKey('profile_empty_task_card_padding'),
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       sliver: SliverEmptyTaskCard(
-                        onAddTask: _addTask,
+                        onAddTask: () => _addTask(initialFrequency: _initialFrequencyForFilter(_taskFilter)),
                       ),
                     )
                   else ...[
+                    // フィルターピル (ALL / TODAY / WEEKLY / MONTHLY)
                     SliverPadding(
-                      key: const ValueKey('profile_reorderable_list_padding'),
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      sliver: SliverReorderableList(
-                        itemCount: _user!.tasks.length,
-                        onReorder: (int oldIndex, int newIndex) async {
-                          if (oldIndex < newIndex) {
-                            newIndex -= 1;
-                          }
-                          final updatedTasks = List<AppTask>.from(_user!.tasks);
-                          final task = updatedTasks.removeAt(oldIndex);
-                          updatedTasks.insert(newIndex, task);
-                          
+                      sliver: SliverTaskFilterPills(
+                        selectedFilter: _taskFilter,
+                        counts: _taskFilterCounts,
+                        onSelectFilter: (filter) {
                           setState(() {
-                            _user!.tasks.clear();
-                            _user!.tasks.addAll(updatedTasks);
+                            _taskFilter = filter;
                           });
-                          
-                          await _userService.updateProfile(tasks: updatedTasks);
-                          _loadProfile();
-                        },
-                        itemBuilder: (context, index) {
-                          final task = _user!.tasks[index];
-                          return ReorderableDelayedDragStartListener(
-                            key: ValueKey(task.id.isNotEmpty ? task.id : 'task_${task.title}_$index'),
-                            index: index,
-                            child: QuestCard(
-                              index: index,
-                              task: task,
-                              seasonsMap: _seasonsMap,
-                              seasonPostsCountMap: _seasonPostsCountMap,
-                              todayPosts: _todayPosts,
-                              onTap: () {
-                                if (task.isSeason) {
-                                  final season = _seasonsMap[task.seasonId] ??
-                                      _seasonsMap['debug_season'] ??
-                                      _seasonsMap['debug_season_test'] ??
-                                      Season.createFallback(
-                                        task.title,
-                                        seasonId: task.seasonId,
-                                      );
-                                  
-                                  SeasonHintModal.show(context, task, season, (newTrigger) async {
-                                    final updatedTasks = List<AppTask>.from(_user!.tasks);
-                                    updatedTasks[index] = task.copyWith(
-                                      trigger: newTrigger.isEmpty ? null : newTrigger,
-                                      clearTrigger: newTrigger.isEmpty,
-                                    );
-                                    await _userService.updateProfile(tasks: updatedTasks);
-                                    _loadProfile();
-                                  });
-                                } else {
-                                  _editTask(index);
-                                }
-                              },
-                              onDelete: () => _deleteTask(index),
-                            ),
-                          );
                         },
                       ),
                     ),
+
+                    if (_filteredTasks.isEmpty)
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        sliver: SliverFilteredEmptyCard(
+                          filter: _taskFilter,
+                          onAddTask: () => _addTask(initialFrequency: _initialFrequencyForFilter(_taskFilter)),
+                        ),
+                      )
+                    else if (_taskFilter == TaskListFilter.all) ...[
+                      SliverPadding(
+                        key: const ValueKey('profile_reorderable_list_padding'),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        sliver: SliverReorderableList(
+                          itemCount: _user!.tasks.length,
+                          onReorder: (int oldIndex, int newIndex) async {
+                            if (oldIndex < newIndex) {
+                              newIndex -= 1;
+                            }
+                            final updatedTasks = List<AppTask>.from(_user!.tasks);
+                            final task = updatedTasks.removeAt(oldIndex);
+                            updatedTasks.insert(newIndex, task);
+                            
+                            setState(() {
+                              _user!.tasks.clear();
+                              _user!.tasks.addAll(updatedTasks);
+                            });
+                            
+                            await _userService.updateProfile(tasks: updatedTasks);
+                            _loadProfile();
+                          },
+                          itemBuilder: (context, index) {
+                            final task = _user!.tasks[index];
+                            return ReorderableDelayedDragStartListener(
+                              key: ValueKey(task.id.isNotEmpty ? task.id : 'task_${task.title}_$index'),
+                              index: index,
+                              child: QuestCard(
+                                index: index,
+                                task: task,
+                                seasonsMap: _seasonsMap,
+                                seasonPostsCountMap: _seasonPostsCountMap,
+                                todayPosts: _todayPosts,
+                                weeklyPostsCountMap: _weeklyPostsCountMap,
+                                monthlyPostsCountMap: _monthlyPostsCountMap,
+                                onTap: () {
+                                  if (task.isSeason) {
+                                    final season = _seasonsMap[task.seasonId] ??
+                                        _seasonsMap['debug_season'] ??
+                                        _seasonsMap['debug_season_test'] ??
+                                        Season.createFallback(
+                                          task.title,
+                                          seasonId: task.seasonId,
+                                        );
+                                    
+                                    SeasonHintModal.show(context, task, season, (newTrigger) async {
+                                      final updatedTasks = List<AppTask>.from(_user!.tasks);
+                                      updatedTasks[index] = task.copyWith(
+                                        trigger: newTrigger.isEmpty ? null : newTrigger,
+                                        clearTrigger: newTrigger.isEmpty,
+                                      );
+                                      await _userService.updateProfile(tasks: updatedTasks);
+                                      _loadProfile();
+                                    });
+                                  } else {
+                                    _editTask(index);
+                                  }
+                                },
+                                onDelete: () => _deleteTask(index),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ] else ...[
+                      SliverPadding(
+                        key: ValueKey('profile_filtered_list_padding_${_taskFilter.name}'),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final task = _filteredTasks[index];
+                              final masterIndex = _user!.tasks.indexOf(task);
+                              return QuestCard(
+                                key: ValueKey(task.id.isNotEmpty ? task.id : 'task_${task.title}_$index'),
+                                index: masterIndex != -1 ? masterIndex : index,
+                                task: task,
+                                seasonsMap: _seasonsMap,
+                                seasonPostsCountMap: _seasonPostsCountMap,
+                                todayPosts: _todayPosts,
+                                weeklyPostsCountMap: _weeklyPostsCountMap,
+                                monthlyPostsCountMap: _monthlyPostsCountMap,
+                                onTap: () {
+                                  if (task.isSeason) {
+                                    final season = _seasonsMap[task.seasonId] ??
+                                        _seasonsMap['debug_season'] ??
+                                        _seasonsMap['debug_season_test'] ??
+                                        Season.createFallback(
+                                          task.title,
+                                          seasonId: task.seasonId,
+                                        );
+                                    
+                                    SeasonHintModal.show(context, task, season, (newTrigger) async {
+                                      final currentIdx = _user!.tasks.indexOf(task);
+                                      if (currentIdx == -1) return;
+                                      final updatedTasks = List<AppTask>.from(_user!.tasks);
+                                      updatedTasks[currentIdx] = task.copyWith(
+                                        trigger: newTrigger.isEmpty ? null : newTrigger,
+                                        clearTrigger: newTrigger.isEmpty,
+                                      );
+                                      await _userService.updateProfile(tasks: updatedTasks);
+                                      _loadProfile();
+                                    });
+                                  } else {
+                                    final currentIdx = _user!.tasks.indexOf(task);
+                                    if (currentIdx != -1) {
+                                      _editTask(currentIdx);
+                                    }
+                                  }
+                                },
+                                onDelete: () {
+                                  final currentIdx = _user!.tasks.indexOf(task);
+                                  if (currentIdx != -1) {
+                                    _deleteTask(currentIdx);
+                                  }
+                                },
+                              );
+                            },
+                            childCount: _filteredTasks.length,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SliverToBoxAdapter(child: SizedBox(height: 8)),
                     SliverPadding(
                       key: const ValueKey('profile_add_task_slot_padding'),
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       sliver: SliverAddTaskSlot(
-                        onAddTask: _addTask,
+                        onAddTask: () => _addTask(initialFrequency: _initialFrequencyForFilter(_taskFilter)),
                       ),
                     ),
                   ],
@@ -1395,6 +1780,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
     );
+  }
+
+  /// 習慣プランナー（予定・過去達成）ボトムシートを表示します
+  void _showHabitPlanner({DateTime? initialDate}) {
+    if (_user == null) return;
+    HabitPlannerSheet.show(
+      context,
+      user: _user!,
+      initialDate: initialDate,
+      onScheduleUpdated: () {
+        _loadProfile();
+      },
+    ).then((_) {
+      if (mounted) _loadProfile();
+    });
   }
 
   // ---
@@ -1526,11 +1926,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            // 右側: 月間カレンダー表示
+            // 右側: 月間カレンダー表示（タップで習慣プランナー起動）
             Expanded(
               child: StreakMonthCalendarWidget(
                 recentPostDates: _user!.recentPostDates,
                 activeColor: currentTierColor,
+                taskSchedules: _user!.taskSchedules,
+                onDateTap: (date) => _showHabitPlanner(initialDate: date),
+                onTap: () => _showHabitPlanner(),
               ),
             ),
           ],
@@ -1789,11 +2192,17 @@ class SegmentedCircularProgressPainter extends CustomPainter {
 class StreakMonthCalendarWidget extends StatefulWidget {
   final List<String> recentPostDates;
   final Color activeColor;
+  final Map<String, List<String>> taskSchedules;
+  final ValueChanged<DateTime>? onDateTap;
+  final VoidCallback? onTap;
 
   const StreakMonthCalendarWidget({
     super.key,
     required this.recentPostDates,
     required this.activeColor,
+    this.taskSchedules = const {},
+    this.onDateTap,
+    this.onTap,
   });
 
   @override
@@ -1851,141 +2260,217 @@ class _StreakMonthCalendarWidgetState extends State<StreakMonthCalendarWidget>
     // 達成セルの文字色は緑色背景に対して常に純白 (Colors.white)
     const achievedTextColor = Colors.white;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 月名 ＆ 今月達成数ヘッダー（左寄せ配置）
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Text(
-              '$month月',
-              style: GoogleFonts.outfit(
-                color: isDark ? AppColors.textPrimary : AppColors.pureBlack,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? widget.activeColor.withValues(alpha: 0.25)
-                    : widget.activeColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Text(
-                '$achievedDaysThisMonth/$daysInMonth日達成',
-                style: GoogleFonts.outfit(
-                  color: isDark ? const Color(0xFF34D399) : widget.activeColor,
-                  fontSize: 7.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 1.5),
-        // 曜日ヘッダー
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: weekdays.map((w) {
-            return Expanded(
-              child: Center(
-                child: Text(
-                  w,
-                  style: GoogleFonts.outfit(
-                    color: isDark ? Colors.white54 : Colors.black45,
-                    fontSize: 6.5,
-                    fontWeight: FontWeight.w600,
+    return GestureDetector(
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 月名 ＆ 今月達成数ヘッダー（左寄せ配置 ＆ 右側に予定・プランナーボタン）
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    '$month月',
+                    style: GoogleFonts.outfit(
+                      color: isDark ? AppColors.textPrimary : AppColors.pureBlack,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 1),
-        // カレンダーグリッド (超コンパクトアスペクト比 1.85)
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: totalCells,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            mainAxisSpacing: 1.2,
-            crossAxisSpacing: 1.2,
-            childAspectRatio: 1.85,
-          ),
-          itemBuilder: (context, index) {
-            if (index < startWeekday) {
-              return const SizedBox.shrink();
-            }
-            final dayNumber = index - startWeekday + 1;
-            final dateStr = '$year-${month.toString().padLeft(2, '0')}-${dayNumber.toString().padLeft(2, '0')}';
-            final isAchieved = widget.recentPostDates.contains(dateStr);
-            final isToday = dayNumber == now.day;
-
-            // アニメーション用の分割制御 (1日〜31日順に順番に塗りつぶし)
-            final animStart = ((dayNumber - 1) / daysInMonth) * 0.7;
-            final animEnd = (animStart + 0.3).clamp(0.0, 1.0);
-            final curvedAnimation = CurvedAnimation(
-              parent: _controller,
-              curve: Interval(animStart, animEnd, curve: Curves.easeOutBack),
-            );
-
-            // 未達成セルの背景色
-            final unachievedBg = isDark
-                ? const Color(0xFF222224)
-                : Colors.black.withValues(alpha: 0.04);
-
-            return AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                final scale = isAchieved ? (0.3 + 0.7 * curvedAnimation.value) : 1.0;
-                final opacity = isAchieved ? curvedAnimation.value.clamp(0.0, 1.0) : 1.0;
-
-                return Transform.scale(
-                  scale: scale,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isAchieved
-                            ? widget.activeColor
-                            : isToday
-                                ? widget.activeColor.withValues(alpha: isDark ? 0.3 : 0.12)
-                                : unachievedBg,
-                        borderRadius: BorderRadius.circular(2),
-                        border: isToday && !isAchieved
-                            ? Border.all(color: widget.activeColor, width: 0.8)
-                            : null,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '$dayNumber',
-                        style: GoogleFonts.outfit(
-                          color: isAchieved
-                              ? achievedTextColor
-                              : isToday
-                                  ? widget.activeColor
-                                  : (dayNumber > now.day)
-                                      ? (isDark ? const Color(0xFF555558) : Colors.black26)
-                                      : (isDark ? Colors.white70 : Colors.black87),
-                          fontSize: 9.5,
-                          fontWeight: isAchieved || isToday ? FontWeight.w800 : FontWeight.w600,
-                        ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? widget.activeColor.withValues(alpha: 0.25)
+                          : widget.activeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(
+                      '$achievedDaysThisMonth/$daysInMonth日達成',
+                      style: GoogleFonts.outfit(
+                        color: isDark ? const Color(0xFF34D399) : widget.activeColor,
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                );
-              },
-            );
-          },
-        ),
-      ],
+                ],
+              ),
+              // タップアフォーダンス（習慣プランナーを開くヒント）
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                    width: 0.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.edit_calendar_outlined,
+                      size: 8.5,
+                      color: isDark ? AppColors.accentGoldLight : AppColors.accentGold,
+                    ),
+                    const SizedBox(width: 2.5),
+                    Text(
+                      '予定',
+                      style: GoogleFonts.notoSansJp(
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white70 : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 1.5),
+          // 曜日ヘッダー
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: weekdays.map((w) {
+              return Expanded(
+                child: Center(
+                  child: Text(
+                    w,
+                    style: GoogleFonts.outfit(
+                      color: isDark ? Colors.white54 : Colors.black45,
+                      fontSize: 6.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 1),
+          // カレンダーグリッド (超コンパクトアスペクト比 1.85)
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: totalCells,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 1.2,
+              crossAxisSpacing: 1.2,
+              childAspectRatio: 1.85,
+            ),
+            itemBuilder: (context, index) {
+              if (index < startWeekday) {
+                return const SizedBox.shrink();
+              }
+              final dayNumber = index - startWeekday + 1;
+              final dateStr = '$year-${month.toString().padLeft(2, '0')}-${dayNumber.toString().padLeft(2, '0')}';
+              final isAchieved = widget.recentPostDates.contains(dateStr);
+              final hasSchedule = (widget.taskSchedules[dateStr]?.isNotEmpty ?? false);
+              final isToday = dayNumber == now.day;
+
+              // アニメーション用の分割制御 (1日〜31日順に順番に塗りつぶし)
+              final animStart = ((dayNumber - 1) / daysInMonth) * 0.7;
+              final animEnd = (animStart + 0.3).clamp(0.0, 1.0);
+              final curvedAnimation = CurvedAnimation(
+                parent: _controller,
+                curve: Interval(animStart, animEnd, curve: Curves.easeOutBack),
+              );
+
+              // 未達成セルの背景色
+              final unachievedBg = isDark
+                  ? const Color(0xFF222224)
+                  : Colors.black.withValues(alpha: 0.04);
+
+              return GestureDetector(
+                onTap: () {
+                  final date = DateTime(year, month, dayNumber);
+                  if (widget.onDateTap != null) {
+                    widget.onDateTap!(date);
+                  } else if (widget.onTap != null) {
+                    widget.onTap!();
+                  }
+                },
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    final scale = isAchieved ? (0.3 + 0.7 * curvedAnimation.value) : 1.0;
+                    final opacity = isAchieved ? curvedAnimation.value.clamp(0.0, 1.0) : 1.0;
+
+                    return Transform.scale(
+                      scale: scale,
+                      child: Opacity(
+                        opacity: opacity,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isAchieved
+                                ? widget.activeColor
+                                : isToday
+                                    ? widget.activeColor.withValues(alpha: isDark ? 0.3 : 0.12)
+                                    : unachievedBg,
+                            borderRadius: BorderRadius.circular(2),
+                            border: isToday && !isAchieved
+                                ? Border.all(color: widget.activeColor, width: 0.8)
+                                : null,
+                          ),
+                          alignment: Alignment.center,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: (hasSchedule && !isAchieved) ? 2.0 : 0.0,
+                                ),
+                                child: Text(
+                                  '$dayNumber',
+                                  style: GoogleFonts.outfit(
+                                    color: isAchieved
+                                        ? achievedTextColor
+                                        : isToday
+                                            ? widget.activeColor
+                                            : (dayNumber > now.day)
+                                                ? (isDark ? const Color(0xFF555558) : Colors.black26)
+                                                : (isDark ? Colors.white70 : Colors.black87),
+                                    fontSize: 9.5,
+                                    fontWeight: isAchieved || isToday ? FontWeight.w800 : FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              // 習慣コミットメント（予定）が存在する場合は下部にゴールドドットを表示
+                              if (hasSchedule && !isAchieved)
+                                Positioned(
+                                  bottom: 0.8,
+                                  child: Container(
+                                    width: 3.2,
+                                    height: 3.2,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.accentGold,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

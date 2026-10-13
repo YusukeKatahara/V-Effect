@@ -39,18 +39,102 @@ class SeasonHintModal extends StatefulWidget {
 class _SeasonHintModalState extends State<SeasonHintModal> {
   late TextEditingController _triggerController;
 
+  // ── Winter Arc 5大規律 ──
+  static const List<String> _winterArcDisciplines = [
+    '🏋️ ワークアウト',
+    '🌅 自己規律',
+    '🥷 スマホ断ち',
+    '📖 読書・学習',
+    '💧 食事・水',
+  ];
+
+  static const Map<String, List<String>> _winterArcPresets = {
+    'Type A: 肉体改造': ['🏋️ ワークアウト', '🌅 自己規律', '💧 食事・水'],
+    'Type B: 知性集中': ['🌅 自己規律', '🥷 スマホ断ち', '📖 読書・学習'],
+    'Type C: 生活リセット': ['🌅 自己規律', '🥷 スマホ断ち', '💧 食事・水'],
+  };
+
+  final Set<String> _selectedDisciplines = {};
+  String _selectedType = ''; // 'Type A: 肉体改造', 'Type B: 知性集中', 'Type C: 生活リセット', 'Type D: 自分で3つ選ぶ'
+
+  bool get _isWinterArc {
+    final title = widget.task.title.toUpperCase();
+    final sId = widget.season.id.toLowerCase();
+    final sName = widget.season.taskName.toUpperCase();
+    return title.contains('WINTER ARC') ||
+        sId.contains('winter_arc') ||
+        sName.contains('WINTER ARC');
+  }
 
   @override
   void initState() {
     super.initState();
     _triggerController = TextEditingController(text: widget.task.trigger ?? '');
 
+    if (_isWinterArc) {
+      _initWinterArcSelection();
+    }
+  }
+
+  void _initWinterArcSelection() {
+    final currentText = widget.task.trigger ?? '';
+    for (final disc in _winterArcDisciplines) {
+      // 絵文字を除いたキーワードでも部分一致判定
+      final cleanKeyword = disc.replaceAll(RegExp(r'[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff]'), '').trim();
+      if (currentText.contains(disc) || (cleanKeyword.isNotEmpty && currentText.contains(cleanKeyword))) {
+        _selectedDisciplines.add(disc);
+      }
+    }
+
+    // プリセットと完全一致するかチェック
+    for (final entry in _winterArcPresets.entries) {
+      if (entry.value.length == _selectedDisciplines.length &&
+          entry.value.every((d) => _selectedDisciplines.contains(d))) {
+        _selectedType = entry.key;
+        return;
+      }
+    }
+
+    if (_selectedDisciplines.isNotEmpty) {
+      _selectedType = 'Type D: 自分で3つ選ぶ';
+    }
+  }
+
+  void _applyPreset(String typeKey, List<String> disciplines) {
+    setState(() {
+      _selectedType = typeKey;
+      _selectedDisciplines.clear();
+      _selectedDisciplines.addAll(disciplines);
+      _triggerController.text = _selectedDisciplines.join(' / ');
+    });
+  }
+
+  void _toggleDiscipline(String discipline) {
+    setState(() {
+      _selectedType = 'Type D: 自分で3つ選ぶ';
+      if (_selectedDisciplines.contains(discipline)) {
+        _selectedDisciplines.remove(discipline);
+      } else {
+        if (_selectedDisciplines.length < 3) {
+          _selectedDisciplines.add(discipline);
+        } else {
+          // すでに3つ選択されている場合はトースト・ガイダンス
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('選べる規律は最大3つまでです（無理のない継続のため）'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return;
+        }
+      }
+      _triggerController.text = _selectedDisciplines.join(' / ');
+    });
   }
 
   @override
   void dispose() {
     _triggerController.dispose();
-
     super.dispose();
   }
 
@@ -121,7 +205,115 @@ class _SeasonHintModalState extends State<SeasonHintModal> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
+            ],
+
+            // ── Winter Arc 専用: 規律スタイル選択 (Type A〜D) & 5大規律チップ ──
+            if (_isWinterArc) ...[
+              Row(
+                children: [
+                  Icon(Icons.checklist_rounded, color: AppColors.accentGold, size: 20),
+                  const SizedBox(width: 6),
+                  Text(
+                    '規律スタイルを選ぶ（3つ選択）',
+                    style: GoogleFonts.notoSansJp(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.accentGold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // プリセットボタン一覧
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ..._winterArcPresets.entries.map((entry) {
+                    final isSelected = _selectedType == entry.key;
+                    return ChoiceChip(
+                      label: Text(entry.key),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) {
+                          _applyPreset(entry.key, entry.value);
+                        }
+                      },
+                      selectedColor: AppColors.accentGold.withValues(alpha: 0.25),
+                      backgroundColor: AppColors.black.withValues(alpha: 0.3),
+                      labelStyle: GoogleFonts.notoSansJp(
+                        fontSize: 12,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected ? AppColors.accentGold : AppColors.grey70,
+                      ),
+                      side: BorderSide(
+                        color: isSelected ? AppColors.accentGold : AppColors.grey30,
+                        width: 1,
+                      ),
+                    );
+                  }),
+                  ChoiceChip(
+                    label: Text(
+                      _selectedType == 'Type D: 自分で3つ選ぶ'
+                          ? 'Type D: 自分で3つ選ぶ (${_selectedDisciplines.length}/3)'
+                          : 'Type D: 自分で3つ選ぶ',
+                    ),
+                    selected: _selectedType == 'Type D: 自分で3つ選ぶ',
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedType = 'Type D: 自分で3つ選ぶ';
+                      });
+                    },
+                    selectedColor: AppColors.accentGold.withValues(alpha: 0.25),
+                    backgroundColor: AppColors.black.withValues(alpha: 0.3),
+                    labelStyle: GoogleFonts.notoSansJp(
+                      fontSize: 12,
+                      fontWeight: _selectedType == 'Type D: 自分で3つ選ぶ' ? FontWeight.bold : FontWeight.normal,
+                      color: _selectedType == 'Type D: 自分で3つ選ぶ' ? AppColors.accentGold : AppColors.grey70,
+                    ),
+                    side: BorderSide(
+                      color: _selectedType == 'Type D: 自分で3つ選ぶ' ? AppColors.accentGold : AppColors.grey30,
+                      width: 1,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // 5大規律の個別チップ
+              Text(
+                '5大規律からタップして選ぶ (最大3つ):',
+                style: GoogleFonts.notoSansJp(
+                  fontSize: 12,
+                  color: AppColors.grey50,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _winterArcDisciplines.map((discipline) {
+                  final isSelected = _selectedDisciplines.contains(discipline);
+                  return FilterChip(
+                    label: Text(discipline),
+                    selected: isSelected,
+                    onSelected: (_) => _toggleDiscipline(discipline),
+                    selectedColor: AppColors.accentGold,
+                    checkmarkColor: AppColors.black,
+                    backgroundColor: AppColors.black.withValues(alpha: 0.3),
+                    labelStyle: GoogleFonts.notoSansJp(
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      color: isSelected ? AppColors.black : AppColors.white,
+                    ),
+                    side: BorderSide(
+                      color: isSelected ? AppColors.accentGold : AppColors.grey30,
+                      width: 1,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 24),
             ],
 
             // トリガー設定フォーム

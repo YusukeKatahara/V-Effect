@@ -16,6 +16,7 @@ enum NotificationType {
   seasonTaskPushOnly,    // シーズンタスクPush専用
   rescueRequested,       // 救済SOS通知（救済中の投稿）
   rescueRevived,         // 救済完全復活・感謝通知（150 VFIRE達成）
+  directMessage,         // ダイレクトメッセージ通知（💬）
 }
 
 /// Firestore の notifications コレクションに対応するデータモデル
@@ -129,6 +130,11 @@ class AppNotification {
           typeStr == 'rescue_revived' ||
           typeStr == 'streak_revived') {
         return NotificationType.rescueRevived;
+      }
+      if (typeStr == 'directMessage' ||
+          typeStr == 'direct_message' ||
+          typeStr == 'dm') {
+        return NotificationType.directMessage;
       }
 
       for (final val in NotificationType.values) {

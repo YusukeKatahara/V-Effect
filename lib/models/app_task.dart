@@ -1,10 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
+/// タスクの実行頻度タイプ
+enum TaskFrequencyType {
+  /// 毎日（デフォルト）
+  daily,
+  /// 週あたりの目標回数（例: 週3回）
+  weeklyTarget,
+  /// 月あたりの目標回数（例: 月10回）
+  monthlyTarget,
+}
+
 class AppTask {
   final String id; // タスクの一意な識別ID
   final String title;
   final String? trigger;
+  final TaskFrequencyType frequencyType; // 達成頻度タイプ (毎日 / 週○回 / 月○回)
+  final int targetCount; // 目標達成回数 (週3回なら3, デフォルト1)
 
   final bool isOneTime;
   final bool isSeason; // シーズンタスクかどうか
@@ -17,6 +29,8 @@ class AppTask {
   static const String fieldId = 'id';
   static const String fieldTitle = 'title';
   static const String fieldTrigger = 'trigger';
+  static const String fieldFrequencyType = 'frequencyType';
+  static const String fieldTargetCount = 'targetCount';
   static const String fieldIsOneTime = 'isOneTime';
   static const String fieldIsSeason = 'isSeason';
   static const String fieldSeasonId = 'seasonId';
@@ -28,7 +42,8 @@ class AppTask {
     this.id = '', // 後方互換性のためデフォルト値を空文字にします
     required this.title,
     this.trigger,
-
+    this.frequencyType = TaskFrequencyType.daily,
+    this.targetCount = 1,
     this.isOneTime = false,
     this.isSeason = false,
     this.seasonId,
@@ -36,6 +51,15 @@ class AppTask {
     this.isSecret = false,
     this.reminderTime,
   });
+
+  /// デイリー（毎日）タスクかどうか
+  bool get isDaily => frequencyType == TaskFrequencyType.daily;
+
+  /// 週次目標タスクかどうか
+  bool get isWeekly => frequencyType == TaskFrequencyType.weeklyTarget;
+
+  /// 月次目標タスクかどうか
+  bool get isMonthly => frequencyType == TaskFrequencyType.monthlyTarget;
 
   /// 本日達成（投稿）されたタスクかどうか判定する
   bool get isCompletedToday {
@@ -50,7 +74,8 @@ class AppTask {
       fieldId: id,
       fieldTitle: title,
       if (trigger != null) fieldTrigger: trigger,
-
+      fieldFrequencyType: frequencyType.name,
+      fieldTargetCount: targetCount,
       fieldIsOneTime: isOneTime,
       fieldIsSeason: isSeason,
       if (seasonId != null) fieldSeasonId: seasonId,
@@ -62,15 +87,37 @@ class AppTask {
 
   factory AppTask.fromFirestore(dynamic data) {
     if (data is String) {
-      return AppTask(id: '', title: data, isOneTime: false, isSeason: false, isSecret: false);
+      return AppTask(
+        id: '',
+        title: data,
+        frequencyType: TaskFrequencyType.daily,
+        targetCount: 1,
+        isOneTime: false,
+        isSeason: false,
+        isSecret: false,
+      );
     }
     
     try {
       final map = data as Map<String, dynamic>;
+
+      // 達成頻度タイプのパース（後方互換性対応：未設定時は daily）
+      TaskFrequencyType parsedFrequency = TaskFrequencyType.daily;
+      final freqStr = map[fieldFrequencyType]?.toString();
+      if (freqStr == 'weeklyTarget' || freqStr == 'weekly') {
+        parsedFrequency = TaskFrequencyType.weeklyTarget;
+      } else if (freqStr == 'monthlyTarget' || freqStr == 'monthly') {
+        parsedFrequency = TaskFrequencyType.monthlyTarget;
+      }
+
+      final parsedTargetCount = (map[fieldTargetCount] as num?)?.toInt() ?? 1;
+
       return AppTask(
         id: map[fieldId]?.toString() ?? '',
         title: map[fieldTitle]?.toString() ?? '',
         trigger: map[fieldTrigger]?.toString(),
+        frequencyType: parsedFrequency,
+        targetCount: parsedTargetCount > 0 ? parsedTargetCount : 1,
         isOneTime: map[fieldIsOneTime] == true,
         isSeason: map[fieldIsSeason] == true,
         seasonId: map[fieldSeasonId]?.toString(),
@@ -80,7 +127,15 @@ class AppTask {
       );
     } catch (e) {
       debugPrint('Error parsing AppTask: $e');
-      return const AppTask(id: '', title: 'Error loading task', isOneTime: false, isSeason: false, isSecret: false);
+      return const AppTask(
+        id: '',
+        title: 'Error loading task',
+        frequencyType: TaskFrequencyType.daily,
+        targetCount: 1,
+        isOneTime: false,
+        isSeason: false,
+        isSecret: false,
+      );
     }
   }
 
@@ -89,7 +144,8 @@ class AppTask {
     String? title,
     String? trigger,
     bool clearTrigger = false,
-
+    TaskFrequencyType? frequencyType,
+    int? targetCount,
     bool? isOneTime,
     bool? isSeason,
     String? seasonId,
@@ -102,7 +158,8 @@ class AppTask {
       id: id ?? this.id,
       title: title ?? this.title,
       trigger: clearTrigger ? null : (trigger ?? this.trigger),
-
+      frequencyType: frequencyType ?? this.frequencyType,
+      targetCount: targetCount ?? this.targetCount,
       isOneTime: isOneTime ?? this.isOneTime,
       isSeason: isSeason ?? this.isSeason,
       seasonId: seasonId ?? this.seasonId,

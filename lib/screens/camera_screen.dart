@@ -30,6 +30,7 @@ import '../models/app_task.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/v_badge_widget.dart';
 import '../screens/home/components/bgm_indicator.dart';
+import '../utils/date_helper.dart';
 
 /// Hero Task 撮影画面
 ///
@@ -41,6 +42,153 @@ class CameraScreen extends ConsumerStatefulWidget {
   const CameraScreen({super.key, this.heroTaskName});
 
   final String? heroTaskName;
+
+  /// カメラ画面でデフォルト選択されるタスク名を算出するヘルパー
+  static String computeEffectiveTaskName({
+    required HomeData? homeData,
+    String? selectedTaskName,
+    String? taskName,
+    String defaultTaskName = 'Hero Task',
+  }) {
+    if (selectedTaskName != null) return selectedTaskName;
+    if (taskName != null) return taskName;
+
+    // ユーザーのタスク一覧の中から、1日の最初の投稿として相応しいメインタスクを優先選択
+    final userTasks = homeData?.tasks ?? [];
+    final todayStr = DateHelper.toDateString(DateTime.now());
+    final scheduledIds = homeData?.taskSchedules[todayStr] ??
+        homeData?.user?.taskSchedules[todayStr] ??
+        <String>[];
+
+    // 全タスク候補（ユーザー登録タスク + 本日カレンダー予約されたクイック予定）を統合
+    final taskCandidates = <AppTask>[];
+    final addedTitles = <String>{};
+    final addedIdsAndTitles = <String>{};
+
+    for (final task in userTasks) {
+      if (task.title.trim().isNotEmpty && !addedTitles.contains(task.title.trim())) {
+        taskCandidates.add(task);
+        addedTitles.add(task.title.trim());
+        if (task.id.isNotEmpty) {
+          addedIdsAndTitles.add(task.id);
+        }
+        addedIdsAndTitles.add(task.title.trim());
+      }
+    }
+
+    for (final scheduledItem in scheduledIds) {
+      final trimmed = scheduledItem.trim();
+      if (trimmed.isNotEmpty && !addedIdsAndTitles.contains(trimmed)) {
+        taskCandidates.add(AppTask(title: trimmed));
+        addedTitles.add(trimmed);
+        addedIdsAndTitles.add(trimmed);
+      }
+    }
+
+    if (taskCandidates.isNotEmpty) {
+      final uncompletedTasks = taskCandidates.where((t) => !t.isCompletedToday).toList();
+      final targetList = uncompletedTasks.isNotEmpty ? uncompletedTasks : taskCandidates;
+
+      final sortedList = List<AppTask>.from(targetList);
+      sortedList.sort((a, b) {
+        // 0. 本日未完了のタスクを達成済みタスクよりも絶対優先
+        final completedA = a.isCompletedToday;
+        final completedB = b.isCompletedToday;
+        if (!completedA && completedB) return -1;
+        if (completedA && !completedB) return 1;
+
+        // 0.5. カレンダーで本日予約（コミットメント）されたタスクを優先
+        final scheduledA = scheduledIds.contains(a.id) || scheduledIds.contains(a.title);
+        final scheduledB = scheduledIds.contains(b.id) || scheduledIds.contains(b.title);
+        if (scheduledA && !scheduledB) return -1;
+        if (!scheduledA && scheduledB) return 1;
+
+        final titleA = a.title.trim();
+        final titleB = b.title.trim();
+
+        // 1. 「感謝」「振り返り」「日記」などの締めくくり系タスクはファースト投稿の候補として後回しにする
+        final isNightTaskA = titleA.contains('感謝') || titleA.contains('振り返り') || titleA.contains('日記');
+        final isNightTaskB = titleB.contains('感謝') || titleB.contains('振り返り') || titleB.contains('日記');
+        if (isNightTaskA && !isNightTaskB) return 1;
+        if (!isNightTaskA && isNightTaskB) return -1;
+
+        // 2. リマインダー時間 (HH:mm 形式) が設定されている場合は時間が早いものを優先
+        if (a.reminderTime != null && b.reminderTime != null) {
+          return a.reminderTime!.compareTo(b.reminderTime!);
+        }
+        if (a.reminderTime != null) return -1;
+        if (b.reminderTime != null) return 1;
+
+        return 0;
+      });
+
+      if (sortedList.first.title.trim().isNotEmpty) {
+        return sortedList.first.title;
+      }
+    }
+
+    if (scheduledIds.isNotEmpty) {
+      return scheduledIds.first;
+    }
+
+    return defaultTaskName;
+  }
+
+  /// タスク選択シート用の候補一覧を計算するヘルパー
+  static List<AppTask> computeTaskCandidates({
+    required HomeData? homeData,
+    String? currentTaskName,
+  }) {
+    final userTasks = homeData?.tasks ?? [];
+    final todayStr = DateHelper.toDateString(DateTime.now());
+    final scheduledIds = homeData?.taskSchedules[todayStr] ??
+        homeData?.user?.taskSchedules[todayStr] ??
+        <String>[];
+
+    final taskCandidates = <AppTask>[];
+    final addedTitles = <String>{};
+    final addedIdsAndTitles = <String>{};
+
+    for (final task in userTasks) {
+      if (task.title.trim().isNotEmpty && !addedTitles.contains(task.title.trim())) {
+        taskCandidates.add(task);
+        addedTitles.add(task.title.trim());
+        if (task.id.isNotEmpty) {
+          addedIdsAndTitles.add(task.id);
+        }
+        addedIdsAndTitles.add(task.title.trim());
+      }
+    }
+
+    for (final scheduledItem in scheduledIds) {
+      final trimmed = scheduledItem.trim();
+      if (trimmed.isNotEmpty && !addedIdsAndTitles.contains(trimmed)) {
+        taskCandidates.add(AppTask(title: trimmed));
+        addedTitles.add(trimmed);
+        addedIdsAndTitles.add(trimmed);
+      }
+    }
+
+    // 未完了タスクを優先し、さらにカレンダー予約タスクを最優先にソート
+    taskCandidates.sort((a, b) {
+      final completedA = a.isCompletedToday;
+      final completedB = b.isCompletedToday;
+      if (!completedA && completedB) return -1;
+      if (completedA && !completedB) return 1;
+
+      final scheduledA = scheduledIds.contains(a.id) || scheduledIds.contains(a.title);
+      final scheduledB = scheduledIds.contains(b.id) || scheduledIds.contains(b.title);
+      if (scheduledA && !scheduledB) return -1;
+      if (!scheduledA && scheduledB) return 1;
+      return 0;
+    });
+
+    if (currentTaskName != null && currentTaskName.isNotEmpty && !addedTitles.contains(currentTaskName)) {
+      taskCandidates.insert(0, AppTask(title: currentTaskName));
+    }
+
+    return taskCandidates;
+  }
 
   @override
   ConsumerState<CameraScreen> createState() => _CameraScreenState();
@@ -83,6 +231,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   double _currentZoomLevel = 1.0;
   double _baseZoomLevel = 1.0;
 
+  // ── 露出（明るさ）制御（Winter Arc等の暗め・シネマティック撮影対応） ──
+  double _minExposureOffset = -2.0;
+  double _maxExposureOffset = 2.0;
+  double _currentExposureOffset = 0.0;
+  bool _isLowExposure = false; // 暗め撮影モード（ワンタップで -1.5 EV に下げる）
+  bool _showExposureSlider = false; // 露出微調整スライダーの表示フラグ
+
   String? _selectedTaskName;
 
   String? get _taskName {
@@ -93,51 +248,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     return null;
   }
 
-  String get _effectiveTaskName {
-    if (_selectedTaskName != null) return _selectedTaskName!;
-    if (_taskName != null) return _taskName!;
-
-    // ユーザーのタスク一覧の中から、1日の最初の投稿として相応しいメインタスクを優先選択
-    final homeData = ref.read(homeDataProvider).value;
-    final userTasks = homeData?.tasks ?? [];
-    if (userTasks.isNotEmpty) {
-      final uncompletedTasks = userTasks.where((t) => !t.isCompletedToday).toList();
-      final targetList = uncompletedTasks.isNotEmpty ? uncompletedTasks : userTasks;
-
-      final sortedList = List<AppTask>.from(targetList);
-      sortedList.sort((a, b) {
-        // 0. 本日未完了のタスクを達成済みタスクよりも絶対優先
-        final completedA = a.isCompletedToday;
-        final completedB = b.isCompletedToday;
-        if (!completedA && completedB) return -1;
-        if (completedA && !completedB) return 1;
-
-        final titleA = a.title.trim();
-        final titleB = b.title.trim();
-
-        // 1. 「感謝」「振り返り」「日記」などの締めくくり系タスクはファースト投稿の候補として後回しにする
-        final isNightTaskA = titleA.contains('感謝') || titleA.contains('振り返り') || titleA.contains('日記');
-        final isNightTaskB = titleB.contains('感謝') || titleB.contains('振り返り') || titleB.contains('日記');
-        if (isNightTaskA && !isNightTaskB) return 1;
-        if (!isNightTaskA && isNightTaskB) return -1;
-
-        // 2. リマインダー時間 (HH:mm 形式) が設定されている場合は時間が早いものを優先
-        if (a.reminderTime != null && b.reminderTime != null) {
-          return a.reminderTime!.compareTo(b.reminderTime!);
-        }
-        if (a.reminderTime != null) return -1;
-        if (b.reminderTime != null) return 1;
-
-        return 0;
-      });
-
-      if (sortedList.first.title.trim().isNotEmpty) {
-        return sortedList.first.title;
-      }
-    }
-
-    return AppLocalizations.of(context)!.cameraScreenTaskDefault;
-  }
+  String get _effectiveTaskName => CameraScreen.computeEffectiveTaskName(
+        homeData: ref.read(homeDataProvider).value,
+        selectedTaskName: _selectedTaskName,
+        taskName: _taskName,
+        defaultTaskName: AppLocalizations.of(context)!.cameraScreenTaskDefault,
+      );
 
   @override
   void initState() {
@@ -305,6 +421,21 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       } catch (e) {
         debugPrint('FLASH SET ERROR (Ignored): $e');
       }
+
+      // 露出（明るさ）の最小・最大値取得と初期化
+      try {
+        _minExposureOffset = await controller.getMinExposureOffset();
+        _maxExposureOffset = await controller.getMaxExposureOffset();
+        if (_isLowExposure) {
+          final targetOffset = (-1.5).clamp(_minExposureOffset, _maxExposureOffset);
+          _currentExposureOffset = await controller.setExposureOffset(targetOffset);
+        } else {
+          _currentExposureOffset = 0.0;
+          await controller.setExposureOffset(0.0);
+        }
+      } catch (e) {
+        debugPrint('EXPOSURE SET ERROR (Ignored): $e');
+      }
       
       if (mounted) {
         setState(() => _isCameraReady = true);
@@ -318,6 +449,56 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           _cameraUnavailable = true;
         });
       }
+    }
+  }
+
+  /// 露出（明るさ）を手動調整
+  Future<void> _setExposure(double value) async {
+    final controller = _cameraController;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    try {
+      final clamped = value.clamp(_minExposureOffset, _maxExposureOffset);
+      final actual = await controller.setExposureOffset(clamped);
+      if (mounted) {
+        setState(() {
+          _currentExposureOffset = actual;
+          _isLowExposure = actual <= -0.75;
+        });
+      }
+    } catch (e) {
+      debugPrint('SET EXPOSURE ERROR: $e');
+    }
+  }
+
+  /// 暗め撮影モード（Low Exposure）のワンタップ切り替え（Winter Arc推奨スタイル）
+  Future<void> _toggleLowExposure() async {
+    final controller = _cameraController;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    try {
+      if (_isLowExposure) {
+        // 通常露出（0.0）に戻す
+        await controller.setExposureOffset(0.0);
+        if (mounted) {
+          setState(() {
+            _currentExposureOffset = 0.0;
+            _isLowExposure = false;
+          });
+        }
+      } else {
+        // 暗めに下げる（-1.5 EVを目標にクランプ）
+        final target = (-1.5).clamp(_minExposureOffset, _maxExposureOffset);
+        final actual = await controller.setExposureOffset(target);
+        if (mounted) {
+          setState(() {
+            _currentExposureOffset = actual;
+            _isLowExposure = true;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('TOGGLE LOW EXPOSURE ERROR: $e');
     }
   }
 
@@ -805,29 +986,90 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     ),
             ),
 
-            // ── 右側: アクションボタン（フラッシュ または ステッカートグル＆BGM） ──
+            // ── 右側: アクションボタン（露出トグル＆フラッシュ または ステッカートグル＆BGM） ──
             Positioned(
               right: 8,
               child: showFlash
-                  ? GestureDetector(
-                      onTap: _toggleFlash,
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _flashMode != FlashMode.off
-                              ? AppColors.accentGold.withValues(alpha: 0.2)
-                              : Colors.transparent,
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // ❄️ 露出（暗め/Low Exposure）ボタン
+                        GestureDetector(
+                          onTap: _toggleLowExposure,
+                          onLongPress: () {
+                            setState(() {
+                              _showExposureSlider = !_showExposureSlider;
+                            });
+                          },
+                          child: Container(
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              color: _isLowExposure
+                                  ? AppColors.accentGold.withValues(alpha: 0.25)
+                                  : Colors.white.withValues(alpha: 0.12),
+                              border: Border.all(
+                                color: _isLowExposure
+                                    ? AppColors.accentGold
+                                    : Colors.white24,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isLowExposure
+                                      ? Icons.dark_mode_rounded
+                                      : Icons.wb_sunny_outlined,
+                                  color: _isLowExposure
+                                      ? AppColors.accentGold
+                                      : AppColors.pureWhite,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _isLowExposure
+                                      ? '暗め ${_currentExposureOffset.toStringAsFixed(1)}'
+                                      : '明るさ',
+                                  style: GoogleFonts.notoSansJp(
+                                    fontSize: 12,
+                                    fontWeight: _isLowExposure
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: _isLowExposure
+                                        ? AppColors.accentGold
+                                        : AppColors.pureWhite,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: Icon(
-                          _flashIcon,
-                          color: _flashMode != FlashMode.off
-                              ? AppColors.accentGold
-                              : AppColors.pureWhite,
-                          size: 24,
+                        const SizedBox(width: 6),
+                        // フラッシュ切り替えボタン
+                        GestureDetector(
+                          onTap: _toggleFlash,
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _flashMode != FlashMode.off
+                                  ? AppColors.accentGold.withValues(alpha: 0.2)
+                                  : Colors.white.withValues(alpha: 0.12),
+                            ),
+                            child: Icon(
+                              _flashIcon,
+                              color: _flashMode != FlashMode.off
+                                  ? AppColors.accentGold
+                                  : AppColors.pureWhite,
+                              size: 20,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     )
                   : Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1250,7 +1492,14 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: _isCameraReady && _cameraController != null && _cameraController!.value.isInitialized
-                    ? _buildCameraPreview()
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          _buildCameraPreview(),
+                          // 露出微調整スライダーオーバーレイ
+                          _buildExposureSliderOverlay(),
+                        ],
+                      )
                     : _buildCameraLoading(),
                   ),
                 ),
@@ -1263,6 +1512,74 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         // ── カメラ操作バー: 左にアルバム / 中央にシャッター / 右にカメラ切替 ──
         _buildCameraControls(),
       ],
+    );
+  }
+
+  /// ── 縦型露出（明るさ）スライダーオーバーレイ ──
+  Widget _buildExposureSliderOverlay() {
+    if (!_showExposureSlider || !_isCameraReady || _cameraController == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      right: 12,
+      top: 40,
+      bottom: 40,
+      child: Container(
+        width: 44,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.65),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.white24, width: 1),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.wb_sunny_rounded, color: Colors.amber, size: 18),
+            const SizedBox(height: 6),
+            Text(
+              '${_currentExposureOffset > 0 ? '+' : ''}${_currentExposureOffset.toStringAsFixed(1)}',
+              style: GoogleFonts.outfit(
+                color: AppColors.accentGold,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Expanded(
+              child: RotatedBox(
+                quarterTurns: 3,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                    activeTrackColor: AppColors.accentGold,
+                    inactiveTrackColor: Colors.white24,
+                    thumbColor: AppColors.accentGold,
+                  ),
+                  child: Slider(
+                    value: _currentExposureOffset.clamp(_minExposureOffset, _maxExposureOffset),
+                    min: _minExposureOffset,
+                    max: _maxExposureOffset,
+                    onChanged: (val) {
+                      _setExposure(val);
+                    },
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showExposureSlider = false;
+                });
+              },
+              child: const Icon(Icons.close_rounded, color: Colors.white70, size: 18),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1891,27 +2208,18 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     HapticFeedback.selectionClick();
 
     final homeData = ref.read(homeDataProvider).value;
-    final userTasks = homeData?.tasks ?? [];
+    final todayStr = DateHelper.toDateString(DateTime.now());
+    final scheduledIds = homeData?.taskSchedules[todayStr] ??
+        homeData?.user?.taskSchedules[todayStr] ??
+        <String>[];
 
     final isDark = AppColors.isDark;
 
-    // 重複を避けつつ、ユーザー登録タスクのリストを作成
-    final taskCandidates = <AppTask>[];
-    final addedTitles = <String>{};
-
-    for (final task in userTasks) {
-      if (task.title.trim().isNotEmpty && !addedTitles.contains(task.title.trim())) {
-        taskCandidates.add(task);
-        addedTitles.add(task.title.trim());
-      }
-    }
-
-    // 現在選択中のタスク名が登録リストにない場合、先頭に追加
-    final currentName = _effectiveTaskName;
-    if (currentName.isNotEmpty && !addedTitles.contains(currentName)) {
-      taskCandidates.insert(0, AppTask(title: currentName));
-      addedTitles.add(currentName);
-    }
+    // 重複を避けつつ、本日予約タスクを優先した候補リストを作成
+    final taskCandidates = CameraScreen.computeTaskCandidates(
+      homeData: homeData,
+      currentTaskName: _effectiveTaskName,
+    );
 
     // 万が一タスクリストが空の場合のデフォルト候補
     if (taskCandidates.isEmpty) {
@@ -2000,6 +2308,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     itemBuilder: (listContext, index) {
                       final task = taskCandidates[index];
                       final isSelected = task.title == _effectiveTaskName;
+                      final isScheduledToday = scheduledIds.contains(task.id) || scheduledIds.contains(task.title);
 
                       final unselectedBg = isDark
                           ? Colors.white.withValues(alpha: 0.05)
@@ -2038,15 +2347,43 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: Text(
-                                  task.title,
-                                  style: GoogleFonts.notoSansJp(
-                                    fontSize: 15,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                    color: isSelected ? AppColors.accentGold : AppColors.textPrimary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        task.title,
+                                        style: GoogleFonts.notoSansJp(
+                                          fontSize: 15,
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                          color: isSelected ? AppColors.accentGold : AppColors.textPrimary,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (isScheduledToday) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.accentGold.withValues(alpha: isDark ? 0.2 : 0.15),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: AppColors.accentGold,
+                                            width: 0.8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '🎯 本日の予約',
+                                          style: GoogleFonts.notoSansJp(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.accentGold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
                               if (isSelected) ...[

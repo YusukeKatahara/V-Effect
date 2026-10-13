@@ -85,6 +85,29 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
   // チュートリアル矢印の移動量を表すアニメーション
   late final Animation<double> _swipeGuideTranslation;
 
+  // 今日の予約タスクへの初期フォーカスを一度だけ行うためのフラグ
+  bool _hasInitiallyFocused = false;
+
+  /// 今日の予約タスク（未達成）が存在する場合、初期表示カードとして優先フォーカス
+  void _focusCommittedCardIfNeeded() {
+    if (_hasInitiallyFocused || _taskItems.isEmpty) return;
+    final targetIndex = _taskItems.indexWhere((item) => item.isCommittedToday && !item.isCompleted);
+    if (targetIndex != -1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_hasInitiallyFocused && _pageController.hasClients) {
+          final len = _taskItems.length;
+          final currentPos = _scrollPositionNotifier.value.round();
+          final currentFocused = (currentPos % len + len) % len;
+          final diff = targetIndex - currentFocused;
+          final targetPage = currentPos + diff;
+          _hasInitiallyFocused = true;
+          _pageController.jumpToPage(targetPage);
+          _scrollPositionNotifier.value = targetPage.toDouble();
+        }
+      });
+    }
+  }
+
   int get _focusedIndex {
     if (_taskItems.isEmpty) return 0;
     final len = _taskItems.length;
@@ -605,6 +628,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
       _myBadgeUrl = data.myBadgeUrl;
       _myBadgeAnimation = data.myBadgeAnimation;
       _loading = false;
+      _focusCommittedCardIfNeeded();
       
       WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.onLoadingChanged?.call(false);
@@ -630,6 +654,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
               _myBadgeAnimation = data.myBadgeAnimation;
               _loading = false;
             });
+            _focusCommittedCardIfNeeded();
             widget.onLoadingChanged?.call(false);
           }
         },

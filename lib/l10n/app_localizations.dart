@@ -2723,11 +2723,29 @@ abstract class AppLocalizations {
   /// **'📈 ウィークリートレンド習慣'**
   String get profileScreenTrendTitle;
 
+  /// No description provided for @profileScreenTrendSubtitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'仲間が今週多く挑戦している習慣です。タップして自分の目標に追加できます。'**
+  String get profileScreenTrendSubtitle;
+
   /// No description provided for @profileScreenTrendEmpty.
   ///
   /// In ja, this message translates to:
   /// **'トレンドデータがまだありません。'**
   String get profileScreenTrendEmpty;
+
+  /// Number of users practicing a trend habit
+  ///
+  /// In ja, this message translates to:
+  /// **'{count}人が実践中'**
+  String profileScreenPracticingCount(int count);
+
+  /// No description provided for @profileScreenTaskAlreadyAdded.
+  ///
+  /// In ja, this message translates to:
+  /// **'登録済'**
+  String get profileScreenTaskAlreadyAdded;
 
   /// No description provided for @profileScreenTimeUpdateFailed.
   ///
@@ -4828,6 +4846,18 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'今日達成 ✨'**
   String get directChatTodayCompleted;
+
+  /// No description provided for @notificationsDmSingle.
+  ///
+  /// In ja, this message translates to:
+  /// **'{name}さんからメッセージが届いています'**
+  String notificationsDmSingle(String name);
+
+  /// No description provided for @notificationsDmMultiple.
+  ///
+  /// In ja, this message translates to:
+  /// **'{name}さんから{count}通のメッセージが届いています'**
+  String notificationsDmMultiple(String name, int count);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

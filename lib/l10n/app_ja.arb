@@ -610,7 +610,18 @@
   "profileScreenFollowingTitle": "フォロー中",
   "profileScreenFollowersTitle": "フォロワー",
   "profileScreenTrendTitle": "📈 ウィークリートレンド習慣",
+  "profileScreenTrendSubtitle": "仲間が今週多く挑戦している習慣です。タップして自分の目標に追加できます。",
   "profileScreenTrendEmpty": "トレンドデータがまだありません。",
+  "profileScreenPracticingCount": "{count}人が実践中",
+  "@profileScreenPracticingCount": {
+    "description": "Number of users practicing a trend habit",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileScreenTaskAlreadyAdded": "登録済",
   "profileScreenTimeUpdateFailed": "時刻の更新に失敗しました",
   "profileScreenReviewButton": "積み重ねを振りかえる",
   "profileScreenAddTask": "タスクを追加",
@@ -1158,7 +1169,20 @@
       "count": { "type": "int" }
     }
   },
-  "directChatTodayCompleted": "今日達成 ✨"
+  "directChatTodayCompleted": "今日達成 ✨",
+  "notificationsDmSingle": "{name}さんからメッセージが届いています",
+  "@notificationsDmSingle": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "notificationsDmMultiple": "{name}さんから{count}通のメッセージが届いています",
+  "@notificationsDmMultiple": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  }
 }
 
 

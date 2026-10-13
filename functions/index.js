@@ -54,12 +54,12 @@ async function sendPushToUser(toUid, title, body, dataPayload = {}, options = {}
   const type = dataPayload.type || "";
   const isEmojiReaction = !!dataPayload.emoji && String(dataPayload.emoji).trim().length > 0;
   if (type === "reactionReceived") {
-    if (isEmojiReaction && userData.reactionNotifications === false) {
-      console.log(`[Push] User ${toUid} has reactionNotifications disabled for emoji. Skipping.`);
+    if (!isEmojiReaction) {
+      console.log(`[Push] V FIRE push is disabled globally by design for user ${toUid}. Skipping.`);
       return;
     }
-    if (!isEmojiReaction && userData.vFireNotifications === false) {
-      console.log(`[Push] User ${toUid} has vFireNotifications disabled for V FIRE. Skipping.`);
+    if (userData.reactionNotifications === false) {
+      console.log(`[Push] User ${toUid} has reactionNotifications disabled for emoji. Skipping.`);
       return;
     }
   }
@@ -196,14 +196,106 @@ exports.sendPushNotification = onDocumentWritten(
 
     const before = event.data?.before?.data();
     const isReaction = type === "reactionReceived";
+    const isEmojiReaction = !!emoji && String(emoji).trim().length > 0;
+
+    // ── リアクション通知（V FIRE / 絵文字）：端末プッシュ通知は送出せずアプリ内お知らせのみ ──
+    // 古いバージョンのクライアントから送信された場合にもプッシュが飛ばないようサーバー側で確実にスキップする。
+    // ※リアクション新規・追加時のみ Mutual Fire (絆の炎) 判定を実施し、単なる既読化等の更新時は即時終了する。
+    if (isReaction) {
+      // 単なる既読化・処理済みマーク（リアクション内容の変更なし）の場合は Mutual Fire 再計算もスキップ
+      if (before) {
+        const isContentUnchanged =
+          (before.reactionCount || 0) === (after.reactionCount || 0) &&
+          before.body === after.body &&
+          before.emoji === after.emoji;
+
+        if (isContentUnchanged) {
+          console.log(`[PushTrigger] Reaction notification read/meta update only: ${event.params.notificationId}. Skipping.`);
+          return;
+        }
+      }
+
+      // ── Mutual Fire (絆の炎) の判定 ──
+      if (fromUid && toUid) {
+        try {
+          const db = getFirestore();
+          const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          
+          // インデックス不要にするため fromUid のみで取得し、メモリ上でチェック
+          const recentReverseSnap = await db.collection("notifications")
+            .where("fromUid", "==", toUid)
+            .limit(30)
+            .get();
+            
+          let hasMutual = false;
+          recentReverseSnap.forEach(doc => {
+            const d = doc.data();
+            const cAt = d.createdAt ? d.createdAt.toDate() : null;
+            if (d.toUid === fromUid && d.type === "reactionReceived" && cAt && cAt >= twentyFourHoursAgo) {
+              hasMutual = true;
+            }
+          });
+
+          if (hasMutual) {
+            const batch = db.batch();
+            const ts = FieldValue.serverTimestamp();
+            
+            batch.set(
+              db.collection("users").doc(fromUid),
+              { mutualFires: { [toUid]: ts } },
+              { merge: true }
+            );
+            batch.set(
+              db.collection("users").doc(toUid),
+              { mutualFires: { [fromUid]: ts } },
+              { merge: true }
+            );
+            
+            await batch.commit();
+          }
+        } catch (e) {
+          console.error("Mutual Fire calculation warning (non-fatal):", e);
+        }
+      }
+
+      // 🔥 V FIRE（連打リアクション）：端末プッシュ通知は送出せずアプリ内お知らせのみとする
+      if (!isEmojiReaction) {
+        console.log(`[PushTrigger] V FIRE reaction notification push skipped by design for ${event.params.notificationId}.`);
+        return;
+      }
+
+      // ✨ 絵文字リアクション：プッシュ送出フラグを確認した上で端末プッシュ通知を送信
+      if (sendPush === false) {
+        console.log(`[PushTrigger] sendPush is explicitly false for ${event.params.notificationId}. Aborting push.`);
+        return;
+      }
+
+      const shortPostId = String(relatedId || "").slice(-16);
+      const shortFromUid = String(fromUid || "").slice(-16);
+      const reactionCollapseId = relatedId && fromUid 
+          ? `emj_${shortPostId}_${shortFromUid}` 
+          : undefined;
+
+      const payload = {
+        type: type || "",
+        relatedId: relatedId || "",
+        fromUid: fromUid || "",
+        emoji: emoji || "",
+      };
+
+      console.log(`[PushTrigger] Sending emoji reaction push notification: ${event.params.notificationId} (emoji: ${emoji})`);
+      await sendPushToUser(toUid, title, body, payload, { collapseId: reactionCollapseId });
+      return;
+    }
 
     // フロントエンドで指定されたプッシュ送出フラグをチェック
-    // ※リアクション通知（V FIRE / 絵文字）は古いアプリバージョンのクライアント側誤判定（sendPush: false）を
-    // 防ぐため、常に sendPushToUser 側で受信者の最新設定を確認して配信を決定する。
-    if (sendPush === false && !isReaction) {
+    if (sendPush === false) {
       console.log(`[PushTrigger] sendPush is explicitly false for ${event.params.notificationId}. Aborting push.`);
       return;
     }
+
+    // リアクション以外：更新（isRead 変更等）ではプッシュを再送しない
+    if (before) return;
 
     const payload = {
       type: type || "",
@@ -212,84 +304,9 @@ exports.sendPushNotification = onDocumentWritten(
       emoji: emoji || "",
     };
 
-    // ── リアクション以外：従来通り「新規作成時のみ」即時送信 ──
-    if (!isReaction) {
-      if (before) return; // 更新（isRead 変更等）では送信しない
-      const collapseId = relatedId ? `${type}_${relatedId}` : undefined;
-      await sendPushToUser(toUid, title, body, payload, { collapseId });
-      return;
-    }
-
-    // ── Mutual Fire (絆の炎) の判定 ──
-    if (isReaction && fromUid && toUid) {
-      try {
-        const db = getFirestore();
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        
-        // インデックス不要にするため fromUid のみで取得し、メモリ上でチェック
-        const recentReverseSnap = await db.collection("notifications")
-          .where("fromUid", "==", toUid)
-          .limit(30)
-          .get();
-          
-        let hasMutual = false;
-        recentReverseSnap.forEach(doc => {
-          const d = doc.data();
-          const cAt = d.createdAt ? d.createdAt.toDate() : null;
-          if (d.toUid === fromUid && d.type === "reactionReceived" && cAt && cAt >= twentyFourHoursAgo) {
-            hasMutual = true;
-          }
-        });
-
-        if (hasMutual) {
-          const batch = db.batch();
-          const ts = FieldValue.serverTimestamp();
-          
-          batch.set(
-            db.collection("users").doc(fromUid),
-            { mutualFires: { [toUid]: ts } },
-            { merge: true }
-          );
-          batch.set(
-            db.collection("users").doc(toUid),
-            { mutualFires: { [fromUid]: ts } },
-            { merge: true }
-          );
-          
-          await batch.commit();
-        }
-      } catch (e) {
-        console.error("Mutual Fire calculation warning (non-fatal):", e);
-      }
-    }
-
-    // ── リアクション通知の送信（絵文字とV FIREで別々のcollapseIdにし、64文字以内に安全に圧縮） ──
-    const isEmojiReaction = !!emoji && String(emoji).trim().length > 0;
-    const shortPostId = String(relatedId || "").slice(-16);
-    const shortFromUid = String(fromUid || "").slice(-16);
-    const reactionCollapseId = relatedId && fromUid 
-        ? `${isEmojiReaction ? "emj" : "vfr"}_${shortPostId}_${shortFromUid}` 
-        : undefined;
-
-    // 新規作成時（!before）、またはリアクション内容が更新された場合に送出
-    if (!before) {
-      console.log(`[PushTrigger] New reaction notification created: ${event.params.notificationId} (isEmoji: ${isEmojiReaction})`);
-      await sendPushToUser(toUid, title, body, payload, { collapseId: reactionCollapseId });
-    } else {
-      // 単なる既読化（isRead が false -> true になり、内容変更なし）の場合はプッシュを送信しない
-      const isReadMarkOnly = before.isRead === false && after.isRead === true &&
-          before.reactionCount === after.reactionCount &&
-          before.body === after.body &&
-          before.emoji === after.emoji;
-
-      if (isReadMarkOnly) {
-        console.log(`[PushTrigger] Reaction notification read-state change only: ${event.params.notificationId}. Skipping push.`);
-        return;
-      }
-
-      console.log(`[PushTrigger] Reaction notification updated/re-triggered: ${event.params.notificationId} (isEmoji: ${isEmojiReaction})`);
-      await sendPushToUser(toUid, title, body, payload, { collapseId: reactionCollapseId });
-    }
+    const collapseId = relatedId ? `${type}_${relatedId}` : undefined;
+    await sendPushToUser(toUid, title, body, payload, { collapseId });
+    return;
   }
 );
 
@@ -646,13 +663,35 @@ exports.sendStreakWarning = onSchedule(
         const streak = userData.streak || 0;
         
         const language = userData.language === "en" ? "en" : "ja";
-        let title = "⚠️ ストリークの危機！";
-        let body = `今日のV Questがまだ完了していません。このままでは${streak}日間の継続が途切れてしまいます！`;
 
-        if (language === "en") {
-          title = "⚠️ Streak at Risk!";
-          body = `You haven't completed your V Quest today. Don't let your ${streak}-day streak slip away!`;
-        }
+        // 洗練・高級感のあるリマインダーテンプレート（自律性と品格を重視）
+        const jaTemplates = [
+          {
+            title: "今日の仕上げ",
+            body: `${streak}日目の記録を残す準備が整っています。ご都合の良い時間にどうぞ。`,
+          },
+          {
+            title: "一日の終わりに",
+            body: "今日の小さな一歩を、美しい記録として刻みましょう。",
+          },
+        ];
+
+        const enTemplates = [
+          {
+            title: "Finishing Today",
+            body: `Your record for Day ${streak} is ready to be logged. Whenever you're ready.`,
+          },
+          {
+            title: "At Day's End",
+            body: "Capture today's small step and make it a beautiful part of your journey.",
+          },
+        ];
+
+        const selected = (language === "en" ? enTemplates : jaTemplates)[
+          Math.floor(Math.random() * 2)
+        ];
+        const title = selected.title;
+        const body = selected.body;
 
         promises.push(
           db.collection("notifications").add({
@@ -2506,7 +2545,7 @@ exports.sendDirectMessageNotification = onDocumentCreated(
 
       // 相手へプッシュ通知を送信（アバターURLを含めることでCommunication Notificationsに対応）
       // タイトルに 💬 を付与して通常通知やロック画面でも一目でDMと認識できるようにし、
-      // collapseId で同一チャットの連続メッセージをスマートに集約・上書き更新する
+      // threadId によりチャットごとに通知を束ねて（スタック化）表示する（パターンB: 全メッセージを保持して束ねる）
       const pushTitle = `💬 ${senderName}`;
       await sendPushToUser(
         recipientUid,
@@ -2518,11 +2557,34 @@ exports.sendDirectMessageNotification = onDocumentCreated(
           senderId: senderId,
           senderName: senderName,
           senderAvatarUrl: senderInfo.photoUrl || "",
-        },
-        {
-          collapseId: `dm_${chatId}`,
         }
       );
+
+      // アプリ内通知欄（notifications コレクション）にDM通知を集約保存
+      // ドキュメントIDを dm_${recipientUid}_${chatId} に固定することで、
+      // 連続でメッセージが来ても1通の通知アイテムに集約（最新本文＋通数インクリメント）される。
+      const notifDocId = `dm_${recipientUid}_${chatId}`;
+      const notifRef = db.collection("notifications").doc(notifDocId);
+      const existingNotif = await notifRef.get();
+      const currentData = existingNotif.exists ? existingNotif.data() : null;
+      // 既存の通知が存在し、かつ未読の場合はカウントを加算。既読または新規の場合は1に設定
+      const unreadCount = (currentData && !currentData.isRead)
+        ? ((Number(currentData.reactionCount) || 1) + 1)
+        : 1;
+
+      await notifRef.set({
+        toUid: recipientUid,
+        fromUid: senderId,
+        type: "directMessage",
+        title: senderName,
+        body: pushBody, // 最新メッセージ本文（プレビュー設定済み）
+        relatedId: chatId, // チャットID
+        reactionCount: unreadCount, // 未読通数
+        isRead: false,
+        isProcessed: false,
+        sendPush: false, // プッシュ通知は上記 sendPushToUser で直接送っているため二重送信を防止
+        createdAt: FieldValue.serverTimestamp(), // 最新日時に更新して通知欄の最上位へ
+      });
     } catch (error) {
       console.error("Error in sendDirectMessageNotification:", error);
     }

@@ -38,11 +38,16 @@ class PushNotificationService {
   factory PushNotificationService() => _instance;
   PushNotificationService._internal();
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications =
+  FirebaseMessaging get _messaging => FirebaseMessaging.instance;
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
+  FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+
+  @visibleForTesting
+  void setLocalNotificationsPluginForTesting(FlutterLocalNotificationsPlugin plugin) {
+    _localNotifications = plugin;
+  }
 
   bool _initialized = false;
 
@@ -690,6 +695,58 @@ class PushNotificationService {
             }
             debugPrint('タスクリマインダースケジュール復元完了: ${tasksData.length}件のタスクを走査');
           }
+
+          // 習慣プランナーのコミットメント予定通知を復元
+          final taskSchedules = data['taskSchedules'] as Map<String, dynamic>?;
+          if (taskSchedules != null) {
+            final taskTitleMap = <String, String>{};
+            final taskReminderMap = <String, String>{};
+            if (tasksData != null) {
+              for (final t in tasksData) {
+                if (t is Map<String, dynamic>) {
+                  final id = t['id']?.toString() ?? '';
+                  final title = t['title']?.toString() ?? '';
+                  final rTime = t['reminderTime']?.toString();
+                  if (id.isNotEmpty && title.isNotEmpty) {
+                    taskTitleMap[id] = title;
+                  }
+                  if (id.isNotEmpty && rTime != null) {
+                    taskReminderMap[id] = rTime;
+                  }
+                  if (title.isNotEmpty && rTime != null) {
+                    taskReminderMap[title] = rTime;
+                  }
+                }
+              }
+            }
+
+            for (final entry in taskSchedules.entries) {
+              final dateStr = entry.key;
+              final rawList = entry.value;
+              if (rawList is List && rawList.isNotEmpty) {
+                final titles = rawList.map((e) {
+                  final str = e.toString();
+                  return taskTitleMap[str] ?? str;
+                }).toList();
+
+                String? reminderTime;
+                for (final e in rawList) {
+                  final str = e.toString();
+                  if (taskReminderMap.containsKey(str)) {
+                    reminderTime = taskReminderMap[str];
+                    break;
+                  }
+                }
+
+                await syncCommittedDailyReminder(
+                  dateStr: dateStr,
+                  taskTitles: titles,
+                  reminderTime: reminderTime,
+                );
+              }
+            }
+            debugPrint('コミットメント通知スケジュール復元完了: ${taskSchedules.length}日分を走査');
+          }
         }
       }
     } catch (e) {
@@ -797,6 +854,143 @@ class PushNotificationService {
       debugPrint('Daily task reminder cancelled: id=$notificationId');
     } catch (e) {
       debugPrint('Error cancelling daily task reminder: $e');
+    }
+  }
+
+  /// 習慣プランナーで予約された特定日付のコミットメント通知IDを計算
+  /// 他の通知ID（保護アラート: 1002, 1003、毎日リマインダー: 0〜999999）と衝突しないよう 2000000 以上のオフセットを使用
+  static int getCommittedNotificationId(String dateStr) {
+    return ("committed_date_$dateStr").hashCode.abs() % 1000000 + 2000000;
+  }
+
+  /// コミットメント通知のタイトル文言を生成
+  static String getCommittedNotificationTitle(List<String> taskTitles, {bool isJapanese = true}) {
+    if (taskTitles.isEmpty) {
+      return isJapanese ? '本日は約束した習慣の予定日です！🔥' : 'Today is your promised habit day! 🔥';
+    }
+    if (isJapanese) {
+      if (taskTitles.length == 1) {
+        return '今日は【${taskTitles.first}】の日です！🔥';
+      } else {
+        return '本日は【${taskTitles.join('】【')}】の予定日です！🔥';
+      }
+    } else {
+      if (taskTitles.length == 1) {
+        return 'Today is 【${taskTitles.first}】 day! 🔥';
+      } else {
+        return 'Today is 【${taskTitles.join('】【')}】 scheduled day! 🔥';
+      }
+    }
+  }
+
+  /// コミットメント通知の本文文言を生成
+  static String getCommittedNotificationBody(List<String> taskTitles, {bool isJapanese = true}) {
+    if (taskTitles.isEmpty) {
+      return isJapanese
+          ? 'カレンダーで約束した習慣です。今日の勝利を証明しよう！'
+          : 'These are the habits promised on your calendar. Prove your victory today!';
+    }
+    if (isJapanese) {
+      if (taskTitles.length == 1) {
+        return 'カレンダーで約束した日です。小さな一歩を踏み出して勝利を証明しよう！';
+      } else {
+        return 'カレンダーで約束した習慣です。今日の勝利を証明しよう！';
+      }
+    } else {
+      if (taskTitles.length == 1) {
+        return 'This is the day you promised on your calendar. Take a small step and prove your victory!';
+      } else {
+        return 'These are the habits promised on your calendar. Prove your victory today!';
+      }
+    }
+  }
+
+  /// 習慣プランナーで予約した特定日付のコミットメントリマインダー通知を同期します。
+  /// 1日に複数のタスクが予約されている場合、まとめて1つの通知に集約します。
+  /// [taskTitles] が空の場合は該当日の通知をキャンセルします。
+  Future<void> syncCommittedDailyReminder({
+    required String dateStr,
+    required List<String> taskTitles,
+    String? reminderTime, // "HH:mm" 形式（省略時は "08:00"）
+    bool? isJapanese,
+  }) async {
+    if (kIsWeb) return;
+
+    final notificationId = getCommittedNotificationId(dateStr);
+
+    try {
+      // タスクリストが空の場合は登録されているリマインダーをキャンセル
+      if (taskTitles.isEmpty) {
+        await _localNotifications.cancel(notificationId);
+        debugPrint('Committed daily reminder cancelled: id=$notificationId ($dateStr)');
+        return;
+      }
+
+      // タイムゾーンの初期化安全ネット
+      try {
+        tz.getLocation('Asia/Tokyo');
+      } catch (_) {
+        tz.initializeTimeZones();
+        tz.setLocalLocation(tz.getLocation('Asia/Tokyo'));
+      }
+
+      final parts = (reminderTime ?? '08:00').split(':');
+      if (parts.length != 2) return;
+      final hour = int.tryParse(parts[0]) ?? 8;
+      final minute = int.tryParse(parts[1]) ?? 0;
+
+      final dateParts = dateStr.split('-');
+      if (dateParts.length != 3) return;
+      final year = int.tryParse(dateParts[0]);
+      final month = int.tryParse(dateParts[1]);
+      final day = int.tryParse(dateParts[2]);
+      if (year == null || month == null || day == null) return;
+
+      final now = tz.TZDateTime.now(tz.local);
+      final scheduledDate = tz.TZDateTime(
+        tz.local,
+        year,
+        month,
+        day,
+        hour,
+        minute,
+      );
+
+      // すでに過去の日時の場合はスケジュールせずキャンセルして終了
+      if (scheduledDate.isBefore(now)) {
+        await _localNotifications.cancel(notificationId);
+        debugPrint('Committed date $dateStr $reminderTime is past; cancelled: id=$notificationId');
+        return;
+      }
+
+      final effectiveIsJapanese = isJapanese ?? (PlatformDispatcher.instance.locale.languageCode == 'ja');
+      final title = getCommittedNotificationTitle(taskTitles, isJapanese: effectiveIsJapanese);
+      final body = getCommittedNotificationBody(taskTitles, isJapanese: effectiveIsJapanese);
+
+      // 重複登録を防ぐため既存の同ID通知をキャンセル
+      await _localNotifications.cancel(notificationId);
+
+      await _scheduleOneOffLocalNotification(
+        notificationId,
+        title,
+        body,
+        scheduledDate,
+      );
+      debugPrint('Committed daily reminder scheduled for $dateStr at $scheduledDate: id=$notificationId, title="$title"');
+    } catch (e) {
+      debugPrint('Error syncing committed daily reminder: $e');
+    }
+  }
+
+  /// 特定日付のコミットメント通知をキャンセルします。
+  Future<void> cancelCommittedDailyReminder(String dateStr) async {
+    if (kIsWeb) return;
+    try {
+      final notificationId = getCommittedNotificationId(dateStr);
+      await _localNotifications.cancel(notificationId);
+      debugPrint('Committed daily reminder cancelled: id=$notificationId');
+    } catch (e) {
+      debugPrint('Error cancelling committed daily reminder: $e');
     }
   }
 

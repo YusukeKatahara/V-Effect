@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:v_effect/models/app_notification.dart';
+import 'package:v_effect/services/notification_service.dart';
 
 void main() {
   group('Notification Deduplication Logic Tests', () {
@@ -30,39 +31,7 @@ void main() {
         sendPush: true,
       );
 
-      final rawList = [notif1, notif2];
-
-      // 重複排除ロジックの検証
-      final deduplicatedList = <AppNotification>[];
-      final seenIds = <String>{};
-
-      for (final notif in rawList) {
-        if (notif.id.isNotEmpty && seenIds.contains(notif.id)) {
-          continue;
-        }
-
-        final isDuplicate = deduplicatedList.any((existing) {
-          final isSameFrom = existing.fromUid != null && existing.fromUid == notif.fromUid;
-          final isSameType = existing.type == notif.type;
-          final isSameBody = existing.body == notif.body;
-          final isSameRelated = existing.relatedId != null &&
-              notif.relatedId != null &&
-              existing.relatedId == notif.relatedId;
-          final isCloseInTime =
-              existing.createdAt.difference(notif.createdAt).abs().inMinutes < 5;
-
-          return (isSameRelated && isSameType) ||
-              (isSameFrom && isSameType && isSameBody && isCloseInTime);
-        });
-
-        if (!isDuplicate) {
-          if (notif.id.isNotEmpty) seenIds.add(notif.id);
-          deduplicatedList.add(notif);
-        }
-      }
-
-      expect(deduplicatedList.length, 1);
-      expect(deduplicatedList.first.id, 'notif_1');
+      expect(NotificationService.isDuplicateNotification(notif1, notif2), isTrue);
     });
 
     test('異なるユーザーからの通知や時間差のある通知は重複排除されないこと', () {
@@ -104,37 +73,113 @@ void main() {
         sendPush: true,
       );
 
-      final rawList = [notif1, notif2, notif3];
+      expect(NotificationService.isDuplicateNotification(notif1, notif2), isFalse);
+      expect(NotificationService.isDuplicateNotification(notif1, notif3), isFalse);
+    });
 
-      final deduplicatedList = <AppNotification>[];
-      final seenIds = <String>{};
+    test('同一投稿に対する異なるユーザーからのリアクション（絵文字・V FIRE）が重複排除されないこと', () {
+      final now = DateTime.now();
 
-      for (final notif in rawList) {
-        if (notif.id.isNotEmpty && seenIds.contains(notif.id)) {
-          continue;
-        }
+      // ユーザーBからのV FIRE (emoji: null)
+      final vfireFromB = AppNotification(
+        id: 'vfire_B',
+        toUid: 'user_A',
+        fromUid: 'user_B',
+        relatedId: 'post_100', // 同一投稿
+        type: NotificationType.reactionReceived,
+        title: 'V FIRE',
+        body: 'user_BさんからV FIREが届きました',
+        createdAt: now,
+        isRead: false,
+        sendPush: false,
+      );
 
-        final isDuplicate = deduplicatedList.any((existing) {
-          final isSameFrom = existing.fromUid != null && existing.fromUid == notif.fromUid;
-          final isSameType = existing.type == notif.type;
-          final isSameBody = existing.body == notif.body;
-          final isSameRelated = existing.relatedId != null &&
-              notif.relatedId != null &&
-              existing.relatedId == notif.relatedId;
-          final isCloseInTime =
-              existing.createdAt.difference(notif.createdAt).abs().inMinutes < 5;
+      // ユーザーCからの絵文字リアクション (emoji: 🎉)
+      final emojiFromC = AppNotification(
+        id: 'emoji_C',
+        toUid: 'user_A',
+        fromUid: 'user_C',
+        relatedId: 'post_100', // 同一投稿
+        type: NotificationType.reactionReceived,
+        emoji: '🎉',
+        title: '✨ リアクション',
+        body: 'user_Cさんが「🎉」を贈りました！',
+        createdAt: now.add(const Duration(seconds: 10)),
+        isRead: false,
+        sendPush: false,
+      );
 
-          return (isSameRelated && isSameType) ||
-              (isSameFrom && isSameType && isSameBody && isCloseInTime);
-        });
+      // 送信者が異なるため重複と判定されないこと（以前のバグではここで消去されていた）
+      expect(NotificationService.isDuplicateNotification(vfireFromB, emojiFromC), isFalse);
+    });
 
-        if (!isDuplicate) {
-          if (notif.id.isNotEmpty) seenIds.add(notif.id);
-          deduplicatedList.add(notif);
-        }
-      }
+    test('同一ユーザーからの同一投稿への「V FIRE」と「絵文字」が重複排除されないこと', () {
+      final now = DateTime.now();
 
-      expect(deduplicatedList.length, 3);
+      final vfireFromB = AppNotification(
+        id: 'vfire_B',
+        toUid: 'user_A',
+        fromUid: 'user_B',
+        relatedId: 'post_100',
+        type: NotificationType.reactionReceived,
+        title: 'V FIRE',
+        body: 'user_BさんからV FIREが届きました',
+        createdAt: now,
+        isRead: false,
+        sendPush: false,
+      );
+
+      final emojiFromB = AppNotification(
+        id: 'emoji_B',
+        toUid: 'user_A',
+        fromUid: 'user_B',
+        relatedId: 'post_100',
+        type: NotificationType.reactionReceived,
+        emoji: '👏',
+        title: '✨ リアクション',
+        body: 'user_Bさんが「👏」を贈りました！',
+        createdAt: now.add(const Duration(seconds: 5)),
+        isRead: false,
+        sendPush: false,
+      );
+
+      // V FIREと絵文字は種類が異なるため重複と判定されないこと
+      expect(NotificationService.isDuplicateNotification(vfireFromB, emojiFromB), isFalse);
+    });
+
+    test('同一ユーザー・同一投稿・同一絵文字の通知は重複排除されること', () {
+      final now = DateTime.now();
+
+      final emoji1 = AppNotification(
+        id: 'emoji_1',
+        toUid: 'user_A',
+        fromUid: 'user_B',
+        relatedId: 'post_100',
+        type: NotificationType.reactionReceived,
+        emoji: '🔥',
+        title: '✨ リアクション',
+        body: 'user_Bさんが「🔥」を贈りました！',
+        createdAt: now,
+        isRead: false,
+        sendPush: false,
+      );
+
+      final emoji2 = AppNotification(
+        id: 'emoji_2',
+        toUid: 'user_A',
+        fromUid: 'user_B',
+        relatedId: 'post_100',
+        type: NotificationType.reactionReceived,
+        emoji: '🔥',
+        title: '✨ リアクション',
+        body: 'user_Bさんが「🔥」を贈りました！',
+        createdAt: now.add(const Duration(seconds: 2)),
+        isRead: false,
+        sendPush: false,
+      );
+
+      // 送信者・投稿・絵文字がすべて一致するため重複と判定されること
+      expect(NotificationService.isDuplicateNotification(emoji1, emoji2), isTrue);
     });
   });
 }

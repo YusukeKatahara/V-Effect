@@ -195,6 +195,8 @@ class PostService {
       'postedTasksToday': postedPostsToday,
       'isRecommended': isRecommended,
       'totalPosts': totalPosts >= 0 ? totalPosts : 0,
+      'user': AppUser.fromFirestore(snap),
+      'taskSchedules': AppUser.fromFirestore(snap).taskSchedules,
     };
   }
 
@@ -695,7 +697,9 @@ class PostService {
     if (triggerUpdateStream) {
       _updateController.add(null);
     }
-    _sendReactionNotification(postId, emoji: emoji).catchError((_) {});
+    _sendReactionNotification(postId, emoji: emoji).catchError((e) {
+      debugPrint('Emoji reaction notification failed: $e');
+    });
   }
 
   /// 投稿の VFIRE (炎) カウントを増やします（連打対応の高速アトミック操作）
@@ -726,7 +730,9 @@ class PostService {
       }
       
       // 通知は1回にまとめて送信
-      _sendReactionNotification(postId, flameIncrement: count).catchError((_) {});
+      _sendReactionNotification(postId, flameIncrement: count).catchError((e) {
+        debugPrint('Flame reaction notification failed: $e');
+      });
 
       // 150 VFIRE到達時のストリーク完全復活および救済解除処理は、
       // セキュリティおよび整合性を保証するため Cloud Functions (posts onUpdate) 側で
@@ -758,7 +764,7 @@ class PostService {
     if (!postSnap.exists) return;
     final postData = postSnap.data()!;
     final postOwnerId = postData['userId'] as String;
-    final postTaskName = postData['taskName'] as String? ?? '投稿';
+    final rawTaskName = (postData['taskName'] as String?)?.trim();
 
     final myUid = _auth.currentUser!.uid;
     if (postOwnerId == myUid) return; // 自分への投稿には通知しない
@@ -771,6 +777,9 @@ class PostService {
     final receiverSnap = await _db.collection('users').doc(postOwnerId).get();
     final receiverData = receiverSnap.data() ?? {};
     final isEn = receiverData['language'] == 'en';
+    final postTaskName = (rawTaskName != null && rawTaskName.isNotEmpty)
+        ? rawTaskName
+        : (isEn ? 'Task' : 'タスク');
 
     // 1. 基本的な通知内容
     String title;
@@ -799,10 +808,10 @@ class PostService {
         if (isEmoji) {
           if (isEn) {
             title = '✨ Reaction';
-            body = '$myUsername sent "$emoji" to today\'s "$postTaskName"!';
+            body = '$myUsername sent "$emoji" to "$postTaskName"!';
           } else {
             title = '✨ リアクション';
-            body = '$myUsernameさんが今日の「$postTaskName」に「$emoji」を贈りました！';
+            body = '$myUsernameさんが「$postTaskName」に「$emoji」を贈りました！';
           }
         } else {
           final random = Random();
@@ -855,9 +864,10 @@ class PostService {
           'lastIncrement': currentIncrement, // 今回追加された送信数
           'title': title,
           'body': body,
-          'sendPush': true, // プッシュ送出フラグ（実際の配信可否はCloud Functionsが最新設定を見て判定）
-          // isRead は既存が未読なら未読のまま、既読なら未読に戻す
-          'isRead': false, 
+          'sendPush': isEmoji, // 絵文字リアクションはプッシュ通知あり、V FIREは連打されるためアプリ内のみ
+          // V FIREは未読バッジを付けない仕様のため最初から既読(isRead: true)として保存する。
+          // 絵文字リアクションは未読バッジを点灯させるため isRead: false とする。
+          'isRead': !isEmoji, 
           // timestamp は常に最新に更新（一覧で一番上にくるように）
           'createdAt': FieldValue.serverTimestamp(),
         };
@@ -979,6 +989,42 @@ class PostService {
     } catch (e) {
       debugPrint('getAllMyPastPosts unexpected error: $e');
       rethrow;
+    }
+  }
+
+  /// 指定した日時以降の自分の投稿を取得します（週次/月次タスクの進捗計算用）
+  Future<List<Post>> getMyPostsSince(DateTime since) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return [];
+
+    try {
+      final snap = await _postsRef
+          .where(Post.fieldUserId, isEqualTo: uid)
+          .where(Post.fieldCreatedAt, isGreaterThanOrEqualTo: Timestamp.fromDate(since))
+          .get();
+
+      return snap.docs
+          .map((doc) => doc.data())
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    } on FirebaseException catch (e) {
+      // 複合インデックス未作成などのエラー時は、全投稿取得からインメモリフィルタへフォールバック
+      if (e.code == 'failed-precondition' || e.code == 'invalid-argument') {
+        debugPrint('⚠️ getMyPostsSince: Composite index missing, falling back to all posts query. Error: ${e.message}');
+        try {
+          final allPosts = await getAllMyPastPosts();
+          return allPosts
+              .where((p) => p.createdAt.isAfter(since) || p.createdAt.isAtSameMomentAs(since))
+              .toList();
+        } catch (fallbackError) {
+          debugPrint('getMyPostsSince fallback failed: $fallbackError');
+          return [];
+        }
+      }
+      rethrow;
+    } catch (e) {
+      debugPrint('getMyPostsSince unexpected error: $e');
+      return [];
     }
   }
 

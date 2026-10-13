@@ -45,6 +45,7 @@ class AppUser {
   final bool totalPostsMigrated;
   final bool isRecommended;
   final Map<String, DateTime> mutualFires;
+  final Map<String, List<String>> taskSchedules;
 
   // ── フィールド名定数 ──
   static const String fieldEmail = 'email';
@@ -93,6 +94,7 @@ class AppUser {
   static const String fieldDmMessagePreview = 'dmMessagePreview';
   static const String fieldOnboardingStep = 'onboardingStep';
   static const String fieldMutualFires = 'mutualFires';
+  static const String fieldTaskSchedules = 'taskSchedules';
 
   const AppUser({
     required this.uid,
@@ -134,6 +136,7 @@ class AppUser {
     this.totalPostsMigrated = false,
     this.isRecommended = false,
     this.mutualFires = const {},
+    this.taskSchedules = const {},
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -186,6 +189,21 @@ class AppUser {
               .toList();
         }
         return [];
+      }
+
+      Map<String, List<String>> extractTaskSchedules() {
+        final raw = data[fieldTaskSchedules];
+        if (raw is Map) {
+          final map = <String, List<String>>{};
+          for (final entry in raw.entries) {
+            if (entry.value is List) {
+              map[entry.key.toString()] =
+                  (entry.value as List).map((e) => e.toString()).toList();
+            }
+          }
+          return map;
+        }
+        return {};
       }
 
       return AppUser(
@@ -242,6 +260,7 @@ class AppUser {
         totalPostsMigrated: data[fieldTotalPostsMigrated] == true,
         isRecommended: data[fieldIsRecommended] == true,
         mutualFires: extractMutualFires(),
+        taskSchedules: extractTaskSchedules(),
       );
     } catch (e) {
       debugPrint('Error parsing AppUser $id: $e');
@@ -291,6 +310,7 @@ class AppUser {
       fieldIsRecommended: isRecommended,
       // mutualFires はクライアントから書き込まれる想定はないが、保存時のためにTimestampに変換する
       fieldMutualFires: mutualFires.map((key, value) => MapEntry(key, Timestamp.fromDate(value))),
+      fieldTaskSchedules: taskSchedules,
     };
   }
 
@@ -335,6 +355,7 @@ class AppUser {
     bool? totalPostsMigrated,
     bool? isRecommended,
     Map<String, DateTime>? mutualFires,
+    Map<String, List<String>>? taskSchedules,
   }) {
     return AppUser(
       uid: uid ?? this.uid,
@@ -376,6 +397,7 @@ class AppUser {
       totalPostsMigrated: totalPostsMigrated ?? this.totalPostsMigrated,
       isRecommended: isRecommended ?? this.isRecommended,
       mutualFires: mutualFires ?? this.mutualFires,
+      taskSchedules: taskSchedules ?? this.taskSchedules,
     );
   }
 }

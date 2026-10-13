@@ -15,6 +15,8 @@ class QuestCard extends StatelessWidget {
     required this.seasonsMap,
     required this.seasonPostsCountMap,
     required this.todayPosts, // 今日の投稿一覧を受け取る
+    this.weeklyPostsCountMap = const {},
+    this.monthlyPostsCountMap = const {},
     required this.onTap,
     required this.onDelete,
   });
@@ -29,16 +31,44 @@ class QuestCard extends StatelessWidget {
   final Map<String, int> seasonPostsCountMap;
   /// 今日の投稿一覧
   final List<Post> todayPosts;
+  /// 週次タスクの達成回数マップ (taskId or taskName -> count)
+  final Map<String, int> weeklyPostsCountMap;
+  /// 月次タスクの達成回数マップ (taskId or taskName -> count)
+  final Map<String, int> monthlyPostsCountMap;
   /// タスクカードがタップされたときのコールバック
   final VoidCallback onTap;
   /// タスクの削除ボタンが押されたときのコールバック
   final VoidCallback onDelete;
 
+  /// 週次または月次の現在達成回数を取得
+  int get _frequencyCount {
+    if (task.isWeekly) {
+      if (task.id.isNotEmpty && weeklyPostsCountMap.containsKey(task.id)) {
+        return weeklyPostsCountMap[task.id] ?? 0;
+      }
+      return weeklyPostsCountMap[task.title] ?? 0;
+    }
+    if (task.isMonthly) {
+      if (task.id.isNotEmpty && monthlyPostsCountMap.containsKey(task.id)) {
+        return monthlyPostsCountMap[task.id] ?? 0;
+      }
+      return monthlyPostsCountMap[task.title] ?? 0;
+    }
+    return 0;
+  }
+
+  /// 本日そのタスクの投稿が行われたかどうか
+  bool get _isPostedToday {
+    return todayPosts.any((p) => (p.taskId != null && p.taskId == task.id) || p.taskName == task.title);
+  }
+
   /// タスクが達成（完了）されたかどうかを判定します
   /// 
   /// 1. ワンタイムタスク：`completedAt` が null でないこと
   /// 2. シーズンタスク：現在の投稿数 `count` が目標数 `requiredCount` 以上であること
-  /// 3. 通常タスク（デイリー）：今日の投稿 `todayPosts` の中に該当タスク名の投稿が存在すること
+  /// 3. 週次目標タスク：今週の達成回数が目標回数 `targetCount` 以上であること
+  /// 4. 月次目標タスク：今月の達成回数が目標回数 `targetCount` 以上であること
+  /// 5. 通常タスク（デイリー）：今日の投稿 `todayPosts` の中に該当タスク名の投稿が存在すること
   bool get _isCompleted {
     if (task.isOneTime) {
       return task.completedAt != null;
@@ -50,8 +80,14 @@ class QuestCard extends StatelessWidget {
       final requiredCount = season?.requiredPostsCount ?? 12;
       return count >= requiredCount;
     }
+    if (task.isWeekly) {
+      return _frequencyCount >= task.targetCount;
+    }
+    if (task.isMonthly) {
+      return _frequencyCount >= task.targetCount;
+    }
     // 通常タスクは、今日そのタスク名で投稿が完了しているか
-    return todayPosts.any((p) => p.taskName == task.title);
+    return _isPostedToday;
   }
 
   @override
@@ -182,6 +218,9 @@ class QuestCard extends StatelessWidget {
                               ),
                             ),
                           ),
+                        ] else if (task.isWeekly || task.isMonthly) ...[
+                          const SizedBox(height: 4),
+                          _buildFrequencyProgressBadge(),
                         ],
                       ],
                     ),
@@ -219,6 +258,91 @@ class QuestCard extends StatelessWidget {
         color: AppColors.grey50, // メタリックシルバー風
         letterSpacing: 0.5,
       ),
+    );
+  }
+
+  /// 週次・月次タスクの達成進捗バッジ（例: 週 2/3 回、月 1/2 回）
+  Widget _buildFrequencyProgressBadge() {
+    final count = _frequencyCount;
+    final target = task.targetCount;
+    final isDone = count >= target;
+    final prefix = task.isWeekly ? '週' : '月';
+    final progress = (target > 0) ? (count / target).clamp(0.0, 1.0) : 0.0;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 頻度バッジ（ピル形状）
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: isDone
+                ? AppColors.accentGold.withValues(alpha: 0.2)
+                : AppColors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isDone
+                  ? AppColors.accentGold
+                  : AppColors.white.withValues(alpha: 0.1),
+              width: 0.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                task.isWeekly ? Icons.calendar_today_rounded : Icons.calendar_month_rounded,
+                size: 10,
+                color: isDone ? AppColors.accentGold : AppColors.grey50,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '$prefix $count/$target 回',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: isDone ? AppColors.accentGold : AppColors.grey50,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        // ミニ進捗プログレスバー
+        SizedBox(
+          width: 42,
+          height: 4,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: AppColors.white.withValues(alpha: 0.08),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isDone ? AppColors.accentGold : AppColors.accentGold.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+        ),
+        if (_isPostedToday && !isDone) ...[
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: AppColors.accentGold.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              '本日済',
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+                color: AppColors.accentGold,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

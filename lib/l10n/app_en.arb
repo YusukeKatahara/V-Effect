@@ -610,7 +610,18 @@
   "profileScreenFollowingTitle": "Following",
   "profileScreenFollowersTitle": "Followers",
   "profileScreenTrendTitle": "📈 Weekly Trend Habits",
+  "profileScreenTrendSubtitle": "Popular habits peers are doing this week. Tap to add to your goals.",
   "profileScreenTrendEmpty": "No trend data yet.",
+  "profileScreenPracticingCount": "{count} practicing",
+  "@profileScreenPracticingCount": {
+    "description": "Number of users practicing a trend habit",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileScreenTaskAlreadyAdded": "Added",
   "profileScreenTimeUpdateFailed": "Failed to update time",
   "profileScreenReviewButton": "Look Back on Your Journey",
   "profileScreenAddTask": "Add Task",
@@ -1158,6 +1169,19 @@
       "count": { "type": "int" }
     }
   },
-  "directChatTodayCompleted": "Done today ✨"
+  "directChatTodayCompleted": "Done today ✨",
+  "notificationsDmSingle": "{name} sent you a message",
+  "@notificationsDmSingle": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "notificationsDmMultiple": "{name} sent you {count} messages",
+  "@notificationsDmMultiple": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  }
 }
 

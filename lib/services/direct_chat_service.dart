@@ -207,6 +207,12 @@ class DirectChatService {
         }
         await batch.commit();
       }
+
+      // アプリ内通知欄の該当DM通知ドキュメント（dm_{currentUid}_{chatId}）も削除して通知欄をクリーンアップ
+      final notifDocId = 'dm_${currentUid}_$chatId';
+      _firestore.collection('notifications').doc(notifDocId).delete().catchError((e) {
+        debugPrint('DirectChatService delete notification error (suppressed): $e');
+      });
     } catch (e) {
       debugPrint('DirectChatService markAsRead error (suppressed): $e');
     }

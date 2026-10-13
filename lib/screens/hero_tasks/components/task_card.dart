@@ -551,6 +551,29 @@ class TaskCardState extends ConsumerState<TaskCard> {
                           letterSpacing: 3,
                         ),
                       ),
+                      if (item.isCommittedToday && !isCompleted) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentGold.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: AppColors.accentGold,
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            '🎯 今日の予約',
+                            style: GoogleFonts.notoSansJp(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.accentGold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ],

@@ -173,6 +173,7 @@ class NotificationService {
 
       // 🚀 【重複排除 (Deduplication)】
       // 同一ID、同一関連ID(relatedId)、または同一送信元・同一本文・近接日時の重複通知を排除
+      // ※ reactionReceived の場合は送信者・投稿・絵文字がすべて一致する場合のみ重複と判定
       final deduplicatedList = <AppNotification>[];
       final seenIds = <String>{};
 
@@ -181,19 +182,9 @@ class NotificationService {
           continue;
         }
 
-        final isDuplicate = deduplicatedList.any((existing) {
-          final isSameFrom = existing.fromUid != null && existing.fromUid == notif.fromUid;
-          final isSameType = existing.type == notif.type;
-          final isSameBody = existing.body == notif.body;
-          final isSameRelated = existing.relatedId != null &&
-              notif.relatedId != null &&
-              existing.relatedId == notif.relatedId;
-          final isCloseInTime =
-              existing.createdAt.difference(notif.createdAt).abs().inMinutes < 5;
-
-          return (isSameRelated && isSameType) ||
-              (isSameFrom && isSameType && isSameBody && isCloseInTime);
-        });
+        final isDuplicate = deduplicatedList.any(
+          (existing) => isDuplicateNotification(existing, notif),
+        );
 
         if (!isDuplicate) {
           if (notif.id.isNotEmpty) seenIds.add(notif.id);
@@ -223,25 +214,16 @@ class NotificationService {
           .map((doc) => doc.data())
           .where((n) {
             final isSeasonPushOnly = n.type == NotificationType.seasonTaskReceived || n.type == NotificationType.seasonTaskPushOnly;
-            return n.createdAt.isAfter(threeDaysAgo) && !isSeasonPushOnly;
+            final isVFire = n.type == NotificationType.reactionReceived && (n.emoji == null || n.emoji!.isEmpty);
+            return n.createdAt.isAfter(threeDaysAgo) && !isSeasonPushOnly && !isVFire;
           })
           .toList();
 
       final deduplicatedUnread = <AppNotification>[];
       for (final notif in unreadList) {
-        final isDuplicate = deduplicatedUnread.any((existing) {
-          final isSameFrom = existing.fromUid != null && existing.fromUid == notif.fromUid;
-          final isSameType = existing.type == notif.type;
-          final isSameBody = existing.body == notif.body;
-          final isSameRelated = existing.relatedId != null &&
-              notif.relatedId != null &&
-              existing.relatedId == notif.relatedId;
-          final isCloseInTime =
-              existing.createdAt.difference(notif.createdAt).abs().inMinutes < 5;
-
-          return (isSameRelated && isSameType) ||
-              (isSameFrom && isSameType && isSameBody && isCloseInTime);
-        });
+        final isDuplicate = deduplicatedUnread.any(
+          (existing) => isDuplicateNotification(existing, notif),
+        );
 
         if (!isDuplicate) {
           deduplicatedUnread.add(notif);
@@ -253,6 +235,30 @@ class NotificationService {
       debugPrint('getNotificationCount error: $e');
       return 0;
     });
+  }
+
+  /// 通知の重複判定ヘルパー
+  /// - reactionReceived: 送信者(fromUid)・対象投稿(relatedId)・絵文字(emoji)が全て同一の場合のみ重複
+  ///   （異なる友達からのリアクションや、同一人物のV FIREと絵文字が誤って消去されるのを防止）
+  /// - その他の通知: 同一関連ID(relatedId)または同一送信元・同一本文・近接日時の重複を排除
+  static bool isDuplicateNotification(AppNotification existing, AppNotification notif) {
+    if (existing.type != notif.type) return false;
+
+    final isSameFrom = existing.fromUid != null && existing.fromUid == notif.fromUid;
+    final isSameRelated = existing.relatedId != null &&
+        notif.relatedId != null &&
+        existing.relatedId == notif.relatedId;
+
+    if (notif.type == NotificationType.reactionReceived) {
+      final isSameEmoji = existing.emoji == notif.emoji;
+      return isSameFrom && isSameRelated && isSameEmoji;
+    }
+
+    final isSameBody = existing.body == notif.body;
+    final isCloseInTime =
+        existing.createdAt.difference(notif.createdAt).abs().inMinutes < 5;
+
+    return isSameRelated || (isSameFrom && isSameBody && isCloseInTime);
   }
 
   /// 全ての未読通知を既読にします

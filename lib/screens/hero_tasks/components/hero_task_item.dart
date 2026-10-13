@@ -12,6 +12,7 @@ class HeroTaskItem {
   final String? seasonId;
   final Season? season;
   final int currentSeasonCount;
+  final bool isCommittedToday;
   bool get isCompleted => completedPosts.isNotEmpty;
 
   String get displayName => (trigger != null && trigger!.isNotEmpty) ? '$trigger：$name' : name;
@@ -31,5 +32,6 @@ class HeroTaskItem {
     this.seasonId,
     this.season,
     this.currentSeasonCount = 0,
+    this.isCommittedToday = false,
   });
 }

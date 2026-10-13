@@ -1385,7 +1385,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenTrendTitle => '📈 Weekly Trend Habits';
 
   @override
+  String get profileScreenTrendSubtitle => 'Popular habits peers are doing this week. Tap to add to your goals.';
+
+  @override
   String get profileScreenTrendEmpty => 'No trend data yet.';
+
+  @override
+  String profileScreenPracticingCount(int count) {
+    return '$count practicing';
+  }
+
+  @override
+  String get profileScreenTaskAlreadyAdded => 'Added';
 
   @override
   String get profileScreenTimeUpdateFailed => 'Failed to update time';
@@ -2508,4 +2519,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get directChatTodayCompleted => 'Done today ✨';
+
+  @override
+  String notificationsDmSingle(String name) {
+    return '$name sent you a message';
+  }
+
+  @override
+  String notificationsDmMultiple(String name, int count) {
+    return '$name sent you $count messages';
+  }
 }
