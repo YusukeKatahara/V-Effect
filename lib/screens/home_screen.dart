@@ -1194,8 +1194,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     });
 
     ref.listen<AsyncValue<HomeData>>(homeDataProvider, (previous, next) {
+      // 起動直後の初期ロード（previous がないか値を持たない状態）は初期データ読み込み（状態復元）のため、
+      // ロック解除アニメーション演出や触覚フィードバックは発火させない。
+      if (previous == null || !previous.hasValue) return;
+
       final prevUpload = ref.read(uploadProvider);
-      final wasUnlocked = (previous?.valueOrNull?.postedToday ?? false) ||
+      final wasUnlocked = (previous.valueOrNull?.postedToday ?? false) ||
           prevUpload.status == UploadStatus.uploading ||
           prevUpload.status == UploadStatus.success;
           
@@ -1267,15 +1271,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             uploadState.status == UploadStatus.uploading ||
             uploadState.status == UploadStatus.success;
 
-        // 初回ロード時（_lastHomeData == null）のみ自動同期を許可
-        // これにより、起動中に新しく投稿された場合は listen 側の解錠演出（2段階）を必ず経由させる
         if (_lastHomeData == null) {
+          // 初回ロード時：アンロック済みなら即座に両フラグをtrueにして演出なしで表示
           _isUnlockInitiated = isCurrentlyUnlocked;
           _isUnlockedAnimated = isCurrentlyUnlocked;
         } else {
           // 既に起動中の場合：
-          // もしロック状態に戻った（日付が変わったなど）場合は即座にフラグをリセットして再ロック
-          if (!isCurrentlyUnlocked) {
+          if (isCurrentlyUnlocked) {
+            // アンロック状態の場合：
+            // もし演出中や保留中（_pendingUnlockAnimation）でなければ、確実にアンロック状態を同期
+            if (!_pendingUnlockAnimation && !_isUnlockInitiated) {
+              _isUnlockInitiated = true;
+              _isUnlockedAnimated = true;
+            }
+          } else {
+            // ロック状態に戻った（日付変更など）場合は即座にフラグをリセットして再ロック
             _isUnlockInitiated = false;
             _isUnlockedAnimated = false;
             _pendingUnlockAnimation = false;
