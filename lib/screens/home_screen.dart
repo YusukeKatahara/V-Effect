@@ -85,8 +85,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final Map<String, ({String emoji, String uid})> _pendingEmojis = {};
   
   DateTime? _lastPausedTime;
+  HomeData? _stagedHomeData; // 新着投稿がある場合に一時保留するデータ（Staged Buffer）
   bool _showNewPostsButton = false; // 新しい投稿ボタンの表示フラグ
-  String? _lastFeedTopPostId; // 前回のフィードの先頭投稿ID
 
 
 
@@ -451,6 +451,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _startAdRefreshTimer(globalIndex);
   }
 
+  /// 「新しい投稿があります ↑」ピルがタップされた時の処理
+  /// Staged Buffer に保持されていた新着投稿を正式にマージし、
+  /// 心地よいイージング付きで先頭へスムーズスクロールします。
+  void _onNewPostsTapped() {
+    if (!_pageController.hasClients || _feedItems.isEmpty) return;
+
+    setState(() {
+      _showNewPostsButton = false;
+    });
+
+    // 1. 保留されていた新着データがあれば反映
+    if (_stagedHomeData != null) {
+      final staged = _stagedHomeData!;
+      _stagedHomeData = null;
+      setState(() {
+        _needsResort = true;
+        _applyHomeDataToFeed(staged, isTopPage: false);
+      });
+    }
+
+    // 2. 先頭へスムーズスクロール（TikTok / Instagram スタイル）
+    if (_feedItems.isNotEmpty) {
+      final targetIndex = 100000 - (100000 % _feedItems.length);
+      _pageController.animateToPage(
+        targetIndex,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+      ).then((_) {
+        if (mounted) {
+          HapticFeedback.mediumImpact(); // 先頭到着時の触覚フィードバック
+          if (_feedItems.isNotEmpty && _feedItems[0] is Post) {
+            _viewedPostIds.add((_feedItems[0] as Post).id);
+          }
+        }
+      });
+    }
+  }
 
   Future<void> _handleUnlockDetected() async {
     final bool isCurrentTabHome = MainShell.activeTabIndex.value == 0;
@@ -512,34 +549,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     } else if (state == AppLifecycleState.resumed) {
       final page = _pageController.hasClients ? _pageController.page?.round() ?? 10000 : 10000;
       final actualIndex = _feedItems.isNotEmpty ? (page % _feedItems.length + _feedItems.length) % _feedItems.length : 0;
-      final isTopPage = actualIndex == 0;
 
       if (_lastPausedTime != null) {
         final elapsed = DateTime.now().difference(_lastPausedTime!);
         _lastPausedTime = null; // リセット
-        if (elapsed.inSeconds < 30) {
-          // 30秒未満の復帰ならフィードはリフレッシュせず順番を保持する
-          // ただし、現在広告が表示されているなら新鮮さを保つため広告を強制更新
+
+        // ① 60秒未満の復帰（通知確認など）：完全維持（フィード更新なし）
+        if (elapsed.inSeconds < 60) {
           if (_feedItems.isNotEmpty) {
             if (_feedItems[actualIndex] is String && _feedItems[actualIndex] == 'ad') {
-              _refreshAdAt(page); // 広告を更新し、タイマーも再始動
+              _refreshAdAt(page); // 広告枠のみ新鮮さを保持
             }
           }
           return;
         }
 
-        // 30秒以上のバックグラウンド経過があった場合はリフレッシュを実行する
+        // ② 1分〜15分未満の復帰：サイレントフェッチ & ピル保留
+        // ユーザーが見ていた位置を絶対に勝手に飛ばさず、新着があればピルで通知
+        if (elapsed.inMinutes < 15) {
+          if (mounted) {
+            _needsRefreshJump = false; // 勝手に先頭へジャンプさせない
+            _needsResort = false;      // 既存の並び順も維持
+            ref.invalidate(homeDataProvider);
+          }
+          return;
+        }
+
+        // ③ 15分以上の長時間放置 または 日付跨ぎ：セッション終了とみなし先頭クリーンリフレッシュ
         if (mounted) {
           setState(() {
             _needsResort = true;
-            // 5分以上経過しており、かつ現在先頭ページ（1枚目の投稿）にいる場合のみ自動的に先頭へジャンプ
-            if (elapsed.inMinutes >= 5 && isTopPage) {
-              _needsRefreshJump = true;
-            } else {
-              _needsRefreshJump = false;
-            }
+            _needsRefreshJump = true;
+            _stagedHomeData = null;
+            _showNewPostsButton = false;
           });
-          // 復帰時にフィードをリフレッシュし、ローカル送信履歴もリセットします。
           ref.invalidate(homeDataProvider);
           ref.read(vfireProvider.notifier).clearSynced();
         }
@@ -676,6 +719,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _dragOffset = 100.0; 
       _needsRefreshJump = true;
       _needsResort = true;
+      _stagedHomeData = null;
+      _showNewPostsButton = false;
     });
     
     // 束ねる
@@ -1166,6 +1211,161 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return const Color(0xFF5E4B43);                    // Iron (Dark Brown-Gray)
   }
 
+  /// 既存の表示中ポストのリアクションや絵文字情報だけを、
+  /// リスト長やカードの並び順を変えずに安全にインプレース更新します（Scroll Anchoring保護）。
+  void _updateExistingPostsInPlace(HomeData homeData) {
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    final serverPostsMap = {for (final p in homeData.feedPosts) p.id: p};
+
+    final updatedItems = <dynamic>[];
+    bool hasChanges = false;
+
+    for (final item in _feedItems) {
+      if (item is Post) {
+        final serverPost = serverPostsMap[item.id];
+        if (serverPost != null) {
+          // 絵文字の楽観的UI状態の保護
+          final localHasEmoji = item.hasEmojiReacted(myUid);
+          final serverHasEmoji = serverPost.hasEmojiReacted(myUid);
+
+          Post merged = serverPost;
+          if (localHasEmoji && !serverHasEmoji) {
+            merged = serverPost.copyWith(
+              userReactions: item.userReactions,
+              emojiReactedUserIds: item.emojiReactedUserIds,
+            );
+          }
+
+          if (merged != item) {
+            hasChanges = true;
+            updatedItems.add(merged);
+          } else {
+            updatedItems.add(item);
+          }
+        } else {
+          updatedItems.add(item);
+        }
+      } else {
+        updatedItems.add(item);
+      }
+    }
+
+    if (hasChanges && mounted) {
+      setState(() {
+        _feedItems = updatedItems;
+      });
+    }
+  }
+
+  /// HomeData からフィード（_feedItems）を正式に構築・適用します。
+  void _applyHomeDataToFeed(HomeData homeData, {required bool isTopPage}) {
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    final newPosts = <Post>[];
+    final List<String> idsToRemove = [];
+
+    for (final fetchedPost in homeData.feedPosts) {
+      final displayedPost = fetchedPost;
+
+      if (_reactingPostIds.contains(displayedPost.id)) {
+        final existingLocal = _feedItems.firstWhere(
+          (p) => p is Post && p.id == displayedPost.id,
+          orElse: () => displayedPost,
+        ) as Post;
+
+        newPosts.add(displayedPost);
+
+        final localHasEmoji = existingLocal.hasEmojiReacted(myUid);
+        final fetchedHasEmoji = displayedPost.hasEmojiReacted(myUid);
+
+        if (localHasEmoji && !fetchedHasEmoji) {
+          newPosts[newPosts.length - 1] = newPosts.last.copyWith(
+            userReactions: existingLocal.userReactions,
+            emojiReactedUserIds: existingLocal.emojiReactedUserIds,
+          );
+        } else {
+          idsToRemove.add(displayedPost.id);
+        }
+      } else {
+        newPosts.add(displayedPost);
+      }
+    }
+
+    final List<Post> combinedPosts;
+    if (_needsResort) {
+      final unreadPosts = <Post>[];
+      final readPosts = <Post>[];
+      for (final p in newPosts) {
+        if (_viewedPostIds.contains(p.id)) {
+          readPosts.add(p);
+        } else {
+          unreadPosts.add(p);
+        }
+      }
+      combinedPosts = [...unreadPosts, ...readPosts];
+      _baseSortedPostIds = combinedPosts.map((p) => p.id).toList();
+      _needsResort = false;
+    } else {
+      newPosts.sort((a, b) {
+        final indexA = _baseSortedPostIds.indexOf(a.id);
+        final indexB = _baseSortedPostIds.indexOf(b.id);
+        if (indexA == -1 && indexB == -1) return 0;
+        if (indexA == -1) return -1;
+        if (indexB == -1) return 1;
+        return indexA.compareTo(indexB);
+      });
+      combinedPosts = newPosts;
+      _baseSortedPostIds = combinedPosts.map((p) => p.id).toList();
+    }
+
+    final newItems = <dynamic>[];
+    final bool shouldInsertAd = !kIsWeb && combinedPosts.length >= 3;
+    for (int i = 0; i < combinedPosts.length; i++) {
+      newItems.add(combinedPosts[i]);
+      if (shouldInsertAd) {
+        if (i == 1 || (i > 1 && (i - 1) % 5 == 0)) {
+          newItems.add('ad');
+        }
+      }
+    }
+
+    final oldLength = _feedItems.length;
+    _feedItems = newItems;
+    final newLength = _feedItems.length;
+
+    if ((_needsRefreshJump || (isTopPage && oldLength != newLength)) && _feedItems.isNotEmpty) {
+      _needsRefreshJump = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController.hasClients) {
+          final targetIndex = 100000 - (100000 % _feedItems.length);
+          _pageController.jumpToPage(targetIndex);
+
+          final item = _feedItems[0];
+          if (item is Post) {
+            _viewedPostIds.add(item.id);
+          }
+        }
+      });
+    }
+
+    if (_feedItems.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _precacheInitialFeed();
+      });
+    }
+
+    if (idsToRemove.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            for (final id in idsToRemove) {
+              _reactingPostIds.remove(id);
+            }
+          });
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final homeAsync = ref.watch(homeDataProvider);
@@ -1241,27 +1441,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           _friendFeedLogged = true;
         }
 
-        // 新しい投稿の検知
         final activePosts = homeData.feedPosts;
-        final latestPostId = activePosts.isNotEmpty ? activePosts.first.id : null;
         final page = _pageController.hasClients ? _pageController.page?.round() ?? 10000 : 10000;
         final actualIndex = _feedItems.isNotEmpty ? (page % _feedItems.length + _feedItems.length) % _feedItems.length : 0;
         final isTopPage = actualIndex == 0;
-
-        if (_lastFeedTopPostId != null && latestPostId != null && _lastFeedTopPostId != latestPostId) {
-          if (!isTopPage && !_needsRefreshJump) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
-                  _showNewPostsButton = true;
-                });
-              }
-            });
-          }
-        }
-        if (latestPostId != null) {
-          _lastFeedTopPostId = latestPostId;
-        }
 
         _postedToday = homeData.postedToday;
 
@@ -1300,127 +1483,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _userBadgeAnimations = homeData.userBadgeAnimations;
         _lastHomeData = homeData;
 
-        final myUid = FirebaseAuth.instance.currentUser?.uid;
-        final newPosts = <Post>[];
-        final List<String> idsToRemove = [];
+        // ── Staged Buffer（二段階キュー）判定 ──
+        // 現在画面に表示されているPost IDセット
+        final currentPostIds = _feedItems.whereType<Post>().map((p) => p.id).toSet();
+        // サーバー最新データの中に、現在画面に存在しない「新規投稿」があるか？
+        final hasBrandNewPosts = activePosts.any((p) => !currentPostIds.contains(p.id));
 
-        for (final fetchedPost in homeData.feedPosts) {
-          // FeedCardがグローバルな vfireProvider をwatchするため、
-          // ここでの localInc 加算と _flameNotifiers の更新は不要になりました。
-          final displayedPost = fetchedPost;
+        // 直接適用してよいケース：
+        // 1. 初回起動で画面がまだ空（_feedItems.isEmpty）
+        // 2. ユーザーが手動でプルリフレッシュ、または長時間放置後のリセット（_needsRefreshJump == true）
+        // 3. または、新着投稿がなく既存投稿のリアクションやストリークの更新のみのとき
+        final bool shouldApplyDirectly = _feedItems.isEmpty ||
+            _needsRefreshJump ||
+            (!hasBrandNewPosts);
 
-          if (_reactingPostIds.contains(displayedPost.id)) {
-            final existingLocal = _feedItems.firstWhere(
-              (p) => p is Post && p.id == displayedPost.id,
-              orElse: () => displayedPost,
-            ) as Post;
-            
-            // 最新サーバーデータ + ローカル増分 でマージ
-            newPosts.add(displayedPost);
-            
-            // 絵文字の状態チェック
-            final localHasEmoji = existingLocal.hasEmojiReacted(myUid);
-            final fetchedHasEmoji = displayedPost.hasEmojiReacted(myUid);
+        if (!shouldApplyDirectly) {
+          // ── 新規投稿があるが閲覧中のため、Staged Buffer に一時保留（Scroll Anchoring保護） ──
+          _stagedHomeData = homeData;
 
-            if (localHasEmoji && !fetchedHasEmoji) {
-              // 絵文字だけは localPost の状態を維持
-              newPosts[newPosts.length - 1] = newPosts.last.copyWith(
-                userReactions: existingLocal.userReactions,
-                emojiReactedUserIds: existingLocal.emojiReactedUserIds,
-              );
-            } else {
-              idsToRemove.add(displayedPost.id);
-            }
-          } else {
-            newPosts.add(displayedPost);
-          }
-        }
-        final List<Post> combinedPosts;
-        
-        if (_needsResort) {
-          // 未読・既読の振り分け（リフレッシュ時や初回ロード時のみ）
-          final unreadPosts = <Post>[];
-          final readPosts = <Post>[];
-          for (final p in newPosts) {
-            if (_viewedPostIds.contains(p.id)) {
-              readPosts.add(p);
-            } else {
-              unreadPosts.add(p);
-            }
-          }
-          combinedPosts = [...unreadPosts, ...readPosts];
-          _baseSortedPostIds = combinedPosts.map((p) => p.id).toList();
-          _needsResort = false;
-        } else {
-          // 既存の並び順（_baseSortedPostIds）を維持する（VFIREリアクション時など）
-          newPosts.sort((a, b) {
-            final indexA = _baseSortedPostIds.indexOf(a.id);
-            final indexB = _baseSortedPostIds.indexOf(b.id);
-            if (indexA == -1 && indexB == -1) return 0; // 新規投稿同士はそのまま
-            if (indexA == -1) return -1; // 新規投稿は先頭へ
-            if (indexB == -1) return 1;
-            return indexA.compareTo(indexB);
-          });
-          combinedPosts = newPosts;
-          
-          // 新規投稿があった場合は、_baseSortedPostIds も更新しておく
-          _baseSortedPostIds = combinedPosts.map((p) => p.id).toList();
-        }
+          // 画面に表示中の既存カードに対して、リアクション等の最新データだけをインプレースで安全に同期
+          _updateExistingPostsInPlace(homeData);
 
-        final newItems = <dynamic>[];
-        // 投稿数が3件以上ある場合に広告を挿入する（少人数での利用を考慮）
-        // google_mobile_ads は Web 非対応のため Web では広告枠を挿入しない
-        final bool shouldInsertAd = !kIsWeb && combinedPosts.length >= 3;
-        for (int i = 0; i < combinedPosts.length; i++) {
-          newItems.add(combinedPosts[i]);
-          // 1枚目（インデックス0）の直後には入れず、2枚目（インデックス1）の直後に最初の広告を挿入。
-          // その後は5投稿ごと（i == 6, 11...）に挿入することで、過度な広告表示を防ぐ。
-          if (shouldInsertAd) {
-            if (i == 1 || (i > 1 && (i - 1) % 5 == 0)) {
-              newItems.add('ad');
-            }
-          }
-        }
-        final oldLength = _feedItems.length;
-        _feedItems = newItems;
-        final newLength = _feedItems.length;
-        
-        // 1. リフレッシュ要求（手動プル）がある場合
-        // 2. または、ユーザーが先頭にいて裏でデータ枚数が変わった場合（コールドスタート時など）
-        // -> 無限スクロールの余り計算ズレを防ぐため、強制的に新しい先頭へジャンプさせる
-        if ((_needsRefreshJump || (isTopPage && oldLength != newLength)) && _feedItems.isNotEmpty) {
-          _needsRefreshJump = false;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && _pageController.hasClients) {
-              final targetIndex = 100000 - (100000 % _feedItems.length);
-              _pageController.jumpToPage(targetIndex);
-              
-              // 先頭のアイテムを既読にする
-              final item = _feedItems[0];
-              if (item is Post) {
-                _viewedPostIds.add(item.id);
+          // 「新しい投稿があります ↑」フローティングピルを表示
+          if (!_showNewPostsButton) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                HapticFeedback.lightImpact(); // 新着をそっと知らせる触覚フィードバック
+                setState(() {
+                  _showNewPostsButton = true;
+                });
               }
-            }
-          });
-        }
-        
-        // 初回ロード時またはデータ更新時に先読みを開始
-        if (_feedItems.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _precacheInitialFeed();
-          });
-        }
-
-        if (idsToRemove.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              setState(() {
-                for (final id in idsToRemove) {
-                  _reactingPostIds.remove(id);
-                }
-              });
-            }
-          });
+            });
+          }
+        } else {
+          // ── 直接フィードを構築・適用 ──
+          _stagedHomeData = null;
+          if (_showNewPostsButton) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _showNewPostsButton = false;
+                });
+              }
+            });
+          }
+          _applyHomeDataToFeed(homeData, isTopPage: isTopPage);
         }
       }
     });
@@ -1500,19 +1607,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               child: Align(
                 alignment: Alignment.topCenter,
                 child: NewPostsButton(
-                  onTap: () {
-                    if (_pageController.hasClients && _feedItems.isNotEmpty) {
-                      setState(() {
-                        _showNewPostsButton = false;
-                      });
-                      final targetIndex = 100000 - (100000 % _feedItems.length);
-                      _pageController.animateToPage(
-                        targetIndex,
-                        duration: const Duration(milliseconds: 600),
-                        curve: Curves.easeInOutCubic,
-                      );
-                    }
-                  },
+                  onTap: _onNewPostsTapped,
                 ),
               ),
             ),
