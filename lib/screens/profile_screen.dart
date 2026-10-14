@@ -1618,7 +1618,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 monthlyPostsCountMap: _monthlyPostsCountMap,
                                 onTap: () {
                                   if (task.isSeason) {
+                                    final isWinterArc = task.title.replaceAll(RegExp(r'\s+'), '').toUpperCase().contains('WINTERARC') ||
+                                        (task.seasonId != null && task.seasonId!.toLowerCase().contains('winter_arc'));
                                     final season = _seasonsMap[task.seasonId] ??
+                                        (isWinterArc ? _seasonsMap['winter_arc_2026'] : null) ??
                                         _seasonsMap['debug_season'] ??
                                         _seasonsMap['debug_season_test'] ??
                                         Season.createFallback(
@@ -1665,7 +1668,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 monthlyPostsCountMap: _monthlyPostsCountMap,
                                 onTap: () {
                                   if (task.isSeason) {
+                                    final isWinterArc = task.title.replaceAll(RegExp(r'\s+'), '').toUpperCase().contains('WINTERARC') ||
+                                        (task.seasonId != null && task.seasonId!.toLowerCase().contains('winter_arc'));
                                     final season = _seasonsMap[task.seasonId] ??
+                                        (isWinterArc ? _seasonsMap['winter_arc_2026'] : null) ??
                                         _seasonsMap['debug_season'] ??
                                         _seasonsMap['debug_season_test'] ??
                                         Season.createFallback(
