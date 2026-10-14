@@ -197,9 +197,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .where('startDate', isLessThanOrEqualTo: now)
           .get();
 
+      final existingSeasonTaskIds = (loadedUser?.tasks ?? [])
+          .where((t) => t.isSeason && t.seasonId != null)
+          .map((t) => t.seasonId!)
+          .toSet();
+
       var activeSeasons = seasonsSnap.docs
           .map((doc) => Season.fromFirestore(doc))
-          .where((s) => now.isBefore(s.endDate) && !processedIds.contains(s.id))
+          .where((s) {
+            final isRunning = now.isBefore(s.endDate);
+            final isKeptByUser = existingSeasonTaskIds.contains(s.id);
+            final isNotProcessed = !processedIds.contains(s.id);
+            return isRunning && (isNotProcessed || isKeptByUser);
+          })
           .toList();
 
       final seasonTasks = activeSeasons.map((s) => AppTask(
@@ -220,8 +230,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // ワンタイムタスクの期限切れチェックと削除
         await _checkAndCleanupOneTimeTasks(rawUser);
 
+        // ユーザーが既に持っているシーズンタスクも含めて進捗取得
+        final allSeasonTasks = <AppTask>[...seasonTasks];
+        for (final t in rawUser.tasks.where((t) => t.isSeason)) {
+          if (!allSeasonTasks.any((s) => (t.seasonId != null && s.seasonId == t.seasonId) || s.title == t.title)) {
+            allSeasonTasks.add(t);
+          }
+        }
+
         // シーズン情報とカウントの取得
-        final progressData = await _postService.getSeasonProgressMap(uid, seasonTasks);
+        final progressData = await _postService.getSeasonProgressMap(uid, allSeasonTasks);
         final Map<String, Season> newSeasonsMap = Map<String, Season>.from(progressData['seasonsMap'] ?? {});
         final Map<String, int> newSeasonPostsCountMap = Map<String, int>.from(progressData['seasonPostsCountMap'] ?? {});
 

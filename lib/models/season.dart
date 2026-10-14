@@ -104,10 +104,14 @@ class Season {
   }
 
   static Season createFallback(String taskName, {String? seasonId}) {
-    final cleanName = taskName.replaceAll(RegExp(r'\s+'), '');
+    final cleanName = taskName.replaceAll(RegExp(r'\s+'), '').toUpperCase();
+    final isWinterArc = cleanName.contains('WINTERARC') ||
+        (seasonId != null && seasonId.toLowerCase().contains('winter_arc'));
+
     Map<String, String>? localHint;
     for (final entry in _localSeasonHints.entries) {
-      if (cleanName.contains(entry.key) || entry.key.contains(cleanName)) {
+      final entryClean = entry.key.replaceAll(RegExp(r'\s+'), '').toUpperCase();
+      if (cleanName.contains(entryClean) || entryClean.contains(cleanName)) {
         localHint = entry.value;
         break;
       }
@@ -115,16 +119,45 @@ class Season {
     localHint ??= {};
 
     return Season(
-      id: seasonId ?? 'debug_season',
+      id: seasonId ?? (isWinterArc ? 'winter_arc_2026' : 'debug_season'),
       taskName: taskName,
-      startDate: DateTime(2024, 1, 1), // フォールバックは過去の日付にしてこれまでの投稿を含める
-      endDate: DateTime.now().add(const Duration(days: 365)),
-      hintTitle: localHint['hintTitle'] ?? 'シーズンタスクのヒント💡',
-      hintBody: localHint['hintBody'] ?? 'このシーズンタスクを習慣にするためのアドバイスです。',
+      startDate: isWinterArc ? DateTime(2026, 10, 15) : DateTime(2024, 1, 1),
+      endDate: isWinterArc ? DateTime(2026, 12, 31, 23, 59, 59) : DateTime.now().add(const Duration(days: 365)),
+      requiredPostsCount: isWinterArc ? 40 : 12,
+      hintTitle: localHint['hintTitle'] ?? (isWinterArc ? '冬の3ヶ月で覚醒する5大規律' : 'シーズンタスクのヒント💡'),
+      hintBody: localHint['hintBody'] ?? (isWinterArc
+          ? '迷ったらここから3つ選ぼう：\n1. 🏋️ ワークアウト（筋トレ / ランニング / 自宅トレ15分）\n2. 🌅 自己規律（決めた時間に起床 / 朝日を浴びる）\n3. 🥷 スマホ断ち（起床後・就寝前のデジタルデトックス）\n4. 📖 読書・学習（読書10ページ / 勉強30分）\n5. 💧 食事・水（水2L / クリーンな食事）\n\n📷 撮るのが億劫にならない証明写真（1秒でOK！）：\n画面の明るさを下げて映画風に暗め撮影。ダンベル、スニーカー、コーヒーの湯気、閉じたPC、時計などをパシャリ！'
+          : 'このシーズンタスクを習慣にするためのアドバイスです。'),
+      badgeImageUrl: isWinterArc ? 'https://veffect.web.app/assets/badges/winter_arc_2026.png' : null,
+      relatedBlogId: isWinterArc ? 'winter-arc-2026' : null,
     );
   }
 
   static const Map<String, Map<String, String>> _localSeasonHints = {
+    'WINTER ARC 2026': {
+      'hintTitle': '冬の3ヶ月で覚醒する5大規律',
+      'hintBody': '''迷ったらここから3つ選ぼう：
+1. 🏋️ ワークアウト（筋トレ / ランニング / 自宅トレ15分）
+2. 🌅 自己規律（決めた時間に起床 / 朝日を浴びる）
+3. 🥷 スマホ断ち（起床後・就寝前のデジタルデトックス）
+4. 📖 読書・学習（読書10ページ / 勉強30分）
+5. 💧 食事・水（水2L / クリーンな食事）
+
+📷 撮るのが億劫にならない証明写真（1秒でOK！）：
+画面の明るさを下げて映画風に暗め撮影。ダンベル、スニーカー、コーヒーの湯気、閉じたPC、時計などをパシャリ！''',
+    },
+    'WINTER ARC': {
+      'hintTitle': '冬の3ヶ月で覚醒する5大規律',
+      'hintBody': '''迷ったらここから3つ選ぼう：
+1. 🏋️ ワークアウト（筋トレ / ランニング / 自宅トレ15分）
+2. 🌅 自己規律（決めた時間に起床 / 朝日を浴びる）
+3. 🥷 スマホ断ち（起床後・就寝前のデジタルデトックス）
+4. 📖 読書・学習（読書10ページ / 勉強30分）
+5. 💧 食事・水（水2L / クリーンな食事）
+
+📷 撮るのが億劫にならない証明写真（1秒でOK！）：
+画面の明るさを下げて映画風に暗め撮影。ダンベル、スニーカー、コーヒーの湯気、閉じたPC、時計などをパシャリ！''',
+    },
     '感謝を伝える（または記録する）': {
       'hintTitle': '感謝を伝えるヒント💡',
       'hintBody': '''「感謝」は幸福度を最も高める習慣の一つです。一日一回、身近な人（家族、友人、同僚）に小さな「ありがとう」を言葉やメッセージで伝えましょう。言葉にするのが恥ずかしい時は、ノートやアプリに「今日感謝したこと」を3つ記録するだけでも同様の効果が得られます。まずは朝起きた時や、一日の終わりに振り返る習慣から始めましょう！

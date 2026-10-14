@@ -115,10 +115,22 @@ class PostService {
             .toList() ??
         [];
 
-    // 開催期間内のシーズンタスクをメモリ上で抽出（endDateがない、または現在時刻より後、かつ処理済みでないもの）
+    // 開催期間内のシーズンタスクをメモリ上で抽出
+    // ※ ユーザー自身のタスク一覧に既にそのシーズンタスクが登録されている場合は、
+    // 万が一 processedIds に誤って含まれていたとしてもユーザーが利用中とみなし除外しないフェイルセーフを適用
+    final existingSeasonTaskIds = userTasks
+        .where((t) => t.isSeason && t.seasonId != null)
+        .map((t) => t.seasonId!)
+        .toSet();
+
     final activeSeasons = seasonsSnap.docs
         .map((doc) => Season.fromFirestore(doc))
-        .where((s) => now.isBefore(s.endDate) && !processedIds.contains(s.id))
+        .where((s) {
+          final isRunning = now.isBefore(s.endDate);
+          final isKeptByUser = existingSeasonTaskIds.contains(s.id);
+          final isNotProcessed = !processedIds.contains(s.id);
+          return isRunning && (isNotProcessed || isKeptByUser);
+        })
         .toList();
 
     // シーズンタスクを AppTask オブジェクトに変換
@@ -130,17 +142,25 @@ class PostService {
     )).toList();
 
     // 🚀 シーズンタスクをタスク一覧の最上部（最初）に自動でマージ（合体）
-    // ユーザー自身が設定したトリガー（きっかけ）やご褒美のカスタム情報を維持するため、
+    // ユーザー自身が設定したトリガー（きっかけ）などのカスタム情報を維持するため、
     // 既存のタスクリスト内に同名のシーズンタスクがあれば、その設定（トリガーなど）を優先してマージします。
     final mergedTasks = <AppTask>[];
     for (final sTask in seasonTasks) {
       final existing = userTasks.firstWhere(
-        (uTask) => uTask.title == sTask.title && uTask.isSeason,
+        (uTask) => (uTask.title == sTask.title || (sTask.seasonId != null && uTask.seasonId == sTask.seasonId)) && uTask.isSeason,
         orElse: () => sTask,
       );
       mergedTasks.add(existing);
     }
-    // 重複を防ぐため、ユーザー固有のタスクからはシーズンタスクを除外して追加します。
+
+    // 既存の userTasks のうち、activeSeasons に含まれなかった未終了のシーズンタスク（もしあれば）も救済
+    for (final uTask in userTasks.where((t) => t.isSeason)) {
+      if (!mergedTasks.any((m) => m.title == uTask.title || (uTask.seasonId != null && m.seasonId == uTask.seasonId))) {
+        mergedTasks.add(uTask);
+      }
+    }
+
+    // 通常タスクを追加します。
     final normalTasks = userTasks.where((t) => !t.isSeason).toList();
     mergedTasks.addAll(normalTasks);
 
@@ -211,6 +231,7 @@ class PostService {
     if (seasonTasks.isEmpty) return result;
 
     final seasonIds = seasonTasks.where((t) => t.seasonId != null).map((t) => t.seasonId!).toSet().toList();
+    if (!seasonIds.contains('winter_arc_2026')) seasonIds.add('winter_arc_2026');
     if (!seasonIds.contains('debug_season')) seasonIds.add('debug_season');
     if (!seasonIds.contains('debug_season_test')) seasonIds.add('debug_season_test');
 
@@ -230,8 +251,11 @@ class PostService {
     final newSeasonPostsCountMap = <String, int>{};
 
     for (var task in seasonTasks) {
-      final sId = task.seasonId ?? 'debug_season_test';
-      final season = newSeasonsMap[sId] ?? Season.createFallback(task.title, seasonId: sId);
+      final isWinterArcTask = task.title.replaceAll(RegExp(r'\s+'), '').toUpperCase().contains('WINTERARC');
+      final sId = task.seasonId ?? (isWinterArcTask ? 'winter_arc_2026' : 'debug_season_test');
+      final season = newSeasonsMap[sId] ?? 
+          (isWinterArcTask ? newSeasonsMap['winter_arc_2026'] : null) ?? 
+          Season.createFallback(task.title, seasonId: sId);
       newSeasonsMap[sId] = season;
 
       if (allPostsSnap != null) {
@@ -245,7 +269,8 @@ class PostService {
           
           final isMatch = postTaskName.contains(targetName) || 
                           targetName.contains(postTaskName) || 
-                          (postTaskName.contains('感謝を伝える') && targetName.contains('感謝を伝える'));
+                          (postTaskName.contains('感謝を伝える') && targetName.contains('感謝を伝える')) ||
+                          (postTaskName.toUpperCase().contains('WINTERARC') && targetName.toUpperCase().contains('WINTERARC'));
           
           if (!isMatch) continue;
 

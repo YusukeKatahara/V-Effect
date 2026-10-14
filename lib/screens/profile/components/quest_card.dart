@@ -67,6 +67,17 @@ class QuestCard extends StatelessWidget {
   /// 1. ワンタイムタスク：`completedAt` が null でないこと
   /// 2. シーズンタスク：現在の投稿数 `count` が目標数 `requiredCount` 以上であること
   /// 3. 週次目標タスク：今週の達成回数が目標回数 `targetCount` 以上であること
+  int get _requiredCount {
+    final sId = task.seasonId ?? 'debug_season_test';
+    final season = seasonsMap[sId];
+    if (season != null) return season.requiredPostsCount;
+    final cleanName = task.title.replaceAll(RegExp(r'\s+'), '').toUpperCase();
+    if (cleanName.contains('WINTERARC') || (task.seasonId != null && task.seasonId!.toLowerCase().contains('winter_arc'))) {
+      return 40;
+    }
+    return 12;
+  }
+
   /// 4. 月次目標タスク：今月の達成回数が目標回数 `targetCount` 以上であること
   /// 5. 通常タスク（デイリー）：今日の投稿 `todayPosts` の中に該当タスク名の投稿が存在すること
   bool get _isCompleted {
@@ -75,10 +86,8 @@ class QuestCard extends StatelessWidget {
     }
     if (task.isSeason) {
       final sId = task.seasonId ?? 'debug_season_test';
-      final season = seasonsMap[sId];
       final count = seasonPostsCountMap[sId] ?? 0;
-      final requiredCount = season?.requiredPostsCount ?? 12;
-      return count >= requiredCount;
+      return count >= _requiredCount;
     }
     if (task.isWeekly) {
       return _frequencyCount >= task.targetCount;
@@ -247,11 +256,9 @@ class QuestCard extends StatelessWidget {
   /// シーズン進捗ラベルの構築
   Widget _buildSeasonLabel() {
     final sId = task.seasonId ?? 'debug_season_test';
-    final season = seasonsMap[sId];
     final count = seasonPostsCountMap[sId] ?? 0;
-    final requiredCount = season?.requiredPostsCount ?? 12;
     return Text(
-      'Season ($count/$requiredCount)',
+      'Season ($count/$_requiredCount)',
       style: TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w700,

@@ -54,6 +54,15 @@ class TaskCard extends ConsumerStatefulWidget {
 }
 
 class TaskCardState extends ConsumerState<TaskCard> {
+  int get _seasonRequiredCount {
+    final item = widget.item;
+    if (item.season != null) return item.season!.requiredPostsCount;
+    final cleanName = item.name.replaceAll(RegExp(r'\s+'), '').toUpperCase();
+    if (cleanName.contains('WINTERARC') || (item.seasonId != null && item.seasonId!.toLowerCase().contains('winter_arc'))) {
+      return 40;
+    }
+    return 12;
+  }
 
   Widget _buildHabitStepSequence({
     required HeroTaskItem item,
@@ -385,7 +394,7 @@ class TaskCardState extends ConsumerState<TaskCard> {
                   Row(
                     children: [
                       Text(
-                        'Season ${item.currentSeasonCount}/${item.season?.requiredPostsCount ?? 12}',
+                        'Season ${item.currentSeasonCount}/$_seasonRequiredCount',
                         style: GoogleFonts.outfit(
                           fontSize: 10,
                           color: AppColors.accentGold,
@@ -397,7 +406,7 @@ class TaskCardState extends ConsumerState<TaskCard> {
                       Expanded(
                         child: LayoutBuilder(
                           builder: (context, constraints) {
-                            final requiredCount = item.season?.requiredPostsCount ?? 12;
+                            final requiredCount = _seasonRequiredCount;
                             final progress = (item.currentSeasonCount / requiredCount).clamp(0.0, 1.0);
                             return Stack(
                               children: [
@@ -540,7 +549,7 @@ class TaskCardState extends ConsumerState<TaskCard> {
                       const SizedBox(width: 8),
                       Text(
                         item.isSeason
-                            ? '${AppLocalizations.of(context)!.heroTaskSeasonDaysLeft(item.season != null ? item.season!.endDate.difference(DateTime.now()).inDays.clamp(0, 999) : 0)} (${item.currentSeasonCount}/${item.season?.requiredPostsCount ?? 12})'
+                            ? '${AppLocalizations.of(context)!.heroTaskSeasonDaysLeft(item.season != null ? item.season!.endDate.difference(DateTime.now()).inDays.clamp(0, 999) : 0)} (${item.currentSeasonCount}/$_seasonRequiredCount)'
                             : item.isOneTime
                                 ? 'ONE-TIME'
                                 : 'READY',
