@@ -28,6 +28,7 @@ import '../widgets/v_phoenix_rebirth_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
 import '../widgets/home/home_skeleton_body.dart';
+import '../widgets/v_timeline/v_timeline_empty_state.dart';
 import '../providers/dev_blog_provider.dart';
 
 /// 全体公開（Vタイムライン）用の投稿を配信するStreamProvider
@@ -611,10 +612,11 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen>
             backgroundColor: AppColors.black,
             body: Stack(
               children: [
-                Center(
-                  child: Text(
-                    '現在公開されている投稿はありません。',
-                    style: GoogleFonts.notoSansJp(color: AppColors.grey50, fontSize: 14),
+                Positioned.fill(
+                  child: VTimelineEmptyState(
+                    onRefresh: () async {
+                      ref.invalidate(vTimelinePostsProvider);
+                    },
                   ),
                 ),
                 Positioned(
