@@ -28,6 +28,8 @@ class DirectChatScreenArgs {
   final String? replyPostImageUrl;
   /// 言及・引用元のタスク名
   final String? replyPostTaskName;
+  /// 言及・引用元の一言（V-Note）テキスト
+  final String? replyNoteText;
 
   const DirectChatScreenArgs({
     this.chatId,
@@ -38,6 +40,7 @@ class DirectChatScreenArgs {
     this.replyPostId,
     this.replyPostImageUrl,
     this.replyPostTaskName,
+    this.replyNoteText,
   });
 }
 
@@ -61,10 +64,11 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
   late String _chatId;
   bool _isSending = false;
 
-  /// 現在返信対象となっている投稿の情報
+  /// 現在返信対象となっている投稿または一言の情報
   String? _replyPostId;
   String? _replyPostImageUrl;
   String? _replyPostTaskName;
+  String? _replyNoteText;
 
   /// 2人の共通継続日数（ペアストリーク）
   int _pairStreak = 0;
@@ -78,10 +82,11 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
     _chatId = widget.args.chatId ??
         DirectChatRoom.generateRoomId(currentUid, widget.args.otherUid);
 
-    // 引数から投稿返信情報を受け取る
+    // 引数から投稿・一言返信情報を受け取る
     _replyPostId = widget.args.replyPostId;
     _replyPostImageUrl = widget.args.replyPostImageUrl;
     _replyPostTaskName = widget.args.replyPostTaskName;
+    _replyNoteText = widget.args.replyNoteText;
 
     // ヘッダー用のペアストリークおよび今日達成ステータスを取得
     _loadPairHeaderInfo();
@@ -89,8 +94,9 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
     // 画面を開いたときに既読処理とフォーカスを実行
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _markRead();
-      // 投稿からの返信として開かれた場合は自動で入力欄にフォーカス
-      if (_replyPostImageUrl != null && _replyPostImageUrl!.isNotEmpty) {
+      // 投稿または一言からの返信として開かれた場合は自動で入力欄にフォーカス
+      if ((_replyPostImageUrl != null && _replyPostImageUrl!.isNotEmpty) ||
+          (_replyNoteText != null && _replyNoteText!.isNotEmpty)) {
         _focusNode.requestFocus();
       }
     });
@@ -161,6 +167,7 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
     final currentReplyId = _replyPostId;
     final currentReplyImageUrl = _replyPostImageUrl;
     final currentReplyTaskName = _replyPostTaskName;
+    final currentReplyNoteText = _replyNoteText;
 
     setState(() {
       _isSending = true;
@@ -168,6 +175,7 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
       _replyPostId = null;
       _replyPostImageUrl = null;
       _replyPostTaskName = null;
+      _replyNoteText = null;
     });
     _textController.clear();
     HapticFeedback.lightImpact();
@@ -191,6 +199,7 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
             replyPostId: currentReplyId,
             replyPostImageUrl: currentReplyImageUrl,
             replyPostTaskName: currentReplyTaskName,
+            replyNoteText: currentReplyNoteText,
           );
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -964,6 +973,7 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
     final currentUid = ref.read(currentAuthUidProvider) ?? '';
     final timeStr = DateFormat('HH:mm').format(message.createdAt);
     final hasReplyPost = message.replyPostImageUrl != null && message.replyPostImageUrl!.isNotEmpty;
+    final hasReplyNote = message.replyNoteText != null && message.replyNoteText!.isNotEmpty;
 
     // 連続メッセージに応じた吹き出し角丸の計算
     final borderRadius = BorderRadius.only(
@@ -1136,6 +1146,93 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
           ),
         ],
       );
+    } else if (hasReplyNote) {
+      bubbleContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. 一言（V-Note）返信コンテキストラベル
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  size: 12,
+                  color: isMe
+                      ? Colors.black.withValues(alpha: 0.7)
+                      : AppColors.accentGold,
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    isMe
+                        ? l10n.statusNoteRepliedTo(widget.args.otherName)
+                        : l10n.statusNoteRepliedToYou,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isMe
+                          ? Colors.black.withValues(alpha: 0.75)
+                          : AppColors.accentGold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 2. 引用された一言吹き出しボックス
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: isMe
+                  ? Colors.black.withValues(alpha: 0.12)
+                  : (AppColors.isDark ? AppColors.grey20 : AppColors.pureWhite),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isMe
+                    ? Colors.black.withValues(alpha: 0.18)
+                    : AppColors.accentGold.withValues(alpha: 0.45),
+                width: 0.8,
+              ),
+            ),
+            child: Text(
+              '“${message.replyNoteText!}”',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontStyle: FontStyle.italic,
+                color: isMe
+                    ? Colors.black.withValues(alpha: 0.85)
+                    : AppColors.textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+
+          // 3. 返信メッセージテキスト
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              message.text,
+              style: TextStyle(
+                fontSize: 14.5,
+                height: 1.4,
+                color: isMe
+                    ? Colors.black
+                    : (AppColors.isDark ? AppColors.pureWhite : Colors.black87),
+                fontWeight: isMe ? FontWeight.w600 : FontWeight.w400,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ),
+        ],
+      );
     } else {
       bubbleContent = Text(
         message.text,
@@ -1227,7 +1324,7 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
                   onLongPress: () => _onMessageLongPress(context, message),
                   child: Container(
                     constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * (hasReplyPost ? 0.76 : 0.72),
+                      maxWidth: MediaQuery.of(context).size.width * ((hasReplyPost || hasReplyNote) ? 0.76 : 0.72),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
@@ -1361,9 +1458,11 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
     );
   }
 
-  /// 「投稿への返信」プレビューバー（Instagramストーリーズ返信風）
+  /// 「投稿・一言への返信」プレビューバー（Instagramストーリーズ・ノート返信風）
   Widget _buildReplyBar(BuildContext context, AppLocalizations l10n) {
-    if (_replyPostImageUrl == null || _replyPostImageUrl!.isEmpty) {
+    final hasPostReply = _replyPostImageUrl != null && _replyPostImageUrl!.isNotEmpty;
+    final hasNoteReply = _replyNoteText != null && _replyNoteText!.isNotEmpty;
+    if (!hasPostReply && !hasNoteReply) {
       return const SizedBox.shrink();
     }
 
@@ -1380,28 +1479,30 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
       ),
       child: Row(
         children: [
-          // 小さな投稿サムネイル
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: CachedNetworkImage(
-              imageUrl: _replyPostImageUrl!,
-              width: 38,
-              height: 38,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
+          if (hasPostReply) ...[
+            // 小さな投稿サムネイル
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: CachedNetworkImage(
+                imageUrl: _replyPostImageUrl!,
                 width: 38,
                 height: 38,
-                color: AppColors.grey20,
-              ),
-              errorWidget: (context, url, error) => Container(
-                width: 38,
-                height: 38,
-                color: AppColors.grey20,
-                child: const Icon(Icons.image_not_supported_rounded, size: 18, color: Colors.white54),
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  width: 38,
+                  height: 38,
+                  color: AppColors.grey20,
+                ),
+                errorWidget: (context, url, error) => Container(
+                  width: 38,
+                  height: 38,
+                  color: AppColors.grey20,
+                  child: const Icon(Icons.image_not_supported_rounded, size: 18, color: Colors.white54),
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 10),
+            const SizedBox(width: 10),
+          ],
 
           // 返信コンテキスト情報
           Expanded(
@@ -1412,14 +1513,16 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
                 Row(
                   children: [
                     Icon(
-                      Icons.auto_stories_rounded,
+                      hasPostReply ? Icons.auto_stories_rounded : Icons.chat_bubble_outline_rounded,
                       size: 13,
                       color: AppColors.accentGold,
                     ),
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
-                        l10n.directChatReplyingTo(widget.args.otherName),
+                        hasPostReply
+                            ? l10n.directChatReplyingTo(widget.args.otherName)
+                            : l10n.statusNoteReplyHint(widget.args.otherName),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -1431,7 +1534,7 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
                     ),
                   ],
                 ),
-                if (_replyPostTaskName != null && _replyPostTaskName!.isNotEmpty)
+                if (hasPostReply && _replyPostTaskName != null && _replyPostTaskName!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
@@ -1439,6 +1542,20 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  )
+                else if (hasNoteReply)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      '“$_replyNoteText”',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.textSecondary,
+                        fontStyle: FontStyle.italic,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1461,6 +1578,7 @@ class _DirectChatScreenState extends ConsumerState<DirectChatScreen> {
                 _replyPostId = null;
                 _replyPostImageUrl = null;
                 _replyPostTaskName = null;
+                _replyNoteText = null;
               });
             },
           ),

@@ -12,6 +12,7 @@
 		3505B2082FCB105100C73909 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3505B2072FCB105100C73909 /* WidgetKit.framework */; };
 		3505B20A2FCB105100C73909 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3505B2092FCB105100C73909 /* SwiftUI.framework */; };
 		3505B2152FCB105200C73909 /* VEffectWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3505B2062FCB105100C73909 /* VEffectWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		3505B2202FCB105200C73909 /* NotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3505B2212FCB105200C73909 /* NotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		352EF5AA2F6E59A900B80A2A /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 352EF5A92F6E59A900B80A2A /* GoogleService-Info.plist */; };
 		35E000022F6E59A900B80A2A /* dm_notification.wav in Resources */ = {isa = PBXBuildFile; fileRef = 35E000012F6E59A900B80A2A /* dm_notification.wav */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
@@ -20,6 +21,7 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		E10000042F6E59A900B80A2A /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = E10000032F6E59A900B80A2A /* InfoPlist.strings */; };
 		A1B2C3D4E5F6010101010102 /* MyNativeAdFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6010101010101 /* MyNativeAdFactory.swift */; };
 		A1B2C3D4E5F6010101010104 /* CustomNativeAdView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6010101010103 /* CustomNativeAdView.swift */; };
 		A1B2C3D4E5F6010101010106 /* CustomNativeAdView.xib in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6010101010105 /* CustomNativeAdView.xib */; };
@@ -43,6 +45,13 @@
 			remoteGlobalIDString = 3505B2052FCB105100C73909;
 			remoteInfo = VEffectWidgetExtension;
 		};
+		3505B2222FCB105200C73909 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3505B2232FCB105200C73909;
+			remoteInfo = NotificationService;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -53,6 +62,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				3505B2152FCB105200C73909 /* VEffectWidgetExtension.appex in Embed Foundation Extensions */,
+				3505B2202FCB105200C73909 /* NotificationService.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -76,6 +86,7 @@
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3505B2062FCB105100C73909 /* VEffectWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VEffectWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3505B2212FCB105200C73909 /* NotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		3505B2072FCB105100C73909 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		3505B2092FCB105100C73909 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		352EF5A92F6E59A900B80A2A /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
@@ -94,6 +105,8 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		E10000012F6E59A900B80A2A /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		E10000022F6E59A900B80A2A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		A1B2C3D4E5F6010101010101 /* MyNativeAdFactory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MyNativeAdFactory.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6010101010103 /* CustomNativeAdView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomNativeAdView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6010101010105 /* CustomNativeAdView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = CustomNativeAdView.xib; sourceTree = "<group>"; };
@@ -113,6 +126,13 @@
 			);
 			target = 3505B2052FCB105100C73909 /* VEffectWidgetExtension */;
 		};
+		3505B2242FCB105200C73909 /* Exceptions for "NotificationService" folder in "NotificationService" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3505B2232FCB105200C73909 /* NotificationService */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -128,6 +148,18 @@
 			path = VEffectWidget;
 			sourceTree = "<group>";
 		};
+		3505B2252FCB105200C73909 /* NotificationService */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3505B2242FCB105200C73909 /* Exceptions for "NotificationService" folder in "NotificationService" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = NotificationService;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -137,6 +169,13 @@
 			files = (
 				3505B20A2FCB105100C73909 /* SwiftUI.framework in Frameworks */,
 				3505B2082FCB105100C73909 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3505B2262FCB105200C73909 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -203,6 +242,7 @@
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
 				3505B20B2FCB105100C73909 /* VEffectWidget */,
+				3505B2252FCB105200C73909 /* NotificationService */,
 				97C146EF1CF9000F007C117D /* Products */,
 				331C8082294A63A400263BE5 /* RunnerTests */,
 				A6D91B8C59A9582EF5C783CB /* Pods */,
@@ -217,6 +257,7 @@
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
 				3505B2062FCB105100C73909 /* VEffectWidgetExtension.appex */,
+				3505B2212FCB105200C73909 /* NotificationService.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -228,6 +269,7 @@
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
 				97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */,
 				97C147021CF9000F007C117D /* Info.plist */,
+				E10000032F6E59A900B80A2A /* InfoPlist.strings */,
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
@@ -297,6 +339,26 @@
 			productReference = 3505B2062FCB105100C73909 /* VEffectWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		3505B2232FCB105200C73909 /* NotificationService */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3505B22A2FCB105200C73909 /* Build configuration list for PBXNativeTarget "NotificationService" */;
+			buildPhases = (
+				3505B2272FCB105200C73909 /* Sources */,
+				3505B2262FCB105200C73909 /* Frameworks */,
+				3505B2282FCB105200C73909 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				3505B2252FCB105200C73909 /* NotificationService */,
+			);
+			name = NotificationService;
+			productName = NotificationService;
+			productReference = 3505B2212FCB105200C73909 /* NotificationService.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		97C146ED1CF9000F007C117D /* Runner */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
@@ -317,6 +379,7 @@
 			);
 			dependencies = (
 				3505B2142FCB105200C73909 /* PBXTargetDependency */,
+				3505B2292FCB105200C73909 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -339,6 +402,9 @@
 						TestTargetID = 97C146ED1CF9000F007C117D;
 					};
 					3505B2052FCB105100C73909 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					3505B2232FCB105200C73909 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 					97C146ED1CF9000F007C117D = {
@@ -372,6 +438,7 @@
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
 				3505B2052FCB105100C73909 /* VEffectWidgetExtension */,
+				3505B2232FCB105200C73909 /* NotificationService */,
 			);
 		};
 /* End PBXProject section */
@@ -391,6 +458,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3505B2282FCB105200C73909 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EC1CF9000F007C117D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -402,6 +476,7 @@
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
 				A1B2C3D4E5F6010101010106 /* CustomNativeAdView.xib in Resources */,
+				E10000042F6E59A900B80A2A /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -555,6 +630,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3505B2272FCB105200C73909 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EA1CF9000F007C117D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -581,6 +663,11 @@
 			target = 3505B2052FCB105100C73909 /* VEffectWidgetExtension */;
 			targetProxy = 3505B2132FCB105200C73909 /* PBXContainerItemProxy */;
 		};
+		3505B2292FCB105200C73909 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3505B2232FCB105200C73909 /* NotificationService */;
+			targetProxy = 3505B2222FCB105200C73909 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -598,6 +685,15 @@
 				97C147001CF9000F007C117D /* Base */,
 			);
 			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		E10000032F6E59A900B80A2A /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				E10000012F6E59A900B80A2A /* ja */,
+				E10000022F6E59A900B80A2A /* en */,
+			);
+			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -867,6 +963,126 @@
 			};
 			name = Profile;
 		};
+		3505B22B2FCB105200C73909 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = FD438J3939;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NotificationService/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NotificationService;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.veffect.app.vEffect.NotificationService;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		3505B22C2FCB105200C73909 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = FD438J3939;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NotificationService/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NotificationService;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.veffect.app.vEffect.NotificationService;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		3505B22D2FCB105200C73909 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = FD438J3939;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NotificationService/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NotificationService;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.veffect.app.vEffect.NotificationService;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Profile;
+		};
 		97C147031CF9000F007C117D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1058,6 +1274,16 @@
 				3505B2172FCB105200C73909 /* Debug */,
 				3505B2182FCB105200C73909 /* Release */,
 				3505B2192FCB105200C73909 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3505B22A2FCB105200C73909 /* Build configuration list for PBXNativeTarget "NotificationService" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3505B22B2FCB105200C73909 /* Debug */,
+				3505B22C2FCB105200C73909 /* Release */,
+				3505B22D2FCB105200C73909 /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

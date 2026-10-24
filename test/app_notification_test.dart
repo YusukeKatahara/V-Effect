@@ -206,5 +206,23 @@ void main() {
       expect(updated.dmNotifications, isFalse);
       expect(updated.dmMessagePreview, isFalse);
     });
+
+    test('statusNote is active within 24 hours and expires after 24 hours', () {
+      final activeUser = AppUser(
+        uid: 'user_active',
+        statusNote: '今から集中モード🔥',
+        statusNoteUpdatedAt: DateTime.now().subtract(const Duration(hours: 2)),
+      );
+      expect(activeUser.hasActiveStatusNote, isTrue);
+      expect(activeUser.activeStatusNote, '今から集中モード🔥');
+
+      final expiredUser = AppUser(
+        uid: 'user_expired',
+        statusNote: '昨日のメモ',
+        statusNoteUpdatedAt: DateTime.now().subtract(const Duration(hours: 25)),
+      );
+      expect(expiredUser.hasActiveStatusNote, isFalse);
+      expect(expiredUser.activeStatusNote, isNull);
+    });
   });
 }

@@ -2529,4 +2529,61 @@ class AppLocalizationsEn extends AppLocalizations {
   String notificationsDmMultiple(String name, int count) {
     return '$name sent you $count messages';
   }
+
+  @override
+  String get statusNoteYourNote => 'Your note';
+
+  @override
+  String get statusNotePlaceholder => 'What\'s your focus? 🔥';
+
+  @override
+  String get statusNoteSheetTitle => 'Leave a note';
+
+  @override
+  String get statusNoteSheetDesc => 'Shared with friends for 24 hours';
+
+  @override
+  String get statusNoteInputHint => 'Share a thought or goal...';
+
+  @override
+  String get statusNoteShare => 'Share';
+
+  @override
+  String get statusNoteDelete => 'Delete note';
+
+  @override
+  String get statusNoteUpdated => 'Note updated ✨';
+
+  @override
+  String get statusNoteDeleted => 'Note deleted';
+
+  @override
+  String statusNoteReplyHint(String name) {
+    return 'Reply to $name\'s note...';
+  }
+
+  @override
+  String statusNoteRepliedTo(String name) {
+    return 'Replied to $name\'s note';
+  }
+
+  @override
+  String get statusNoteRepliedToYou => 'Replied to your note';
+
+  @override
+  String statusNoteReplySent(String name) {
+    return 'Sent a reply to $name! 🔥';
+  }
+
+  @override
+  String get statusNoteQuickPreset1 => 'Focus mode on 🔥';
+
+  @override
+  String get statusNoteQuickPreset2 => 'Today\'s task done ✨';
+
+  @override
+  String get statusNoteQuickPreset3 => 'Let\'s do our best 💪';
+
+  @override
+  String get statusNoteQuickPreset4 => 'Morning routine ☀️';
 }

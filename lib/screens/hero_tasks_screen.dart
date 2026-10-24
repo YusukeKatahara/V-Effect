@@ -15,7 +15,6 @@ import '../models/season.dart';
 import '../widgets/shimmer_container.dart';
 import '../widgets/streak_flame.dart';
 import '../widgets/v_effect_header.dart';
-import '../widgets/direct_chat_icon.dart';
 import '../widgets/frictionless_page_scroll_physics.dart';
 import 'camera_screen.dart';
 import '../widgets/entropic_conversion_overlay.dart';
@@ -30,6 +29,7 @@ import 'hero_tasks/components/hero_task_item.dart';
 import 'hero_tasks/components/task_card.dart';
 import 'hero_task_share_preview_screen.dart';
 import '../services/sound_service.dart';
+import '../utils/page_controller_extension.dart';
 
 
 
@@ -127,7 +127,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
       ..addListener(() {
         if (mounted && _pageController.hasClients) {
           if (_expandedIndex != null) return; // カード拡大中は外側のスクロールリスナーを無効化
-          final page = _pageController.page;
+          final page = _pageController.safePage;
           if (page != null && !page.isNaN) {
             _scrollPositionNotifier.value = page;
             // ユーザーがスワイプ（画面移動）を開始したら、ガイドを非表示にする
@@ -250,7 +250,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
 
   void _onTabChanged() {
     if (!mounted) return;
-    if (MainShell.activeTabIndex.value == 1 && _expandedIndex != null) {
+    if (MainShell.activeTabIndex.value == MainShell.tabHeroTasks && _expandedIndex != null) {
       // 炎タブに戻ってきた時、拡大中なら音楽を再開する
       final currentFocused = _focusedIndex;
       if (_taskItems.isNotEmpty && currentFocused >= 0 && currentFocused < _taskItems.length) {
@@ -847,7 +847,7 @@ class _HeroTasksScreenState extends ConsumerState<HeroTasksScreen>
             );
           },
         ),
-        trailing: const DirectChatIcon(),
+        trailing: const NotificationBellIcon(),
         hideLogo: _isSublimating,
       );
 

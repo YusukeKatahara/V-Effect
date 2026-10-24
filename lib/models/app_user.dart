@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'app_task.dart';
@@ -16,6 +17,7 @@ class AppUser {
   final String? photoUrl;
   final int streak;
   final int streakProtections;
+  final int maxStreak;
   final int totalPosts;
   final String? lastPostedDate;
   final List<String> following;
@@ -46,6 +48,10 @@ class AppUser {
   final bool isRecommended;
   final Map<String, DateTime> mutualFires;
   final Map<String, List<String>> taskSchedules;
+  /// 一言欄（V-Note）のテキスト（最大60文字、24時間で自動消滅）
+  final String? statusNote;
+  /// 一言欄（V-Note）の最終更新日時
+  final DateTime? statusNoteUpdatedAt;
 
   // ── フィールド名定数 ──
   static const String fieldEmail = 'email';
@@ -95,6 +101,20 @@ class AppUser {
   static const String fieldOnboardingStep = 'onboardingStep';
   static const String fieldMutualFires = 'mutualFires';
   static const String fieldTaskSchedules = 'taskSchedules';
+  static const String fieldStatusNote = 'statusNote';
+  static const String fieldStatusNoteUpdatedAt = 'statusNoteUpdatedAt';
+
+  /// 24時間以内に更新された有効な一言（V-Note）があるかどうかを判定します
+  bool get hasActiveStatusNote {
+    final text = statusNote?.trim();
+    if (text == null || text.isEmpty || statusNoteUpdatedAt == null) {
+      return false;
+    }
+    return DateTime.now().difference(statusNoteUpdatedAt!).inHours < 24;
+  }
+
+  /// 有効な（24時間以内の）一言テキストを取得します（期限切れ・未設定時は null）
+  String? get activeStatusNote => hasActiveStatusNote ? statusNote!.trim() : null;
 
   const AppUser({
     required this.uid,
@@ -107,6 +127,7 @@ class AppUser {
     this.photoUrl,
     this.streak = 0,
     this.streakProtections = 0,
+    this.maxStreak = 0,
     this.totalPosts = -1,
     this.lastPostedDate,
     this.following = const [],
@@ -137,6 +158,8 @@ class AppUser {
     this.isRecommended = false,
     this.mutualFires = const {},
     this.taskSchedules = const {},
+    this.statusNote,
+    this.statusNoteUpdatedAt,
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -211,6 +234,14 @@ class AppUser {
         return {};
       }
 
+      DateTime? extractStatusNoteUpdatedAt() {
+        final raw = data[fieldStatusNoteUpdatedAt];
+        if (raw is Timestamp) return raw.toDate();
+        if (raw is String) return DateTime.tryParse(raw);
+        if (raw is DateTime) return raw;
+        return null;
+      }
+
       return AppUser(
         uid: id,
         email: safeString(data[fieldEmail]),
@@ -230,6 +261,14 @@ class AppUser {
           protections: (data[fieldStreakProtections] as num?)?.toInt() ?? 0,
           lastPostedDate: safeString(data[fieldLastPostedDate]),
         )['streakProtections']!,
+        maxStreak: math.max(
+          (data[fieldMaxStreak] as num?)?.toInt() ?? 0,
+          StreakService.calculateEffectiveStreak(
+            streak: (data[fieldStreak] as num?)?.toInt() ?? 0,
+            protections: (data[fieldStreakProtections] as num?)?.toInt() ?? 0,
+            lastPostedDate: safeString(data[fieldLastPostedDate]),
+          )['streak']!,
+        ),
         totalPosts: data[fieldTotalPosts] != null
             ? (data[fieldTotalPosts] as num).toInt()
             : -1,
@@ -266,6 +305,8 @@ class AppUser {
         isRecommended: data[fieldIsRecommended] == true,
         mutualFires: extractMutualFires(),
         taskSchedules: extractTaskSchedules(),
+        statusNote: safeString(data[fieldStatusNote]),
+        statusNoteUpdatedAt: extractStatusNoteUpdatedAt(),
       );
     } catch (e) {
       debugPrint('Error parsing AppUser $id: $e');
@@ -285,6 +326,7 @@ class AppUser {
       fieldPhotoUrl: photoUrl,
       fieldStreak: streak,
       fieldStreakProtections: streakProtections,
+      fieldMaxStreak: maxStreak,
       fieldTotalPosts: totalPosts,
       fieldLastPostedDate: lastPostedDate,
       fieldFollowing: following,
@@ -316,6 +358,8 @@ class AppUser {
       // mutualFires はクライアントから書き込まれる想定はないが、保存時のためにTimestampに変換する
       fieldMutualFires: mutualFires.map((key, value) => MapEntry(key, Timestamp.fromDate(value))),
       fieldTaskSchedules: taskSchedules,
+      fieldStatusNote: statusNote,
+      fieldStatusNoteUpdatedAt: statusNoteUpdatedAt != null ? Timestamp.fromDate(statusNoteUpdatedAt!) : null,
     };
   }
 
@@ -332,6 +376,7 @@ class AppUser {
       fieldPhotoUrl: photoUrl,
       fieldStreak: streak,
       fieldStreakProtections: streakProtections,
+      fieldMaxStreak: maxStreak,
       fieldTotalPosts: totalPosts,
       fieldLastPostedDate: lastPostedDate,
       fieldFollowing: following,
@@ -362,6 +407,8 @@ class AppUser {
       fieldIsRecommended: isRecommended,
       fieldMutualFires: mutualFires.map((key, value) => MapEntry(key, value.toIso8601String())),
       fieldTaskSchedules: taskSchedules,
+      fieldStatusNote: statusNote,
+      fieldStatusNoteUpdatedAt: statusNoteUpdatedAt?.toIso8601String(),
     };
   }
 
@@ -377,6 +424,7 @@ class AppUser {
     String? photoUrl,
     int? streak,
     int? streakProtections,
+    int? maxStreak,
     int? totalPosts,
     String? lastPostedDate,
     List<String>? following,
@@ -407,6 +455,8 @@ class AppUser {
     bool? isRecommended,
     Map<String, DateTime>? mutualFires,
     Map<String, List<String>>? taskSchedules,
+    String? statusNote,
+    DateTime? statusNoteUpdatedAt,
   }) {
     return AppUser(
       uid: uid ?? this.uid,
@@ -419,6 +469,7 @@ class AppUser {
       photoUrl: photoUrl ?? this.photoUrl,
       streak: streak ?? this.streak,
       streakProtections: streakProtections ?? this.streakProtections,
+      maxStreak: maxStreak ?? this.maxStreak,
       totalPosts: totalPosts ?? this.totalPosts,
       lastPostedDate: lastPostedDate ?? this.lastPostedDate,
       following: following ?? this.following,
@@ -449,6 +500,8 @@ class AppUser {
       isRecommended: isRecommended ?? this.isRecommended,
       mutualFires: mutualFires ?? this.mutualFires,
       taskSchedules: taskSchedules ?? this.taskSchedules,
+      statusNote: statusNote ?? this.statusNote,
+      statusNoteUpdatedAt: statusNoteUpdatedAt ?? this.statusNoteUpdatedAt,
     );
   }
 }

@@ -283,7 +283,7 @@ class DeepLinkService {
   Future<void> _navigateToTaskScreen() async {
     try {
       // 1. 最も確実な方法: グローバルなタブ切り替えフラグを直接変更する
-      MainShell.activeTabIndex.value = 1;
+      MainShell.activeTabIndex.value = MainShell.tabHeroTasks;
       
       final context = VEffectApp.navigatorKey.currentContext;
       if (context == null || !context.mounted) return;
@@ -294,7 +294,7 @@ class DeepLinkService {
       Navigator.of(context).pushNamedAndRemoveUntil(
         AppRoutes.home,
         (r) => false,
-        arguments: 1,
+        arguments: MainShell.tabHeroTasks,
       );
     } catch (e) {
       debugPrint('Error navigating to task screen: $e');

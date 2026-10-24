@@ -4858,6 +4858,108 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'{name}さんから{count}通のメッセージが届いています'**
   String notificationsDmMultiple(String name, int count);
+
+  /// No description provided for @statusNoteYourNote.
+  ///
+  /// In ja, this message translates to:
+  /// **'自分の一言'**
+  String get statusNoteYourNote;
+
+  /// No description provided for @statusNotePlaceholder.
+  ///
+  /// In ja, this message translates to:
+  /// **'今何に燃えてる？🔥'**
+  String get statusNotePlaceholder;
+
+  /// No description provided for @statusNoteSheetTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'一言を残す'**
+  String get statusNoteSheetTitle;
+
+  /// No description provided for @statusNoteSheetDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'フォロー中の仲間に24時間限定で共有されます'**
+  String get statusNoteSheetDesc;
+
+  /// No description provided for @statusNoteInputHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'今の気合いや一言を入力...'**
+  String get statusNoteInputHint;
+
+  /// No description provided for @statusNoteShare.
+  ///
+  /// In ja, this message translates to:
+  /// **'シェアする'**
+  String get statusNoteShare;
+
+  /// No description provided for @statusNoteDelete.
+  ///
+  /// In ja, this message translates to:
+  /// **'一言を削除'**
+  String get statusNoteDelete;
+
+  /// No description provided for @statusNoteUpdated.
+  ///
+  /// In ja, this message translates to:
+  /// **'一言を更新しました ✨'**
+  String get statusNoteUpdated;
+
+  /// No description provided for @statusNoteDeleted.
+  ///
+  /// In ja, this message translates to:
+  /// **'一言を削除しました'**
+  String get statusNoteDeleted;
+
+  /// No description provided for @statusNoteReplyHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'{name}の一言に返信...'**
+  String statusNoteReplyHint(String name);
+
+  /// No description provided for @statusNoteRepliedTo.
+  ///
+  /// In ja, this message translates to:
+  /// **'{name}の一言に返信しました'**
+  String statusNoteRepliedTo(String name);
+
+  /// No description provided for @statusNoteRepliedToYou.
+  ///
+  /// In ja, this message translates to:
+  /// **'あなたの一言に返信しました'**
+  String get statusNoteRepliedToYou;
+
+  /// No description provided for @statusNoteReplySent.
+  ///
+  /// In ja, this message translates to:
+  /// **'{name}さんに返信を送りました！🔥'**
+  String statusNoteReplySent(String name);
+
+  /// No description provided for @statusNoteQuickPreset1.
+  ///
+  /// In ja, this message translates to:
+  /// **'今から集中モード🔥'**
+  String get statusNoteQuickPreset1;
+
+  /// No description provided for @statusNoteQuickPreset2.
+  ///
+  /// In ja, this message translates to:
+  /// **'今日のタスク完了✨'**
+  String get statusNoteQuickPreset2;
+
+  /// No description provided for @statusNoteQuickPreset3.
+  ///
+  /// In ja, this message translates to:
+  /// **'一緒に頑張ろう💪'**
+  String get statusNoteQuickPreset3;
+
+  /// No description provided for @statusNoteQuickPreset4.
+  ///
+  /// In ja, this message translates to:
+  /// **'朝活スタート☀️'**
+  String get statusNoteQuickPreset4;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

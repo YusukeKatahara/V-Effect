@@ -1,0 +1,20 @@
+/* Bundle display name */
+CFBundleDisplayName = "V EFFECT";
+
+/* Camera Permission */
+NSCameraUsageDescription = "ヒーロータスクの写真撮影と、QRコードのスキャンによるフレンド追加のためにカメラを使用します。";
+
+/* Microphone Permission */
+NSMicrophoneUsageDescription = "動画撮影時にマイクを使用します（カメラ機能の安定動作のため）。";
+
+/* Photo Library Permission */
+NSPhotoLibraryUsageDescription = "プロフィール写真およびヒーロータスクの写真を選択するためにフォトライブラリを使用します。";
+
+/* Photo Library Add Permission */
+NSPhotoLibraryAddUsageDescription = "QRコードを写真ライブラリに保存するために使用します。";
+
+/* App Tracking Transparency */
+NSUserTrackingUsageDescription = "お客様の興味関心に合わせた最適な広告を表示するために、トラッキングの許可をお願いいたします。この設定はいつでも本体の「設定」アプリから変更可能です。";
+
+/* Local Network Permission */
+NSLocalNetworkUsageDescription = "ローカルネットワーク上のDart VM（デバッグ用サーバ）に接続するために使用します。";

@@ -193,6 +193,8 @@ class DirectChatMessage {
   final String? replyPostImageUrl;
   /// 言及・引用された投稿のタスク名（例：「感謝を伝える」）
   final String? replyPostTaskName;
+  /// 言及・引用された一言（V-Note）のテキスト（インスタのノート返信風UI用）
+  final String? replyNoteText;
   /// メッセージに付与されたリアクション（uid -> emoji）
   final Map<String, String> reactions;
 
@@ -203,6 +205,7 @@ class DirectChatMessage {
   static const String fieldReplyPostId = 'replyPostId';
   static const String fieldReplyPostImageUrl = 'replyPostImageUrl';
   static const String fieldReplyPostTaskName = 'replyPostTaskName';
+  static const String fieldReplyNoteText = 'replyNoteText';
   static const String fieldReactions = 'reactions';
 
   const DirectChatMessage({
@@ -214,6 +217,7 @@ class DirectChatMessage {
     this.replyPostId,
     this.replyPostImageUrl,
     this.replyPostTaskName,
+    this.replyNoteText,
     this.reactions = const {},
   });
 
@@ -247,6 +251,7 @@ class DirectChatMessage {
       replyPostId: data[fieldReplyPostId] as String?,
       replyPostImageUrl: data[fieldReplyPostImageUrl] as String?,
       replyPostTaskName: data[fieldReplyPostTaskName] as String?,
+      replyNoteText: data[fieldReplyNoteText] as String?,
       reactions: parsedReactions,
     );
   }
@@ -261,6 +266,7 @@ class DirectChatMessage {
     if (replyPostId != null) map[fieldReplyPostId] = replyPostId;
     if (replyPostImageUrl != null) map[fieldReplyPostImageUrl] = replyPostImageUrl;
     if (replyPostTaskName != null) map[fieldReplyPostTaskName] = replyPostTaskName;
+    if (replyNoteText != null) map[fieldReplyNoteText] = replyNoteText;
     if (reactions.isNotEmpty) map[fieldReactions] = reactions;
     return map;
   }

@@ -36,6 +36,7 @@ import '../providers/home_provider.dart';
 import '../providers/upload_provider.dart';
 import '../widgets/v_phoenix_rebirth_dialog.dart';
 import '../widgets/upload_progress_bar.dart';
+import '../utils/page_controller_extension.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'main_shell.dart';
 import 'chat/direct_chat_screen.dart';
@@ -118,11 +119,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
 
 
-  // pageController.page を直接参照するように変更
+  double _lastKnownPage = 10000.0;
+
+  // safePage 拡張を通じて例外安全にページ番号を取得
   int get _focusedIndex {
     if (_feedItems.isEmpty) return 0;
     final len = _feedItems.length;
-    final pos = (_pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0).round();
+    final safeP = _pageController.safePage;
+    if (safeP != null) {
+      _lastKnownPage = safeP;
+    }
+    final pos = (_pageController.hasClients ? safeP ?? _lastKnownPage : 10000.0).round();
     return (pos % len + len) % len;
   }
 
@@ -151,7 +158,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final item = _feedItems[currentFocused];
     if (item is Post && item.bgmUrl != null) {
       // 再生開始時にも現在のスワイプ割合に合わせた音量を計算して渡す
-      final page = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
+      final page = _pageController.safePage ?? _lastKnownPage;
       final nearestPageIndex = page.round();
       final double offset = (page - nearestPageIndex).abs();
       final double volume = (1.0 - (offset * 2.0)).clamp(0.0, 1.0);
@@ -210,8 +217,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _pageController = PageController(initialPage: initialPage)
       ..addListener(() {
         if (mounted && _pageController.hasClients) {
-          final page = _pageController.page;
+          final page = _pageController.safePage;
           if (page != null && !page.isNaN) {
+            _lastKnownPage = page;
             if (_showSwipeGuide && (page - initialPage).abs() > 0.1) {
               _dismissSwipeGuide();
             }
@@ -318,7 +326,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   int get _focusedGlobalIndex {
     if (_feedItems.isEmpty) return 10000;
-    return (_pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0).round();
+    return (_pageController.hasClients ? _pageController.safePage ?? _lastKnownPage : 10000.0).round();
   }
 
   void _loadAdForGlobalIndex(int globalIndex) {
@@ -515,7 +523,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (!mounted) return;
     if (MainShell.activeTabIndex.value == 0) {
       // コンパスタブに戻ってきたらBGMを再開
-      _playBgmForFocusedPost();
+      // タブ切り替え直後のレイアウト競合を防ぐため、フレーム確定後に安全に実行
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && MainShell.activeTabIndex.value == 0) {
+          _playBgmForFocusedPost();
+        }
+      });
 
       // 他のタブで投稿が完了していて、まだガード解除演出を行っていない場合は遅延実行する
       if (_pendingUnlockAnimation) {
@@ -547,7 +560,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _lastPausedTime ??= DateTime.now();
       _cancelAdRefreshTimer(); // バックグラウンド移行時は無駄なリクエストを防ぐためタイマーをクリア
     } else if (state == AppLifecycleState.resumed) {
-      final page = _pageController.hasClients ? _pageController.page?.round() ?? 10000 : 10000;
+      final page = _pageController.hasClients ? _pageController.safePage?.round() ?? _lastKnownPage.round() : 10000;
       final actualIndex = _feedItems.isNotEmpty ? (page % _feedItems.length + _feedItems.length) % _feedItems.length : 0;
 
       if (_lastPausedTime != null) {
@@ -1442,7 +1455,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         }
 
         final activePosts = homeData.feedPosts;
-        final page = _pageController.hasClients ? _pageController.page?.round() ?? 10000 : 10000;
+        final page = _pageController.hasClients ? _pageController.safePage?.round() ?? _lastKnownPage.round() : 10000;
         final actualIndex = _feedItems.isNotEmpty ? (page % _feedItems.length + _feedItems.length) % _feedItems.length : 0;
         final isTopPage = actualIndex == 0;
 
@@ -1712,7 +1725,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       animation: Listenable.merge([_pageController, _shuffleController, _spreadController]),
       builder: (context, child) {
         if (_feedItems.isEmpty) return const SizedBox.shrink();
-        final scrollPos = _pageController.hasClients ? _pageController.page ?? 10000.0 : 10000.0;
+        final scrollPos = _pageController.hasClients ? _pageController.safePage ?? _lastKnownPage : 10000.0;
 
         return LayoutBuilder(
           builder: (context, constraints) {

@@ -1182,7 +1182,39 @@
       "name": { "type": "String" },
       "count": { "type": "int" }
     }
-  }
+  },
+  "statusNoteYourNote": "自分の一言",
+  "statusNotePlaceholder": "今何に燃えてる？🔥",
+  "statusNoteSheetTitle": "一言を残す",
+  "statusNoteSheetDesc": "フォロー中の仲間に24時間限定で共有されます",
+  "statusNoteInputHint": "今の気合いや一言を入力...",
+  "statusNoteShare": "シェアする",
+  "statusNoteDelete": "一言を削除",
+  "statusNoteUpdated": "一言を更新しました ✨",
+  "statusNoteDeleted": "一言を削除しました",
+  "statusNoteReplyHint": "{name}の一言に返信...",
+  "@statusNoteReplyHint": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "statusNoteRepliedTo": "{name}の一言に返信しました",
+  "@statusNoteRepliedTo": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "statusNoteRepliedToYou": "あなたの一言に返信しました",
+  "statusNoteReplySent": "{name}さんに返信を送りました！🔥",
+  "@statusNoteReplySent": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "statusNoteQuickPreset1": "今から集中モード🔥",
+  "statusNoteQuickPreset2": "今日のタスク完了✨",
+  "statusNoteQuickPreset3": "一緒に頑張ろう💪",
+  "statusNoteQuickPreset4": "朝活スタート☀️"
 }
 
 

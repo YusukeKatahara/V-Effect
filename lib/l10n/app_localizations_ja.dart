@@ -2529,4 +2529,61 @@ class AppLocalizationsJa extends AppLocalizations {
   String notificationsDmMultiple(String name, int count) {
     return '$nameさんから$count通のメッセージが届いています';
   }
+
+  @override
+  String get statusNoteYourNote => '自分の一言';
+
+  @override
+  String get statusNotePlaceholder => '今何に燃えてる？🔥';
+
+  @override
+  String get statusNoteSheetTitle => '一言を残す';
+
+  @override
+  String get statusNoteSheetDesc => 'フォロー中の仲間に24時間限定で共有されます';
+
+  @override
+  String get statusNoteInputHint => '今の気合いや一言を入力...';
+
+  @override
+  String get statusNoteShare => 'シェアする';
+
+  @override
+  String get statusNoteDelete => '一言を削除';
+
+  @override
+  String get statusNoteUpdated => '一言を更新しました ✨';
+
+  @override
+  String get statusNoteDeleted => '一言を削除しました';
+
+  @override
+  String statusNoteReplyHint(String name) {
+    return '$nameの一言に返信...';
+  }
+
+  @override
+  String statusNoteRepliedTo(String name) {
+    return '$nameの一言に返信しました';
+  }
+
+  @override
+  String get statusNoteRepliedToYou => 'あなたの一言に返信しました';
+
+  @override
+  String statusNoteReplySent(String name) {
+    return '$nameさんに返信を送りました！🔥';
+  }
+
+  @override
+  String get statusNoteQuickPreset1 => '今から集中モード🔥';
+
+  @override
+  String get statusNoteQuickPreset2 => '今日のタスク完了✨';
+
+  @override
+  String get statusNoteQuickPreset3 => '一緒に頑張ろう💪';
+
+  @override
+  String get statusNoteQuickPreset4 => '朝活スタート☀️';
 }

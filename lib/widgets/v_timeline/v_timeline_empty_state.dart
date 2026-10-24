@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../config/app_colors.dart';
 import '../../config/routes.dart';
+import '../../models/app_user.dart';
 import '../../providers/ranking_provider.dart';
 
 /// 全体タイムライン（Vタイムライン）が0件のときに表示するエンプティステート画面
@@ -96,18 +97,23 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
 
   /// ヒーローセクション（「まだ誰も火をつけていません」＋カメラ起動ボタン）
   Widget _buildHeroCallToAction(BuildContext context) {
+    final isDark = AppColors.isDark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
       decoration: BoxDecoration(
-        color: AppColors.grey08,
+        color: isDark ? AppColors.grey08 : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.grey15, width: 1),
+        border: Border.all(
+          color: isDark ? AppColors.grey15 : AppColors.grey20,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
+            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.06),
             blurRadius: 16,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -137,10 +143,11 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
           const SizedBox(height: 16),
           Text(
             'まだ誰も火をつけていません',
+            textAlign: TextAlign.center,
             style: GoogleFonts.notoSansJp(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppColors.pureWhite,
+              color: isDark ? AppColors.pureWhite : AppColors.pureBlack,
               letterSpacing: 0.5,
             ),
           ),
@@ -150,7 +157,7 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
             textAlign: TextAlign.center,
             style: GoogleFonts.notoSansJp(
               fontSize: 13,
-              color: AppColors.grey50,
+              color: isDark ? AppColors.grey50 : AppColors.grey70,
               height: 1.5,
             ),
           ),
@@ -206,6 +213,8 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
 
   /// ランキングセクションの見出し
   Widget _buildLeaderboardHeader() {
+    final isDark = AppColors.isDark;
+
     return Row(
       children: [
         const Icon(
@@ -215,11 +224,11 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
         ),
         const SizedBox(width: 8),
         Text(
-          '挑戦者ランキング',
+          'ランキング',
           style: GoogleFonts.notoSansJp(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: AppColors.pureWhite,
+            color: isDark ? AppColors.pureWhite : AppColors.pureBlack,
             letterSpacing: 0.5,
           ),
         ),
@@ -229,7 +238,7 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
           style: GoogleFonts.montserrat(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: AppColors.grey50,
+            color: isDark ? AppColors.grey50 : AppColors.grey70,
             letterSpacing: 1.5,
           ),
         ),
@@ -239,12 +248,16 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
 
   /// 切り替えタブ（ストリーク vs トータルV）
   Widget _buildSegmentedTab() {
+    final isDark = AppColors.isDark;
+
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.grey10,
+        color: isDark ? AppColors.grey10 : const Color(0xFFF1F3F5),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.grey15),
+        border: Border.all(
+          color: isDark ? AppColors.grey15 : AppColors.grey20,
+        ),
       ),
       child: Row(
         children: [
@@ -282,6 +295,8 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
     required Color activeColor,
     required VoidCallback onTap,
   }) {
+    final isDark = AppColors.isDark;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -289,10 +304,21 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.grey15 : Colors.transparent,
+          color: isSelected
+              ? (isDark ? AppColors.grey15 : Colors.white)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           border: isSelected
               ? Border.all(color: activeColor.withValues(alpha: 0.6), width: 1)
+              : null,
+          boxShadow: (isSelected && !isDark)
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
               : null,
         ),
         child: Column(
@@ -302,7 +328,9 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
               style: GoogleFonts.notoSansJp(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? AppColors.pureWhite : AppColors.grey50,
+                color: isSelected
+                    ? (isDark ? AppColors.pureWhite : AppColors.pureBlack)
+                    : (isDark ? AppColors.grey50 : AppColors.grey70),
               ),
             ),
             const SizedBox(height: 2),
@@ -310,7 +338,9 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
               subtitle,
               style: GoogleFonts.notoSansJp(
                 fontSize: 10,
-                color: isSelected ? AppColors.grey70 : AppColors.grey30,
+                color: isSelected
+                    ? (isDark ? AppColors.grey70 : AppColors.grey70)
+                    : (isDark ? AppColors.grey30 : AppColors.grey50),
               ),
             ),
           ],
@@ -325,6 +355,8 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
     required AsyncValue<List<RankingUser>> rankingAsync,
     required bool isStreak,
   }) {
+    final isDark = AppColors.isDark;
+
     return KeyedSubtree(
       key: key,
       child: rankingAsync.when(
@@ -345,7 +377,10 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
         alignment: Alignment.center,
         child: Text(
           'ランキングの取得に失敗しました',
-          style: GoogleFonts.notoSansJp(color: AppColors.grey50, fontSize: 13),
+          style: GoogleFonts.notoSansJp(
+            color: isDark ? AppColors.grey50 : AppColors.grey70,
+            fontSize: 13,
+          ),
         ),
       ),
       data: (users) {
@@ -353,9 +388,20 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
             decoration: BoxDecoration(
-              color: AppColors.grey08,
+              color: isDark ? AppColors.grey08 : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.grey15),
+              border: Border.all(
+                color: isDark ? AppColors.grey15 : AppColors.grey20,
+              ),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
             ),
             child: Column(
               children: [
@@ -368,7 +414,7 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
                 Text(
                   'まだランカーがいません',
                   style: GoogleFonts.notoSansJp(
-                    color: AppColors.pureWhite,
+                    color: isDark ? AppColors.pureWhite : AppColors.pureBlack,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
@@ -377,7 +423,7 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
                 Text(
                   '毎日投稿を続けて、最初の1位を目指そう！',
                   style: GoogleFonts.notoSansJp(
-                    color: AppColors.grey50,
+                    color: isDark ? AppColors.grey50 : AppColors.grey70,
                     fontSize: 12,
                   ),
                 ),
@@ -388,9 +434,20 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
 
         return Container(
           decoration: BoxDecoration(
-            color: AppColors.grey08,
+            color: isDark ? AppColors.grey08 : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.grey15),
+            border: Border.all(
+              color: isDark ? AppColors.grey15 : AppColors.grey20,
+            ),
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
           child: ListView.separated(
             shrinkWrap: true,
@@ -399,7 +456,7 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
             itemCount: users.length,
             separatorBuilder: (_, __) => Divider(
               height: 1,
-              color: AppColors.grey15,
+              color: isDark ? AppColors.grey15 : const Color(0xFFEEEEEE),
               indent: 16,
               endIndent: 16,
             ),
@@ -427,6 +484,8 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
     required RankingUser user,
     required bool isStreak,
   }) {
+    final isDark = AppColors.isDark;
+
     // 順位メダルのデザイン設定
     Color badgeColor;
     IconData? medalIcon;
@@ -435,13 +494,13 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
       badgeColor = const Color(0xFFFFD700); // 🥇 ゴールド
       medalIcon = Icons.military_tech_rounded;
     } else if (rank == 2) {
-      badgeColor = const Color(0xFFC0C0C0); // 🥈 シルバー
+      badgeColor = isDark ? const Color(0xFFC0C0C0) : const Color(0xFF9E9E9E); // 🥈 シルバー
       medalIcon = Icons.military_tech_rounded;
     } else if (rank == 3) {
       badgeColor = const Color(0xFFCD7F32); // 🥉 ブロンズ
       medalIcon = Icons.military_tech_rounded;
     } else {
-      badgeColor = AppColors.grey50;
+      badgeColor = isDark ? AppColors.grey50 : AppColors.grey70;
       medalIcon = null;
     }
 
@@ -478,7 +537,7 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
             // アバター画像
             CircleAvatar(
               radius: 18,
-              backgroundColor: AppColors.grey20,
+              backgroundColor: isDark ? AppColors.grey20 : const Color(0xFFE5E7EB),
               backgroundImage: user.photoUrl != null && user.photoUrl!.isNotEmpty
                   ? NetworkImage(user.photoUrl!)
                   : null,
@@ -488,7 +547,7 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
                       style: GoogleFonts.notoSansJp(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.pureWhite,
+                        color: isDark ? AppColors.pureWhite : AppColors.pureBlack,
                       ),
                     )
                   : null,
@@ -504,59 +563,134 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
                 style: GoogleFonts.notoSansJp(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.pureWhite,
+                  color: isDark ? AppColors.pureWhite : AppColors.pureBlack,
                 ),
               ),
             ),
             const SizedBox(width: 8),
 
             // スコア表示（ストリーク or トータルV）
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: isStreak
-                    ? const Color(0xFFFF6D00).withValues(alpha: 0.12)
-                    : const Color(0xFFFFD700).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isStreak
-                      ? const Color(0xFFFF6D00).withValues(alpha: 0.3)
-                      : const Color(0xFFFFD700).withValues(alpha: 0.3),
-                  width: 0.8,
+            if (isStreak)
+              _buildStreakBadge(user)
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFFFFD700).withValues(alpha: 0.12)
+                      : const Color(0xFFFFD700).withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFFFFD700).withValues(alpha: 0.3)
+                        : const Color(0xFFFFB300).withValues(alpha: 0.5),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.emoji_events_rounded,
+                      color: isDark ? const Color(0xFFFFD700) : const Color(0xFFD97706),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${user.totalPosts}回',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? AppColors.pureWhite : const Color(0xFF9A6B00),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isStreak
-                        ? Icons.local_fire_department_rounded
-                        : Icons.emoji_events_rounded,
-                    color: isStreak
-                        ? const Color(0xFFFF9100)
-                        : const Color(0xFFFFD700),
-                    size: 14,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    isStreak ? '${user.streak}日' : '${user.totalPosts}回',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.pureWhite,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
+  /// ストリークバッジ（現在ストリーク＋最高ストリーク併記）
+  Widget _buildStreakBadge(RankingUser user) {
+    final isDark = AppColors.isDark;
+    final bool hasPastBest = user.maxStreak > user.streak;
+    final bool isBestRecord = user.maxStreak <= user.streak && user.streak > 1;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: (hasPastBest || isBestRecord) ? 4 : 5,
+      ),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFFFF6D00).withValues(alpha: 0.12)
+            : const Color(0xFFFF6D00).withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular((hasPastBest || isBestRecord) ? 10 : 20),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFFFF6D00).withValues(alpha: 0.3)
+              : const Color(0xFFFF6D00).withValues(alpha: 0.45),
+          width: 0.8,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.local_fire_department_rounded,
+                color: Color(0xFFFF9100),
+                size: 14,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '${user.streak}日',
+                style: GoogleFonts.montserrat(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColors.pureWhite : const Color(0xFFD84315),
+                ),
+              ),
+            ],
+          ),
+          if (hasPastBest) ...[
+            const SizedBox(height: 1),
+            Text(
+              'BEST ${user.maxStreak}日',
+              style: GoogleFonts.montserrat(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w600,
+                color: isDark ? const Color(0xFFFFB300) : const Color(0xFFE65100),
+                letterSpacing: 0.3,
+              ),
+            ),
+          ] else if (isBestRecord) ...[
+            const SizedBox(height: 1),
+            Text(
+              'RECORD ✨',
+              style: GoogleFonts.montserrat(
+                fontSize: 8.5,
+                fontWeight: FontWeight.w800,
+                color: isDark ? const Color(0xFFFFD700) : const Color(0xFFE65100),
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   /// あなたの現在地（My Status）カード
   Widget _buildMyStatusCard(AsyncValue<dynamic> myStatsAsync) {
+    final isDark = AppColors.isDark;
+
     return myStatsAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
@@ -564,18 +698,28 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
         if (user == null) return const SizedBox.shrink();
 
         final streak = user.streak ?? 0;
+        final maxStreak = (user is AppUser) ? user.maxStreak : (user.maxStreak ?? streak);
         final totalPosts = user.totalPosts ?? 0;
 
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
           decoration: BoxDecoration(
-            color: AppColors.grey10,
+            color: isDark ? AppColors.grey10 : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.accentGold.withValues(alpha: 0.3),
+              color: AppColors.accentGold.withValues(alpha: isDark ? 0.3 : 0.4),
               width: 1,
             ),
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: AppColors.accentGold.withValues(alpha: 0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
           child: Row(
             children: [
@@ -584,11 +728,11 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
                 height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.accentGold.withValues(alpha: 0.15),
+                  color: AppColors.accentGold.withValues(alpha: isDark ? 0.15 : 0.12),
                 ),
                 child: Icon(
                   Icons.person_rounded,
-                  color: AppColors.accentGold,
+                  color: isDark ? AppColors.accentGold : const Color(0xFFB8860B),
                   size: 20,
                 ),
               ),
@@ -602,27 +746,45 @@ class _VTimelineEmptyStateState extends ConsumerState<VTimelineEmptyState> {
                       style: GoogleFonts.notoSansJp(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.grey50,
+                        color: isDark ? AppColors.grey50 : AppColors.grey70,
                       ),
                     ),
                     const SizedBox(height: 3),
-                    Row(
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 12,
+                      runSpacing: 4,
                       children: [
-                        Text(
-                          '🔥 $streak日連続',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.pureWhite,
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '🔥 $streak日連続',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? AppColors.pureWhite : AppColors.pureBlack,
+                              ),
+                            ),
+                            if (maxStreak > streak) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '(最高 $maxStreak日)',
+                                style: GoogleFonts.notoSansJp(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? const Color(0xFFFFB300) : const Color(0xFFD97706),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        const SizedBox(width: 12),
                         Text(
                           '🏆 トータルV $totalPosts回',
                           style: GoogleFonts.montserrat(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.grey70,
+                            color: isDark ? AppColors.grey70 : AppColors.grey70,
                           ),
                         ),
                       ],

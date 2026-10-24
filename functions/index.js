@@ -2530,9 +2530,23 @@ exports.sendDirectMessageNotification = onDocumentCreated(
       const recipientUid = participants.find((uid) => uid !== senderId);
       if (!recipientUid) return;
 
-      // 送信者の名前を取得
+      // 送信者の名前・アイコンURLを取得（ルーム内の非正規化データを優先し、未設定時は users/{senderId} から補完）
       const senderInfo = participantDetails[senderId] || {};
-      const senderName = senderInfo.name || "フレンド";
+      let senderName = senderInfo.name || "";
+      let senderAvatarUrl = senderInfo.photoUrl || "";
+      if (!senderName || !senderAvatarUrl) {
+        const senderDoc = await db.collection("users").doc(senderId).get();
+        if (senderDoc.exists) {
+          const sData = senderDoc.data() || {};
+          if (!senderName) {
+            senderName = sData.displayName || sData.username || "フレンド";
+          }
+          if (!senderAvatarUrl) {
+            senderAvatarUrl = sData.photoUrl || "";
+          }
+        }
+      }
+      if (!senderName) senderName = "フレンド";
 
       // 受信者のプライバシー設定（メッセージ内容プレビュー表示）を確認
       const recipientDoc = await db.collection("users").doc(recipientUid).get();
@@ -2556,7 +2570,7 @@ exports.sendDirectMessageNotification = onDocumentCreated(
           chatId: chatId,
           senderId: senderId,
           senderName: senderName,
-          senderAvatarUrl: senderInfo.photoUrl || "",
+          senderAvatarUrl: senderAvatarUrl,
         }
       );
 

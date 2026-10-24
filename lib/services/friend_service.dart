@@ -403,11 +403,11 @@ class FriendService {
 
       if (uids.isEmpty) return <AppUser>[];
 
-      final usersSnap = await _db
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: uids.take(30).toList())
-          .get();
-      return usersSnap.docs.map((doc) => AppUser.fromFirestore(doc)).toList();
+      final users = await getUsersByUids(uids);
+      for (final u in users) {
+        _userCache[u.uid] = u;
+      }
+      return users;
     }).handleError((e) {
       debugPrint('getFollowing error: $e');
       return <AppUser>[];

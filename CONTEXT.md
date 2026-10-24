@@ -7,14 +7,33 @@
 ## 🔄 Current Status (現在の状況)
 - **Phase:** Live in Production / Performance Optimization & Feature Enhancement
 - **⚠️ IMPORTANT:** このアプリは既にApp Storeにて正式リリース済み（本番運用中）です。未リリースの前提で回答・実装を行わないこと。
-- **Last Updated:** 2026-09-16
-- **Activeエージェント:** Antigravity (Gemini 3.8 Flash)
-- **Current Task:** Implement Direct Chat Step 3: Pair Streak & Positive-Only Today Status in Header (Completed)
-- **Action:** 個別チャット画面のAppBarに、個人の日数を晒さず2人の継続を称える「ペアストリーク（🤝 N日ペア）」および、今日達成時のみ表示される「今日達成 ✨」（アバター光彩リング）を完全実装。未完了時は非表示にするノーギルト設計を徹底。
+- **Last Updated:** 2026-10-23
+- **Activeエージェント:** Antigravity (Gemini 4 Argon)
+- **Current Task:** Expand Bottom Pill Bar to 5 Tabs with Center DM Tab & Add 24h Status Notes ("一言欄") Feature (Completed)
+- **Action:** 下部ピルバーをInstagram最新UI準拠の5タブ（ホーム → 地球儀 → DM(中央・未読件数バッジ＆インナーカプセル強調) → 炎・タスク → プロフィール）に拡張。DM画面上部に24時間限定の「一言欄（V-Note）」横スクロールレーン、一言作成・削除シート、および友達の一言へのワンタップ引用DM返信機能を実装。
 
 ---
 
 ## 📝 Recent Changes (直近の変更内容)
+
+### 2026-10-23 (Antigravity)
+- **Expand Bottom Spatial Pill Bar to 5 Tabs & Implement 24h Status Notes ("一言欄 / V-Note") (下部ピルバー5タブ化＆DM画面「一言欄」機能の実装):**
+  - **下部ピルバーの5タブ化 & インナーカプセルUI (`main_shell.dart`, `hero_tasks_screen.dart`, `deep_link_service.dart`):**
+    - タブ構成を `[0: 🧭 ホーム] → [1: 🌐 地球儀] → [2: 💬 DM(中央)] → [3: 🔥 炎・タスク] → [4: 👤 プロフィール]` の5タブに拡張し、タブインデックス定数（`MainShell.tabHome` 等）を導入。
+    - 選択中のタブアイコン背後に半透明のカプセル型ハイライトを表示し、中央のDMアイコンにはリアルタイム未読件数ピルバッジ（`badgeCount`）を表示。炎画面右上は `NotificationBellIcon` に統一。
+  - **Firestore追加Readゼロの24時間限定「一言欄」データ設計 (`app_user.dart`, `user_service.dart`, `friend_service.dart`, `direct_chat_provider.dart`):**
+    - `AppUser` に `statusNote`（最大60文字）と `statusNoteUpdatedAt`、および24時間有効判定ゲッター `hasActiveStatusNote` / `activeStatusNote` を追加。既存のフォロー中ユーザー取得データをそのまま活用することで追加Firestore Readコスト0回を実現。
+  - **一言欄UI & 1タップ引用DM返信 (`status_notes_bar.dart`, `direct_chat_list_screen.dart`, `direct_chat_screen.dart`, `direct_chat.dart`, `direct_chat_service.dart`):**
+    - DM一覧画面の最上部に横スクロールの一言レーン（`StatusNotesBar`）を配置。フォロー中のユーザー全員を表示し、24時間以内に一言を設定中のユーザーを左側に優先ソート（今日タスク達成済みのユーザーはゴールドリング表示）。
+    - 自分の枠タップでリアルタイム吹き出しプレビュー＆定型フレーズ付きの編集・削除ボトムシートを表示。
+    - 友達の一言タップでクイック返信シート（6種のワンタップ称賛絵文字＋テキスト入力）を開き、`DirectChatMessage.replyNoteText` を用いて一言を引用したDMを送信・表示。
+  - **多言語化・テスト検証 (`app_ja.arb`, `app_en.arb`, `app_notification_test.dart`):** 日英リソースを追加して `flutter gen-l10n` を同期。`flutter analyze lib/`（エラー0件）および `flutter test`（全67件パス）を確認。
+
+### 2026-10-21 (Antigravity)
+- **Enable iOS Communication Notifications for Direct Messages (LINE風DMユーザーアイコン通知の完全実装とデプロイ):**
+  - **Xcodeターゲット登録 & 埋め込み (`project.pbxproj`):** これまでディスク上に孤立していた `NotificationService` 拡張機能（`NotificationService.appex`）を Xcode プロジェクトの正規ターゲットとして登録し、アプリ本体（`Runner.app/PlugIns`）への Embed 設定を完了。`Generated.xcconfig` と連動させバージョン整合性を担保。
+  - **Communication Notifications の正規化 (`NotificationService.swift`):** `INSendMessageIntent` 作成後に必須となる `interaction.donate()` の完了ハンドラ経由で通知コンテンツを更新するよう修正。また、相手がプロフィール画像未設定の場合でも、V EFFECTテーマのダーク×ゴールド枠＋頭文字イニシャルを描画する `createFallbackAvatarImage` を実装し、100%確実にユーザーアイコン（LINE風）で表示されるよう強化。
+  - **Cloud Functions のアバター補完とデプロイ (`functions/index.js`):** `sendDirectMessageNotification` にて、チャットルーム側の参加者情報にアイコンURLがない場合でも `users/{senderId}` から最新の `photoUrl` を自動補完するフォールバックを追加。`firebase deploy --only functions:sendDirectMessageNotification` にて本番デプロイ完了。
 
 ### 2026-09-16 (Antigravity)
 - **Implement Direct Chat Step 3: Pair Streak & Positive-Only Today Status (ヘッダーのペアストリーク＆今日達成ステータス表示の実装):**

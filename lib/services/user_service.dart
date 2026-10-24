@@ -679,6 +679,46 @@ class UserService {
 
     _updateController.add(null);
   }
+
+  /// 一言欄（V-Note）を更新または削除します（最大60文字、24時間で自動消滅）
+  ///
+  /// [note] が null または空文字の場合は一言を削除します。
+  Future<void> updateStatusNote(String? note) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final trimmed = note?.trim() ?? '';
+    final userDocRef = _db.collection('users').doc(uid);
+
+    if (trimmed.isEmpty) {
+      await userDocRef.set({
+        AppUser.fieldStatusNote: FieldValue.delete(),
+        AppUser.fieldStatusNoteUpdatedAt: FieldValue.delete(),
+      }, SetOptions(merge: true));
+    } else {
+      final safeNote = trimmed.length > 60 ? trimmed.substring(0, 60) : trimmed;
+      await userDocRef.set({
+        AppUser.fieldStatusNote: safeNote,
+        AppUser.fieldStatusNoteUpdatedAt: FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+
+    _updateController.add(null);
+  }
+
+  /// 指定したユーザーの情報をリアルタイム監視します
+  Stream<AppUser?> watchUser(String uid) {
+    if (uid.isEmpty) return Stream.value(null);
+    return _db
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((snap) => snap.exists ? AppUser.fromFirestore(snap) : null)
+        .handleError((e) {
+          debugPrint('watchUser error: $e');
+          return null;
+        });
+  }
 }
 
 

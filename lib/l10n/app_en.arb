@@ -1182,6 +1182,38 @@
       "name": { "type": "String" },
       "count": { "type": "int" }
     }
-  }
+  },
+  "statusNoteYourNote": "Your note",
+  "statusNotePlaceholder": "What's your focus? 🔥",
+  "statusNoteSheetTitle": "Leave a note",
+  "statusNoteSheetDesc": "Shared with friends for 24 hours",
+  "statusNoteInputHint": "Share a thought or goal...",
+  "statusNoteShare": "Share",
+  "statusNoteDelete": "Delete note",
+  "statusNoteUpdated": "Note updated ✨",
+  "statusNoteDeleted": "Note deleted",
+  "statusNoteReplyHint": "Reply to {name}'s note...",
+  "@statusNoteReplyHint": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "statusNoteRepliedTo": "Replied to {name}'s note",
+  "@statusNoteRepliedTo": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "statusNoteRepliedToYou": "Replied to your note",
+  "statusNoteReplySent": "Sent a reply to {name}! 🔥",
+  "@statusNoteReplySent": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "statusNoteQuickPreset1": "Focus mode on 🔥",
+  "statusNoteQuickPreset2": "Today's task done ✨",
+  "statusNoteQuickPreset3": "Let's do our best 💪",
+  "statusNoteQuickPreset4": "Morning routine ☀️"
 }
 

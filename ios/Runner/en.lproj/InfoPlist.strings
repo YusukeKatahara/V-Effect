@@ -1,0 +1,20 @@
+/* Bundle display name */
+CFBundleDisplayName = "V EFFECT";
+
+/* Camera Permission */
+NSCameraUsageDescription = "Used to take photos for Hero Tasks and scan QR codes to add friends.";
+
+/* Microphone Permission */
+NSMicrophoneUsageDescription = "Used when recording videos to ensure stable camera functionality.";
+
+/* Photo Library Permission */
+NSPhotoLibraryUsageDescription = "Used to select profile photos and photos for Hero Tasks.";
+
+/* Photo Library Add Permission */
+NSPhotoLibraryAddUsageDescription = "Used to save QR codes to your photo library.";
+
+/* App Tracking Transparency */
+NSUserTrackingUsageDescription = "Used to deliver personalized ads tailored to your interests. You can change this setting anytime in your device Settings.";
+
+/* Local Network Permission */
+NSLocalNetworkUsageDescription = "Used to connect to the Dart VM (debugging server) on the local network.";

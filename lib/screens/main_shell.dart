@@ -16,6 +16,8 @@ import 'home_screen.dart';
 import 'v_timeline_screen.dart';
 import 'profile_screen.dart';
 import 'hero_tasks_screen.dart';
+import 'chat/direct_chat_list_screen.dart';
+import '../providers/direct_chat_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home/components/floating_flames_layer.dart';
 import 'home/components/dopamine_emoji_explosion_layer.dart';
@@ -29,6 +31,13 @@ import '../widgets/auto_pause_tab.dart';
 class MainShell extends ConsumerStatefulWidget {
   final int initialIndex;
   const MainShell({super.key, this.initialIndex = 0});
+
+  /// タブのインデックス定数（案B：ホーム → 地球儀 → DM(中央) → 炎・タスク → プロフィール）
+  static const int tabHome = 0;
+  static const int tabTimeline = 1;
+  static const int tabDirectChat = 2;
+  static const int tabHeroTasks = 3;
+  static const int tabProfile = 4;
 
   /// 外部からタブを切り替えるためのグローバル変数
   static final ValueNotifier<int> activeTabIndex = ValueNotifier<int>(0);
@@ -257,6 +266,10 @@ class _MainShellState extends ConsumerState<MainShell> {
       ),
     ),
     const AutoPauseTab(tabKey: 'tab_timeline', child: VTimelineScreen()),
+    const AutoPauseTab(
+      tabKey: 'tab_direct_chat',
+      child: DirectChatListScreen(isTab: true),
+    ),
     const AutoPauseTab(tabKey: 'tab_hero_tasks', child: HeroTasksScreen()),
     const AutoPauseTab(tabKey: 'tab_profile', child: ProfileScreen()),
   ];
@@ -416,36 +429,52 @@ class _MainShellState extends ConsumerState<MainShell> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Home (Feed)
+                    // 0: Home (Feed)
                     _SpatialNavItem(
                       icon: Icons.explore_rounded,
-                      isActive: _currentIndex == 0,
-                      onTap: () => _onTap(0),
+                      isActive: _currentIndex == MainShell.tabHome,
+                      onTap: () => _onTap(MainShell.tabHome),
                     ),
 
-                    // V Timeline (Public)
+                    // 1: V Timeline (Public)
                     _SpatialNavItem(
                       icon: Icons.public_rounded,
-                      isActive: _currentIndex == 1,
-                      onTap: () => _onTap(1),
+                      isActive: _currentIndex == MainShell.tabTimeline,
+                      onTap: () => _onTap(MainShell.tabTimeline),
                     ),
 
-                    // Hero Tasks
+                    // 2: Direct Messages (Center - Instagram風配置 & 未読件数バッジ)
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final unreadAsync = ref.watch(directChatTotalUnreadCountProvider);
+                        final unreadCount = unreadAsync.valueOrNull ?? 0;
+                        return _SpatialNavItem(
+                          icon: _currentIndex == MainShell.tabDirectChat
+                              ? Icons.chat_bubble_rounded
+                              : Icons.chat_bubble_outline_rounded,
+                          isActive: _currentIndex == MainShell.tabDirectChat,
+                          onTap: () => _onTap(MainShell.tabDirectChat),
+                          badgeCount: unreadCount,
+                        );
+                      },
+                    ),
+
+                    // 3: Hero Tasks (Flame)
                     _SpatialNavItem(
                       icon: Icons.whatshot_rounded,
-                      isActive: _currentIndex == 2,
-                      onTap: () => _onTap(2),
+                      isActive: _currentIndex == MainShell.tabHeroTasks,
+                      onTap: () => _onTap(MainShell.tabHeroTasks),
                     ),
 
-                    // Profile
+                    // 4: Profile
                     StreamBuilder<List<FriendRequest>>(
                       stream: ref.watch(friendServiceProvider).getReceivedRequests(),
                       builder: (context, snapshot) {
                         final hasRequests = !snapshot.hasError && snapshot.hasData && snapshot.data!.isNotEmpty;
                         return _SpatialNavItem(
                           icon: Icons.person_rounded,
-                          isActive: _currentIndex == 3,
-                          onTap: () => _onTap(3),
+                          isActive: _currentIndex == MainShell.tabProfile,
+                          onTap: () => _onTap(MainShell.tabProfile),
                           hasBadge: hasRequests,
                         );
                       },
@@ -462,7 +491,7 @@ class _MainShellState extends ConsumerState<MainShell> {
 }
 
 // ────────────────────────────────────────────
-// Spatial Nav Item — Icon-driven
+// Spatial Nav Item — Icon-driven (Instagram最新ピルバー風インナーカプセル対応)
 // ────────────────────────────────────────────
 class _SpatialNavItem extends StatelessWidget {
   const _SpatialNavItem({
@@ -470,22 +499,34 @@ class _SpatialNavItem extends StatelessWidget {
     required this.isActive,
     required this.onTap,
     this.hasBadge = false,
+    this.badgeCount = 0,
   });
 
   final IconData icon;
   final bool isActive;
   final VoidCallback onTap;
   final bool hasBadge;
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDark;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), // タップ有効領域（当たり判定）を広く維持しつつ余白を調整
+        margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive
+              ? (isDark
+                  ? AppColors.white.withValues(alpha: 0.14)
+                  : AppColors.pureBlack.withValues(alpha: 0.08))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Center(
           widthFactor: 1.0,
           heightFactor: 1.0,
@@ -493,23 +534,51 @@ class _SpatialNavItem extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               AnimatedScale(
-                scale: isActive ? 1.15 : 1.0, // アクティブ時に拡大するスムーズなアニメーション効果 (プランB)
+                scale: isActive ? 1.12 : 1.0,
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOutCubic,
                 child: Icon(
                   icon,
-                  size: 20, // 基準のアイコンサイズを20に変更 (アクティブ時は23相当に拡大)
+                  size: 20,
                   color: isActive
                       ? AppColors.white
-                      : (AppColors.isDark ? AppColors.grey30 : AppColors.grey50),
+                      : (isDark ? AppColors.grey30 : AppColors.grey50),
                 ),
               ),
-              if (hasBadge)
+              if (badgeCount > 0)
+                Positioned(
+                  right: -8,
+                  bottom: -6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 1),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF1A1A1C) : AppColors.pureWhite,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        badgeCount > 99 ? '99+' : '$badgeCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else if (hasBadge)
                 Positioned(
                   right: -2,
                   top: -2,
                   child: Container(
-                    width: 7, // バーの縮小に合わせてバッジのサイズもわずかに縮小 (8 -> 7)
+                    width: 7,
                     height: 7,
                     decoration: BoxDecoration(
                       color: AppColors.error,

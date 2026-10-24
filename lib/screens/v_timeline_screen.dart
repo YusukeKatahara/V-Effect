@@ -24,6 +24,7 @@ import 'home/components/feed_card.dart';
 import 'home/components/bgm_indicator.dart';
 import 'main_shell.dart';
 import '../widgets/v_phoenix_rebirth_dialog.dart';
+import '../utils/page_controller_extension.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:v_effect/l10n/app_localizations.dart';
@@ -103,14 +104,17 @@ class _VTimelineScreenState extends ConsumerState<VTimelineScreen>
     // PageControllerのドラッグ（スクロール位置）変更を監視
     _pageController.addListener(() {
       if (_pageController.hasClients) {
-        setState(() {
-          _scrollPos = _pageController.page ?? 100000.0;
-          final index = _scrollPos.round();
-          if (index != _focusedGlobalIndex) {
-            _focusedGlobalIndex = index;
-            _onFocusedIndexChanged(index);
-          }
-        });
+        final p = _pageController.safePage;
+        if (p != null) {
+          setState(() {
+            _scrollPos = p;
+            final index = _scrollPos.round();
+            if (index != _focusedGlobalIndex) {
+              _focusedGlobalIndex = index;
+              _onFocusedIndexChanged(index);
+            }
+          });
+        }
       }
     });
   }

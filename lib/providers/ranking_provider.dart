@@ -10,6 +10,7 @@ class RankingUser {
   final String? userId;
   final String? photoUrl;
   final int streak;
+  final int maxStreak;
   final int totalPosts;
 
   const RankingUser({
@@ -18,6 +19,7 @@ class RankingUser {
     this.userId,
     this.photoUrl,
     required this.streak,
+    required this.maxStreak,
     required this.totalPosts,
   });
 }
@@ -42,6 +44,7 @@ final streakRankingProvider = FutureProvider.autoDispose<List<RankingUser>>((ref
               userId: u.userId,
               photoUrl: u.photoUrl,
               streak: u.streak,
+              maxStreak: u.maxStreak,
               totalPosts: u.totalPosts,
             ))
         .toList();
@@ -70,6 +73,7 @@ final totalVRankingProvider = FutureProvider.autoDispose<List<RankingUser>>((ref
               userId: u.userId,
               photoUrl: u.photoUrl,
               streak: u.streak,
+              maxStreak: u.maxStreak,
               totalPosts: u.totalPosts,
             ))
         .toList();
